@@ -2,3 +2,5 @@ __pycache__
 *.pyc
 *.ipynb
 notebooks/*
+
+notebooks/alignment_development_v1.ipynb
