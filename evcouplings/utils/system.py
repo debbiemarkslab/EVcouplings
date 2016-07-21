@@ -7,6 +7,7 @@ Authors:
 
 
 import os
+from os import path
 import tempfile
 import subprocess
 import requests
@@ -15,6 +16,12 @@ import requests
 class ResourceError(IOError):
     """
     Exception for missing resources (files, URLs, ...)
+    """
+
+
+class ExternalToolError(IOError):
+    """
+    Exception for failing external calculations
     """
 
 
@@ -53,6 +60,29 @@ def run(cmd, stdin=None, working_dir=None, shell=False):
         return_code = proc.returncode
 
         return return_code, stdout, stderr
+
+
+def file_not_empty(file_path):
+    """
+    Verify if a file exists and is not empty.
+    """
+    try:
+        return os.stat(file_path).st_size > 0
+    except OSError:
+        return False
+
+
+def create_prefix_folders(prefix):
+    """
+    Create a directory tree contained in a prefix.
+
+    prefix : str
+        Prefix containing directory tree
+    """
+    dirname = path.dirname(prefix)
+
+    if dirname != "":
+        makedirs(dirname)
 
 
 def makedirs(directories):
