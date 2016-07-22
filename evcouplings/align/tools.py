@@ -71,6 +71,7 @@ def run_jackhmmer(query, database, prefix,
     ------
     ExternalToolError
     """
+    # TODO: think about exception handling here
     create_prefix_folders(prefix)
 
     # store filenames of all individual results;
@@ -129,6 +130,7 @@ def run_jackhmmer(query, database, prefix,
 
     cmd += [query, database]
 
+    # TODO: think about exception handling here
     return_code, stdout, stderr = run(cmd)
 
     # make sure return code is okay
