@@ -25,7 +25,8 @@ class ExternalToolError(IOError):
     """
 
 
-def run(cmd, stdin=None, working_dir=None, shell=False):
+def run(cmd, stdin=None, check_returncode=True,
+        working_dir=None, shell=False):
     """
     Run external program as subprocess.
 
@@ -35,6 +36,9 @@ def run(cmd, stdin=None, working_dir=None, shell=False):
         Command (and  optional command line arguments)
     stdin : str or byte sequence, optional (default: None)
         Input to be sent to STDIN of the process
+    check_returncode : bool, optional (default=True)
+        Verify if call had returncode == 0, otherwise raise
+        ExternalToolError
     working_dir : str, optional (default: None)
         Change to this directory before running command
     binary_stream : bool, optional (default: False)
@@ -50,16 +54,33 @@ def run(cmd, stdin=None, working_dir=None, shell=False):
         Byte string with stdout output
     stderr
         Byte string of stderr output
+
+    Raises
+    ------
+    ExternalToolError
     """
-    with subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            stdin=subprocess.PIPE, universal_newlines=True,
-            cwd=working_dir, shell=shell
-    ) as proc:
-        (stdout, stderr) = proc.communicate(stdin)
-        return_code = proc.returncode
+    try:
+        with subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                stdin=subprocess.PIPE, universal_newlines=True,
+                cwd=working_dir, shell=shell
+        ) as proc:
+            (stdout, stderr) = proc.communicate(stdin)
+            return_code = proc.returncode
+
+            if check_returncode and return_code != 0:
+                raise ExternalToolError(
+                    "Call failed: cmd={} returncode={} stdout={} stderr={}".format(
+                        cmd, return_code, stdout, stderr
+                    )
+                )
 
         return return_code, stdout, stderr
+
+    except (OSError, ValueError) as e:
+        raise ExternalToolError(
+            "Call to external tool failed: {}".format(cmd)
+        ) from e
 
 
 def file_not_empty(file_path):
