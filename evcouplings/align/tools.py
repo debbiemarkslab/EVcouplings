@@ -7,7 +7,8 @@ Authors:
 
 from collections import namedtuple
 from evcouplings.utils.system import (
-    run, ExternalToolError, file_not_empty, create_prefix_folders
+    run, file_not_empty, create_prefix_folders,
+    ExternalToolError, ResourceError
 )
 
 # output fields for storing results of a jackhmmer run
@@ -69,9 +70,8 @@ def run_jackhmmer(query, database, prefix,
 
     Raises
     ------
-    ExternalToolError
+    ExternalToolError, ResourceError
     """
-    # TODO: think about exception handling here
     create_prefix_folders(prefix)
 
     # store filenames of all individual results;
@@ -125,25 +125,15 @@ def run_jackhmmer(query, database, prefix,
     if checkpoints_ali:
         cmd += ["--chkali", prefix]
     if checkpoints_hmm:
-        print("checkpointing")
         cmd += ["--chkhmm", prefix]
 
     cmd += [query, database]
 
-    # TODO: think about exception handling here
     return_code, stdout, stderr = run(cmd)
-
-    # make sure return code is okay
-    if return_code != 0:
-        raise ExternalToolError(
-            "jackhmmer run failed: returncode={} stdout={} stderr={}".format(
-                return_code, stdout, stderr
-            )
-        )
 
     # also check we actually created some sort of alignment
     if not file_not_empty(result.alignment):
-        raise ExternalToolError(
+        raise ResourceError(
             "jackhmmer returned empty alignment: stdout={} stderr={} file={}".format(
                 stdout, stderr, result.alignment
             )
