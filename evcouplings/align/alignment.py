@@ -94,8 +94,11 @@ def read_stockholm(fileobj, read_annotation=False):
     gs = DefaultOrderedDict(lambda: DefaultOrderedDict(list))
     gr = DefaultOrderedDict(lambda: DefaultOrderedDict(str))
 
+    # line counter within current alignment (can be more than one per file)
+    i = 0
+
     # read alignment
-    for i, line in enumerate(fileobj):
+    for line in fileobj:
         if i == 0 and not line.startswith("# STOCKHOLM 1.0"):
             raise ValueError(
                 "Not a valid Stockholm alignment: "
@@ -122,11 +125,17 @@ def read_stockholm(fileobj, read_annotation=False):
                     _, seq_id, feat, seq = line.rstrip().split()
                     gr[seq_id][feat] += seq
 
+            i += 1
+
         # terminator line for current alignment;
         # only yield once we see // to avoid reading
         # truncated alignments
         elif line.startswith("//"):
             yield StockholmAlignment(seqs, gf, gc, gs, gr)
+
+            # reset counter to check for valid start of alignment
+            # once we read the next line
+            i = 0
 
         # actual alignment lines
         else:
@@ -135,6 +144,8 @@ def read_stockholm(fileobj, read_annotation=False):
             if len(splitted) == 2:
                 seq_id, seq = splitted
                 seqs[seq_id] += seq
+
+            i += 1
 
     # Do NOT yield at the end without // to avoid returning truncated alignments
 
