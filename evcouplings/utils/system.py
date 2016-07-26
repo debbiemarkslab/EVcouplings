@@ -13,13 +13,13 @@ import subprocess
 import requests
 
 
-class ResourceError(IOError):
+class ResourceError(Exception):
     """
     Exception for missing resources (files, URLs, ...)
     """
 
 
-class ExternalToolError(IOError):
+class ExternalToolError(Exception):
     """
     Exception for failing external calculations
     """
@@ -70,7 +70,7 @@ def run(cmd, stdin=None, check_returncode=True,
 
             if check_returncode and return_code != 0:
                 raise ExternalToolError(
-                    "Call failed: cmd={} returncode={} stdout={} stderr={}".format(
+                    "Call failed:\ncmd={}\nreturncode={}\nstdout={}\nstderr={}".format(
                         cmd, return_code, stdout, stderr
                     )
                 )
@@ -79,7 +79,7 @@ def run(cmd, stdin=None, check_returncode=True,
 
     except (OSError, ValueError) as e:
         raise ExternalToolError(
-            "Call to external tool failed: {}".format(cmd)
+            "Call to external tool failed and did not return: {}".format(cmd)
         ) from e
 
 
