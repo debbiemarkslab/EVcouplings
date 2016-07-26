@@ -171,6 +171,49 @@ def read_a3m(fileobj):
     raise NotImplementedError
 
 
+def sequences_to_matrix(sequences):
+    """
+    Transforms a dictionary with sequences into a
+    numpy array. Sequences are added progessively
+    in the order of sequences.items() (i.e., use
+    OrderedDict to enforce order).
+
+    Parameters
+    ----------
+    sequences : dict(str)
+        Dictionary from sequence IDs (keys) to
+        sequences (values).
+
+    Returns
+    -------
+    numpy.array
+        2D array containing sequence alignment
+        (first axis: sequences, second axis: columns)
+    int
+        Number of sequences in the alignment
+    int
+        Number of columns in the alignment
+    """
+    if len(sequences) == 0:
+        raise ValueError("Need at least one sequence")
+
+    N = len(sequences)
+    L = len(next(iter(sequences.values())))
+    matrix = np.empty((N, L), dtype=np.str)
+
+    for i, (seq_id, seq) in enumerate(sequences.items()):
+        if len(seq) != L:
+            raise ValueError(
+                "Sequences have differing lengths: i={} L_0={} L_i={}".format(
+                    seq_id, L, len(seq)
+                )
+            )
+
+        matrix[i] = np.array(list(seq))
+
+    return matrix
+
+
 class Alignment(object):
     """
     Container to store and manipulate multiple sequence alignments.
@@ -223,7 +266,8 @@ class Alignment(object):
             raise ValueError("Invalid alignment format: {}".format(format))
 
         # convert to internal matrix representation
-        self.matrix, self.N, self.L = Alignment.to_matrix(seqs)
+        self.matrix = sequences_to_matrix(seqs)
+        self.N, self.L = self.matrix.shape
 
         # store sequence ID mappings
         self.ids = list(seqs.keys())
@@ -234,6 +278,7 @@ class Alignment(object):
     def __getitem__(self, index):
         """
         # TODO: eventually this should allow fancy indexing
+        and offer the functionality of select()
         """
         if index in self.id_to_index:
             return self.matrix[self.id_to_index[index], :]
@@ -246,46 +291,6 @@ class Alignment(object):
 
     def __len__(self):
         return self.N
-
-    @staticmethod
-    def to_matrix(sequences):
-        """
-        Transforms a dictionary with sequences
-
-        Parameters
-        ----------
-        sequences : dict(str)
-            Dictionary from sequence IDs (keys) to
-            sequences (values)
-
-        Returns
-        -------
-        numpy.array
-            2D array containing sequence alignment
-            (first axis: sequences, second axis: columns)
-        int
-            Number of sequences in the alignment
-        int
-            Number of columns in the alignment
-        """
-        if len(sequences) == 0:
-            raise ValueError("Need at least one sequence")
-
-        N = len(sequences)
-        L = len(next(iter(sequences.values())))
-        matrix = np.empty((N, L), dtype=np.str)
-
-        for i, (seq_id, seq) in enumerate(sequences.items()):
-            if len(seq) != L:
-                raise ValueError(
-                    "Sequences have differing lengths: i={} L_0={} L_i={}".format(
-                        seq_id, L, len(seq)
-                    )
-                )
-
-            matrix[i] = np.array(list(seq))
-
-        return matrix, N, L
 
     def count(self, char, axis="pos", normalize=True):
         """
