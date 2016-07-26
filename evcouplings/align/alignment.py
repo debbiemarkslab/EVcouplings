@@ -7,6 +7,7 @@ Authors:
 """
 
 from collections import namedtuple
+from copy import deepcopy
 import numpy as np
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
 
@@ -397,12 +398,14 @@ class Alignment(object):
 
         Parameters
         ----------
-        columns : np.array(bool)
+        columns : np.array(bool) or np.array(int), optional
             Vector containing True for each column that
-            should be retained, False otherwise
-        sequences : np.array(bool)
-            Vector containing True for each sequence
-            that should be retained, False otherwise
+            should be retained, False otherwise; or the
+            indices of columns that should be selected
+        sequences : np.array(bool) or np.array(int), optional
+            Vector containing True for each sequence that
+            should be retained, False otherwise; or the
+            indices of sequences that should be selected
 
         Returns
         -------
@@ -423,9 +426,49 @@ class Alignment(object):
             sel_matrix = sel_matrix[sequences, :]
             ids = ids[sequences]
 
-        # do not copy annotation
+        # do not copy annotation since it may become
+        # inconsistent
         return Alignment(
             np.copy(sel_matrix), np.copy(ids)
+        )
+
+    def apply(self, columns=None, sequences=None, func=np.char.lower):
+        """
+        Apply a function along columns and/or rows of alignment matrix
+
+        Parameters
+        ----------
+        columns : np.array(bool) or np.array(int), optional
+            Vector containing True for each column that
+            should be retained, False otherwise; or the
+            indices of columns that should be selected
+        sequences : np.array(bool) or np.array(int), optional
+            Vector containing True for each sequence that
+            should be retained, False otherwise; or the
+            indices of sequences that should be selected
+        func : callable
+            Vectorized numpy function that will be applied to
+            the selected subset of the alignment matrix
+
+        Returns
+        -------
+        Alignment
+            Alignment with modified columns and sequences
+            (this alignment maintains annotation)
+        """
+        if columns is None and sequences is None:
+            return self
+
+        mod_matrix = np.copy(self.matrix)
+
+        if columns is not None:
+            mod_matrix[:, columns] = func(mod_matrix[:, columns])
+
+        if sequences is not None:
+            mod_matrix[sequences, :] = func(mod_matrix[sequences, :])
+
+        return Alignment(
+            mod_matrix, np.copy(self.ids), deepcopy(self.annotation)
         )
 
     def write(self, fileobj, format="fasta", width=80):
