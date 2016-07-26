@@ -49,7 +49,9 @@ def standard(config, realign=False):
 
     # set correct headers (make ready for plmc)
 
-    # generate specieslist
+    # generate specieslist (copy into sequence headers?)
+
+    # output gap statistics, conservation of columns
 
     # visualize distributions?
 
