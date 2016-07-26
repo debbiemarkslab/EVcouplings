@@ -219,8 +219,7 @@ class Alignment(object):
     subsets of positions
 
     # TODO: missing features
-    - changing from uppercase to lowercase
-    - add sequence identity calculations back in
+    - add sequence identity calculations back in from old evcouplings module
     """
     def __init__(self, sequence_matrix, sequence_ids=None, annotation=None):
         """
@@ -470,6 +469,29 @@ class Alignment(object):
         return Alignment(
             mod_matrix, np.copy(self.ids), deepcopy(self.annotation)
         )
+
+    def conservation(self, use_gaps=True, normalize=True):
+        """
+        Calculate per-column conservation of sequence alignment
+        based on entropy of single-column frequency distribution
+        (does not use sequence reweighting but raw counts). For
+        reweighted frequencies, use f_i parameters stored in eij
+        files.
+
+        Parameters
+        ----------
+        use_gaps : bool, optional (default: True)
+            Use gaps in conservation calculation
+        normalize : bool, optional (default: True)
+            Transform column entropy to range 0 (no conservation)
+            to 1 (fully conserved)
+
+        Returns
+        -------
+        np.array
+            Vector of length L with conservation scores
+        """
+        raise NotImplementedError
 
     def write(self, fileobj, format="fasta", width=80):
         """
