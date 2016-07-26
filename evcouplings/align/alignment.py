@@ -7,7 +7,6 @@ Authors:
 """
 
 from collections import namedtuple
-from copy import deepcopy
 import numpy as np
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
 
@@ -414,24 +413,20 @@ class Alignment(object):
         if columns is None and sequences is None:
             return self
 
-        # create empty alignment
-        selected = Alignment(None)
-
-        if sequences is not None:
-            selected.matrix = np.copy(self.matrix[sequences, :])
-            selected.ids = [seq_id for (i, seq_id) in enumerate(self.ids) if sequences[i]]
-        else:
-            selected.ids = deepcopy(self.ids)
+        sel_matrix = self.matrix
+        ids = self.ids
 
         if columns is not None:
-            selected.matrix = np.copy(self.matrix[:, columns])
+            sel_matrix = sel_matrix[:, columns]
 
-        selected.N, selected.L = selected.matrix.shape
-        selected.id_to_index = {
-            id_: i for i, id_ in enumerate(selected.ids)
-        }
+        if sequences is not None:
+            sel_matrix = sel_matrix[sequences, :]
+            ids = ids[sequences]
 
-        return selected
+        # do not copy annotation
+        return Alignment(
+            np.copy(sel_matrix), np.copy(ids)
+        )
 
     def write(self, fileobj, format="fasta", width=80):
         """
