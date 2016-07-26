@@ -16,6 +16,20 @@ def fetch_sequence(config):
     return
 
 
+def search_jackhmmer(config):
+    """
+    Get alignment by homology search from query
+    """
+    return
+
+
+def modify_alignment(config):
+    """
+    Prepare alignment to be ready for EC calculation
+    """
+    return
+
+
 def standard(config, realign=False):
     """
     Standard buildali workflow
@@ -23,6 +37,7 @@ def standard(config, realign=False):
     config: list all items read by this protocol
 
     TODO: think about how to handle config parameters best.
+    TODO: The workflow has to take care of logging
     """
     # get the sequence (or move this outside?)
 
