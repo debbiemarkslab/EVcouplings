@@ -173,39 +173,32 @@ def read_a3m(fileobj):
 
 def sequences_to_matrix(sequences):
     """
-    Transforms a dictionary with sequences into a
-    numpy array. Sequences are added progessively
-    in the order of sequences.items() (i.e., use
-    OrderedDict to enforce order).
+    Transforms a list of sequences into a
+    numpy array.
 
     Parameters
     ----------
-    sequences : dict(str)
-        Dictionary from sequence IDs (keys) to
-        sequences (values).
+    sequences : list-like (str)
+        List of strings containing aligned sequences
 
     Returns
     -------
     numpy.array
         2D array containing sequence alignment
         (first axis: sequences, second axis: columns)
-    int
-        Number of sequences in the alignment
-    int
-        Number of columns in the alignment
     """
     if len(sequences) == 0:
         raise ValueError("Need at least one sequence")
 
     N = len(sequences)
-    L = len(next(iter(sequences.values())))
+    L = len(next(iter(sequences)))
     matrix = np.empty((N, L), dtype=np.str)
 
-    for i, (seq_id, seq) in enumerate(sequences.items()):
+    for i, seq in enumerate(sequences):
         if len(seq) != L:
             raise ValueError(
                 "Sequences have differing lengths: i={} L_0={} L_i={}".format(
-                    seq_id, L, len(seq)
+                    i, L, len(seq)
                 )
             )
 
@@ -229,8 +222,77 @@ class Alignment(object):
     - changing from uppercase to lowercase
     - add sequence identity calculations back in
     """
-    def __init__(self, fileobj, format="fasta"):
+    def __init__(self, sequence_matrix, sequence_ids=None, annotation=None):
         """
+        Create new alignment object from ready-made components.
+
+        Note:
+        Use factory method Alignment.from_file to create alignment from file,
+        or Alignment.from_dict from dictionary of sequences.
+
+        Parameters
+        ----------
+        sequence_matrix : np.array
+            N x L array of characters in the alignment
+            (N=number of sequences, L=width of alignment)
+        sequence_ids : list-like, optional (default=None)
+            Sequence names of alignment members (must have N elements).
+            If None, defaults sequence IDs to "0", "1", ...
+        annotation : dict-like
+            Annotation for sequence alignment
+
+        Raises
+        ------
+        ValueError
+            If dimensions of sequence_matrix and sequence_ids
+            are inconsistent
+        """
+        self.matrix = np.array(sequence_matrix)
+        self.N, self.L = self.matrix.shape
+
+        if sequence_ids is None:
+            # default to numbering sequences if not given
+            self.ids = [str(i) for i in range(self.N)]
+        else:
+            if len(sequence_ids) != self.N:
+                raise ValueError(
+                    "Number of sequence IDs and length of "
+                    "alignment do not match".format(
+                        len(sequence_ids), self.L
+                    )
+                )
+
+            # make sure we get rid of iterators etc.
+            self.ids = np.array(list(sequence_ids))
+
+        self.id_to_index = {
+            id_: i for i, id_ in enumerate(self.ids)
+        }
+
+        if annotation is not None:
+            self.annotation = annotation
+        else:
+            self.annotation = {}
+
+    @classmethod
+    def from_dict(cls, sequences, annotation=None):
+        """
+        Construct an alignment object from a dictionary
+        with sequence IDs as keys and aligned sequences
+        as values.
+        """
+        matrix = sequences_to_matrix(sequences.values())
+
+        return cls(
+            matrix, sequences.keys(), annotation
+        )
+
+    @classmethod
+    def from_file(cls, fileobj, format="fasta"):
+        """
+        Construct an alignment object by reading in an
+        alignment file.
+
         Parameters
         ----------
         fileobj : file-like obj
@@ -238,18 +300,19 @@ class Alignment(object):
         format : {"fasta", "stockholm"}
             Format of input alignment
 
+        Returns
+        -------
+        Alignment
+            Parsed alignment
+
         Raises
         ------
         ValueError
             For invalid alignments or alignment formats
         """
-        # meta annotation (e.g. from Stockholm format)
-        self.annotation = {}
-
-        if fileobj is None:
-            return
-
+        annotation = {}
         # read in sequence alignment from file
+
         if format == "fasta":
             seqs = DefaultOrderedDict()
             for seq_id, seq in read_fasta(fileobj):
@@ -258,22 +321,14 @@ class Alignment(object):
             # only reads first Stockholm alignment contained in file
             ali = next(read_stockholm(fileobj, read_annotation=True))
             seqs = ali.seqs
-            self.annotation["GF"] = ali.gf
-            self.annotation["GC"] = ali.gc
-            self.annotation["GS"] = ali.gs
-            self.annotation["GR"] = ali.gr
+            annotation["GF"] = ali.gf
+            annotation["GC"] = ali.gc
+            annotation["GS"] = ali.gs
+            annotation["GR"] = ali.gr
         else:
             raise ValueError("Invalid alignment format: {}".format(format))
 
-        # convert to internal matrix representation
-        self.matrix = sequences_to_matrix(seqs)
-        self.N, self.L = self.matrix.shape
-
-        # store sequence ID mappings
-        self.ids = list(seqs.keys())
-        self.id_to_index = {
-            id_: i for i, id_ in enumerate(self.ids)
-        }
+        return cls.from_dict(seqs, annotation)
 
     def __getitem__(self, index):
         """
@@ -296,6 +351,9 @@ class Alignment(object):
         """
         Count occurrences of a character in the sequence
         alignment.
+
+        Note that these counts are raw counts not adjusted for
+        sequence redundancy.
 
         Parameters
         ----------
