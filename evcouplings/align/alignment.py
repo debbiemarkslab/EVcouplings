@@ -6,7 +6,7 @@ Authors:
   Thomas A. Hopf
 """
 
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from copy import deepcopy
 import numpy as np
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
@@ -152,23 +152,76 @@ def read_stockholm(fileobj, read_annotation=False):
     # Do NOT yield at the end without // to avoid returning truncated alignments
 
 
-def read_a3m(fileobj):
+def read_a3m(fileobj, inserts="first"):
     """
     Read an alignment in compressed a3m format and expand
     into a2m format.
+
+    Note: this function is currently not able to keep inserts
+    in all the sequences
+    # TODO: implement this
 
     Parameters
     ----------
     fileobj : file-like object
         A3M alignment file
+    inserts : {"first", "delete"}
+        Keep inserts in first sequence, or delete
+        any insert column and keep only match state
+        columns.
 
     Returns
     -------
-    ???
+    OrderedDict
+        Sequences in alignment (key: ID, value: sequence),
+        in order they appeared in input file
 
-    # TODO: implement
+    Raises
+    ------
+    ValueError
+        Upon invalid choice of insert strategy
     """
-    raise NotImplementedError
+    seqs = OrderedDict()
+
+    for i, (seq_id, seq) in enumerate(read_fasta(fileobj)):
+        # remove any insert gaps that may still be in alignment
+        # (just to be sure)
+        seq = seq.replace(".", "")
+
+        if inserts == "first":
+            # define "spacing" of uppercase columns in
+            # final alignment based on target sequence;
+            # remaining columns will be filled with insert
+            # gaps in the other sequences
+            if i == 0:
+                uppercase_cols = [
+                    j for (j, c) in enumerate(seq)
+                    if (c == c.upper() or c == "-")
+                ]
+                gap_template = np.array(["."] * len(seq))
+                filled_seq = seq
+            else:
+                uppercase_chars = [
+                    c for c in seq if c == c.upper() or c == "-"
+                ]
+                filled = np.copy(gap_template)
+                filled[uppercase_cols] = uppercase_chars
+                filled_seq = "".join(filled)
+
+        elif inserts == "delete":
+            # remove all lowercase letters and insert gaps .;
+            # since each sequence must have same number of
+            # uppercase letters or match gaps -, this gives
+            # the final sequence in alignment
+            seq = "".join([c for c in seq if c == c.upper() and c != "."])
+        else:
+            raise ValueError(
+                "Invalid option for inserts: {}".format(inserts)
+            )
+
+        seqs[seq_id] = filled_seq
+
+    return seqs
 
 
 def sequences_to_matrix(sequences):
@@ -248,6 +301,8 @@ class Alignment(object):
         """
         self.matrix = np.array(sequence_matrix)
         self.N, self.L = self.matrix.shape
+        self._match_gap = "-"
+        self._insert_gap = "."
 
         if sequence_ids is None:
             # default to numbering sequences if not given
@@ -287,7 +342,7 @@ class Alignment(object):
         )
 
     @classmethod
-    def from_file(cls, fileobj, format="fasta"):
+    def from_file(cls, fileobj, format="fasta", a3m_inserts="first"):
         """
         Construct an alignment object by reading in an
         alignment file.
@@ -296,8 +351,11 @@ class Alignment(object):
         ----------
         fileobj : file-like obj
             Alignment to be read in
-        format : {"fasta", "stockholm"}
+        format : {"fasta", "stockholm", "a3m"}
             Format of input alignment
+        a3m_inserts : {"first", "delete"}, optional (default: "first")
+            Strategy to deal with inserts in a3m alignment files
+            (see read_a3m documentation for details)
 
         Returns
         -------
@@ -313,7 +371,7 @@ class Alignment(object):
         # read in sequence alignment from file
 
         if format == "fasta":
-            seqs = DefaultOrderedDict()
+            seqs = OrderedDict()
             for seq_id, seq in read_fasta(fileobj):
                 seqs[seq_id] = seq
         elif format == "stockholm":
@@ -324,6 +382,8 @@ class Alignment(object):
             annotation["GC"] = ali.gc
             annotation["GS"] = ali.gs
             annotation["GR"] = ali.gr
+        elif format == "a3m":
+            seqs = read_a3m(fileobj, inserts=a3m_inserts)
         else:
             raise ValueError("Invalid alignment format: {}".format(format))
 
@@ -519,7 +579,7 @@ class Alignment(object):
         return self.apply(
             columns=columns, func=np.char.lower
         ).replace(
-            "-", ".", columns=columns
+            self._match_gap, self._insert_gap, columns=columns
         )
 
     def conservation(self, use_gaps=True, normalize=True):
@@ -571,7 +631,7 @@ class Alignment(object):
                 fileobj.write(wrap(seq, width=width) + "\n")
             elif format == "a3m":
                 fileobj.write(">{}\n".format(seq_id))
-                fileobj.write(seq.replace(".", "") + "\n")
+                fileobj.write(seq.replace(self._insert_gap, "") + "\n")
             elif format == "aln":
                 fileobj.write(seq + "\n")
             else:
