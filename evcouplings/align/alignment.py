@@ -8,9 +8,26 @@ Authors:
 
 from collections import namedtuple, OrderedDict, defaultdict
 from copy import deepcopy
+
 import numpy as np
 from numba import jit
+
+from evcouplings.utils.calculations import entropy
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
+
+# constants
+GAP = "-"
+MATCH_GAP = GAP
+INSERT_GAP = "."
+
+ALPHABET_PROTEIN_NOGAP = "ACDEFGHIKLMNPQRSTVWY"
+ALPHABET_PROTEIN = GAP + ALPHABET_PROTEIN_NOGAP
+
+ALPHABET_DNA_NOGAP = "ACGT"
+ALPHABET_DNA = GAP + ALPHABET_DNA_NOGAP
+
+ALPHABET_RNA_NOGAP = "ACGU"
+ALPHABET_RNA = GAP + ALPHABET_RNA_NOGAP
 
 
 def read_fasta(fileobj):
@@ -261,14 +278,12 @@ def sequences_to_matrix(sequences):
     return matrix
 
 
-def map_matrix(matrix, alphabet="-ACDEFGHIKLMNPQRSTVWY", default="-"):
+def map_from_alphabet(alphabet=ALPHABET_PROTEIN, default=GAP):
     """
-    Map elements in a numpy array using alphabet
+    Creates a mapping dictionary from a given alphabet.
 
     Parameters
     ----------
-    matrix : np.array
-        Matrix that should be remapped
     alphabet : str
         Alphabet for remapping. Elements will
         be remapped according to alphabet starting
@@ -276,11 +291,6 @@ def map_matrix(matrix, alphabet="-ACDEFGHIKLMNPQRSTVWY", default="-"):
     default : Elements in matrix that are not
         contained in alphabet will be treated as
         this character
-
-    Returns
-    -------
-    np.array
-        Remapped matrix
 
     Raises
     ------
@@ -298,8 +308,25 @@ def map_matrix(matrix, alphabet="-ACDEFGHIKLMNPQRSTVWY", default="-"):
             "Default {} is not in alphabet {}".format(default, alphabet)
         )
 
-    map_ = defaultdict(lambda: default, map_)
+    return defaultdict(lambda: default, map_)
 
+
+def map_matrix(matrix, map_):
+    """
+    Map elements in a numpy array using alphabet
+
+    Parameters
+    ----------
+    matrix : np.array
+        Matrix that should be remapped
+    map_ : defaultdict
+        Map that will be applied to matrix elements
+
+    Returns
+    -------
+    np.array
+        Remapped matrix
+    """
     return np.vectorize(map_.__getitem__)(matrix)
 
 
@@ -313,11 +340,9 @@ class Alignment(object):
     lines in Stockholm alignments)
     (2) Sequence ranges in IDs are not adjusted when selecting
     subsets of positions
-
-    # TODO: missing features
-    - add sequence identity calculations back in from old evcouplings module
     """
-    def __init__(self, sequence_matrix, sequence_ids=None, annotation=None):
+    def __init__(self, sequence_matrix, sequence_ids=None, annotation=None,
+                 alphabet=ALPHABET_PROTEIN):
         """
         Create new alignment object from ready-made components.
 
@@ -344,8 +369,28 @@ class Alignment(object):
         """
         self.matrix = np.array(sequence_matrix)
         self.N, self.L = self.matrix.shape
-        self._match_gap = "-"
-        self._insert_gap = "."
+
+        # characters coding for gaps in match-state and insert
+        # columns of the alignment
+        self._match_gap = MATCH_GAP
+        self._insert_gap = INSERT_GAP
+
+        # defined alphabet of alignment
+        self.alphabet = alphabet
+        self.alphabet_default = self._match_gap
+
+        self.alphabet_map = map_from_alphabet(
+            self.alphabet, default=self.alphabet_default
+        )
+        self.num_symbols = len(self.alphabet_map)
+
+        # Alignment matrix remapped into in integers
+        # Will only be calculated if necessary for downstream
+        # calculations
+        self.matrix_mapped = None
+        self.num_cluster_members = None
+        self.weights = None
+        self.frequencies = None
 
         if sequence_ids is None:
             # default to numbering sequences if not given
@@ -372,20 +417,32 @@ class Alignment(object):
             self.annotation = {}
 
     @classmethod
-    def from_dict(cls, sequences, annotation=None):
+    def from_dict(cls, sequences, **kwargs):
         """
         Construct an alignment object from a dictionary
         with sequence IDs as keys and aligned sequences
         as values.
+
+        Parameters
+        ----------
+        sequences : dict-like
+            Dictionary with pairs of sequence ID (key) and
+            aligned sequence (value)
+
+        Returns
+        -------
+        Alignment
+            initialized alignment
         """
         matrix = sequences_to_matrix(sequences.values())
 
         return cls(
-            matrix, sequences.keys(), annotation
+            matrix, sequences.keys(), **kwargs
         )
 
     @classmethod
-    def from_file(cls, fileobj, format="fasta", a3m_inserts="first"):
+    def from_file(cls, fileobj, format="fasta",
+                  a3m_inserts="first", **kwargs):
         """
         Construct an alignment object by reading in an
         alignment file.
@@ -425,12 +482,13 @@ class Alignment(object):
             annotation["GC"] = ali.gc
             annotation["GS"] = ali.gs
             annotation["GR"] = ali.gr
+            kwargs["annotation"] = annotation
         elif format == "a3m":
             seqs = read_a3m(fileobj, inserts=a3m_inserts)
         else:
             raise ValueError("Invalid alignment format: {}".format(format))
 
-        return cls.from_dict(seqs, annotation)
+        return cls.from_dict(seqs, **kwargs)
 
     def __getitem__(self, index):
         """
@@ -531,7 +589,8 @@ class Alignment(object):
         # do not copy annotation since it may become
         # inconsistent
         return Alignment(
-            np.copy(sel_matrix), np.copy(ids)
+            np.copy(sel_matrix), np.copy(ids),
+            alphabet=self.alphabet
         )
 
     def apply(self, columns=None, sequences=None, func=np.char.lower):
@@ -571,7 +630,8 @@ class Alignment(object):
                 mod_matrix[sequences, :] = func(mod_matrix[sequences, :])
 
         return Alignment(
-            mod_matrix, np.copy(self.ids), deepcopy(self.annotation)
+            mod_matrix, np.copy(self.ids), deepcopy(self.annotation),
+            alphabet=self.alphabet
         )
 
     def replace(self, original, replacement, columns=None, sequences=None):
@@ -625,18 +685,112 @@ class Alignment(object):
             self._match_gap, self._insert_gap, columns=columns
         )
 
-    def conservation(self, use_gaps=True, normalize=True):
+    def __ensure_mapped_matrix(self):
         """
-        Calculate per-column conservation of sequence alignment
-        based on entropy of single-column frequency distribution
-        (does not use sequence reweighting but raw counts). For
-        reweighted frequencies, use f_i parameters stored in eij
-        files.
+        Ensure self.matrix_mapped exists
+        """
+        if self.matrix_mapped is None:
+            self.matrix_mapped = map_matrix(
+                self.matrix, self.alphabet_map
+            )
+
+    def set_weights(self, identity_threshold=0.8):
+        """
+        Calculate weights for sequences in alignment by
+        clustering all sequences with sequence identity
+        greater or equal to the given threshold.
+
+        Note that this method sets self.weights.
+        After this method was called, methods such as
+        self.calculate_frequencies() or self.conservation()
+        will make use of sequence weights.
 
         Parameters
         ----------
-        use_gaps : bool, optional (default: True)
-            Use gaps in conservation calculation
+        identity_threshold : float, optional (default: 0.8)
+            Sequence identity threshold
+
+        Returns
+        -------
+        np.array
+            Vector of length N that contains weights for
+            all sequences in alignment. Note that this is
+            a reference to self.weights.
+        """
+        self.__ensure_mapped_matrix()
+
+        self.num_cluster_members = num_cluster_members(
+            self.matrix_mapped, identity_threshold
+        )
+        self.weights = 1.0 / self.num_cluster_members
+
+        return self.weights
+
+    def calculate_frequencies(self):
+        """
+        Calculates single-site frequencies of symbols in alignment.
+        Also sets self.frequencies member variable for later reuse.
+
+        Previously calculated sequence weights using self.set_weights()
+        will be used to adjust frequency counts; otherwise, each sequence
+        will contribute with equal weight.
+
+        Returns
+        -------
+        np.array
+            Reference to self.frequencies
+        """
+        self.__ensure_mapped_matrix()
+
+        # use precalculated sequence weights, but only
+        # if we have explicitly calculated them before
+        # (expensive calculation)
+        if self.weights is None:
+            weights = np.ones((self.N))
+        else:
+            weights = self.weights
+
+        self.frequencies = frequencies(
+            self.matrix_mapped, weights, self.num_symbols
+        )
+
+        return self.frequencies
+
+    def identities_to(self, seq, normalize=True):
+        """
+        Calculate sequence identity between sequence
+        and all sequences in the alignment.
+
+        seq : np.array, list-like, or str
+            Sequence for comparison
+        normalize : bool, optional (default: True)
+            Calculate relative identity between 0 and 1
+            by normalizing with length of alignment
+        """
+        self.__ensure_mapped_matrix()
+
+        # make sure this doesnt break with strings
+        seq = np.array(list(seq))
+
+        seq_mapped = map_matrix(seq, self.alphabet_map)
+        ids = identities_to_seq(seq_mapped, self.matrix_mapped)
+
+        if normalize:
+            return ids / self.L
+        else:
+            return ids
+
+    def conservation(self, normalize=True):
+        """
+        Calculate per-column conservation of sequence alignment
+        based on entropy of single-column frequency distribution.
+
+        If self.set_weights() was called previously, the
+        frequencies used to calculate site entropies will be based
+        on reweighted sequences.
+
+        Parameters
+        ----------
         normalize : bool, optional (default: True)
             Transform column entropy to range 0 (no conservation)
             to 1 (fully conserved)
@@ -646,7 +800,12 @@ class Alignment(object):
         np.array
             Vector of length L with conservation scores
         """
-        raise NotImplementedError
+        fi = self.calculate_frequencies()
+
+        return np.apply_along_axis(
+            lambda x: entropy(x, normalize=normalize),
+            axis=1, arr=fi
+        )
 
     def write(self, fileobj, format="fasta", width=80):
         """
@@ -684,7 +843,7 @@ class Alignment(object):
 
 
 @jit(nopython=True)
-def calculate_fi(matrix, seq_weights, num_symbols):
+def frequencies(matrix, seq_weights, num_symbols):
     """
     Calculate single-site frequencies of symbols in alignment
 
@@ -715,7 +874,7 @@ def calculate_fi(matrix, seq_weights, num_symbols):
 
 
 @jit(nopython=True)
-def calculate_identities_to_seq(seq, matrix):
+def identities_to_seq(seq, matrix):
     """
     Calculate number of identities to given target sequence
     for all sequences in the matrix
@@ -748,3 +907,47 @@ def calculate_identities_to_seq(seq, matrix):
         identities[i] = id_i
 
     return identities
+
+
+@jit(nopython=True)
+def num_cluster_members(matrix, identity_threshold):
+    """
+    Calculate number of sequences in alignment
+    within given identity_threshold of each other
+
+    Parameters
+    ----------
+    matrix : np.array
+        N x L matrix containing N sequences of length L.
+        Matrix must be mapped to range(0, num_symbols) using
+        map_matrix function
+    identity_threshold : float
+        Sequences with at least this pairwise identity will be
+        grouped in the same cluster.
+
+    Returns
+    -------
+    np.array
+        Vector of length N containing number of cluster
+        members for each sequence (inverse of sequence
+        weight)
+    """
+    N, L = matrix.shape
+    L = 1.0 * L
+
+    # minimal cluster size is 1 (self)
+    num_neighbors = np.ones((N))
+
+    # compare all pairs of sequences
+    for i in range(N - 1):
+        for j in range(i + 1, N):
+            pair_id = 0
+            for k in range(L):
+                if matrix[i, k] == matrix[j, k]:
+                    pair_id += 1
+
+            if pair_id / L >= identity_threshold:
+                num_neighbors[i] += 1
+                num_neighbors[j] += 1
+
+    return num_neighbors
