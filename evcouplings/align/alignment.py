@@ -433,7 +433,8 @@ class Alignment(object):
 
     def apply(self, columns=None, sequences=None, func=np.char.lower):
         """
-        Apply a function along columns and/or rows of alignment matrix
+        Apply a function along columns and/or rows of alignment matrix,
+        or to entire matrix.
 
         Parameters
         ----------
@@ -455,19 +456,70 @@ class Alignment(object):
             Alignment with modified columns and sequences
             (this alignment maintains annotation)
         """
-        if columns is None and sequences is None:
-            return self
-
         mod_matrix = np.copy(self.matrix)
 
-        if columns is not None:
-            mod_matrix[:, columns] = func(mod_matrix[:, columns])
+        if columns is None and sequences is None:
+            return self
+        else:
+            if columns is not None:
+                mod_matrix[:, columns] = func(mod_matrix[:, columns])
 
-        if sequences is not None:
-            mod_matrix[sequences, :] = func(mod_matrix[sequences, :])
+            if sequences is not None:
+                mod_matrix[sequences, :] = func(mod_matrix[sequences, :])
 
         return Alignment(
             mod_matrix, np.copy(self.ids), deepcopy(self.annotation)
+        )
+
+    def replace(self, original, replacement, columns=None, sequences=None):
+        """
+        Replace character with another in full matrix or
+        subset of columns/sequences.
+
+        Parameters
+        ----------
+        original : char
+            Character that should be replaced
+        replacement : char
+            Replacement character
+        columns : numpy index array
+            See self.apply for explanation
+        sequences : numpy index array
+            See self.apply for explanation
+
+        Returns
+        -------
+        Alignment
+            Alignment with replaced characters
+
+        """
+        return self.apply(
+            columns, sequences,
+            func=lambda x: np.char.replace(
+                x, original, replacement
+            )
+        )
+
+    def lowercase_columns(self, columns):
+        """
+        Change a subset of columns to lowercase character
+        and replace "-" gaps with "." gaps, e.g. to exclude
+        them from EC calculations
+
+        Parameters
+        ----------
+        columns : numpy index array
+            Subset of columns to make lowercase
+
+        Returns
+        -------
+        Alignment
+            Alignment with lowercase columns
+        """
+        return self.apply(
+            columns=columns, func=np.char.lower
+        ).replace(
+            "-", ".", columns=columns
         )
 
     def conservation(self, use_gaps=True, normalize=True):
