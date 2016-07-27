@@ -143,7 +143,7 @@ def run_jackhmmer(query, database, prefix,
 
 
 def run_hhfilter(input_file, output_file, threshold=95,
-                 columns="first", binary="hhfilter"):
+                 columns="a2m", binary="hhfilter"):
     """
     Redundancy-reduce a sequence alignment using hhfilter
     from the HHsuite alignment suite.
@@ -157,7 +157,7 @@ def run_hhfilter(input_file, output_file, threshold=95,
     threshold : int, optional (default: 95)
         Sequence identity threshold for maximum pairwise
         identity (between 0 and 100)
-    columns : {"first", "a2m"}
+    columns : {"first", "a2m"}, optional (default: "a2m")
         Definition of match columns (based on first sequence
         or upper-case columns (a2m))
     binary : str
