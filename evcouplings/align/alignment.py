@@ -6,9 +6,10 @@ Authors:
   Thomas A. Hopf
 """
 
-from collections import namedtuple, OrderedDict
+from collections import namedtuple, OrderedDict, defaultdict
 from copy import deepcopy
 import numpy as np
+from numba import jit
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
 
 
@@ -258,6 +259,48 @@ def sequences_to_matrix(sequences):
         matrix[i] = np.array(list(seq))
 
     return matrix
+
+
+def map_matrix(matrix, alphabet="-ACDEFGHIKLMNPQRSTVWY", default="-"):
+    """
+    Map elements in a numpy array using alphabet
+
+    Parameters
+    ----------
+    matrix : np.array
+        Matrix that should be remapped
+    alphabet : str
+        Alphabet for remapping. Elements will
+        be remapped according to alphabet starting
+        from 0
+    default : Elements in matrix that are not
+        contained in alphabet will be treated as
+        this character
+
+    Returns
+    -------
+    np.array
+        Remapped matrix
+
+    Raises
+    ------
+    ValueError
+        For invalid default character
+    """
+    map_ = {
+        c: i for i, c in enumerate(alphabet)
+    }
+
+    try:
+        default = map_[default]
+    except KeyError:
+        raise ValueError(
+            "Default {} is not in alphabet {}".format(default, alphabet)
+        )
+
+    map_ = defaultdict(lambda: default, map_)
+
+    return np.vectorize(map_.__getitem__)(matrix)
 
 
 class Alignment(object):
@@ -638,3 +681,70 @@ class Alignment(object):
                 raise ValueError(
                     "Invalid alignment format: {}".format(format)
                 )
+
+
+@jit(nopython=True)
+def calculate_fi(matrix, seq_weights, num_symbols):
+    """
+    Calculate single-site frequencies of symbols in alignment
+
+    Parameters
+    ----------
+    matrix : np.array
+        N x L matrix containing N sequences of length L.
+        Matrix must be mapped to range(0, num_symbols) using
+        map_matrix function
+    seq_weights : np.array
+        Vector of length N containing weight for each sequence
+    num_symbols : int
+        Number of different symbols contained in alignment
+
+    Returns
+    -------
+    np.array
+        Matrix of size N x num_symbols containing relative
+        column frequencies of all characters
+    """
+    N, L = matrix.shape
+    fi = np.zeros((L, num_symbols))
+    for s in range(N):
+        for i in range(L):
+            fi[i, matrix[s, i]] += seq_weights[s]
+
+    return fi / float(N)
+
+
+@jit(nopython=True)
+def calculate_identities_to_seq(seq, matrix):
+    """
+    Calculate number of identities to given target sequence
+    for all sequences in the matrix
+
+    Parameters
+    ----------
+    seq : np.array
+        Vector of length L containing mapped sequence
+        (using map_matrix function)
+    matrix : np.array
+        N x L matrix containing N sequences of length L.
+        Matrix must be mapped to range(0, num_symbols)
+        using map_matrix function
+
+    Returns
+    -------
+    np.array
+        Vector of length N containing number of identities
+        to each sequence in matrix
+    """
+    N, L = matrix.shape
+    identities = np.zeros((N, ))
+
+    for i in range(N):
+        id_i = 0
+        for j in range(L):
+            if matrix[i, j] == seq[j]:
+                id_i += 1
+
+        identities[i] = id_i
+
+    return identities
