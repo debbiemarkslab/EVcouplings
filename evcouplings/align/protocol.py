@@ -30,6 +30,14 @@ def modify_alignment(config):
     return
 
 
+def describe(config):
+    """
+    Get parameters of alignment such as gaps, coverage,
+    conservation
+    """
+    return
+
+
 def standard(config, realign=False):
     """
     Standard buildali workflow
