@@ -553,7 +553,7 @@ class Alignment(object):
         ----------
         fileobj : file-like object
             File to which alignment is saved
-        format : {"fasta", "aln"}
+        format : {"fasta", "aln", "a3m"}
             Output format for alignment
         width : int
             Column width for fasta alignment
@@ -569,6 +569,9 @@ class Alignment(object):
             if format == "fasta":
                 fileobj.write(">{}\n".format(seq_id))
                 fileobj.write(wrap(seq, width=width) + "\n")
+            elif format == "a3m":
+                fileobj.write(">{}\n".format(seq_id))
+                fileobj.write(seq.replace(".", "") + "\n")
             elif format == "aln":
                 fileobj.write(seq + "\n")
             else:
