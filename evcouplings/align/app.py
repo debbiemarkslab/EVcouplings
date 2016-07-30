@@ -8,6 +8,8 @@ Authors:
   Thomas A. Hopf
 """
 
+import argparse
+
 
 def run():
     """
@@ -22,4 +24,25 @@ def run():
 
     # TODO: how to get alignment statistics and plots?
     """
-    return
+    p = argparse.ArgumentParser(description="Calculate multiple sequence sequence alignment")
+    p.add_argument("-p", "--sequence_id", default=None, help="ID/Name of sequence")
+    p.add_argument("-f", "--sequence_file", default=None, help="Sequence file")
+    p.add_argument("-c", "--config_file", default=None, help="Configuration file")
+    args = p.parse_args()
+
+    print(vars(args))
+    print(args.keyvalues)
+    print(args.protein_id)
+    return args
+
+if __name__ == "__main__":
+    run()
+
+"""
+def greet():
+    args = parser.parse_args()
+    args.func(args)
+
+if __name__ == '__main__':
+    greet()
+"""
