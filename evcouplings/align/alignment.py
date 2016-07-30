@@ -65,6 +65,44 @@ def read_fasta(fileobj):
     yield current_id, current_sequence
 
 
+def write_fasta(sequences, fileobj, width=80):
+    """
+    Write a list of IDs/sequences to a FASTA-format file
+
+    Parameters
+    ----------
+    sequences : Iterable
+        Iterator returning tuples(str, str), where
+        first value is header/ID and second the
+        sequence
+    fileobj : file-like obj
+        File to which alignment will be written
+    """
+    for (seq_id, seq) in sequences:
+        fileobj.write(">{}\n".format(seq_id))
+        fileobj.write(wrap(seq, width=width) + "\n")
+
+
+def write_aln(sequences, fileobj, width=80):
+    """
+    Write a list of IDs/sequences to a ALN-format file
+
+    Currently, the file will not contain headers but simply
+    a block matrix of the alignment
+
+    Parameters
+    ----------
+    sequences : Iterable
+        Iterator returning tuples(str, str), where
+        first value is header/ID and second the
+        sequence
+    fileobj : file-like obj
+        File to which alignment will be written
+    """
+    for (seq_id, seq) in sequences:
+        fileobj.write(seq + "\n")
+
+
 # Holds information of a parsed Stockholm alignment file
 StockholmAlignment = namedtuple(
     "StockholmAlignment",
@@ -240,6 +278,24 @@ def read_a3m(fileobj, inserts="first"):
         seqs[seq_id] = filled_seq
 
     return seqs
+
+
+def write_a3m(sequences, fileobj, insert_gap=INSERT_GAP, width=80):
+    """
+    Write a list of IDs/sequences to a FASTA-format file
+
+    Parameters
+    ----------
+    sequences : Iterable
+        Iterator returning tuples(str, str), where
+        first value is header/ID and second the
+        sequence
+    fileobj : file-like obj
+        File to which alignment will be written
+    """
+    for (seq_id, seq) in sequences:
+        fileobj.write(">{}\n".format(seq_id))
+        fileobj.write(seq.replace(insert_gap, "") + "\n")
 
 
 def sequences_to_matrix(sequences):
@@ -825,21 +881,21 @@ class Alignment(object):
         ValueError
             Upon invalid file format specification
         """
-        for i, seq_id in enumerate(self.ids):
-            seq = "".join(self.matrix[i])
+        seqs = (
+            (id_, "".join(self.matrix[i]))
+            for (i, id_) in enumerate(self.ids)
+        )
 
-            if format == "fasta":
-                fileobj.write(">{}\n".format(seq_id))
-                fileobj.write(wrap(seq, width=width) + "\n")
-            elif format == "a3m":
-                fileobj.write(">{}\n".format(seq_id))
-                fileobj.write(seq.replace(self._insert_gap, "") + "\n")
-            elif format == "aln":
-                fileobj.write(seq + "\n")
-            else:
-                raise ValueError(
-                    "Invalid alignment format: {}".format(format)
-                )
+        if format == "fasta":
+            write_fasta(seqs, fileobj, width)
+        elif format == "a3m":
+            write_a3m(seqs, fileobj, self._insert_gap, width)
+        elif format == "aln":
+            write_aln(seqs, fileobj, width)
+        else:
+            raise ValueError(
+                "Invalid alignment format: {}".format(format)
+            )
 
 
 @jit(nopython=True)
