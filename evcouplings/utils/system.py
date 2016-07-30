@@ -194,7 +194,7 @@ def get(url, output_path=None, allow_redirects=False):
 
         if output_path is not None:
             try:
-                write_file(output_path, r.content)
+                write_file(output_path, r.text)
             except IOError as e:
                 raise ResourceError(
                     "Could not save to file: {}".format(output_path)
