@@ -1,26 +1,78 @@
 """
-Alignment creation protocols/workflows.
-
-# TODO: think about how to easily plug in alternative workflows
-        without having to change module
+Protein sequence alignment creation protocols/workflows.
 
 Authors:
   Thomas A. Hopf
 """
 
+import evcouplings.align.tools as at
+from evcouplings.utils.config import check_required
+from evcouplings.utils.system import (
+    create_prefix_folders, get, file_not_empty, ResourceError
+)
 
-def fetch_sequence(config):
+
+# list of available alignment protocols
+PROTOCOLS = {
+    "standard": standard
+}
+
+
+def fetch_sequence(**kwargs):
     """
-    Gets sequence data based on defined logic
+    Get sequence.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    str:
+        Path of file with sequence
     """
-    return
+    check_required(
+        kwargs,
+        ["prefix", "sequence_id", "sequence_file"]
+    )
+
+    if kwargs["sequence_file"] is None:
+        # Only check sequence download URL if we actually
+        # need to download something
+        check_required(kwargs, ["sequence_download_url"])
+
+        outfile = kwargs["prefix"] + ".fa"
+        get(
+            kwargs["sequence_download_url"].format(kwargs["sequence_id"]),
+            outfile,
+            allow_redirects=True
+        )
+    else:
+        # if we have sequence file, pass it through
+        outfile = kwargs["sequence_file"]
+
+    # also make sure input file has something in it
+    if not file_not_empty(outfile):
+        raise ResourceError(
+            "Input sequence missing: {}".format(outfile)
+        )
+
+    return outfile
 
 
-def search_jackhmmer(config):
+def search_jackhmmer(**kwargs):
     """
     Get alignment by homology search from query
     """
-    return
+    check_required(kwargs, [""])
+
+    x = at.run_jackhmmer(
+        "../../test_data/RASH_HUMAN.fa", "../../databases/pdb_seqres.txt", "bla/test",
+        True, 100, 200, iterations=1,
+        binary="../../software/hmmer-3.1b2-macosx-intel/binaries/jackhmmer",
+        checkpoints_hmm=False
+    )
+
+    return x
 
 
 def modify_alignment(config):
@@ -38,18 +90,43 @@ def describe(config):
     return
 
 
-def standard(config, realign=False):
+def dummy(**kwargs):
     """
-    Standard buildali workflow
-
-    config: list all items read by this protocol
-
-    TODO: think about how to handle config parameters best.
-    TODO: The workflow has to take care of logging
+    Dummy protocol if stage is not run
     """
-    # get the sequence (or move this outside?)
+    return
 
-    # run jackhmmer
+
+def standard(**kwargs):
+    """
+    Standard buildali4 workflow
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
+    check_required(
+        kwargs,
+        ["prefix", "sequence_id", "sequence_file"]
+    )
+
+    prefix = kwargs["prefix"]
+    create_prefix_folders(prefix)
+
+    # prepare output dictionary with result files
+    outcfg = {
+        "alignment_file": prefix + ".a2m",
+        "statistics_file": prefix + "_alignment_statistics.csv"
+    }
+
+    # make sure search sequence is defined
+    outcfg["sequence_file"] = fetch_sequence(**kwargs)
+
+    return outcfg
+
+    # run jackhmmer... allow to plonk in pre-exisiting sto file here
 
     # parse to a2m
 
@@ -63,20 +140,38 @@ def standard(config, realign=False):
 
     # visualize distributions?
 
-    if realign:
-        realign(config)
+    # if realign:
+    #    realign(config)
 
     # TODO: how to get alignment statistics and plots?
     # (modularize this into an independent function too)
 
     # in the end, return both alignment object (if in memory)
     # and path to final alignment file
-    return
+    return outcfg
 
 
-def realign(config):
+def run(**kwargs):
     """
-    Realign sequences in multiple sequence alignment.
-    Fetch fulll sequences, etc, etc.
+    Run alignment protocol to generate multiple sequence
+    alignment from input sequence.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        protocol: Alignment protocol to run
+        prefix: Output prefix for all generated files
+
+    Returns
+    -------
+    Dictionary with results of stage in following fields:
+        alignment_file
+        statistics_file
+        sequence_file
+        search_sequence_file
+        sequence_id
+        segments
     """
-    raise NotImplementedError("Realignment not yet implemented")
+    check_required(kwargs, ["protocol"])
+
+    return PROTOCOLS[kwargs["protocol"]](**kwargs)
