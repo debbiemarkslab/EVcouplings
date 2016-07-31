@@ -5,6 +5,8 @@ Authors:
   Thomas A. Hopf
 """
 
+import numpy as np
+
 import evcouplings.align.tools as at
 from evcouplings.align.alignment import (
     read_fasta, write_fasta, Alignment
@@ -273,6 +275,8 @@ def external(**kwargs):
     Use external sequence alignment and extract all relevant
     information from there (e.g. sequence, region, etc.),
     then apply gap & fragment filtering as usual
+
+    # Note: input alignment may already have lowercase positions
     """
     print("Start from existing alignment")
     return {}
@@ -285,9 +289,14 @@ def standard(**kwargs):
 
     Parameters
     ----------
+    # TODO
+
+    If skip is given, ...
+    If callback is given, ...
 
     Returns
     -------
+    # TODO
 
     """
     check_required(
@@ -298,7 +307,8 @@ def standard(**kwargs):
             "region", "first_index",
             "use_bitscores", "domain_threshold", "sequence_threshold",
             "database", "iterations", "cpu", "nobias", "reuse_alignment",
-            "checkpoints_hmm", "checkpoints_ali", "jackhmmer"
+            "checkpoints_hmm", "checkpoints_ali", "jackhmmer",
+            "seqid_filter", "minimum_coverage", "max_gaps_per_column"
         ]
     )
 
@@ -355,6 +365,7 @@ def standard(**kwargs):
         outcfg["sequence_file"]
     )
 
+    # define a single protein segment based on target sequence
     outcfg["segments"] = [
         create_segment(kwargs["sequence_id"], *region)
     ]
@@ -404,28 +415,76 @@ def standard(**kwargs):
     # generate specieslist (copy into sequence headers?)
 
     ali_raw_fasta_file = prefix + "_raw.fasta"
-    with open(ali_raw_fasta_file, "w") as ao:
-        ali_raw.write(ao, "fasta")
+    with open(ali_raw_fasta_file, "w") as f:
+        ali_raw.write(f, "fasta")
 
-    # focus sequence
-    # apply id filter (run hhfilter)
-    # gap threshold, fragment threshold
-    # set correct headers (make ready for plmc) - already good
+    # center alignment around focus/search sequence
+    focus_cols = np.array([c != "-" for c in ali_raw[0]])
+    focus_ali = ali_raw.select(columns=focus_cols)
+    focus_fasta_file = prefix + "_raw_focus.fasta"
+    with open(focus_fasta_file, "w") as f:
+        focus_ali.write(f, "fasta")
 
-    # print(kwargs)
+    # apply pairwise identity filter (using hhfilter)
+    if kwargs["seqid_filter"] is not None:
+        filtered_file = prefix + "_filtered.a3m"
 
+        at.run_hhfilter(
+            focus_fasta_file, filtered_file,
+            threshold=kwargs["seqid_filter"],
+            columns="first", binary=kwargs["hhfilter"]
+        )
+
+        with open(filtered_file) as f:
+            focus_ali = Alignment.from_file(f, "a3m")
+
+        # final FASTA alignment before applying A2M format modifications
+        filtered_fasta_file = prefix + "_raw_focus_filtered.fasta"
+        with open(filtered_fasta_file, "w") as f:
+            focus_ali.write(f, "fasta")
+
+    ali = focus_ali
+
+    # filter fragments
+    # TODO: come up with something more clever here than fixed width
+    # (e.g. use 95% quantile of length distribution as reference point)
+    min_cov = kwargs["minimum_coverage"]
+    if min_cov is not None:
+        if isinstance(min_cov, int):
+            min_cov /= 100
+
+        keep_seqs = (1 - ali.count("-", axis="seq")) >= min_cov
+        ali = ali.select(sequences=keep_seqs)
+
+    # Make columns with too many gaps lowercase
+    max_gaps = kwargs["max_gaps_per_column"]
+    if max_gaps is not None:
+        if isinstance(max_gaps, int):
+            max_gaps /= 100
+
+        lc_cols = ali.count("-", axis="pos") >= max_gaps
+        ali = ali.lowercase_columns(lc_cols)
+
+    final_a2m_file = prefix + ".a2m"
+    with open(final_a2m_file, "w") as f:
+        ali.write(f, "fasta")
+
+    # TODO:
     # output gap statistics, conservation of columns
-
     # visualize distributions?
-
-    # TODO: how to get alignment statistics and plots?
+    #
+    # how to get alignment statistics and plots?
     # (modularize this into an independent function too)
 
-    # dump YAML for debugging
+    # TODO: dump YAML for debugging/logging purposes
+
+    # run callback function if given (e.g. to merge alignment
+    # or update database status)
+    if kwargs.get("callback", None) is not None:
+        kwargs["callback"]({**kwargs, **outcfg})
 
     # in the end, return both alignment object (if in memory)
     # and path to final alignment file
-
     return outcfg
 
 
@@ -456,6 +515,7 @@ def run(**kwargs):
 
     Returns
     -------
+    Alignment
     Dictionary with results of stage in following fields:
         alignment_file
         statistics_file
