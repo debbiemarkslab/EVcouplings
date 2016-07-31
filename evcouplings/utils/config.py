@@ -14,6 +14,12 @@ class MissingParameterError(Exception):
     """
 
 
+class InvalidParameterError(Exception):
+    """
+    Exception for invalid parameter settings
+    """
+
+
 def read_config_file(filename):
     """
     Read and parse a configuration file.
