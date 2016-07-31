@@ -115,7 +115,7 @@ def run_jackhmmer(query, database, prefix,
 
     # number of CPUs
     if cpu is not None:
-        cmd += ["cpu", str(cpu)]
+        cmd += ["--cpu", str(cpu)]
 
     # bias correction filter
     if nobias:
