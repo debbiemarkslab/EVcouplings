@@ -9,7 +9,9 @@ import evcouplings.align.tools as at
 from evcouplings.align.alignment import (
     read_fasta, write_fasta, Alignment
 )
-from evcouplings.utils.config import check_required, MissingParameterError
+from evcouplings.utils.config import (
+    check_required, MissingParameterError, InvalidParameterError
+)
 from evcouplings.utils.system import (
     create_prefix_folders, get, file_not_empty, ResourceError
 )
@@ -97,7 +99,7 @@ def cut_sequence(sequence, sequence_id, region=None, first_index=None, out_file=
 
     Raises
     ------
-    ValueError
+    InvalidParameterError
         Upon invalid region specification (violating boundaries
         of sequence)
     """
@@ -120,8 +122,8 @@ def cut_sequence(sequence, sequence_id, region=None, first_index=None, out_file=
 
         # make sure bounds are valid given the sequence that we have
         if str_start < 0 or str_end > len(sequence):
-            raise ValueError(
-                "Illegal sequence range: "
+            raise InvalidParameterError(
+                "Invalid sequence range: "
                 "region={} first_index={} len(sequence)={}".format(
                     region,
                     first_index,
@@ -314,6 +316,12 @@ def standard(**kwargs):
     # check if stage should be skipped and if so, return
     if kwargs.get("skip", False):
         # get information about sequence range from existing file
+
+        # TODO: add proper exception handling here if any of
+        # the following goes wrong:
+        # 1) check if sequence file is valid
+        # 2) check if region is valid
+        # 3) check if alignment is valid
         with open(outcfg["sequence_file"]) as f:
             seq_id, seq = next(read_fasta(f))
             start, end = seq_id.split("/", maxsplit=1)[1].split("-")
@@ -326,6 +334,7 @@ def standard(**kwargs):
 
     # Otherwise, now run the protocol...
     # make sure output directory exists
+    # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
 
     # make sure search sequence is defined and load it
@@ -380,6 +389,7 @@ def standard(**kwargs):
         ali_raw_file = ali.alignment
     else:
         ali_raw_file = prefix + ".sto"
+
         if not file_not_empty(ali_raw_file):
             raise ResourceError(
                 "Tried to reuse alignment, but file does not exist "
@@ -398,11 +408,11 @@ def standard(**kwargs):
         ali_raw.write(ao, "fasta")
 
     # focus sequence
-    # apply id filter, gap threshold
-    # set correct headers (make ready for plmc)
+    # apply id filter (run hhfilter)
+    # gap threshold, fragment threshold
+    # set correct headers (make ready for plmc) - already good
 
     # print(kwargs)
-    return outcfg
 
     # output gap statistics, conservation of columns
 
@@ -456,5 +466,13 @@ def run(**kwargs):
         focus_mode
     """
     check_required(kwargs, ["protocol"])
+
+    if kwargs["protocol"] not in PROTOCOLS:
+        raise InvalidParameterError(
+            "Invalid protocol selection: " +
+            "{}. Valid protocols are: {}".format(
+                kwargs["protocol"], ", ".join(PROTOCOLS.keys())
+            )
+        )
 
     return PROTOCOLS[kwargs["protocol"]](**kwargs)
