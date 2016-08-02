@@ -325,12 +325,76 @@ def modify_alignment(config):
     return
 
 
-def describe(config):
+def describe_seq_identities(alignment, target_seq_index=0):
+    """
+    Calculate sequence identities of any sequence
+    to target sequence and create result dataframe.
+
+    Parameters
+    ----------
+    alignment : Alignment
+        Alignment for which description statistics
+        will be calculated
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table giving the identity to target sequence
+        for each sequence in alignment (in order of
+        occurrence)
+    """
+    id_to_query = alignment.identities_to(
+        alignment[target_seq_index]
+    )
+
+    return pd.DataFrame(
+        {"id": alignment.ids, "identity_to_query": id_to_query}
+    )
+
+
+def describe_frequencies(alignment, first_index, target_seq_index=None):
     """
     Get parameters of alignment such as gaps, coverage,
-    conservation
+    conservation and summarize.
+
+    Parameters
+    ----------
+    alignment : Alignment
+        Alignment for which description statistics
+        will be calculated
+    first_index : int
+        Sequence index of first residue in target sequence
+    target_seq_index : int, optional (default: None)
+        If given, will add the symbol in the target sequence
+        into a separate column of the output table
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table detailing conservation and symbol frequencies
+        for all positions in the alignment
     """
-    return
+    fi = alignment.frequencies()
+    conservation = alignment.conservation()
+
+    fi_cols = {c: fi[:, i] for c, i in alignment.alphabet_map.items()}
+    if target_seq_index is not None:
+        target_seq = alignment[target_seq_index]
+    else:
+        target_seq = np.empty((alignment.L)).fill(np.nan)
+
+    info = pd.DataFrame(
+        {
+            "pos": range(first_index, first_index + alignment.L),
+            "target_seq": target_seq,
+            "conservation": conservation,
+            **fi_cols
+        }
+    )
+    # reorder columns
+    info = info.loc[:, ["pos", "target_seq", "conservation"] + list(alignment.alphabet)]
+
+    return info
 
 
 def external(**kwargs):
@@ -372,7 +436,8 @@ def standard(**kwargs):
             "use_bitscores", "domain_threshold", "sequence_threshold",
             "database", "iterations", "cpu", "nobias", "reuse_alignment",
             "checkpoints_hmm", "checkpoints_ali", "jackhmmer",
-            "seqid_filter", "minimum_coverage", "max_gaps_per_column"
+            "seqid_filter", "minimum_coverage", "max_gaps_per_column",
+            "extract_annotation"
         ]
     )
 
@@ -476,8 +541,9 @@ def standard(**kwargs):
         ali_raw = Alignment.from_file(a, "stockholm")
 
     # save annotation in sequence headers (species etc.)
-    annotation = extract_header_annotation(ali_raw)
-    annotation.to_csv(prefix + "_annotation.csv", index=False)
+    if kwargs["extract_annotation"]:
+        annotation = extract_header_annotation(ali_raw)
+        annotation.to_csv(prefix + "_annotation.csv", index=False)
 
     ali_raw_fasta_file = prefix + "_raw.fasta"
     with open(ali_raw_fasta_file, "w") as f:
@@ -521,27 +587,36 @@ def standard(**kwargs):
         keep_seqs = (1 - ali.count("-", axis="seq")) >= min_cov
         ali = ali.select(sequences=keep_seqs)
 
+    # Calculate frequencies, conservation and identity to query
+    # on final alignment (except for lowercase modification)
+    describe_seq_identities(ali, target_seq_index=0).to_csv(
+        prefix + "_identities.csv", float_format="%.3f", index=False
+    )
+
+    describe_frequencies(ali, region[0], target_seq_index=0).to_csv(
+        prefix + "_frequencies.csv", float_format="%.3f", index=False
+    )
+
+    # TODO: describe_coverage
+
     # Make columns with too many gaps lowercase
     max_gaps = kwargs["max_gaps_per_column"]
     if max_gaps is not None:
         if isinstance(max_gaps, int):
             max_gaps /= 100
 
-        lc_cols = ali.count("-", axis="pos") >= max_gaps
+        lc_cols = ali.count(ali._match_gap, axis="pos") >= max_gaps
         ali = ali.lowercase_columns(lc_cols)
 
     final_a2m_file = prefix + ".a2m"
     with open(final_a2m_file, "w") as f:
         ali.write(f, "fasta")
 
-    # TODO:
-    # output gap statistics, conservation of columns
-    # visualize distributions?
-    #
-    # how to get alignment statistics and plots?
-    # (modularize this into an independent function too)
+    # TODO: visualize statistics
+    # TODO: how to merge alignment statistics and plots across
+    # different runs?
 
-    # TODO: dump YAML for debugging/logging purposes
+    # TODO: dump config to YAML file for debugging/logging?
 
     # run callback function if given (e.g. to merge alignment
     # or update database status)
