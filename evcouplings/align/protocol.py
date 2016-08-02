@@ -305,7 +305,7 @@ def extract_header_annotation(alignment):
             # do split on known field names o keep things
             # simpler than a gigantic full regex to match
             # (some fields may be missing)
-            pairs = re.split("\s(OS|GN|PE|SV|n|Tax|RepID)=", anno)
+            pairs = re.split(regex, anno)
             pairs = ["id", id_, "name"] + pairs
 
             # create feature-value map
