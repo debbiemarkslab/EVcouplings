@@ -446,7 +446,7 @@ class Alignment(object):
         self.matrix_mapped = None
         self.num_cluster_members = None
         self.weights = None
-        self.frequencies = None
+        self.freqs = None
 
         if sequence_ids is None:
             # default to numbering sequences if not given
@@ -782,35 +782,41 @@ class Alignment(object):
 
         return self.weights
 
-    def calculate_frequencies(self):
+    def frequencies(self, reset=False):
         """
         Calculates single-site frequencies of symbols in alignment.
-        Also sets self.frequencies member variable for later reuse.
+        Also sets self.freqs member variable for later reuse.
 
         Previously calculated sequence weights using self.set_weights()
         will be used to adjust frequency counts; otherwise, each sequence
         will contribute with equal weight.
 
+        Parameters
+        ----------
+        reset : bool, optional (default: False)
+            Reset precalculated frequencies and recalculate
+
         Returns
         -------
         np.array
-            Reference to self.frequencies
+            Reference to self.freqs
         """
-        self.__ensure_mapped_matrix()
+        if self.freqs is None or reset:
+            self.__ensure_mapped_matrix()
 
-        # use precalculated sequence weights, but only
-        # if we have explicitly calculated them before
-        # (expensive calculation)
-        if self.weights is None:
-            weights = np.ones((self.N))
-        else:
-            weights = self.weights
+            # use precalculated sequence weights, but only
+            # if we have explicitly calculated them before
+            # (expensive calculation)
+            if self.weights is None:
+                weights = np.ones((self.N))
+            else:
+                weights = self.weights
 
-        self.frequencies = frequencies(
-            self.matrix_mapped, weights, self.num_symbols
-        )
+            self.freqs = frequencies(
+                self.matrix_mapped, weights, self.num_symbols
+            )
 
-        return self.frequencies
+        return self.freqs
 
     def identities_to(self, seq, normalize=True):
         """
@@ -856,11 +862,9 @@ class Alignment(object):
         np.array
             Vector of length L with conservation scores
         """
-        fi = self.calculate_frequencies()
-
         return np.apply_along_axis(
             lambda x: entropy(x, normalize=normalize),
-            axis=1, arr=fi
+            axis=1, arr=self.frequencies()
         )
 
     def write(self, fileobj, format="fasta", width=80):
