@@ -5,7 +5,11 @@ Authors:
   Thomas A. Hopf
 """
 
+from collections import OrderedDict
+import re
+
 import numpy as np
+import pandas as pd
 
 import evcouplings.align.tools as at
 from evcouplings.align.alignment import (
@@ -254,6 +258,66 @@ def search_thresholds(use_bitscores, seq_threshold, domain_threshold, seq_len):
     return seq_threshold, domain_threshold
 
 
+def extract_header_annotation(alignment):
+    """
+    Extract Uniprot/Uniref sequence annotation from Stockholm file
+    (as output by jackhmmer). This function may not work for other
+    formats.
+
+    Parameters:
+    -----------
+    alignment : Alignment
+        Multiple sequence alignment object
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table containing all annotation
+        (one row per sequence in alignment,
+        in order of occurrence)
+    """
+    columns = [
+        ("GN", "gene"),
+        ("OS", "organism"),
+        ("PE", "existence_evidence"),
+        ("SV", "sequence_version"),
+        ("n", "num_cluster_members"),
+        ("Tax", "taxon"),
+        ("RepID", "representative_member")
+    ]
+
+    col_to_descr = OrderedDict(columns)
+    regex = re.compile("\s({})=".format(
+        "|".join(col_to_descr.keys()))
+    )
+
+    # collect rows for dataframe in here
+    res = []
+
+    for i, id_ in enumerate(alignment.ids):
+        # query level by level to avoid creating new keys
+        # in DefaultOrderedDict
+        if ("GS" in alignment.annotation and
+                id_ in alignment.annotation["GS"] and
+                "DE" in alignment.annotation["GS"][id_]):
+            anno = alignment.annotation["GS"][id_]["DE"]
+
+            # do split on known field names o keep things
+            # simpler than a gigantic full regex to match
+            # (some fields may be missing)
+            pairs = re.split("\s(OS|GN|PE|SV|n|Tax|RepID)=", anno)
+            pairs = ["id", id_, "name"] + pairs
+
+            # create feature-value map
+            feat_map = dict(zip(pairs[::2], pairs[1::2]))
+            res.append(feat_map)
+        else:
+            res.append({"id": id_})
+
+    df = pd.DataFrame(res)
+    return df.loc[:, ["id", "name"] + list(col_to_descr.keys())]
+
+
 def modify_alignment(config):
     """
     Prepare alignment to be ready for EC calculation
@@ -411,8 +475,9 @@ def standard(**kwargs):
     with open(ali_raw_file) as a:
         ali_raw = Alignment.from_file(a, "stockholm")
 
-    # TODO: save species information here from annotation
-    # generate specieslist (copy into sequence headers?)
+    # save annotation in sequence headers (species etc.)
+    annotation = extract_header_annotation(ali_raw)
+    annotation.to_csv(prefix + "_annotation.csv", index=False)
 
     ali_raw_fasta_file = prefix + "_raw.fasta"
     with open(ali_raw_fasta_file, "w") as f:
@@ -485,7 +550,7 @@ def standard(**kwargs):
 
     # in the end, return both alignment object (if in memory)
     # and path to final alignment file
-    return outcfg
+    return outcfg, ali
 
 
 # list of available alignment protocols
