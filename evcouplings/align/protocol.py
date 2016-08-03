@@ -5,7 +5,7 @@ Authors:
   Thomas A. Hopf
 """
 
-from collections import OrderedDict
+from collections import OrderedDict, Iterable
 import re
 
 import numpy as np
@@ -381,7 +381,7 @@ def describe_frequencies(alignment, first_index, target_seq_index=None):
     if target_seq_index is not None:
         target_seq = alignment[target_seq_index]
     else:
-        target_seq = np.empty((alignment.L)).fill(np.nan)
+        target_seq = np.full((alignment.L), np.nan)
 
     info = pd.DataFrame(
         {
@@ -395,6 +395,83 @@ def describe_frequencies(alignment, first_index, target_seq_index=None):
     info = info.loc[:, ["pos", "target_seq", "conservation"] + list(alignment.alphabet)]
 
     return info
+
+
+def describe_coverage(alignment, prefix, first_index, max_gaps_per_column):
+    """
+    Produce "classical" buildali coverage statistics, i.e.
+    number of sequences, how many residues have too many gaps, etc.
+
+    Only to be applied to alignments focused around the
+    target sequence.
+
+    Parameters
+    ----------
+    alignment : Alignment
+        Alignment for which coverage statistics will be calculated
+    prefix : str
+        Prefix of alignment file that will be stored as identifier in table
+    first_index : int
+        Sequence index of first position of target sequence
+    max_gaps_per_column : Iterable(float) or float
+        Gap threshold(s) that will be tested (creating one row for each
+        threshold in output table). Note that int values given to this
+        function instead of a float will be divided by 100 to create
+        the corresponding floating point representation.
+
+    Returns
+    -------
+    pd.DataFrame
+        Table with coverage statistics for different gap thresholds
+    """
+    res = []
+    NO_MEFF = np.nan
+
+    if not isinstance(max_gaps_per_column, Iterable):
+        max_gaps_per_column = [max_gaps_per_column]
+
+    pos = np.arange(first_index, first_index + alignment.L)
+    f_gap = alignment.frequencies()[:, alignment.alphabet_map[alignment._match_gap]]
+
+    for threshold in max_gaps_per_column:
+        if isinstance(threshold, int):
+            threshold /= 100
+
+        # all positions that have enough sequence information (i.e. little gaps),
+        # and their indeces
+        uppercase = f_gap < threshold
+        uppercase_idx = np.nonzero(uppercase)[0]
+
+        # where does coverage of sequence by good alignment start and end?
+        cov_first_idx, cov_last_idx = uppercase_idx[0], uppercase_idx[-1]
+
+        # calculate indeces in sequence numbering space
+        first, last = pos[cov_first_idx], pos[cov_last_idx]
+
+        # how many lowercase positions in covered region?
+        num_lc_cov = np.sum(~uppercase[cov_first_idx:cov_last_idx + 1])
+
+        # total number of upper- and lowercase positions,
+        # and relative percentage
+        num_cov = uppercase.sum()
+        num_lc = (~uppercase).sum()
+        perc_cov = num_cov / len(uppercase)
+
+        res.append(
+            (prefix, threshold, alignment.N, alignment.L,
+             num_cov, num_lc, perc_cov, first, last,
+             last - first + 1, num_lc_cov, NO_MEFF)
+        )
+
+    df = pd.DataFrame(
+        res, columns=[
+            "prefix", "max_gaps_per_column", "num_seqs",
+            "seqlen", "num_cov", "num_lc", "perc_cov",
+            "1st_uc", "last_uc", "len_cov",
+            "num_lc_cov", "N_eff",
+        ]
+    )
+    return df
 
 
 def external(**kwargs):
@@ -597,7 +674,12 @@ def standard(**kwargs):
         prefix + "_frequencies.csv", float_format="%.3f", index=False
     )
 
-    # TODO: describe_coverage
+    describe_coverage(
+        ali, prefix, region[0], kwargs["max_gaps_per_column"]
+    ).to_csv(
+        prefix + "_alignment_statistics.csv", float_format="%.3f",
+        index=False
+    )
 
     # Make columns with too many gaps lowercase
     max_gaps = kwargs["max_gaps_per_column"]
