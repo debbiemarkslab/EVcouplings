@@ -298,6 +298,38 @@ def write_a3m(sequences, fileobj, insert_gap=INSERT_GAP, width=80):
         fileobj.write(seq.replace(insert_gap, "") + "\n")
 
 
+def detect_format(fileobj):
+    """
+    Detect if an alignment file is in FASTA or
+    Stockholm format.
+
+    Parameters
+    ----------
+    fileobj : file-like obj
+        Alignment file for which to detect format
+
+    Returns
+    -------
+    format : {"fasta", "stockholm", None}
+        Format of alignment, None if not detectable
+    """
+    for i, line in enumerate(fileobj):
+        # must be first line of Stockholm file by definition
+        if i == 0 and line.startswith("# STOCKHOLM 1.0"):
+            return "stockholm"
+
+        # This indicates a FASTA file
+        if line.startswith(">"):
+            return "fasta"
+
+        # Skip comment lines and empty lines for FASTA detection
+        if line.startswith(";") or line.rstrip() == "":
+            continue
+
+        # Arriving here means we could not detect format
+        return None
+
+
 def sequences_to_matrix(sequences):
     """
     Transforms a list of sequences into a
