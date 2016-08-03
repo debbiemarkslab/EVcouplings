@@ -40,6 +40,23 @@ def read_config_file(filename):
     return config
 
 
+def write_config_file(out_filename, config):
+    """
+    Save configuration data structure in YAML file.
+
+    Parameters
+    ----------
+    out_filename : str
+        Filename of output file
+    config : dict
+        Config data that will be written to file
+    """
+    with open(out_filename, "w") as f:
+        f.write(
+            yaml.dump(config)
+        )
+
+
 def check_required(params, keys):
     """
     Verify if required set of parameters is present in configuration
