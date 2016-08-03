@@ -16,7 +16,8 @@ from evcouplings.align.alignment import (
     read_fasta, write_fasta, Alignment
 )
 from evcouplings.utils.config import (
-    check_required, MissingParameterError, InvalidParameterError
+    check_required, InvalidParameterError, MissingParameterError,
+    write_config_file
 )
 from evcouplings.utils.system import (
     create_prefix_folders, get, file_not_empty, ResourceError
@@ -490,18 +491,42 @@ def external(**kwargs):
 def standard(**kwargs):
     """
     Protocol:
-    Standard buildali4 workflow
+
+    Standard buildali4 workflow (run iterative jackhmmer
+    search against sequence database, than determine which
+    sequences and columns to include in the calculation based
+    on coverage and maximum gap thresholds).
 
     Parameters
     ----------
-    # TODO
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+        (TODO: explain meaning of parameters in detail).
 
-    If skip is given, ...
-    If callback is given, ...
+    If skip is given and True, the workflow will only return
+    the output configuration (outcfg) and ali will be None.
+
+    If callback is given, the function will be called at the
+    end of the workflow with the kwargs arguments updated with
+    the outcfg results.
 
     Returns
     -------
-    # TODO
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        alignment_file
+        statistics_file
+        sequence_file
+        annotation_file
+        frequencies_file
+        identities_file
+        focus_mode
+        segments
+
+    ali : Alignment
+        Final sequence alignment
 
     """
     check_required(
@@ -525,7 +550,9 @@ def standard(**kwargs):
         "alignment_file": prefix + ".a2m",
         "statistics_file": prefix + "_alignment_statistics.csv",
         "sequence_file": prefix + ".fa",
-        "specieslist_file": prefix + "_specieslist.csv",
+        "annotation_file": prefix + "_annotation.csv",
+        "frequencies_file": prefix + "_frequencies.csv",
+        "identitities_file": prefix + "_identities.csv",
         "focus_mode": True
     }
 
@@ -546,7 +573,7 @@ def standard(**kwargs):
             create_segment(kwargs["sequence_id"], start, end)
         ]
 
-        return outcfg
+        return outcfg, None
 
     # Otherwise, now run the protocol...
     # make sure output directory exists
@@ -694,9 +721,8 @@ def standard(**kwargs):
     with open(final_a2m_file, "w") as f:
         ali.write(f, "fasta")
 
-    # TODO: visualize statistics
-    # TODO: how to merge alignment statistics and plots across
-    # different runs?
+    # TODO: visualize statistics?
+    write_config_file(prefix + ".outcfg", outcfg)
 
     # TODO: dump config to YAML file for debugging/logging?
 
