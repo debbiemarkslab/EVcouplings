@@ -636,7 +636,6 @@ def existing(**kwargs):
     # use that in any case, otherwise try to autodetect
     full_focus_header = ali_raw.ids[focus_index]
     focus_id = full_focus_header.split()[0]
-    region_start, region_end = None, None
 
     # try to extract region from sequence header
     id_, region_start, region_end = parse_header(focus_id)
@@ -653,17 +652,17 @@ def existing(**kwargs):
             "and first_index parameter is not given."
         )
 
-    # resubstitute sequence ID
-    pure_id = focus_id.split("/")[0]
+    # resubstitute full sequence ID from identifier
+    # and region information
     header = "{}/{}-{}".format(
-        pure_id, region_start, region_end
+        id_, region_start, region_end
     )
 
     focus_ali.ids[focus_index] = header
 
     # focus mode-specific outputs
     outcfg["segments"] = [
-        create_segment(pure_id, region_start, region_end)
+        create_segment(id_, region_start, region_end)
     ]
     outcfg["focus_sequence"] = header
 
@@ -689,7 +688,6 @@ def existing(**kwargs):
 
     # in the end, return both alignment object (if in memory)
     # and path to final alignment file
-    # TODO: make sure returning correct alignment here
     return outcfg, ali
 
 
