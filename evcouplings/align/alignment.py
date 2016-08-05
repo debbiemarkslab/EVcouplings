@@ -8,6 +8,7 @@ Authors:
 
 from collections import namedtuple, OrderedDict, defaultdict
 from copy import deepcopy
+import re
 
 import numpy as np
 from numba import jit
@@ -328,6 +329,49 @@ def detect_format(fileobj):
 
         # Arriving here means we could not detect format
         return None
+
+
+def parse_header(header):
+    """
+    Extract ID of the (overall) sequence and the
+    sequence range fromat a sequence header of the form
+    sequenceID/start-end.
+
+    If the header contains any additional information
+    after the first whitespace character (e.g. sequence annotation),
+    it will be discarded before parsing. If there is no sequence
+    range, only the id (part of string before whitespace) will
+    be returned but no range.
+
+    Parameters
+    ----------
+    header : str
+        Sequence header
+
+    Returns
+    -------
+    seq_id : str
+        Sequence identifier
+    start : int
+        Start of sequence range. Will be None if it cannot
+        be extracted from the header.
+    stop : int
+        End of sequence range. Will be None if it cannot
+        be extracted from the header.
+    """
+    # discard anything in header that might come after the
+    # first whitespace (by convention this is typically annotation)
+    header = header.split()[0]
+
+    # try to extract region from sequence header
+    m = re.search("(.+)/(\d+)-(\d+)", header)
+    if m:
+        id_, start_str, end_str = m.groups()
+        region_start, region_end = int(start_str), int(end_str)
+        return id_, region_start, region_end
+    else:
+        # cannot find region, so just give back sequence iD
+        return header, None, None
 
 
 def sequences_to_matrix(sequences):
