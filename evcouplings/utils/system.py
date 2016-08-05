@@ -86,11 +86,47 @@ def run(cmd, stdin=None, check_returncode=True,
 def file_not_empty(file_path):
     """
     Verify if a file exists and is not empty.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to file to check
+    Returns
+    -------
+    bool
+        True if file exists and is non-zero size,
+        False otherwise.
     """
     try:
         return os.stat(file_path).st_size > 0
     except OSError:
         return False
+
+
+def verify_resources(message, *args):
+    """
+    Verify if a set of files exists and is not empty.
+
+    Parameters
+    ----------
+    message : str
+        Message to display with raised ResourceError
+    *args : List of str
+        Path(s) of file(s) to be checked
+
+    Raises
+    ------
+    ResourceError
+        If any of the resources does not exist or is empty
+    """
+    invalid = [f for f in args if not file_not_empty(f)]
+
+    if len(invalid) > 0:
+        raise ResourceError(
+            "{}:\n{}".format(message, ", ".join(invalid))
+        )
+    else:
+        return True
 
 
 def create_prefix_folders(prefix):
