@@ -675,7 +675,8 @@ def existing(**kwargs):
     # apply sequence identity and fragment filters,
     # and gap threshold
     ali = modify_alignment(
-        focus_ali, focus_index, region_start, **kwargs
+        focus_ali, focus_index, region_start,
+        **{**kwargs, **outcfg}
     )
 
     # dump config to YAML file for debugging/logging
@@ -700,6 +701,10 @@ def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
 
     Note: assumes focus alignment (otherwise unprocessed) as input.
 
+    TODO: ideally, this function would return an outcfg with the generated
+    files that can be merged by the outer calling function; however this is
+    difficult to implement with the skip option that needs these values.
+
     Parameters
     ----------
     focus_ali : Alignment
@@ -720,6 +725,9 @@ def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
         [
             "prefix", "seqid_filter", "hhfilter",
             "minimum_coverage", "max_gaps_per_column",
+            # output files (outcfg entries):
+            "alignment_file", "identities_file",
+            "frequencies_file", "statistics_file",
         ]
     )
 
@@ -783,19 +791,19 @@ def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
     describe_seq_identities(
         ali, target_seq_index=target_seq_index
     ).to_csv(
-        prefix + "_identities.csv", float_format="%.3f", index=False
+        kwargs["identities_file"], float_format="%.3f", index=False
     )
 
     describe_frequencies(
         ali, region_start, target_seq_index=target_seq_index
     ).to_csv(
-        prefix + "_frequencies.csv", float_format="%.3f", index=False
+        kwargs["frequencies_file"], float_format="%.3f", index=False
     )
 
     describe_coverage(
         ali, prefix, region_start, kwargs["max_gaps_per_column"]
     ).to_csv(
-        prefix + "_alignment_statistics.csv", float_format="%.3f",
+        kwargs["statistics_file"], float_format="%.3f",
         index=False
     )
 
@@ -808,8 +816,7 @@ def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
         lc_cols = ali.count(ali._match_gap, axis="pos") >= max_gaps
         ali = ali.lowercase_columns(lc_cols)
 
-    final_a2m_file = prefix + ".a2m"
-    with open(final_a2m_file, "w") as f:
+    with open(kwargs["alignment_file"], "w") as f:
         ali.write(f, "fasta")
 
     return ali
@@ -1011,7 +1018,8 @@ def standard(**kwargs):
 
     target_seq_index = 0
     ali = modify_alignment(
-        focus_ali, target_seq_index, region_start, **kwargs
+        focus_ali, target_seq_index, region_start,
+        **{**kwargs, **outcfg}
     )
 
     # dump output config to YAML file for debugging/logging
@@ -1056,13 +1064,18 @@ def run(**kwargs):
     -------
     Alignment
     Dictionary with results of stage in following fields:
+    (in brackets: not returned by all protocols)
         alignment_file
+        [raw_alignment_file]
         statistics_file
         sequence_file
-        search_sequence_file
-        sequence_id
-        segments
+        [annotation_file]
+        frequencies_file
+        identities_file
+        [hittable_file]
         focus_mode
+        focus_sequence
+        segments
     """
     check_required(kwargs, ["protocol"])
 
