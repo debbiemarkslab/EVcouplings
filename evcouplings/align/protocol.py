@@ -13,14 +13,16 @@ import pandas as pd
 
 import evcouplings.align.tools as at
 from evcouplings.align.alignment import (
-    read_fasta, write_fasta, Alignment
+    detect_format, parse_header, read_fasta,
+    write_fasta, Alignment
 )
 from evcouplings.utils.config import (
     check_required, InvalidParameterError, MissingParameterError,
     write_config_file
 )
 from evcouplings.utils.system import (
-    create_prefix_folders, get, file_not_empty, ResourceError
+    create_prefix_folders, get, file_not_empty,
+    verify_resources, ResourceError
 )
 
 
@@ -319,13 +321,6 @@ def extract_header_annotation(alignment):
     return df.loc[:, ["id", "name"] + list(col_to_descr.keys())]
 
 
-def modify_alignment(config):
-    """
-    Prepare alignment to be ready for EC calculation
-    """
-    return
-
-
 def describe_seq_identities(alignment, target_seq_index=0):
     """
     Calculate sequence identities of any sequence
@@ -475,17 +470,351 @@ def describe_coverage(alignment, prefix, first_index, max_gaps_per_column):
     return df
 
 
-def external(**kwargs):
+def existing(**kwargs):
     """
     Protocol:
+
     Use external sequence alignment and extract all relevant
     information from there (e.g. sequence, region, etc.),
     then apply gap & fragment filtering as usual
 
-    # Note: input alignment may already have lowercase positions
+    Depending if sequence_id is given, the resulting alignment
+    will be in focus mode or non-focus mode.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+        (TODO: explain meaning of parameters in detail).
+
+    If skip is given and True, the workflow will only return
+    the output configuration (outcfg) and ali will be None.
+
+    If callback is given, the function will be called at the
+    end of the workflow with the kwargs arguments updated with
+    the outcfg results.
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        alignment_file
+        statistics_file
+        sequence_file
+        annotation_file (None)
+        frequencies_file
+        identities_file
+        focus_mode
+        focus_sequence
+        segments
+
+    ali : Alignment
+        Final sequence alignment
     """
-    print("Start from existing alignment")
-    return {}
+    check_required(
+        kwargs,
+        [
+            "prefix", "input_alignment",
+            "sequence_id", "first_index",
+            "extract_annotation"
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    # prepare output dictionary with result files
+    outcfg = {
+        "alignment_file": prefix + ".a2m",
+        "statistics_file": prefix + "_alignment_statistics.csv",
+        "annotation_file": None,
+        "frequencies_file": prefix + "_frequencies.csv",
+        "identities_file": prefix + "_identities.csv",
+        "focus_mode": True,
+        "sequence_file": prefix + ".fa",
+
+        # The following will be set further down once calculated:
+        # segments, focus_sequence
+    }
+
+    # check if stage should be skipped and if so, return
+    if kwargs.get("skip", False):
+        # If skipping, we have to make sure the products of the
+        # protocol have been generated previously and are actually there.
+        # If check fails, ResourceError is raised
+        verify_resources(
+            "Skipping pipeline failed because one of the "
+            "result files does not exist",
+            outcfg["sequence_file"], outcfg["alignment_file"],
+            outcfg["frequencies_file"], outcfg["statistics_file"],
+            outcfg["identities_file"]
+        )
+
+        # get information about sequence range from existing file
+        # and make sure that is a valid header of format ID/start-end
+        with open(outcfg["sequence_file"]) as f:
+            seq_id, seq = next(read_fasta(f))
+            id_, start, end = parse_header(seq_id)
+
+            if start is None or end is None:
+                raise ResourceError(
+                    "Sequence file inconsistency: "
+                    "{} does not contain valid header:\n{}".
+                    format(outcfg["sequence_file"], seq_id)
+                )
+
+        outcfg["segments"] = [
+            create_segment(id_, start, end)
+        ]
+
+        outcfg["focus_sequence"] = seq_id
+
+        return outcfg, None
+
+    # make sure output directory exists
+    # TODO: Exception handling here if this fails
+    create_prefix_folders(prefix)
+
+    # this file is starting point of pipeline;
+    # check if input alignment actually exists
+    input_alignment = kwargs["input_alignment"]
+    verify_resources("Input alignment does not exist", input_alignment)
+
+    # first try to autodetect format of alignment
+    with open(input_alignment) as f:
+        format = detect_format(f)
+        if format is None:
+            raise InvalidParameterError(
+                "Format of input alignment {} could not be "
+                "automatically detected.".format(
+                    input_alignment
+                )
+            )
+
+    with open(input_alignment) as f:
+        ali_raw = Alignment.from_file(f, format)
+
+    # save annotation in sequence headers (species etc.)
+    if kwargs["extract_annotation"]:
+        annotation = extract_header_annotation(ali_raw)
+        annotation.to_csv(prefix + "_annotation.csv", index=False)
+
+    # Target sequence of alignment
+    sequence_id = kwargs["sequence_id"]
+
+    if sequence_id is None:
+        raise InvalidParameterError(
+            "Parameter sequence_id must be defined"
+        )
+
+    # First, find focus sequence in alignment
+    focus_index = None
+    for i, id_ in enumerate(ali_raw.ids):
+        if id_.startswith(sequence_id):
+            focus_index = i
+            break
+
+    # if we didn't find it, cannot continue
+    if focus_index is None:
+        raise InvalidParameterError(
+            "Target sequence {} could not be found in alignment"
+            .format(sequence_id)
+        )
+
+    # identify what columns (non-gap) to keep for focus
+    focus_seq = ali_raw[focus_index]
+    focus_cols = np.array(
+        [c not in [ali_raw._match_gap, ali_raw._insert_gap] for c in focus_seq]
+    )
+
+    # extract focus alignment
+    focus_ali = ali_raw.select(columns=focus_cols)
+    focus_seq_nogap = "".join(focus_ali[focus_index])
+
+    # determine region of sequence. If first_index is given,
+    # use that in any case, otherwise try to autodetect
+    full_focus_header = ali_raw.ids[focus_index]
+    focus_id = full_focus_header.split()[0]
+    region_start, region_end = None, None
+
+    # try to extract region from sequence header
+    id_, region_start, region_end = parse_header(focus_id)
+
+    # override with first_index if given
+    if kwargs["first_index"] is not None:
+        region_start = kwargs["first_index"]
+        region_end = region_start + len(focus_seq_nogap) - 1
+
+    if region_start is None or region_end is None:
+        raise InvalidParameterError(
+            "Could not extract region information " +
+            "from sequence header {} ".format(full_focus_header) +
+            "and first_index parameter is not given."
+        )
+
+    # resubstitute sequence ID
+    pure_id = focus_id.split("/")[0]
+    header = "{}/{}-{}".format(
+        pure_id, region_start, region_end
+    )
+
+    focus_ali.ids[focus_index] = header
+
+    # focus mode-specific outputs
+    outcfg["segments"] = [
+        create_segment(pure_id, region_start, region_end)
+    ]
+    outcfg["focus_sequence"] = header
+
+    # write target sequence to file
+    with open(outcfg["sequence_file"], "w") as f:
+        write_fasta(
+            [(header, focus_seq_nogap)], f
+        )
+
+    # apply sequence identity and fragment filters,
+    # and gap threshold
+    ali = modify_alignment(
+        focus_ali, focus_index, region_start, **kwargs
+    )
+
+    # dump config to YAML file for debugging/logging
+    write_config_file(prefix + ".outcfg", outcfg)
+
+    # run callback function if given (e.g. to merge alignment
+    # or update database status)
+    if kwargs.get("callback", None) is not None:
+        kwargs["callback"]({**kwargs, **outcfg})
+
+    # in the end, return both alignment object (if in memory)
+    # and path to final alignment file
+    # TODO: make sure returning correct alignment here
+    return outcfg, ali
+
+
+def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
+    """
+    Apply pairwise identity filtering, fragment filtering, and exclusion
+    of columns with too many gaps to a sequence alignment. Also generates
+    files describing properties of the alignment such as frequency distributions,
+    conservation, and "old-style" alignment statistics files.
+
+    Note: assumes focus alignment (otherwise unprocessed) as input.
+
+    Parameters
+    ----------
+    focus_ali : Alignment
+        Focus-mode input alignment
+    target_seq_index : int
+        Index of target sequence in alignment
+    region_start : int
+        Index of first sequence position in target sequence
+    kwargs : See required arguments in source code
+
+    Returns
+    -------
+    ali : Alignment
+        Final processed alignment
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "seqid_filter", "hhfilter",
+            "minimum_coverage", "max_gaps_per_column",
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    # TODO: Exception handling here if this fails
+    create_prefix_folders(prefix)
+
+    focus_fasta_file = prefix + "_raw_focus.fasta"
+
+    # swap target sequence to first position if it is not
+    # the first sequence in alignment;
+    # this is particularly important for hhfilter run
+    # because target sequence might otherwise be filtered out
+    if target_seq_index != 0:
+        indices = np.arange(0, len(focus_ali))
+        indices[0] = target_seq_index
+        indices[target_seq_index] = 0
+        target_seq_index = 0
+        focus_ali = focus_ali.select(sequences=indices)
+
+    with open(focus_fasta_file, "w") as f:
+        focus_ali.write(f, "fasta")
+
+    # apply pairwise identity filter (using hhfilter)
+    if kwargs["seqid_filter"] is not None:
+        filtered_file = prefix + "_filtered.a3m"
+
+        at.run_hhfilter(
+            focus_fasta_file, filtered_file,
+            threshold=kwargs["seqid_filter"],
+            columns="first", binary=kwargs["hhfilter"]
+        )
+
+        with open(filtered_file) as f:
+            focus_ali = Alignment.from_file(f, "a3m")
+
+        # final FASTA alignment before applying A2M format modifications
+        filtered_fasta_file = prefix + "_raw_focus_filtered.fasta"
+        with open(filtered_fasta_file, "w") as f:
+            focus_ali.write(f, "fasta")
+
+    ali = focus_ali
+
+    # filter fragments
+    # TODO: come up with something more clever here than fixed width
+    # (e.g. use 95% quantile of length distribution as reference point)
+    min_cov = kwargs["minimum_coverage"]
+    if min_cov is not None:
+        if isinstance(min_cov, int):
+            min_cov /= 100
+
+        keep_seqs = (1 - ali.count("-", axis="seq")) >= min_cov
+        ali = ali.select(sequences=keep_seqs)
+
+    # Calculate frequencies, conservation and identity to query
+    # on final alignment (except for lowercase modification)
+    # Note: running hhfilter might cause a loss of the target seque
+    # if it is not the first sequence in the file! To be sure that
+    # nothing goes wrong, target_seq_index should always be 0.
+    describe_seq_identities(
+        ali, target_seq_index=target_seq_index
+    ).to_csv(
+        prefix + "_identities.csv", float_format="%.3f", index=False
+    )
+
+    describe_frequencies(
+        ali, region_start, target_seq_index=target_seq_index
+    ).to_csv(
+        prefix + "_frequencies.csv", float_format="%.3f", index=False
+    )
+
+    describe_coverage(
+        ali, prefix, region_start, kwargs["max_gaps_per_column"]
+    ).to_csv(
+        prefix + "_alignment_statistics.csv", float_format="%.3f",
+        index=False
+    )
+
+    # Make columns with too many gaps lowercase
+    max_gaps = kwargs["max_gaps_per_column"]
+    if max_gaps is not None:
+        if isinstance(max_gaps, int):
+            max_gaps /= 100
+
+        lc_cols = ali.count(ali._match_gap, axis="pos") >= max_gaps
+        ali = ali.lowercase_columns(lc_cols)
+
+    final_a2m_file = prefix + ".a2m"
+    with open(final_a2m_file, "w") as f:
+        ali.write(f, "fasta")
+
+    return ali
 
 
 def standard(**kwargs):
@@ -742,7 +1071,7 @@ PROTOCOLS = {
     "standard": standard,
 
     # start from an existing (external) alignment
-    "external": external,
+    "existing": existing,
 }
 
 
