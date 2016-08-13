@@ -7,8 +7,7 @@ Authors:
 
 from collections import namedtuple
 from evcouplings.utils.system import (
-    run, file_not_empty, create_prefix_folders,
-    ExternalToolError, ResourceError
+    run, create_prefix_folders, verify_resources
 )
 
 # output fields for storing results of a jackhmmer run
@@ -72,6 +71,11 @@ def run_jackhmmer(query, database, prefix,
     ------
     ExternalToolError, ResourceError
     """
+    verify_resources(
+        "Input file does not exist or is empty",
+        query, database
+    )
+
     create_prefix_folders(prefix)
 
     # store filenames of all individual results;
@@ -132,12 +136,13 @@ def run_jackhmmer(query, database, prefix,
     return_code, stdout, stderr = run(cmd)
 
     # also check we actually created some sort of alignment
-    if not file_not_empty(result.alignment):
-        raise ResourceError(
-            "jackhmmer returned empty alignment: stdout={} stderr={} file={}".format(
-                stdout, stderr, result.alignment
-            )
-        )
+    verify_resources(
+        "jackhmmer returned empty alignment: "
+        "stdout={} stderr={} file={}".format(
+            stdout, stderr, result.alignment
+        ),
+        result.alignment
+    )
 
     return result
 
@@ -180,6 +185,11 @@ def run_hhfilter(input_file, output_file, threshold=95,
             "Invalid column selection: {}".format(columns)
         )
 
+    verify_resources(
+        "Alignment file does not exist or is empty",
+        input_file
+    )
+
     create_prefix_folders(output_file)
 
     cmd = [
@@ -193,11 +203,12 @@ def run_hhfilter(input_file, output_file, threshold=95,
 
     return_code, stdout, stderr = run(cmd)
 
-    if not file_not_empty(output_file):
-        raise ResourceError(
-            "hhfilter returned empty alignment: stdout={} stderr={} file={}".format(
-                stdout, stderr, output_file
-            )
-        )
+    verify_resources(
+        "hhfilter returned empty alignment: "
+        "stdout={} stderr={} file={}".format(
+            stdout, stderr, output_file
+        ),
+        output_file
+    )
 
     return output_file
