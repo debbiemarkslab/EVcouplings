@@ -18,7 +18,7 @@ from evcouplings.align.alignment import (
 )
 from evcouplings.utils.config import (
     check_required, InvalidParameterError, MissingParameterError,
-    write_config_file
+    read_config_file, write_config_file
 )
 from evcouplings.utils.system import (
     create_prefix_folders, get, file_not_empty,
@@ -172,13 +172,13 @@ def create_segment(sequence_id, region_start, region_end,
     tuple
         Segment description
     """
-    return (
-        segment_type,
+    return [
         segment_id,
+        segment_type,
         sequence_id,
         region_start,
-        region_end
-    )
+        region_end,
+    ]
 
 
 def search_thresholds(use_bitscores, seq_threshold, domain_threshold, seq_len):
@@ -822,6 +822,125 @@ def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
     return ali
 
 
+def jackhmmer_search(**kwargs):
+    """
+    Protocol:
+
+    Iterative jackhmmer search against a sequence database.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    outcfg : dict
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "sequence_id", "sequence_file",
+            "sequence_download_url", "region", "first_index",
+            "use_bitscores", "domain_threshold", "sequence_threshold",
+            "database", "iterations", "cpu", "nobias", "reuse_alignment",
+            "checkpoints_hmm", "checkpoints_ali", "jackhmmer",
+            "extract_annotation"
+        ]
+    )
+    prefix = kwargs["prefix"]
+
+    # make sure output directory exists
+    # TODO: Exception handling here if this fails
+    create_prefix_folders(prefix)
+
+    # store search sequence file here
+    sequence_file = prefix + ".fa"
+
+    # make sure search sequence is defined and load it
+    full_seq_file, (full_seq_id, full_seq) = fetch_sequence(
+        kwargs["sequence_id"],
+        kwargs["sequence_file"],
+        kwargs["sequence_download_url"],
+        kwargs["prefix"] + "_full.fa"
+    )
+
+    # cut sequence to target region and save in sequence_file
+    # (this is the main sequence file used downstream)
+    (region_start, region_end), cut_seq = cut_sequence(
+        full_seq,
+        kwargs["sequence_id"],
+        kwargs["region"],
+        kwargs["first_index"],
+        sequence_file
+    )
+
+    # run jackhmmer... allow to reuse pre-exisiting
+    # Stockholm alignment file here
+    ali_outcfg_file = prefix + ".jackhmmer.outcfg"
+
+    if not kwargs["reuse_alignment"]:
+        # modify search thresholds to be suitable for jackhmmer
+        seq_threshold, domain_threshold = search_thresholds(
+            kwargs["use_bitscores"],
+            kwargs["sequence_threshold"],
+            kwargs["domain_threshold"],
+            len(cut_seq)
+        )
+
+        # run search process
+        ali = at.run_jackhmmer(
+            query=sequence_file,
+            database=kwargs[kwargs["database"]],
+            prefix=prefix,
+            use_bitscores=kwargs["use_bitscores"],
+            domain_threshold=domain_threshold,
+            seq_threshold=seq_threshold,
+            iterations=kwargs["iterations"],
+            nobias=kwargs["nobias"],
+            cpu=kwargs["cpu"],
+            checkpoints_hmm=kwargs["checkpoints_hmm"],
+            checkpoints_ali=kwargs["checkpoints_ali"],
+            binary=kwargs["jackhmmer"],
+        )
+        # turn namedtuple into dictionary to make
+        # restarting code nicer
+        ali = dict(ali._asdict())
+
+        # save results of search for possible restart
+        write_config_file(ali_outcfg_file, ali)
+    else:
+        # check if we can get the results of the
+        # previous run back
+        verify_resources(
+            "Alignment restart config does not exist",
+            ali_outcfg_file
+        )
+
+        ali = read_config_file(ali_outcfg_file)
+        verify_resources(
+            "Tried to reuse alignment, but empty or "
+            "does not exist", ali["alignment"]
+        )
+
+    # prepare output dictionary with result files
+    outcfg = {
+        "sequence_file": sequence_file,
+        "focus_mode": True,
+        "raw_alignment_file": ali["alignment"],
+        "hittable_file": ali["domtblout"],
+    }
+
+    # define a single protein segment based on target sequence
+    outcfg["segments"] = [
+        create_segment(kwargs["sequence_id"], region_start, region_end)
+    ]
+
+    outcfg["focus_sequence"] = "{}/{}-{}".format(
+        kwargs["sequence_id"], region_start, region_end
+    )
+
+    return outcfg
+
+
 def standard(**kwargs):
     """
     Protocol:
@@ -897,42 +1016,6 @@ def standard(**kwargs):
         # segments, focus_sequence
     }
 
-    # check if stage should be skipped and if so, return
-    if kwargs.get("skip", False):
-        # If skipping, we have to make sure the products of the
-        # protocol have been generated previously and are actually there.
-        # If check fails, ResourceError is raised
-        verify_resources(
-            "Skipping pipeline failed because one of the "
-            "result files does not exist",
-            outcfg["sequence_file"], outcfg["alignment_file"],
-            outcfg["frequencies_file"], outcfg["statistics_file"],
-            outcfg["identities_file"], outcfg["annotation_file"],
-            outcfg["hittable_file"]
-        )
-
-        # get information about sequence range from existing file
-        # and make sure that is a valid header of format ID/start-end
-        with open(outcfg["sequence_file"]) as f:
-            seq_id, seq = next(read_fasta(f))
-            id_, start, end = parse_header(seq_id)
-
-            if start is None or end is None:
-                raise ResourceError(
-                    "Sequence file inconsistency: "
-                    "{} does not contain valid header:\n{}".
-                    format(outcfg["sequence_file"], seq_id)
-                )
-
-        outcfg["segments"] = [
-            create_segment(kwargs["sequence_id"], start, end)
-        ]
-
-        outcfg["focus_sequence"] = seq_id
-
-        return outcfg, None
-
-    # Otherwise, now run the protocol...
     # make sure output directory exists
     # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
@@ -1039,6 +1122,9 @@ def standard(**kwargs):
 PROTOCOLS = {
     # standard buildali protocol (iterative hmmer search)
     "standard": standard,
+
+    # build raw multiple sequence alignment using jackmmer
+    "jackhmmer_search": jackhmmer_search,
 
     # start from an existing (external) alignment
     "existing": existing,
