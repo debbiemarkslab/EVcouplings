@@ -830,10 +830,22 @@ def jackhmmer_search(**kwargs):
 
     Parameters
     ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+        (TODO: explain meaning of parameters in detail).
 
     Returns
     -------
     outcfg : dict
+        Output configuration of the protocol, including
+        the following fields:
+
+        sequence_file
+        raw_alignment_file
+        hittable_file
+        focus_mode
+        focus_sequence
+        segments
     """
     check_required(
         kwargs,
