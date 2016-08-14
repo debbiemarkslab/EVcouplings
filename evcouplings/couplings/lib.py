@@ -141,7 +141,9 @@ class ScoreMixtureModel:
     """
     def __init__(self, x, max_fun=10000, max_iter=1000):
         """
-        Mixture model of EC x.
+        Mixture model of evolutionary coupling scores to
+        determine signifcant scores that are in high-scoring,
+        positive tail of distribution.
 
         Parameters
         ----------
@@ -157,7 +159,8 @@ class ScoreMixtureModel:
         # Infer parameters of mixture model
         self.params = self._learn_params(x, max_fun, max_iter)
 
-    def _learn_params(self, x, max_fun, max_iter):
+    @classmethod
+    def _learn_params(cls, x, max_fun, max_iter):
         """
         Infer parameters of mixture model.
 
@@ -195,7 +198,7 @@ class ScoreMixtureModel:
 
         # Target function for minimization
         def target_func(params):
-            return -np.sum(np.log(self._gaussian_lognormal(x, params)))
+            return -np.sum(np.log(cls._gaussian_lognormal(x, params)))
 
         # Minimize function
         coeff = op.fmin(
@@ -211,7 +214,8 @@ class ScoreMixtureModel:
 
         return coeff
 
-    def _gaussian_lognormal(self, x, params):
+    @classmethod
+    def _gaussian_lognormal(cls, x, params):
         """
         Gaussian-lognormal mixture probability
         density function.
@@ -229,9 +233,10 @@ class ScoreMixtureModel:
         np.array
             Probabilities
         """
-        return self._gaussian(x, params) + self._lognormal(x, params)
+        return cls._gaussian(x, params) + cls._lognormal(x, params)
 
-    def _gaussian(self, x, params):
+    @classmethod
+    def _gaussian(cls, x, params):
         """
         Normal probability density (multiplied
         by class weight).
@@ -252,7 +257,8 @@ class ScoreMixtureModel:
         mu, sigma, q, logmu, logsigma = params
         return q * stats.norm.pdf(x, loc=mu, scale=sigma)
 
-    def _lognormal(self, x, params):
+    @classmethod
+    def _lognormal(cls, x, params):
         """
         Log normal probability density (multiplied
         by class weight).
