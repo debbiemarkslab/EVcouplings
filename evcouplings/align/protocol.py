@@ -261,7 +261,7 @@ def search_thresholds(use_bitscores, seq_threshold, domain_threshold, seq_len):
     return seq_threshold, domain_threshold
 
 
-def extract_header_annotation(alignment):
+def extract_header_annotation(alignment, from_annotation=True):
     """
     Extract Uniprot/Uniref sequence annotation from Stockholm file
     (as output by jackhmmer). This function may not work for other
@@ -271,6 +271,9 @@ def extract_header_annotation(alignment):
     -----------
     alignment : Alignment
         Multiple sequence alignment object
+    from_annotation : bool, optional (default: True)
+        Use annotation line (in Stockholm file) rather
+        than sequence ID line (e.g. in FASTA file)
 
     Returns
     -------
@@ -298,24 +301,41 @@ def extract_header_annotation(alignment):
     res = []
 
     for i, id_ in enumerate(alignment.ids):
-        # query level by level to avoid creating new keys
-        # in DefaultOrderedDict
-        if ("GS" in alignment.annotation and
-                id_ in alignment.annotation["GS"] and
-                "DE" in alignment.annotation["GS"][id_]):
-            anno = alignment.annotation["GS"][id_]["DE"]
+        # annotation line for current sequence
+        seq_id = None
+        anno = None
 
+        # look for annotation either in separate
+        # annotation line or in full sequence ID line
+        if from_annotation:
+            seq_id = id_
+            # query level by level to avoid creating new keys
+            # in DefaultOrderedDict
+            if ("GS" in alignment.annotation and
+                    id_ in alignment.annotation["GS"] and
+                    "DE" in alignment.annotation["GS"][id_]):
+                anno = alignment.annotation["GS"][id_]["DE"]
+        else:
+            split = id_.split(maxsplit=1)
+            if len(split) == 2:
+                seq_id, anno = split
+            else:
+                seq_id = id_
+                anno = None
+
+        # extract info from line if we got one
+        if anno is not None:
             # do split on known field names o keep things
             # simpler than a gigantic full regex to match
-            # (some fields may be missing)
+            # (some fields are allowed to be missing)
             pairs = re.split(regex, anno)
-            pairs = ["id", id_, "name"] + pairs
+            pairs = ["id", seq_id, "name"] + pairs
 
             # create feature-value map
             feat_map = dict(zip(pairs[::2], pairs[1::2]))
             res.append(feat_map)
         else:
-            res.append({"id": id_})
+            res.append({"id": seq_id})
 
     df = pd.DataFrame(res)
     return df.loc[:, ["id", "name"] + list(col_to_descr.keys())]
@@ -551,9 +571,13 @@ def existing(**kwargs):
         ali_raw = Alignment.from_file(f, format)
 
     # save annotation in sequence headers (species etc.)
+    annotation_file = None
     if kwargs["extract_annotation"]:
         annotation_file = prefix + "_annotation.csv"
-        annotation = extract_header_annotation(ali_raw)
+        from_anno_line = (format == "stockholm")
+        annotation = extract_header_annotation(
+            ali_raw, from_annotation=from_anno_line
+        )
         annotation.to_csv(annotation_file, index=False)
 
     # Target sequence of alignment
@@ -638,6 +662,9 @@ def existing(**kwargs):
         ],
         "focus_sequence": header,
     }
+
+    if annotation_file is not None:
+        outcfg["annotation_file"] = annotation_file
 
     # dump config to YAML file for debugging/logging
     write_config_file(prefix + ".align_existing.outcfg", outcfg)
