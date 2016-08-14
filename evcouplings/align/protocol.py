@@ -852,7 +852,7 @@ def jackhmmer_search(**kwargs):
 
     # run jackhmmer... allow to reuse pre-exisiting
     # Stockholm alignment file here
-    ali_outcfg_file = prefix + ".jackhmmer.outcfg"
+    ali_outcfg_file = prefix + ".align_jackhmmer_search.outcfg"
 
     if not kwargs["reuse_alignment"]:
         # modify search thresholds to be suitable for jackhmmer
@@ -893,6 +893,7 @@ def jackhmmer_search(**kwargs):
         )
 
         ali = read_config_file(ali_outcfg_file)
+
         verify_resources(
             "Tried to reuse alignment, but empty or "
             "does not exist", ali["alignment"]
