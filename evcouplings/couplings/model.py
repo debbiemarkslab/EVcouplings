@@ -7,6 +7,10 @@ Note: this used to be ev_couplings.py previously.
 
 TODO:
   (1) add gauge transformations back in
+  (2) consider switching to InvalidParameterError
+      from ValueError (however, goal is that this
+      file does not have any dependencies on rest
+      of module so it can be independently distributed)
 
 Authors:
   Thomas A. Hopf
@@ -204,7 +208,6 @@ class CouplingsModel(object):
         self.__read_plmc(filename, precision)
 
         self.alphabet_map = {s: i for i, s in enumerate(self.alphabet)}
-        self.index_map = {b: a for a, b in enumerate(self.index_list)}
 
         # in non-gap mode, focus sequence is still coded with a gap character,
         # but gap is not part of model alphabet anymore; so if mapping crashes
@@ -223,11 +226,13 @@ class CouplingsModel(object):
         """
         Delete precomputed values (e.g. mutation matrices)
         """
-        self.single_mut_mat = None
-        self.single_mut_mat_full = None
-        self.double_mut_mat = None
-        self.cn_scores = None
-        self.fn_scores = None
+        self._single_mut_mat_full = None
+        self._double_mut_mat = None
+        self._cn_scores = None
+        self._fn_scores = None
+        self._mi_scores_raw = None
+        self._mi_scores_apc = None
+        self._ecs = None
 
     def __read_plmc(self, filename, precision):
         """
@@ -264,7 +269,7 @@ class CouplingsModel(object):
             )
 
             # target sequence and index mapping, again ensure unicode
-            self.target_seq = np.fromfile(f, "S1", self.L).astype("U1")
+            self._target_seq = np.fromfile(f, "S1", self.L).astype("U1")
             self.index_list = np.fromfile(f, "int32", self.L)
 
             # single site frequencies f_i and fields h_i
@@ -304,7 +309,16 @@ class CouplingsModel(object):
                     )
                     self.J_ij[j, i] = self.J_ij[i, j].T
 
-    def set_target_sequence(self, sequence):
+    @property
+    def target_seq(self):
+        """
+        Target/Focus sequence of model used for delta_hamiltonian
+        calculations (including single and double mutation matrices)
+        """
+        return self._target_seq
+
+    @target_seq.setter
+    def target_seq(self, sequence):
         """
         Define a new target sequence
 
@@ -316,8 +330,6 @@ class CouplingsModel(object):
             sequence).
             Length of sequence must correspond to model length (self.L)
         """
-        # Since single and double mutant matrices are relative to target sequence
-        # delete any precomputed values
         self._reset_precomputed()
 
         if len(sequence) != self.L:
@@ -328,19 +340,28 @@ class CouplingsModel(object):
             )
 
         if isinstance(sequence, str):
-            self.target_seq = list(sequence)
+            sequence = list(sequence)
 
-        self.target_seq = np.array(self.target_seq)
+        self._target_seq = np.array(sequence)
         self.target_seq_mapped = np.array([self.alphabet_map[x] for x in self.target_seq])
         self.has_target_seq = True
 
-    def set_index_mapping(self, mapping):
+    @property
+    def index_list(self):
+        """
+        Target/Focus sequence of model used for delta_hamiltonian
+        calculations (including single and double mutation matrices)
+        """
+        return self._index_list
+
+    @index_list.setter
+    def index_list(self, mapping):
         """
         Define a new number mapping for sequences
 
         Parameters
         ----------
-        index_map: list of int
+        mapping: list of int
             Sequence indices of the positions in the model.
             Length of list must correspond to model length (self.L)
         """
@@ -351,7 +372,7 @@ class CouplingsModel(object):
                 )
             )
 
-        self.index_list = np.array(mapping)
+        self._index_list = np.array(mapping)
         self.index_map = {b: a for a, b in enumerate(self.index_list)}
 
     def convert_sequences(self, sequences):
@@ -415,24 +436,31 @@ class CouplingsModel(object):
 
         return _hamiltonians(sequences, self.J_ij, self.h_i)
 
-    def calculate_single_mutants(self):
+    @property
+    def single_mut_mat_full(self):
         """
-        Calculates Hamiltonian difference for all possible single-site variants
+        Hamiltonian difference for all possible single-site variants
 
-        Returns
-        -------
-        np.array(float)
-            L x num_symbol x 3 matrix containing delta Hamiltonians
-            for all possible single mutants of target sequence.
-            Third dimension: 1) full Hamiltonian, 2) J_ij, 3) h_i
+        L x num_symbol x 3 matrix (np.array) containing delta Hamiltonians
+        for all possible single mutants of target sequence.
+        Third dimension: 1) full Hamiltonian, 2) J_ij, 3) h_i
         """
-        self.single_mut_mat_full = _single_mutant_hamiltonians(
-            self.target_seq_mapped, self.J_ij, self.h_i
-        )
+        if self._single_mut_mat_full is None:
+            self._single_mut_mat_full = _single_mutant_hamiltonians(
+                self.target_seq_mapped, self.J_ij, self.h_i
+            )
 
-        self.single_mut_mat = self.single_mut_mat_full[:, :, FULL]
+        return self._single_mut_mat_full
 
-        return self.single_mut_mat_full
+    @property
+    def single_mut_mat(self):
+        """
+        Hamiltonian difference for all possible single-site variants
+
+        L x num_symbol matrix (np.array) containing delta Hamiltonians
+        for all possible single mutants of target sequence.
+        """
+        return self.single_mut_mat_full[:, :, FULL]
 
     def delta_hamiltonian(self, substitutions, verify_mutants=True):
         """
@@ -476,42 +504,38 @@ class CouplingsModel(object):
 
         return _delta_hamiltonian(pos, subs, self.target_seq_mapped, self.J_ij, self.h_i)
 
-    def calculate_double_mutants(self):
+    @property
+    def double_mut_mat(self):
         """
-        Calculates Hamiltonian difference for all possible double-site variants, using
-        information calculated for single-site variants
+        Hamiltonian difference for all possible double mutant variants
 
-        Returns
-        -------
-        np.array(float)
-            L x L x num_symbol x num_symbol matrix containing delta Hamiltonians
-            for all possible double mutants of target sequence
+        L x L x num_symbol x num_symbol matrix containing delta Hamiltonians
+        for all possible double mutants of target sequence
         """
-        if self.single_mut_mat is None:
-            self.calculate_single_mutants()
+        if self._double_mut_mat is None:
+            self._double_mut_mat = np.zeros(
+                (self.L, self.L, self.num_symbols, self.num_symbols)
+            )
 
-        self.double_mut_mat = np.zeros(
-            (self.L, self.L, self.num_symbols, self.num_symbols)
-        )
+            seq = self.target_seq_mapped
+            for i in range(self.L - 1):
+                for j in range(i + 1, self.L):
+                    self._double_mut_mat[i, j] = (
+                        np.tile(self.single_mut_mat[i], (self.num_symbols, 1)).T +
+                        np.tile(self.single_mut_mat[j], (self.num_symbols, 1)) +
+                        self.J_ij[i, j] -
+                        np.tile(self.J_ij[i, j, :, seq[j]], (self.num_symbols, 1)).T -
+                        np.tile(self.J_ij[i, j, seq[i], :], (self.num_symbols, 1)) +
+                        # we are only interested in difference to WT, so normalize
+                        # for second couplings subtraction with last term
+                        self.J_ij[i, j, seq[i], seq[j]])
 
-        seq = self.target_seq_mapped
-        for i in range(self.L - 1):
-            for j in range(i + 1, self.L):
-                self.double_mut_mat[i, j] = (
-                    np.tile(self.single_mut_mat[i], (self.num_symbols, 1)).T +
-                    np.tile(self.single_mut_mat[j], (self.num_symbols, 1)) +
-                    self.J_ij[i, j] -
-                    np.tile(self.J_ij[i, j, :, seq[j]], (self.num_symbols, 1)).T -
-                    np.tile(self.J_ij[i, j, seq[i], :], (self.num_symbols, 1)) +
-                    # we are only interested in difference to WT, so normalize
-                    # for second couplings subtraction with last term
-                    self.J_ij[i, j, seq[i], seq[j]])
+                    self._double_mut_mat[j, i] = self._double_mut_mat[i, j].T
 
-                self.double_mut_mat[j, i] = self.double_mut_mat[i, j].T
+        return self._double_mut_mat
 
-        return self.double_mut_mat
-
-    def __apc(self, matrix):
+    @classmethod
+    def apc(cls, matrix):
         """
         Apply average product correction (Dunn et al., Bioinformatics, 2008)
         to matrix
@@ -543,49 +567,31 @@ class CouplingsModel(object):
 
         return corrected_matrix
 
-    def calculate_ecs(self):
+    def _calculate_ecs(self):
         """
         Calculates FN and CN scores as defined in Ekeberg et al., Phys Rev E, 2013,
         as well as MI scores. Assumes parameters are in zero-sum gauge.
-
-        Set member variables
-        --------------------
-        self.fn_scores : np.array(float)
-            L x L matrix with FN scores
-        self.cn_scores : np.array(float)
-            L x L matrix with CN scores
-        self.mi_scores_raw : np.array(float)
-            L x L matrix with MI scores (no APC correction)
-        self.mi_scores_apc : np.array(float)
-            L x L matrix with MI scores (with APC correction)
-        self.ec_list: pd.DataFrame
-            Dataframe with computed evolutionary couplings
-
-        Returns
-        -------
-        pd.DataFrame
-            Dataframe with computed ECs for all pairs of positions
         """
         # calculate Frobenius norm for each pair of sites (i, j)
         # also calculate mutual information
-        self.fn_scores = np.zeros((self.L, self.L))
-        self.mi_scores_raw = np.zeros((self.L, self.L))
+        self._fn_scores = np.zeros((self.L, self.L))
+        self._mi_scores_raw = np.zeros((self.L, self.L))
 
         for i in range(self.L - 1):
             for j in range(i + 1, self.L):
-                self.fn_scores[i, j] = np.linalg.norm(self.J_ij[i, j], "fro")
-                self.fn_scores[j, i] = self.fn_scores[i, j]
+                self._fn_scores[i, j] = np.linalg.norm(self.J_ij[i, j], "fro")
+                self._fn_scores[j, i] = self._fn_scores[i, j]
 
                 # mutual information
                 p = self.f_ij[i, j]
                 m = np.dot(self.f_i[i, np.newaxis].T, self.f_i[j, np.newaxis])
-                self.mi_scores_raw[i, j] = np.sum(p[p > 0] * np.log(p[p > 0] / m[p > 0]))
-                self.mi_scores_raw[j, i] = self.mi_scores_raw[i, j]
+                self._mi_scores_raw[i, j] = np.sum(p[p > 0] * np.log(p[p > 0] / m[p > 0]))
+                self._mi_scores_raw[j, i] = self._mi_scores_raw[i, j]
 
         # apply Average Product Correction (Dunn et al., Bioinformatics, 2008)
         # subtract APC and blank diagonal entries
-        self.cn_scores = self.__apc(self.fn_scores)
-        self.mi_scores_apc = self.__apc(self.mi_scores_raw)
+        self._cn_scores = self.apc(self._fn_scores)
+        self._mi_scores_apc = self.apc(self._mi_scores_raw)
 
         # create internal dataframe representation
         ecs = []
@@ -595,15 +601,66 @@ class CouplingsModel(object):
                     self.index_list[i], self.target_seq[i],
                     self.index_list[j], self.target_seq[j],
                     abs(self.index_list[i] - self.index_list[j]),
-                    self.mi_scores_raw[i, j], self.mi_scores_apc[i, j],
-                    self.fn_scores[i, j], self.cn_scores[i, j]
+                    self._mi_scores_raw[i, j], self._mi_scores_apc[i, j],
+                    self._fn_scores[i, j], self._cn_scores[i, j]
                 ))
 
-        self.ec_list = pd.DataFrame(
+        self._ecs = pd.DataFrame(
             ecs, columns=["i", "A_i", "j", "A_j", "seqdist", "mi_raw", "mi_apc", "fn", "cn"]
         ).sort_values(by="cn", ascending=False)
 
-        return self.ec_list
+    @property
+    def cn_scores(self):
+        """
+        L x L numpy matrix with CN (corrected norm) scores
+        """
+        if self._cn_scores is None:
+            self._calculate_ecs()
+
+        return self._cn_scores
+
+    @property
+    def fn_scores(self):
+        """
+        L x L numpy matrix with FN (Frobenius norm) scores
+        """
+        if self._fn_scores is None:
+            self._calculate_ecs()
+
+        return self._fn_scores
+
+    @property
+    def mi_scores_raw(self):
+        """
+        L x L numpy matrix with MI (mutual information) scores
+        without APC correction
+        """
+        if self._mi_scores_raw is None:
+            self._calculate_ecs()
+
+        return self._mi_scores_raw
+
+    @property
+    def mi_scores_apc(self):
+        """
+        L x L numpy matrix with MI (mutual information) scores
+        with APC correction
+        """
+        if self._mi_scores_apc is None:
+            self._calculate_ecs()
+
+        return self._mi_scores_apc
+
+    @property
+    def ecs(self):
+        """
+        DataFrame with evolutionary couplings, sorted by CN score
+        (all scores: CN, FN, MI)
+        """
+        if self._ecs is None:
+            self._calculate_ecs()
+
+        return self._ecs
 
     def to_independent_model(self):
         """
@@ -782,8 +839,6 @@ class CouplingsModel(object):
         Quick access to cn_scores matrix with automatic index mapping.
         See __2d_access_score_matrix for explanation of parameters.
         """
-        if self.cn_scores is None:
-            self.calculate_ecs()
         return self.__2d_access_score_matrix(self.cn_scores, i, j)
 
     def fn(self, i=None, j=None):
@@ -791,8 +846,6 @@ class CouplingsModel(object):
         Quick access to fn_scores matrix with automatic index mapping.
         See __2d_access_score_matrix for explanation of parameters.
         """
-        if self.fn_scores is None:
-            self.calculate_ecs()
         return self.__2d_access_score_matrix(self.fn_scores, i, j)
 
     def mi_apc(self, i=None, j=None):
@@ -800,8 +853,6 @@ class CouplingsModel(object):
         Quick access to mi_scores_apc matrix with automatic index mapping.
         See __2d_access_score_matrix for explanation of parameters.
         """
-        if self.mi_scores_apc is None:
-            self.calculate_ecs()
         return self.__2d_access_score_matrix(self.mi_scores_apc, i, j)
 
     def mi_raw(self, i=None, j=None):
@@ -809,8 +860,6 @@ class CouplingsModel(object):
         Quick access to mi_scores_raw matrix with automatic index mapping.
         See __2d_access_score_matrix for explanation of parameters.
         """
-        if self.mi_scores_raw is None:
-            self.calculate_ecs()
         return self.__2d_access_score_matrix(self.mi_scores_raw, i, j)
 
     def mn(self, i=None):
@@ -903,8 +952,6 @@ class CouplingsModel(object):
             axes of single mutation matrix (first axis: position, second
             axis: substitution).
         """
-        if self.single_mut_mat is None:
-            self.calculate_single_mutants()
         return self.__2d_access(self.single_mut_mat, i, A_i)
 
     def dmm(self, i=None, j=None, A_i=None, A_j=None):
@@ -929,7 +976,4 @@ class CouplingsModel(object):
             axes of double mutation matrix (axes 1/2: position, axis 3/4:
             substitutions).
         """
-
-        if self.double_mut_mat is None:
-            self.calculate_double_mutants()
         return self.__4d_access(self.double_mut_mat, i, j, A_i, A_j)
