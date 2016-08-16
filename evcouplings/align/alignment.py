@@ -462,7 +462,7 @@ def map_matrix(matrix, map_):
     return np.vectorize(map_.__getitem__)(matrix)
 
 
-class Alignment(object):
+class Alignment:
     """
     Container to store and manipulate multiple sequence alignments.
 

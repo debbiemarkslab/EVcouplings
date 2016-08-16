@@ -186,7 +186,7 @@ def _delta_hamiltonian(pos, subs, target_seq, J_ij, h_i):
     return np.array([delta_Jij + delta_hi, delta_Jij, delta_hi])
 
 
-class CouplingsModel(object):
+class CouplingsModel:
     """
     Class to store parameters of pairwise undirected graphical model of sequences
     and compute evolutionary couplings, sequence statistical energies, etc.

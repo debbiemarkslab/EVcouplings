@@ -10,7 +10,7 @@ from collections import defaultdict, Iterable
 import numpy as np
 
 
-class ComplexIndexMapper():
+class ComplexIndexMapper:
     """
     Map indices of sequences into concatenated EVcouplings
     object numbering space. Can in principle also be used
