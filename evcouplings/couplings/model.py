@@ -888,15 +888,15 @@ class CouplingsModel(object):
         """
         return self.mn(i)
 
-    def tn(self, i=None):
+    def sn(self, i=None):
         """
-        Map internal numbering to model numbering
+        Map internal numbering to sequence numbering
 
         Parameters
         ----------
         i : Iterable(int) or int
             Position(s) to be mapped from internal numbering space
-            into model numbering space.
+            into sequence numbering space.
 
         Returns
         -------
@@ -910,9 +910,9 @@ class CouplingsModel(object):
 
     def itu(self, i=None):
         """
-        Legacy method for backwards compatibility. See self.tn for explanation.
+        Legacy method for backwards compatibility. See self.sn for explanation.
         """
-        return self.tn(i)
+        return self.sn(i)
 
     def seq(self, i=None):
         """
