@@ -522,7 +522,7 @@ class Alignment:
         self.matrix_mapped = None
         self.num_cluster_members = None
         self.weights = None
-        self.freqs = None
+        self._frequencies = None
 
         if sequence_ids is None:
             # default to numbering sequences if not given
@@ -833,9 +833,12 @@ class Alignment:
         greater or equal to the given threshold.
 
         Note that this method sets self.weights.
-        After this method was called, methods such as
-        self.calculate_frequencies() or self.conservation()
+        After this method was called, methods/attributes such as
+        self.frequencies or self.conservation()
         will make use of sequence weights.
+
+        (Implementation note: cannot use property here
+        since we need identity threshold as a parameter....)
 
         Parameters
         ----------
@@ -856,9 +859,12 @@ class Alignment:
         )
         self.weights = 1.0 / self.num_cluster_members
 
-        return self.weights
+        # reset frequencies, since these were based on
+        # different weights before or had no weights at all
+        self._frequencies = None
 
-    def frequencies(self, reset=False):
+    @property
+    def frequencies(self):
         """
         Calculates single-site frequencies of symbols in alignment.
         Also sets self.freqs member variable for later reuse.
@@ -877,7 +883,7 @@ class Alignment:
         np.array
             Reference to self.freqs
         """
-        if self.freqs is None or reset:
+        if self._frequencies is None:
             self.__ensure_mapped_matrix()
 
             # use precalculated sequence weights, but only
@@ -888,11 +894,11 @@ class Alignment:
             else:
                 weights = self.weights
 
-            self.freqs = frequencies(
+            self._frequencies = frequencies(
                 self.matrix_mapped, weights, self.num_symbols
             )
 
-        return self.freqs
+        return self._frequencies
 
     def identities_to(self, seq, normalize=True):
         """
@@ -940,7 +946,7 @@ class Alignment:
         """
         return np.apply_along_axis(
             lambda x: entropy(x, normalize=normalize),
-            axis=1, arr=self.frequencies()
+            axis=1, arr=self.frequencies
         )
 
     def write(self, fileobj, format="fasta", width=80):

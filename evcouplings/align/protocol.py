@@ -390,7 +390,7 @@ def describe_frequencies(alignment, first_index, target_seq_index=None):
         Table detailing conservation and symbol frequencies
         for all positions in the alignment
     """
-    fi = alignment.frequencies()
+    fi = alignment.frequencies
     conservation = alignment.conservation()
 
     fi_cols = {c: fi[:, i] for c, i in alignment.alphabet_map.items()}
@@ -447,7 +447,7 @@ def describe_coverage(alignment, prefix, first_index, max_gaps_per_column):
         max_gaps_per_column = [max_gaps_per_column]
 
     pos = np.arange(first_index, first_index + alignment.L)
-    f_gap = alignment.frequencies()[:, alignment.alphabet_map[alignment._match_gap]]
+    f_gap = alignment.frequencies[:, alignment.alphabet_map[alignment._match_gap]]
 
     for threshold in max_gaps_per_column:
         if isinstance(threshold, int):
