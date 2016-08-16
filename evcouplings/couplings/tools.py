@@ -16,11 +16,6 @@ from evcouplings.utils.system import (
     verify_resources, ResourceError
 )
 
-PlmcResult = namedtuple(
-    "PlmcResult",
-    ["couplings_file", "param_file"]
-)
-
 
 def parse_plmc_log(log):
     """
@@ -114,7 +109,7 @@ def parse_plmc_log(log):
 # output fields for storing results of a plmc run
 # (returned by run_plmc)
 PlmcResult = namedtuple(
-    "PlmcResults",
+    "PlmcResult",
     [
         "couplings_file", "param_file",
         "iteration_table", "focus_seq_index",
