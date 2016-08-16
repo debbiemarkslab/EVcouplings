@@ -45,13 +45,12 @@ def standard(**kwargs):
         focus_mode?
         focus_sequence?
         segments?
-
-    # TODO: return anything else?
     """
     check_required(
         kwargs,
         [
-            "prefix",
+            "prefix", "alignment_file",
+            "focus_mode", "focus_sequence",
         ]
     )
 
@@ -62,11 +61,6 @@ def standard(**kwargs):
         "ec_file": prefix + "_CouplingScores.csv"
     }
 
-    # check if stage should be skipped and if so, return
-    if kwargs.get("skip", False):
-        # TODO: implement
-        return
-
     # Otherwise, now run the protocol...
     # make sure output directory exists
     # TODO: Exception handling here if this fails
@@ -75,12 +69,7 @@ def standard(**kwargs):
     # TODO: implement actual protocol
 
     # dump output config to YAML file for debugging/logging
-    write_config_file(prefix + ".outcfg", outcfg)
-
-    # run callback function if given (e.g. to merge alignment
-    # or update database status)
-    if kwargs.get("callback", None) is not None:
-        kwargs["callback"]({**kwargs, **outcfg})
+    write_config_file(prefix + ".infer_standard.outcfg", outcfg)
 
     return outcfg
 
@@ -102,10 +91,6 @@ def run(**kwargs):
     Mandatory kwargs arguments:
         protocol: EC protocol to run
         prefix: Output prefix for all generated files
-
-    Optional:
-        skip: If True, only return stage results but do
-        not run actual calculation.
 
     Returns
     -------
