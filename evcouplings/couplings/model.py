@@ -6,9 +6,7 @@ sequences and perform calculations using the model
 Note: this used to be ev_couplings.py previously.
 
 TODO:
-(1) switch notation consistently to J_ij instead of e_ij
-    (currently wild mixture of both...)
-(2) add gauge transformations back in
+  (1) add gauge transformations back in
 
 Authors:
   Thomas A. Hopf
@@ -31,17 +29,17 @@ NUM_COMPONENTS = len(HAMILTONIAN_COMPONENTS)
 
 
 @jit(nopython=True)
-def _hamiltonians(sequences, e_ij, h_i):
+def _hamiltonians(sequences, J_ij, h_i):
     """
     Calculates the Hamiltonian of the global probability distribution P(A_1, ..., A_L)
-    for a given sequence A_1,...,A_L from e_ij and h_i parameters
+    for a given sequence A_1,...,A_L from J_ij and h_i parameters
 
     Parameters
     ----------
     sequences : np.array
         Sequence matrix for which Hamiltonians will be computed
-    e_ij: np.array
-        L x L x num_symbols x num_symbols e_ij pair coupling parameter matrix
+    J_ij: np.array
+        L x L x num_symbols x num_symbols J_ij pair coupling parameter matrix
     h_i: np.array
         L x num_symbols h_i fields parameter matrix
 
@@ -49,7 +47,7 @@ def _hamiltonians(sequences, e_ij, h_i):
     -------
     np.array
         Float matrix of size len(sequences) x 3, where each row corresponds to the
-        1) total Hamiltonian of sequence and the 2) e_ij and 3) h_i sub-sums
+        1) total Hamiltonian of sequence and the 2) J_ij and 3) h_i sub-sums
     """
     # iterate over sequences
     N, L = sequences.shape
@@ -57,19 +55,19 @@ def _hamiltonians(sequences, e_ij, h_i):
     for s in range(N):
         A = sequences[s]
         hi_sum = 0.0
-        eij_sum = 0.0
+        Jij_sum = 0.0
         for i in range(L):
             hi_sum += h_i[i, A[i]]
             for j in range(i + 1, L):
-                eij_sum += e_ij[i, j, A[i], A[j]]
+                Jij_sum += J_ij[i, j, A[i], A[j]]
 
-        H[s] = [eij_sum + hi_sum, eij_sum, hi_sum]
+        H[s] = [Jij_sum + hi_sum, Jij_sum, hi_sum]
 
     return H
 
 
 @jit(nopython=True)
-def _single_mutant_hamiltonians(target_seq, e_ij, h_i):
+def _single_mutant_hamiltonians(target_seq, J_ij, h_i):
     """
     Calculate matrix of all possible single-site substitutions
 
@@ -81,8 +79,8 @@ def _single_mutant_hamiltonians(target_seq, e_ij, h_i):
         Number of states of model
     target_seq : np.array(int)
         Target sequence for which mutant energy differences will be calculated
-    e_ij: np.array
-        L x L x num_symbols x num_symbols e_ij pair coupling parameter matrix
+    J_ij: np.array
+        L x L x num_symbols x num_symbols J_ij pair coupling parameter matrix
     h_i: np.array
         L x num_symbols h_i fields parameter matrix
 
@@ -92,7 +90,7 @@ def _single_mutant_hamiltonians(target_seq, e_ij, h_i):
         Float matrix of size L x num_symbols x 3, where the first two dimensions correspond to
         Hamiltonian differences compared to target sequence for all possible substitutions in
         all positions, and the third dimension corresponds to the deltas of
-        1) total Hamiltonian and the 2) e_ij and 3) h_i sub-sums
+        1) total Hamiltonian and the 2) J_ij and 3) h_i sub-sums
     """
     L, num_symbols = h_i.shape
     H = np.empty((L, num_symbols, NUM_COMPONENTS))
@@ -103,22 +101,22 @@ def _single_mutant_hamiltonians(target_seq, e_ij, h_i):
         for A_i in range(num_symbols):
             # iterate over couplings to all other sites
             delta_hi = h_i[i, A_i] - h_i[i, target_seq[i]]
-            delta_eij = 0.0
+            delta_Jij = 0.0
 
             for j in range(L):
                 if i != j:
-                    delta_eij += (
-                        e_ij[i, j, A_i, target_seq[j]] -
-                        e_ij[i, j, target_seq[i], target_seq[j]]
+                    delta_Jij += (
+                        J_ij[i, j, A_i, target_seq[j]] -
+                        J_ij[i, j, target_seq[i], target_seq[j]]
                     )
 
-            H[i, A_i] = [delta_eij + delta_hi, delta_eij, delta_hi]
+            H[i, A_i] = [delta_Jij + delta_hi, delta_Jij, delta_hi]
 
     return H
 
 
 @jit(nopython=True)
-def _delta_hamiltonian(pos, subs, target_seq, e_ij, h_i):
+def _delta_hamiltonian(pos, subs, target_seq, J_ij, h_i):
     """
     Parameters
     ----------
@@ -129,8 +127,8 @@ def _delta_hamiltonian(pos, subs, target_seq, e_ij, h_i):
     target_seq : np.array(int)
         Target sequence for which mutant energy differences will be calculated
         relative to
-    e_ij: np.array
-        L x L x num_symbols x num_symbols e_ij pair coupling parameter matrix
+    J_ij: np.array
+        L x L x num_symbols x num_symbols J_ij pair coupling parameter matrix
     h_i: np.array
         L x num_symbols h_i fields parameter matrix
 
@@ -138,13 +136,13 @@ def _delta_hamiltonian(pos, subs, target_seq, e_ij, h_i):
     -------
     np.array
         Vector of length 3, where elements correspond to delta of
-        1) total Hamiltonian and the 2) e_ij and 3) h_i sub-sums
+        1) total Hamiltonian and the 2) J_ij and 3) h_i sub-sums
     """
     L, num_symbols = h_i.shape
 
     M = pos.shape[0]
     delta_hi = 0.0
-    delta_eij = 0.0
+    delta_Jij = 0.0
 
     # iterate over all changed positions
     for m in range(M):
@@ -157,9 +155,9 @@ def _delta_hamiltonian(pos, subs, target_seq, e_ij, h_i):
         # couplings to all other positions in sequence
         for j in range(L):
             if i != j:
-                delta_eij += (
-                    e_ij[i, j, A_i, target_seq[j]] -
-                    e_ij[i, j, target_seq[i], target_seq[j]]
+                delta_Jij += (
+                    J_ij[i, j, A_i, target_seq[j]] -
+                    J_ij[i, j, target_seq[i], target_seq[j]]
                 )
 
         # correct couplings between substituted positions:
@@ -170,33 +168,33 @@ def _delta_hamiltonian(pos, subs, target_seq, e_ij, h_i):
             j = pos[n]
             A_j = subs[n]
             # remove forward and backward coupling delta
-            delta_eij -= e_ij[i, j, A_i, target_seq[j]]
-            delta_eij -= e_ij[i, j, target_seq[i], A_j]
-            delta_eij += e_ij[i, j, target_seq[i], target_seq[j]]
+            delta_Jij -= J_ij[i, j, A_i, target_seq[j]]
+            delta_Jij -= J_ij[i, j, target_seq[i], A_j]
+            delta_Jij += J_ij[i, j, target_seq[i], target_seq[j]]
             # the following line cancels out with line further down:
-            # delta_eij += e_ij[i, j, target_seq[i], target_seq[j]]
+            # delta_Jij += J_ij[i, j, target_seq[i], target_seq[j]]
 
             # now add coupling delta once in correct background
-            delta_eij += e_ij[i, j, A_i, A_j]
+            delta_Jij += J_ij[i, j, A_i, A_j]
             # following line cancels out with line above:
-            # delta_eij -= e_ij[i, j, target_seq[i], target_seq[j]]
+            # delta_Jij -= J_ij[i, j, target_seq[i], target_seq[j]]
 
-    return np.array([delta_eij + delta_hi, delta_eij, delta_hi])
+    return np.array([delta_Jij + delta_hi, delta_Jij, delta_hi])
 
 
 class CouplingsModel(object):
     """
-    Class to store raw J_ij, h_i, P_i values from PLM parameter estimation, and allows to compute
-    evolutionary couplings, sequence statistical energies, and all sorts of other things.
+    Class to store parameters of pairwise undirected graphical model of sequences
+    and compute evolutionary couplings, sequence statistical energies, etc.
     """
     def __init__(self, filename, precision="float32"):
         """
-        Initializes the object with raw values read from binary .eij file
+        Initializes the object with raw values read from binary .Jij file
 
         Parameters
         ----------
         filename : str
-            Binary eij file containing model parameters from plmc software
+            Binary Jij file containing model parameters from plmc software
         alphabet : str
             Symbols corresponding to model states (e.g. "-ACGT").
         precision : {"float32", "float64"}
@@ -233,12 +231,12 @@ class CouplingsModel(object):
 
     def __read_plmc(self, filename, precision):
         """
-        Read updated eij file format from plmc.
+        Read updated Jij file format from plmc.
 
         Parameters
         ----------
         filename : str
-            Binary eij file containing model parameters
+            Binary Jij file containing model parameters
         precision : {"float32", "float64"}
             Sets if input file has single (default) or double precision
 
@@ -278,12 +276,12 @@ class CouplingsModel(object):
                 f, dtype=(precision, (self.L, self.num_symbols)), count=1
             )
 
-            # pair frequencies f_ij and pair couplings e_ij / J_ij
+            # pair frequencies f_ij and pair couplings J_ij / J_ij
             self.f_ij = np.zeros(
                 (self.L, self.L, self.num_symbols, self.num_symbols)
             )
 
-            self.e_ij = np.zeros(
+            self.J_ij = np.zeros(
                 (self.L, self.L, self.num_symbols, self.num_symbols)
             )
 
@@ -300,11 +298,11 @@ class CouplingsModel(object):
 
             for i in range(self.L - 1):
                 for j in range(i + 1, self.L):
-                    self.e_ij[i, j], = np.fromfile(
+                    self.J_ij[i, j], = np.fromfile(
                         f, dtype=(precision, (self.num_symbols, self.num_symbols)),
                         count=1
                     )
-                    self.e_ij[j, i] = self.e_ij[i, j].T
+                    self.J_ij[j, i] = self.J_ij[i, j].T
 
     def set_target_sequence(self, sequence):
         """
@@ -398,7 +396,7 @@ class CouplingsModel(object):
     def hamiltonians(self, sequences):
         """
         Calculates the Hamiltonians of the global probability distribution P(A_1, ..., A_L)
-        for the given sequences A_1,...,A_L from e_ij and h_i parameters
+        for the given sequences A_1,...,A_L from J_ij and h_i parameters
 
         Parameters
         ----------
@@ -410,12 +408,12 @@ class CouplingsModel(object):
         -------
         np.array
             Float matrix of size len(sequences) x 3, where each row corresponds to the
-            1) total Hamiltonian of sequence and the 2) e_ij and 3) h_i sub-sums
+            1) total Hamiltonian of sequence and the 2) J_ij and 3) h_i sub-sums
         """
         if isinstance(sequences, list):
             sequences = self.convert_sequences(sequences)
 
-        return _hamiltonians(sequences, self.e_ij, self.h_i)
+        return _hamiltonians(sequences, self.J_ij, self.h_i)
 
     def calculate_single_mutants(self):
         """
@@ -426,10 +424,10 @@ class CouplingsModel(object):
         np.array(float)
             L x num_symbol x 3 matrix containing delta Hamiltonians
             for all possible single mutants of target sequence.
-            Third dimension: 1) full Hamiltonian, 2) e_ij, 3) h_i
+            Third dimension: 1) full Hamiltonian, 2) J_ij, 3) h_i
         """
         self.single_mut_mat_full = _single_mutant_hamiltonians(
-            self.target_seq_mapped, self.e_ij, self.h_i
+            self.target_seq_mapped, self.J_ij, self.h_i
         )
 
         self.single_mut_mat = self.single_mut_mat_full[:, :, FULL]
@@ -453,7 +451,7 @@ class CouplingsModel(object):
         -------
         np.array
             Vector of length 3 with 1) total delta Hamiltonian,
-            2) delta e_ij, 3) delta h_i
+            2) delta J_ij, 3) delta h_i
 
         """
         pos = np.empty(len(substitutions), dtype=np.int)
@@ -476,7 +474,7 @@ class CouplingsModel(object):
                 )
             )
 
-        return _delta_hamiltonian(pos, subs, self.target_seq_mapped, self.e_ij, self.h_i)
+        return _delta_hamiltonian(pos, subs, self.target_seq_mapped, self.J_ij, self.h_i)
 
     def calculate_double_mutants(self):
         """
@@ -502,12 +500,12 @@ class CouplingsModel(object):
                 self.double_mut_mat[i, j] = (
                     np.tile(self.single_mut_mat[i], (self.num_symbols, 1)).T +
                     np.tile(self.single_mut_mat[j], (self.num_symbols, 1)) +
-                    self.e_ij[i, j] -
-                    np.tile(self.e_ij[i, j, :, seq[j]], (self.num_symbols, 1)).T -
-                    np.tile(self.e_ij[i, j, seq[i], :], (self.num_symbols, 1)) +
+                    self.J_ij[i, j] -
+                    np.tile(self.J_ij[i, j, :, seq[j]], (self.num_symbols, 1)).T -
+                    np.tile(self.J_ij[i, j, seq[i], :], (self.num_symbols, 1)) +
                     # we are only interested in difference to WT, so normalize
                     # for second couplings subtraction with last term
-                    self.e_ij[i, j, seq[i], seq[j]])
+                    self.J_ij[i, j, seq[i], seq[j]])
 
                 self.double_mut_mat[j, i] = self.double_mut_mat[i, j].T
 
@@ -575,7 +573,7 @@ class CouplingsModel(object):
 
         for i in range(self.L - 1):
             for j in range(i + 1, self.L):
-                self.fn_scores[i, j] = np.linalg.norm(self.e_ij[i, j], "fro")
+                self.fn_scores[i, j] = np.linalg.norm(self.J_ij[i, j], "fro")
                 self.fn_scores[j, i] = self.fn_scores[i, j]
 
                 # mutual information
@@ -655,7 +653,7 @@ class CouplingsModel(object):
 
         c0 = deepcopy(self)
         c0.h_i = h_i
-        c0.e_ij.fill(0)
+        c0.J_ij.fill(0)
         c0._reset_precomputed()
         return c0
 
@@ -686,7 +684,7 @@ class CouplingsModel(object):
     def __4d_access(self, matrix, i=None, j=None, A_i=None, A_j=None):
         """
         Provides shortcut access to column pair properties
-        (e.g. e_ij or f_ij matrices)
+        (e.g. J_ij or f_ij matrices)
 
         Parameters
         -----------
@@ -751,12 +749,12 @@ class CouplingsModel(object):
         j = self.__map(j, self.index_map) if j is not None else _SLICE
         return matrix[i, j]
 
-    def eij(self, i=None, j=None, A_i=None, A_j=None):
+    def Jij(self, i=None, j=None, A_i=None, A_j=None):
         """
-        Quick access to e_ij matrix with automatic index mapping.
+        Quick access to J_ij matrix with automatic index mapping.
         See __4d_access for explanation of parameters.
         """
-        return self.__4d_access(self.e_ij, i, j, A_i, A_j)
+        return self.__4d_access(self.J_ij, i, j, A_i, A_j)
 
     def fij(self, i=None, j=None, A_i=None, A_j=None):
         """
