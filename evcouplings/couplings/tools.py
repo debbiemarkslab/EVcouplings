@@ -129,7 +129,7 @@ PlmcResult = namedtuple(
 def run_plmc(alignment, couplings_file, param_file=None,
              focus_seq=None, alphabet=None, theta=None,
              scale=None, ignore_gaps=False, iterations=None,
-             lambda_h=None, lambda_e=None, lambda_g=None,
+             lambda_h=None, lambda_J=None, lambda_g=None,
              cpu=None, binary="plmc"):
     """
     Run plmc on sequence alignment and store
@@ -170,7 +170,7 @@ def run_plmc(alignment, couplings_file, param_file=None,
     lambda_h : float, optional (default: None)
         l2 regularization strength on fields.
         If None, plmc default will be used.
-    lambda_e : float, optional (default: None)
+    lambda_J : float, optional (default: None)
         l2-regularization strength on couplings.
         If None, plmc default will be used
     lambda_g : float, optional (default: None)
@@ -240,8 +240,8 @@ def run_plmc(alignment, couplings_file, param_file=None,
         cmd += ["-lh", str(lambda_h)]
 
     # L2 regularization weight for pair couplings
-    if lambda_e is not None:
-        cmd += ["-le", str(lambda_e)]
+    if lambda_J is not None:
+        cmd += ["-le", str(lambda_J)]
 
     # Group L1 regularization weight for pair couplings
     if lambda_g is not None:
