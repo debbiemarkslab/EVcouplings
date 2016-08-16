@@ -135,9 +135,6 @@ class ScoreMixtureModel:
     """
     Assign to each EC score the probability of being in the
     lognormal tail of a normal-lognormal mixture model.
-
-    Code adapted from ecscore_threshold.py from
-    Agnes' evconformations repository
     """
     def __init__(self, x, max_fun=10000, max_iter=1000):
         """
