@@ -1,24 +1,20 @@
 """
-EVcouplings module v4.0
+Class to store parameters of undirected graphical model of
+sequences and perform calculations using the model
+(statistical energies, coupling scores).
 
-Major changes:
- * Python 3 compatibility
- * Drop legacy eij file support
- * Speed up calculations using numba
- * Clean up calculation methods
+Note: this used to be ev_couplings.py previously.
 
-Author: Thomas A. Hopf (thomas.hopf@gmail.com)
-Date: 17.04.2016
+TODO:
+(1) switch notation consistently to J_ij instead of e_ij
+    (currently wild mixture of both...)
+(2) add gauge transformations back in
+
+Authors:
+  Thomas A. Hopf
 """
 
-# ensure Python 3 compatibility
-from __future__ import print_function, division, unicode_literals, absolute_import
-from builtins import range, dict, str
-from six import string_types
-# do not import Py3 open here - this creates a problem with numpy.fromfile since it
-# does not identify as an open file object anymore
-
-from collections import defaultdict, Iterable
+from collections import Iterable
 from copy import deepcopy
 
 from numba import jit
@@ -26,22 +22,6 @@ import numpy as np
 import pandas as pd
 
 # Constants
-
-ALPHABET_PROTEIN_NOGAP = "ACDEFGHIKLMNPQRSTVWY"
-ALPHABET_PROTEIN_GAP = "-" + ALPHABET_PROTEIN_NOGAP
-
-ALPHABET_DNA_NOGAP = "ACGT"
-ALPHABET_DNA_GAP = "-" + ALPHABET_DNA_NOGAP
-
-ALPHABET_RNA_NOGAP = "ACGU"
-ALPHABET_RNA_GAP = "-" + ALPHABET_RNA_NOGAP
-
-NUM_SYMBOLS_TO_ALPHABET = {
-    4: ALPHABET_DNA_NOGAP,
-    5: ALPHABET_DNA_GAP,
-    20: ALPHABET_PROTEIN_NOGAP,
-    21: ALPHABET_PROTEIN_GAP,
-}
 
 _SLICE = np.s_[:]
 HAMILTONIAN_COMPONENTS = [FULL, COUPLINGS, FIELDS] = [0, 1, 2]
@@ -203,15 +183,13 @@ def _delta_hamiltonian(pos, subs, target_seq, e_ij, h_i):
 
     return np.array([delta_eij + delta_hi, delta_eij, delta_hi])
 
-# EVcouplings class
 
-
-class EVcouplings(object):
+class CouplingsModel(object):
     """
-    Class to store raw e_ij, h_i, P_i values from PLM parameter estimation, and allows to compute
+    Class to store raw J_ij, h_i, P_i values from PLM parameter estimation, and allows to compute
     evolutionary couplings, sequence statistical energies, and all sorts of other things.
     """
-    def __init__(self, filename, alphabet=None, precision="float32"):
+    def __init__(self, filename, precision="float32"):
         """
         Initializes the object with raw values read from binary .eij file
 
@@ -227,25 +205,13 @@ class EVcouplings(object):
         """
         self.__read_plmc(filename, precision)
 
-        # use given alphabet or guess based on number of symbols in eij file
-        if alphabet is not None:
-            self.alphabet = alphabet
-        else:
-            if self.num_symbols in NUM_SYMBOLS_TO_ALPHABET:
-                self.alphabet = NUM_SYMBOLS_TO_ALPHABET[self.num_symbols]
-            else:
-                raise ValueError(
-                    "No default alphabet with {} symbols available. "
-                    "Set alphabet parameter to define. "
-                    "Available defaults: {}".format(self.num_symbols, NUM_SYMBOLS_TO_ALPHABET)
-                )
-
-        self.alphabet = np.array(list(self.alphabet))
         self.alphabet_map = {s: i for i, s in enumerate(self.alphabet)}
         self.index_map = {b: a for a, b in enumerate(self.index_list)}
 
         # in non-gap mode, focus sequence is still coded with a gap character,
-        # but gap is not part of model alphabet anymore
+        # but gap is not part of model alphabet anymore; so if mapping crashes
+        # that means there is a non-alphabet character in sequence array
+        # and therefore there is no focus sequence.
         try:
             self.target_seq_mapped = np.array([self.alphabet_map[x] for x in self.target_seq])
             self.has_target_seq = (np.sum(self.target_seq_mapped) > 0)
@@ -277,51 +243,67 @@ class EVcouplings(object):
             Sets if input file has single (default) or double precision
 
         """
-        with open(filename, "rb", buffering=0) as eij_file:
+        with open(filename, "rb") as f:
+            # model length, number of symbols, valid/invalid sequences
+            # and iterations
+            self.L, self.num_symbols, self.N_valid, self.N_invalid, self.num_iter = (
+                np.fromfile(f, "int32", 5)
+            )
 
-            def _read_Nxq():
-                """
-                Read binary N x q block matrix (f, h)
-                """
-                return np.fromfile(
-                    eij_file, precision, self.L * self.num_symbols
-                ).reshape(self.L, self.num_symbols)
+            # theta, regularization weights, and effective number of samples
+            self.theta, self.lambda_h, self.lambda_J, self.lambda_group, self.N_eff = (
+                np.fromfile(f, precision, 5)
+            )
 
-            def _read_qxq():
-                """
-                Read binary q x q block matrix (f_ij, e_ij)
-                """
-                return np.fromfile(
-                    eij_file, precision, self.num_symbols * self.num_symbols
-                ).reshape(self.num_symbols, self.num_symbols)
+            # Read alphabet (make sure we get proper unicode rather than byte string)
+            self.alphabet = np.fromfile(
+                f, "S1", self.num_symbols
+            ).astype("U1")
 
-            # model length, number of symbols, target sequence and index mapping
-            self.L, = np.fromfile(eij_file, "int32", 1)
-            self.num_symbols, = np.fromfile(eij_file, "int32", 1)
-            self.target_seq = np.fromfile(eij_file, "|S1", self.L)
-            self.index_list = np.fromfile(eij_file, "int32", self.L)
+            # weights of individual sequences (after clustering)
+            self.weights = np.fromfile(
+                f, precision, self.N_valid + self.N_invalid
+            )
+
+            # target sequence and index mapping, again ensure unicode
+            self.target_seq = np.fromfile(f, "S1", self.L).astype("U1")
+            self.index_list = np.fromfile(f, "int32", self.L)
 
             # single site frequencies f_i and fields h_i
-            self.f_i = _read_Nxq()
-            self.h_i = _read_Nxq()
+            self.f_i, = np.fromfile(
+                f, dtype=(precision, (self.L, self.num_symbols)), count=1
+            )
+
+            self.h_i, = np.fromfile(
+                f, dtype=(precision, (self.L, self.num_symbols)), count=1
+            )
 
             # pair frequencies f_ij and pair couplings e_ij / J_ij
-            self.f_ij = np.zeros((self.L, self.L, self.num_symbols, self.num_symbols))
-            self.e_ij = np.zeros((self.L, self.L, self.num_symbols, self.num_symbols))
+            self.f_ij = np.zeros(
+                (self.L, self.L, self.num_symbols, self.num_symbols)
+            )
+
+            self.e_ij = np.zeros(
+                (self.L, self.L, self.num_symbols, self.num_symbols)
+            )
+
+            # TODO: could read triangle matrix from file in one block
+            # like in read_params.m, which would result in faster reading
+            # but also 50% higher memory usage... for now save memory
             for i in range(self.L - 1):
                 for j in range(i + 1, self.L):
-                    # check consistency of indices in file with what they should be
-                    file_i, file_j = np.fromfile(eij_file, "int32", 2)
-                    if i + 1 != file_i or j + 1 != file_j:
-                        raise ValueError(
-                            "Error: column pair indices inconsistent. "
-                            "Expected: {} {}; File: {} {}".format(i + 1, j + 1, file_i, file_j)
-                        )
-
-                    self.f_ij[i, j] = _read_qxq()
+                    self.f_ij[i, j], = np.fromfile(
+                        f, dtype=(precision, (self.num_symbols, self.num_symbols)),
+                        count=1
+                    )
                     self.f_ij[j, i] = self.f_ij[i, j].T
 
-                    self.e_ij[i, j] = _read_qxq()
+            for i in range(self.L - 1):
+                for j in range(i + 1, self.L):
+                    self.e_ij[i, j], = np.fromfile(
+                        f, dtype=(precision, (self.num_symbols, self.num_symbols)),
+                        count=1
+                    )
                     self.e_ij[j, i] = self.e_ij[i, j].T
 
     def set_target_sequence(self, sequence):
@@ -347,9 +329,7 @@ class EVcouplings(object):
                 )
             )
 
-        # use six.string_types because py3 does not know "basestring" or
-        # "unicode", while "str" misses unicode strings in py2
-        if isinstance(sequence, string_types):
+        if isinstance(sequence, str):
             self.target_seq = list(sequence)
 
         self.target_seq = np.array(self.target_seq)
@@ -627,7 +607,7 @@ class EVcouplings(object):
 
         return self.ec_list
 
-    def to_independent_model(self, N, lambda_h=0.01):
+    def to_independent_model(self):
         """
         Estimate parameters of a single-site model using
         Gaussian prior/L2 regularization.
@@ -641,7 +621,7 @@ class EVcouplings(object):
 
         Returns
         -------
-        EVcouplings
+        CouplingsModel
             Copy of object turned into independent model
         """
         from scipy.optimize import fmin_bfgs
@@ -669,7 +649,8 @@ class EVcouplings(object):
             x0 = np.zeros((self.num_symbols))
             h_i[i] = fmin_bfgs(
                 _log_post, x0, _gradient,
-                args=(self.f_i[i], lambda_h, N), disp=False
+                args=(self.f_i[i], self.lambda_h, self.N_eff),
+                disp=False
             )
 
         c0 = deepcopy(self)
@@ -694,9 +675,11 @@ class EVcouplings(object):
         Iterable, or single item
             Items mapped into new space
         """
-        if ((isinstance(indices, Iterable) and not isinstance(indices, string_types)) or
-                (isinstance(indices, string_types) and len(indices) > 1)):
-            return np.array(map(lambda x: mapping[x], indices))
+        if ((isinstance(indices, Iterable) and not isinstance(indices, str)) or
+                (isinstance(indices, str) and len(indices) > 1)):
+            return np.array(
+                [mapping[i] for i in indices]
+            )
         else:
             return mapping[indices]
 
@@ -952,168 +935,3 @@ class EVcouplings(object):
         if self.double_mut_mat is None:
             self.calculate_double_mutants()
         return self.__4d_access(self.double_mut_mat, i, j, A_i, A_j)
-
-
-def load_eijs(eij_file, N, alphabet=None, lambda_h=0.01, precision="float32"):
-    """
-    Syntactic sugar for loading eij file and calculating
-    corresponding (l2-regularized) independent model
-
-    Parameters
-    ----------
-    eij_file: str
-        x
-    N : float
-        Effective number of samples used to esimate model in eij_file
-    alphabet : str
-        Symbols corresponding to model states (e.g. "-ACGT").
-    lambda_h : float
-        Regularization strength on h_i (fields) for independent model
-        estimation
-    precision : {"float32", "float64"}
-        Sets if input file has single (default) or double precision
-
-    Returns
-    -------
-    c : EVcouplings
-        Pairwise model stored in eij_file
-    c0 : EVcouplings
-        Corresponding independent model estimated based
-        on single-site frequencies in eij_file
-    """
-    c = EVcouplings(eij_file, alphabet, precision)
-    c.calculate_ecs()
-    c0 = c.to_independent_model(N=N, lambda_h=lambda_h)
-
-    return c, c0
-
-
-class ComplexIndexMapper():
-    """
-    Map indices of sequences into concatenated EVcouplings
-    object numbering space. Can in principle also be used
-    to remap indices for a single sequence.
-    """
-    def __init__(self, couplings, couplings_range, *monomer_ranges):
-        """
-        Ranges are tuples of form (start: int, end: int)
-        couplings_range must match the range of EVcouplings object
-        Example: ComplexIndexMapper(c, (1, 196), (1, 103), (1, 93))
-
-        Parameters
-        ----------
-        couplings : EVcouplings
-            Couplings object of complex
-        couplings_range : (int, int)
-            Numbering range in couplings that monomers will be
-            mapped to
-        *monomer_ranges: (int, int):
-            Tuples containing numbering range of each monomer
-        """
-        if len(monomer_ranges) < 1:
-            raise ValueError("Give at least one monomer range")
-
-        self.couplings_range = couplings_range
-        self.monomer_ranges = monomer_ranges
-        self.monomer_to_full_range = {}
-
-        # create a list of positions per region that directly
-        # aligns against the full complex range in c_range
-        r_map = []
-        for i, (r_start, r_end) in enumerate(monomer_ranges):
-            m_range = range(r_start, r_end + 1)
-            r_map += zip([i] * len(m_range), m_range)
-            self.monomer_to_full_range[i] = m_range
-
-        c_range = range(couplings_range[0], couplings_range[1] + 1)
-        if len(r_map) != len(c_range):
-            raise ValueError(
-                "Complex range and monomer ranges do not have equivalent lengths "
-                "(complex: {}, sum of monomers: {}).".format(len(c_range), len(r_map))
-            )
-
-        # These dicts might contain indices not contained in
-        # couplings object because they are lowercase in alignment
-        self.monomer_to_couplings = dict(zip(r_map, c_range))
-        self.couplings_to_monomer = dict(zip(c_range, r_map))
-
-        # store all indices per subunit that are actually
-        # contained in couplings object
-        self.monomer_indices = defaultdict(list)
-        for (monomer, m_res), c_res in sorted(self.monomer_to_couplings.items()):
-            if c_res in couplings.tn():
-                self.monomer_indices[monomer].append(m_res)
-
-    def __map(self, indices, mapping_dict):
-        """
-        Applies a mapping either to a single index, or to a list of indices
-
-        Parameters
-        ----------
-        indices: int, or (int, int), or lists thereof
-            Indices in input numbering space
-
-        mapping_dict : dict(int->(int, int)) or dict((int, int): int)
-            Mapping from one numbering space into the other
-
-        Returns
-        -------
-        list of int, or list of (int, int)
-            Mapped indices
-        """
-        if isinstance(indices, Iterable) and not isinstance(indices, tuple):
-            return np.array([mapping_dict[x] for x in indices])
-        else:
-            return mapping_dict[indices]
-
-    def __call__(self, monomer, res):
-        """
-        Function-style syntax for single residue to be mapped
-        (calls toc method)
-
-        Parameters
-        ----------
-        monomer : int
-            Number of monomer
-        res : int
-            Position in monomer numbering
-
-        Returns
-        -------
-        int
-            Index in coupling object numbering space
-        """
-        return self.toc((monomer, res))
-
-    def tom(self, x):
-        """
-        Map couplings TO *M*onomer
-
-        Parameters
-        ----------
-        x : int, or list of ints
-            Indices in coupling object
-
-        Returns
-        -------
-        (int, int), or list of (int, int)
-            Indices mapped into monomer numbering. Tuples are
-            (monomer, index in monomer sequence)
-        """
-        return self.__map(x, self.couplings_to_monomer)
-
-    def toc(self, x):
-        """
-        Map monomer TO *C*ouplings / complex
-
-        Parameters
-        ----------
-        x : (int, int), or list of (int, int)
-            Indices in momnomers (monomer, index in monomer sequence)
-
-        Returns
-        -------
-        int, or list of int
-            Monomer indices mapped into couplings object numbering
-        """
-        return self.__map(x, self.monomer_to_couplings)
