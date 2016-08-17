@@ -161,7 +161,7 @@ def standard(**kwargs):
 
     # store useful information about model in outcfg or files
     plmc_result.iteration_table.to_csv(
-        prefix + "_iteration_table.txt"
+        prefix + "_iteration_table.csv"
     )
 
     outcfg.update({
