@@ -1,11 +1,15 @@
 """
 Configuration handling
 
+# TODO:
+(1) switch ruamel.yaml to round trip loading
+    to preserver order and comments?
+
 Authors:
   Thomas A. Hopf
 """
 
-import yaml
+import ruamel.yaml as yaml
 
 
 class MissingParameterError(Exception):
@@ -53,7 +57,7 @@ def write_config_file(out_filename, config):
     """
     with open(out_filename, "w") as f:
         f.write(
-            yaml.dump(config)
+            yaml.dump(config, default_flow_style=False)
         )
 
 
