@@ -82,15 +82,17 @@ def parse_plmc_log(log):
     else:
         iter_df = None
 
-    # focus sequence index only defined in focus mode
+    # some output only defined in focus mode
+    focus_index = None
+    valid_sites, total_sites = None, None
+    region_start = None
+
     try:
         focus_index = int(matches["focus"][1])
         valid_sites, total_sites = map(int, matches["sites"])
         region_start = int(matches["region"][0])
     except KeyError:
-        focus_index = None
-        valid_sites, total_sites = None, None
-        region_start = None
+        pass
 
     valid_seqs, total_seqs = map(int, matches["seqs"])
     eff_samples = float(matches["samples"][0])
