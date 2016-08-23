@@ -65,10 +65,9 @@ def fetch_sequence(sequence_id, sequence_file,
         out_file = sequence_file
 
     # also make sure input file has something in it
-    if not file_not_empty(out_file):
-        raise ResourceError(
-            "Input sequence missing: {}".format(out_file)
-        )
+    verify_resources(
+        "Input sequence missing", out_file
+    )
 
     with open(out_file) as f:
         seq = next(read_fasta(f))
@@ -881,7 +880,19 @@ def jackhmmer_search(**kwargs):
     # Stockholm alignment file here
     ali_outcfg_file = prefix + ".align_jackhmmer_search.outcfg"
 
-    if not kwargs["reuse_alignment"]:
+    # determine if to rerun, only possible if previous results
+    # were stored in ali_outcfg_file
+    if kwargs["reuse_alignment"] and valid_file(ali_outcfg_file):
+        ali = read_config_file(ali_outcfg_file)
+
+        # check if the alignment file itself is also there
+        verify_resources(
+            "Tried to reuse alignment, but empty or "
+            "does not exist",
+            ali["alignment"], ali["domtblout"]
+        )
+    else:
+        # otherwise, we have to run the alignment
         # modify search thresholds to be suitable for jackhmmer
         seq_threshold, domain_threshold = search_thresholds(
             kwargs["use_bitscores"],
@@ -911,20 +922,6 @@ def jackhmmer_search(**kwargs):
 
         # save results of search for possible restart
         write_config_file(ali_outcfg_file, ali)
-    else:
-        # check if we can get the results of the
-        # previous run back
-        verify_resources(
-            "Alignment restart config does not exist",
-            ali_outcfg_file
-        )
-
-        ali = read_config_file(ali_outcfg_file)
-
-        verify_resources(
-            "Tried to reuse alignment, but empty or "
-            "does not exist", ali["alignment"]
-        )
 
     # prepare output dictionary with result files
     outcfg = {
