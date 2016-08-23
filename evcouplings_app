@@ -1,0 +1,10 @@
+#!/bin/bash
+
+MODULEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export PYTHONPATH=$MODULEDIR:$PYTHONPATH
+
+# TODO: need anaconda Py3 environment with this name... put together with pipeline
+source activate python3
+
+# TODO: preliminary call to run a single job
+python $MODULEDIR/evcouplings/utils/pipeline.py $1
