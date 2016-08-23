@@ -83,7 +83,7 @@ def run(cmd, stdin=None, check_returncode=True,
         ) from e
 
 
-def file_not_empty(file_path):
+def valid_file(file_path):
     """
     Verify if a file exists and is not empty.
 
@@ -119,7 +119,7 @@ def verify_resources(message, *args):
     ResourceError
         If any of the resources does not exist or is empty
     """
-    invalid = [f for f in args if not file_not_empty(f)]
+    invalid = [f for f in args if not valid_file(f)]
 
     if len(invalid) > 0:
         raise ResourceError(

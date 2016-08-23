@@ -12,7 +12,7 @@ import re
 import pandas as pd
 
 from evcouplings.utils.system import (
-    run, file_not_empty, create_prefix_folders,
+    run, valid_file, create_prefix_folders,
     verify_resources, ResourceError
 )
 
@@ -249,7 +249,7 @@ def run_plmc(alignment, couplings_file, param_file=None,
     iter_df, out_fields = parse_plmc_log(stderr)
 
     # also check we actually calculated couplings...
-    if not file_not_empty(couplings_file):
+    if not valid_file(couplings_file):
         raise ResourceError(
             "plmc returned no couplings: stdout={} stderr={} file={}".format(
                 stdout, stderr, couplings_file
@@ -257,7 +257,7 @@ def run_plmc(alignment, couplings_file, param_file=None,
         )
 
     # ... and parameter file, if requested
-    if param_file and not file_not_empty(param_file):
+    if param_file and not valid_file(param_file):
         raise ResourceError(
             "plmc returned no parameter file: stdout={} stderr={} file={}".format(
                 stdout, stderr, param_file

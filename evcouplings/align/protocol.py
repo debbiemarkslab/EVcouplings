@@ -21,7 +21,7 @@ from evcouplings.utils.config import (
     read_config_file, write_config_file
 )
 from evcouplings.utils.system import (
-    create_prefix_folders, get, file_not_empty,
+    create_prefix_folders, get, valid_file,
     verify_resources, ResourceError
 )
 
