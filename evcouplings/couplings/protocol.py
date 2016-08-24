@@ -168,6 +168,7 @@ def standard(**kwargs):
         "num_sites": plmc_result.num_valid_sites,
         "num_sequences": plmc_result.num_valid_seqs,
         "effective_sequences": plmc_result.effective_samples,
+        "region_start": plmc_result.region_start,
     })
 
     # dump output config to YAML file for debugging/logging

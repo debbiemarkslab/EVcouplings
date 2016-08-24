@@ -209,6 +209,12 @@ def run_plmc(alignment, couplings_file, param_file=None,
 
     # focus sequence mode and ID
     if focus_seq is not None:
+        # TODO: for now split exclude sequence
+        # region from focus seq name, otherwise
+        # plmc does not remap names. If this
+        # behaviour changes in plmc, remove the
+        # following line.
+        focus_seq = focus_seq.split("/")[0]
         cmd += ["-f", focus_seq]
 
     # exclude gaps from calculation?
@@ -247,7 +253,9 @@ def run_plmc(alignment, couplings_file, param_file=None,
     # finally also add input alignment (main parameter)
     cmd += [alignment]
 
-    return_code, stdout, stderr = run(cmd)
+    # TODO: for now do not check returncode because sometimes
+    # returncode == -11 (segfault) despite successful calculation
+    return_code, stdout, stderr = run(cmd, check_returncode=False)
     iter_df, out_fields = parse_plmc_log(stderr)
 
     # also check we actually calculated couplings...
