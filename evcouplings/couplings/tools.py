@@ -256,6 +256,13 @@ def run_plmc(alignment, couplings_file, param_file=None,
     # TODO: for now do not check returncode because sometimes
     # returncode == -11 (segfault) despite successful calculation
     return_code, stdout, stderr = run(cmd, check_returncode=False)
+
+    # TODO: remove this segfault-hunting output once fixed
+    if return_code != 0:
+        print("PLMC NON-ZERO RETURNCODE:", return_code)
+        print(cmd)
+        print(" ".join(cmd))
+
     iter_df, out_fields = parse_plmc_log(stderr)
 
     # also check we actually calculated couplings...
