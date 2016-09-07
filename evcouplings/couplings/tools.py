@@ -250,6 +250,10 @@ def run_plmc(alignment, couplings_file, param_file=None,
     if lambda_g is not None:
         cmd += ["-lg", str(lambda_g)]
 
+    # Number of cores to use for calculation
+    if cpu is not None:
+        cmd += ["-n", str(cpu)]
+
     # finally also add input alignment (main parameter)
     cmd += [alignment]
 
