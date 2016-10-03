@@ -191,7 +191,7 @@ class CouplingsModel:
     Class to store parameters of pairwise undirected graphical model of sequences
     and compute evolutionary couplings, sequence statistical energies, etc.
     """
-    def __init__(self, filename, precision="float32"):
+    def __init__(self, filename, precision="float32", file_format="plmc_v2", **kwargs):
         """
         Initializes the object with raw values read from binary .Jij file
 
@@ -201,11 +201,31 @@ class CouplingsModel:
             Binary Jij file containing model parameters from plmc software
         alphabet : str
             Symbols corresponding to model states (e.g. "-ACGT").
-        precision : {"float32", "float64"}
-            Sets if input file has single (default) or double precision
+        precision : {"float32", "float64"}, default: "float32"
+            Sets if input file has single (float32) or double precision (float64)
         }
+        format : {"plmc_v2", "plmc_v1"}, default: "plmc_v2"
+            File format of parameter file.
+
+            Note: The use of "plmc_v1" is discouraged and only for backwards
+            compatibility as this format lacks crucial information about
+            parameters used by this class. Users are responsible for supplying
+            the missing values (e.g. regularization strength, alphabet or M_eff)
+            manually via the respective member variables/properties.
         """
-        self.__read_plmc(filename, precision)
+        if file_format == "plmc_v2":
+            self.__read_plmc_v2(filename, precision)
+        elif file_format == "plmc_v1":
+            self.__read_plmc_v1(
+                filename, precision, kwargs.get("alphabet", None)
+            )
+        else:
+            raise ValueError(
+                "Illegal file format {}, valid options are:"
+                "plmc_v2, plmc_v1".format(
+                    file_format
+                )
+            )
 
         self.alphabet_map = {s: i for i, s in enumerate(self.alphabet)}
 
@@ -234,7 +254,7 @@ class CouplingsModel:
         self._mi_scores_apc = None
         self._ecs = None
 
-    def __read_plmc(self, filename, precision):
+    def __read_plmc_v2(self, filename, precision):
         """
         Read updated Jij file format from plmc.
 
@@ -243,7 +263,7 @@ class CouplingsModel:
         filename : str
             Binary Jij file containing model parameters
         precision : {"float32", "float64"}
-            Sets if input file has single (default) or double precision
+            Sets if input file has single or double precision
 
         """
         with open(filename, "rb") as f:
@@ -303,6 +323,119 @@ class CouplingsModel:
 
             for i in range(self.L - 1):
                 for j in range(i + 1, self.L):
+                    self.J_ij[i, j], = np.fromfile(
+                        f, dtype=(precision, (self.num_symbols, self.num_symbols)),
+                        count=1
+                    )
+                    self.J_ij[j, i] = self.J_ij[i, j].T
+
+    def __read_plmc_v1(self, filename, precision, alphabet=None):
+        """
+        Read original eij/Jij file format from plmc. Use of this old format
+        is discouraged (see constructor documentation for details)
+
+        Parameters
+        ----------
+        filename : str
+            Binary Jij file containing model parameters
+        precision : {"float32", "float64"}
+            Sets if input file has single or double precision
+        alphabet : str, default: None
+
+        """
+        # local definitions of alphabets for backwards compatibility
+        # better: use v2 file format which includes this information
+        GAP = "-"
+        ALPHABET_PROTEIN_NOGAP = "ACDEFGHIKLMNPQRSTVWY"
+        ALPHABET_PROTEIN = GAP + ALPHABET_PROTEIN_NOGAP
+
+        with open(filename, "rb") as f:
+            # model length, number of symbols
+            self.L, = np.fromfile(f, "int32", 1)
+            self.num_symbols, = np.fromfile(f, "int32", 1)
+
+            # Old format does not have alphabet in file, so need
+            # to guess it or use user-supplied alphabet.
+            # if no alphabet is given, try to guess
+            if alphabet is None:
+                if self.num_symbols == 21:
+                    alphabet = ALPHABET_PROTEIN
+                elif self.num_symbols == 20:
+                    alphabet = ALPHABET_PROTEIN_NOGAP
+                else:
+                    raise ValueError(
+                        "Could not guess default alphabet for "
+                        "{} states, specify alphabet parameter.".format(
+                            self.num_symbols
+                        )
+                    )
+            else:
+                # verify if size of given alphabet matches model
+                if len(alphabet) != self.num_symbols:
+                    raise ValueError(
+                        "Size of alphabet ({}) does not agree with "
+                        "number of states in model ({})".format(
+                            len(alphabet), self.num_symbols
+                        )
+                    )
+
+            self.alphabet = np.array(list(alphabet))
+
+            # target sequence and index mapping, again ensure unicode
+            self._target_seq = np.fromfile(f, "S1", self.L).astype("U1")
+            self.index_list = np.fromfile(f, "int32", self.L)
+
+            # set all the information missing in v1 files to None
+
+            # valid/invalid sequences, number of iterations
+            self.N_valid = None
+            self.N_invalid = None
+            self.num_iter = None
+
+            # theta, regularization weights, and effective number of samples
+            self.theta = None
+            self.lambda_h = None
+            self.lambda_J = None
+            self.lambda_group = None
+            self.N_eff = None
+
+            # weights of individual sequences (after clustering)
+            self.weights = None
+
+            # single site frequencies f_i and fields h_i
+            self.f_i, = np.fromfile(
+                f, dtype=(precision, (self.L, self.num_symbols)), count=1
+            )
+
+            self.h_i, = np.fromfile(
+                f, dtype=(precision, (self.L, self.num_symbols)), count=1
+            )
+
+            # pair frequencies f_ij and pair couplings J_ij / J_ij
+            self.f_ij = np.zeros(
+                (self.L, self.L, self.num_symbols, self.num_symbols)
+            )
+
+            self.J_ij = np.zeros(
+                (self.L, self.L, self.num_symbols, self.num_symbols)
+            )
+
+            for i in range(self.L - 1):
+                for j in range(i + 1, self.L):
+                    file_i, file_j = np.fromfile(f, "int32", 2)
+
+                    if i + 1 != file_i or j + 1 != file_j:
+                        raise ValueError(
+                            "Error: column pair indices inconsistent. "
+                            "Expected: {} {}; File: {} {}".format(i + 1, j + 1, file_i, file_j)
+                        )
+
+                    self.f_ij[i, j], = np.fromfile(
+                        f, dtype=(precision, (self.num_symbols, self.num_symbols)),
+                        count=1
+                    )
+                    self.f_ij[j, i] = self.f_ij[i, j].T
+
                     self.J_ij[i, j], = np.fromfile(
                         f, dtype=(precision, (self.num_symbols, self.num_symbols)),
                         count=1
