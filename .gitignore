@@ -4,3 +4,5 @@ __pycache__
 notebooks/*
 
 notebooks/alignment_development_v1.ipynb
+
+.DS_Store
