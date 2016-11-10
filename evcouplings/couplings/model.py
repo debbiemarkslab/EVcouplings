@@ -204,7 +204,7 @@ class CouplingsModel:
         precision : {"float32", "float64"}, default: "float32"
             Sets if input file has single (float32) or double precision (float64)
         }
-        format : {"plmc_v2", "plmc_v1"}, default: "plmc_v2"
+        file_format : {"plmc_v2", "plmc_v1"}, default: "plmc_v2"
             File format of parameter file.
 
             Note: The use of "plmc_v1" is discouraged and only for backwards
