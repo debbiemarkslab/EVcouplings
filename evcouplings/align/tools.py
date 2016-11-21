@@ -6,6 +6,7 @@ Authors:
 """
 
 from collections import namedtuple
+import pandas as pd
 from evcouplings.utils.system import (
     run, create_prefix_folders, verify_resources
 )
@@ -286,6 +287,101 @@ def run_hmmscan(query, database, prefix,
     )
 
     return result
+
+
+def _read_hmmer_table(filename, column_names):
+    """
+    Parse a HMMER file in (dom)tbl format into
+    a pandas DataFrame.
+
+    (Why this is necessary: cannot easily split on
+    whitespace with pandas because of last column
+    that contains whitespace both in header and rows)
+
+    Parameters
+    ----------
+    filename : str
+        Path of (dom)tbl file
+    column_names : list of str
+        Columns in the respective format
+        (different for tbl and domtbl)
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with parsed (dom)tbl
+    """
+    res = []
+    num_splits = len(column_names) - 1
+
+    with open(filename) as f:
+        for line in f:
+            if line.startswith("#"):
+                continue
+
+            fields = line.rstrip().split(maxsplit=num_splits)
+            res.append(fields)
+
+    return pd.DataFrame(res, columns=column_names)
+
+
+def read_hmmer_tbl(filename):
+    """
+    Read a HMMER tbl file into DataFrame.
+
+    Parameters
+    ----------
+    filename : str
+        Path of tbl file
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with parsed tbl
+    """
+    column_names = [
+        "target_name", "target_accession",
+        "query_name", "query_accession",
+        "full_Evalue", "full_score", "full_bias",
+        "best_domain_Evalue", "best_domain_score",
+        "best_domain_bias",
+        "domain_exp", "domain_reg", "domain_clu",
+        "domain_ov", "domain_env", "domain_dom",
+        "domain_rep", "domain_inc",
+        "description"
+    ]
+
+    return _read_hmmer_table(filename, column_names)
+
+
+def read_hmmer_domtbl(filename):
+    """
+    Read a HMMER domtbl file into DataFrame.
+
+    Parameters
+    ----------
+    filename : str
+        Path of domtbl file
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with parsed domtbl
+    """
+    column_names = [
+        "target_name", "target_accession", "target_len",
+        "query_name", "query_accession", "query_len",
+        "full_Evalue", "full_score", "full_bias",
+        "hit_number", "total_hit_number",
+        "domain_c_Evalue", "domain_i_Evalue",
+        "domain_score", "domain_bias",
+        "hmm_from", "hmm_to",
+        "ali_from", "ali_to",
+        "env_from", "env_to",
+        "acc", "description"
+    ]
+
+    return _read_hmmer_table(filename, column_names)
 
 
 def run_hhfilter(input_file, output_file, threshold=95,
