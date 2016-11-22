@@ -58,7 +58,7 @@ def run_jackhmmer(query, database, prefix,
         Store checkpoint HMMs to prefix.<iter>.hmm
     checkpoints_ali : bool, optional (default: False)
         Store checkpoint alignments to prefix.<iter>.sto
-    bin : str (default: "jackhmmer")
+    binary : str (default: "jackhmmer")
         Path to jackhmmer binary (put in PATH for
         default to work)
 
@@ -166,7 +166,7 @@ def run_hmmscan(query, database, prefix,
     Parameters
     ----------
     query : str
-        File containing query sequence
+        File containing query sequence(s)
     database : str
         File containing HMM database (prepared with hmmpress)
     prefix : str
@@ -197,8 +197,8 @@ def run_hmmscan(query, database, prefix,
     stdout_redirect : str, optional (default: None)
         Redirect bulky stdout instead of storing
         with rest of results (use "/dev/null" to dispose)
-    bin : str (default: "hmmscan")
-        Path to jackhmmer binary (put in PATH for
+    binary : str (default: "hmmscan")
+        Path to hmmscan binary (put in PATH for
         default to work)
 
     Returns
