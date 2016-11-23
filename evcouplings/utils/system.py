@@ -205,13 +205,16 @@ def get(url, output_path=None, allow_redirects=False):
         URL of resource that should be downloaded
     output_path: str, optional
         Save contents of URL to this file
+        (only for text files)
     allow_redirects: bool
         Allow redirects by server or not
 
     Returns
     -------
-    str
-        Contents of resouce at URL
+    r : requests.models.Response
+        Response object, use r.text to access text,
+        r.json() to decode json, and r.content for
+        raw bytestring
 
     Raises
     ------
@@ -236,7 +239,7 @@ def get(url, output_path=None, allow_redirects=False):
                     "Could not save to file: {}".format(output_path)
                 ) from e
 
-        return r.content
+        return r
 
     except requests.exceptions.RequestException as e:
         raise ResourceError() from e
