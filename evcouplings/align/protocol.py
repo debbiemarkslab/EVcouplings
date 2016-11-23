@@ -682,10 +682,6 @@ def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
 
     Note: assumes focus alignment (otherwise unprocessed) as input.
 
-    TODO: ideally, this function would return an outcfg with the generated
-    files that can be merged by the outer calling function; however this is
-    difficult to implement with the skip option that needs these values.
-
     Parameters
     ----------
     focus_ali : Alignment
