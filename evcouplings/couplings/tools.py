@@ -151,10 +151,12 @@ def run_plmc(alignment, couplings_file, param_file=None,
         First character in string corresponds to gap
         character (relevant for ignore_gaps).
     theta : float, optional (default: None)
-        Sequences with pairwise identity >= 1 - theta
+        Sequences with pairwise identity >= theta
         will be clustered and their sequence weights
         downweighted as 1 / num_cluster_members.
-        If None, default value in plmc (0.2) will be used.
+        Important: Note that plmc will be parametrized using
+        1 - theta. If None, default value in plmc will be used,
+        which corresponds to theta=0.8 (plmc setting 0.2).
     scale : float, optional (default: None)
         Scale weights of clusters by this value.
         If None, default value in plmc (1.0) will be used
@@ -232,6 +234,8 @@ def run_plmc(alignment, couplings_file, param_file=None,
 
     # sequence reweighting
     if theta is not None:
+        # transform into plmc convention (1-theta)
+        theta = 1.0 - theta
         cmd += ["-t", str(theta)]
 
     # cluster weight
