@@ -866,22 +866,17 @@ class Alignment:
     @property
     def frequencies(self):
         """
-        Calculates single-site frequencies of symbols in alignment.
-        Also sets self.freqs member variable for later reuse.
+        Returns/calculates single-site frequencies of symbols in alignment.
+        Also sets self._frequencies member variable for later reuse.
 
         Previously calculated sequence weights using self.set_weights()
         will be used to adjust frequency counts; otherwise, each sequence
         will contribute with equal weight.
 
-        Parameters
-        ----------
-        reset : bool, optional (default: False)
-            Reset precalculated frequencies and recalculate
-
         Returns
         -------
         np.array
-            Reference to self.freqs
+            Reference to self._frequencies
         """
         if self._frequencies is None:
             self.__ensure_mapped_matrix()
