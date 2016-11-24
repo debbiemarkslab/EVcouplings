@@ -71,7 +71,7 @@ def standard(**kwargs):
     prefix = kwargs["prefix"]
 
     if kwargs["save_model"]:
-        model = prefix + ".eij"
+        model = prefix + ".model"
     else:
         model = None
 
