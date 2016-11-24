@@ -14,11 +14,12 @@ from evcouplings.align.alignment import (
 
 from evcouplings.utils.config import (
     check_required, InvalidParameterError,
-    write_config_file
+    read_config_file, write_config_file
 )
 
 from evcouplings.utils.system import (
-    create_prefix_folders, verify_resources
+    create_prefix_folders, valid_file,
+    verify_resources,
 )
 
 
@@ -129,23 +130,61 @@ def standard(**kwargs):
         # finally, scale lambda_J
         lambda_J *= (num_symbols - 1) * (L - 1)
 
-    # now run plmc binary
-    plmc_result = ct.run_plmc(
-        kwargs["alignment_file"],
-        outcfg["raw_ec_file"],
-        outcfg["model_file"],
-        focus_seq=kwargs["focus_sequence"],
-        alphabet=kwargs["alphabet"],
-        theta=kwargs["theta"],
-        scale=kwargs["scale_clusters"],
-        ignore_gaps=kwargs["ignore_gaps"],
-        iterations=kwargs["iterations"],
-        lambda_h=kwargs["lambda_h"],
-        lambda_J=lambda_J,
-        lambda_g=kwargs["lambda_group"],
-        cpu=kwargs["cpu"],
-        binary=kwargs["plmc"],
-    )
+    # run plmc... or reuse pre-exisiting results from previous run
+    plm_outcfg_file = prefix + ".couplings_standard_plmc.outcfg"
+
+    # determine if to rerun, only possible if previous results
+    # were stored in ali_outcfg_file
+    if kwargs["reuse_ecs"] and valid_file(plm_outcfg_file):
+        plmc_result = read_config_file(plm_outcfg_file)
+
+        # check if the EC/parameter files are there
+        required_files = [outcfg["raw_ec_file"]]
+
+        if outcfg["model_file"] is not None:
+            required_files += [outcfg["model_file"]]
+
+        verify_resources(
+            "Tried to reuse ECs, but empty or "
+            "does not exist",
+            *required_files
+        )
+
+    else:
+        # run plmc binary
+        plmc_result = ct.run_plmc(
+            kwargs["alignment_file"],
+            outcfg["raw_ec_file"],
+            outcfg["model_file"],
+            focus_seq=kwargs["focus_sequence"],
+            alphabet=kwargs["alphabet"],
+            theta=kwargs["theta"],
+            scale=kwargs["scale_clusters"],
+            ignore_gaps=kwargs["ignore_gaps"],
+            iterations=kwargs["iterations"],
+            lambda_h=kwargs["lambda_h"],
+            lambda_J=lambda_J,
+            lambda_g=kwargs["lambda_group"],
+            cpu=kwargs["cpu"],
+            binary=kwargs["plmc"],
+        )
+
+        # save iteration table to file
+        iter_table_file = prefix + "_iteration_table.csv"
+        plmc_result.iteration_table.to_csv(
+            iter_table_file
+        )
+
+        # turn namedtuple into dictionary to make
+        # restarting code nicer
+        plmc_result = dict(plmc_result._asdict())
+
+        # then replace table with filename so
+        # we can store results in config file
+        plmc_result["iteration_table"] = iter_table_file
+
+        # save results of search for possible restart
+        write_config_file(plm_outcfg_file, plmc_result)
 
     # read and sort ECs, write to csv file
     ecs = pairs.read_raw_ec_file(outcfg["raw_ec_file"])
@@ -159,20 +198,16 @@ def standard(**kwargs):
             "Segment remapping not yet implemented."
         )
 
-    # store useful information about model in outcfg or files
-    plmc_result.iteration_table.to_csv(
-        prefix + "_iteration_table.csv"
-    )
-
+    # store useful information about model in outcfg
     outcfg.update({
-        "num_sites": plmc_result.num_valid_sites,
-        "num_sequences": plmc_result.num_valid_seqs,
-        "effective_sequences": plmc_result.effective_samples,
-        "region_start": plmc_result.region_start,
+        "num_sites": plmc_result["num_valid_sites"],
+        "num_sequences": plmc_result["num_valid_seqs"],
+        "effective_sequences": plmc_result["effective_samples"],
+        "region_start": plmc_result["region_start"],
     })
 
     # dump output config to YAML file for debugging/logging
-    write_config_file(prefix + ".infer_standard.outcfg", outcfg)
+    write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
 
     return outcfg
 
