@@ -7,7 +7,7 @@ import glob
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the relevant file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     readme = f.read()
 
 #d2s_src_dir = path.join(path.join('Fred2', 'Distance2Self'), 'src')
@@ -40,7 +40,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 # install unclear for data_files
 
 setup(
-    name='EVCouplings',
+    name='evcouplings',
 
     # Version:
     version='0.0.1',

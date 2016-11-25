@@ -11,7 +11,7 @@ import re
 import numpy as np
 import pandas as pd
 
-import evcouplings.align.tools as at
+from evcouplings.align import tools as at
 from evcouplings.align.alignment import (
     detect_format, parse_header, read_fasta,
     write_fasta, Alignment
