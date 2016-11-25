@@ -10,6 +10,86 @@ from collections import defaultdict, Iterable
 import numpy as np
 
 
+class Segment:
+    """
+    Represents a continuous stretch of sequence in a sequence
+    alignment to infer evolutionary couplings (e.g. multiple domains,
+    or monomers in a concatenated complex alignment)
+    """
+    def __init__(self, segment_type, sequence_id,
+                 region_start, region_end, positions,
+                 segment_id="A"):
+        """
+        Create a new sequence segment
+
+        Parameters
+        ----------
+        segment_id : str
+            Identifier of segment (must be unique)
+        segment_type : {"aa", "dna", "rna"}
+            Type of sequence
+        sequence_id : str
+            Identifier of sequence
+        region_start : int
+            Start index of sequence segment
+        region_end : int
+            End index of sequence segment (position
+            is inclusive)
+        position_list : list(int)
+            Positions in the sequence alignment that
+            will be used for EC calculation
+            (all positions corresponding to uppercase
+            residues)
+        """
+        self.segment_type = segment_type
+        self.sequence_id = sequence_id
+        self.region_start = region_start
+        self.region_end = region_end
+        self.positions = list(map(int, positions))
+        self.segment_id = segment_id
+
+    @classmethod
+    def from_list(cls, segment):
+        """
+        Create a segment object from list representation
+        (e.g. from config).
+
+        Parameters
+        ----------
+        segment : list
+            List representation of segment, with the following items:
+            segment_id (str), segment_type (str), sequence_id (str),
+            region_start (int), region_end (int), positions (list(int))
+
+        Returns
+        -------
+        Segment
+            New Segment instance from list
+        """
+        segment_id, segment_type, sequence_id, region_start, region_end, positions = segment
+        return cls(segment_type, sequence_id, region_start, region_end, positions, segment_id)
+
+    def to_list(self):
+        """
+        Represent segment as list (for storing in configs)
+
+        Returns
+        -------
+        list
+            List representation of segment, with the following items:
+            segment_id (str), segment_type (str), sequence_id (str),
+            region_start (int), region_end (int), positions (list(int))
+        """
+        return [
+            self.segment_id,
+            self.segment_type,
+            self.sequence_id,
+            self.region_start,
+            self.region_end,
+            self.positions
+        ]
+
+
 class ComplexIndexMapper:
     """
     Map indices of sequences into concatenated EVcouplings
