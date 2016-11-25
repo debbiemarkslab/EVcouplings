@@ -412,7 +412,7 @@ def describe_frequencies(alignment, first_index, target_seq_index=None):
     return info
 
 
-def describe_coverage(alignment, prefix, first_index, max_gaps_per_column):
+def describe_coverage(alignment, prefix, first_index, minimum_column_coverage):
     """
     Produce "classical" buildali coverage statistics, i.e.
     number of sequences, how many residues have too many gaps, etc.
@@ -428,11 +428,12 @@ def describe_coverage(alignment, prefix, first_index, max_gaps_per_column):
         Prefix of alignment file that will be stored as identifier in table
     first_index : int
         Sequence index of first position of target sequence
-    max_gaps_per_column : Iterable(float) or float
-        Gap threshold(s) that will be tested (creating one row for each
-        threshold in output table). Note that int values given to this
-        function instead of a float will be divided by 100 to create
-        the corresponding floating point representation.
+    minimum_column_coverage : Iterable(float) or float
+        Minimum column coverage threshold(s) that will be tested
+        (creating one row for each threshold in output table). Note that int
+        values given to this function instead of a float will be divided
+        by 100 to create the corresponding floating point representation.
+        This parameter is 1.0 - maximum fraction of gaps per column.
 
     Returns
     -------
@@ -442,19 +443,19 @@ def describe_coverage(alignment, prefix, first_index, max_gaps_per_column):
     res = []
     NO_MEFF = np.nan
 
-    if not isinstance(max_gaps_per_column, Iterable):
-        max_gaps_per_column = [max_gaps_per_column]
+    if not isinstance(minimum_column_coverage, Iterable):
+        minimum_column_coverage = [minimum_column_coverage]
 
     pos = np.arange(first_index, first_index + alignment.L)
     f_gap = alignment.frequencies[:, alignment.alphabet_map[alignment._match_gap]]
 
-    for threshold in max_gaps_per_column:
+    for threshold in minimum_column_coverage:
         if isinstance(threshold, int):
             threshold /= 100
 
         # all positions that have enough sequence information (i.e. little gaps),
         # and their indeces
-        uppercase = f_gap < threshold
+        uppercase = f_gap <= 1 - threshold
         uppercase_idx = np.nonzero(uppercase)[0]
 
         # where does coverage of sequence by good alignment start and end?
@@ -480,7 +481,7 @@ def describe_coverage(alignment, prefix, first_index, max_gaps_per_column):
 
     df = pd.DataFrame(
         res, columns=[
-            "prefix", "max_gaps_per_column", "num_seqs",
+            "prefix", "minimum_column_coverage", "num_seqs",
             "seqlen", "num_cov", "num_lc", "perc_cov",
             "1st_uc", "last_uc", "len_cov",
             "num_lc_cov", "N_eff",
@@ -707,7 +708,7 @@ def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
         kwargs,
         [
             "prefix", "seqid_filter", "hhfilter",
-            "minimum_coverage", "max_gaps_per_column",
+            "minimum_sequence_coverage", "minimum_column_coverage",
         ]
     )
 
@@ -762,7 +763,7 @@ def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
     # filter fragments
     # TODO: come up with something more clever here than fixed width
     # (e.g. use 95% quantile of length distribution as reference point)
-    min_cov = kwargs["minimum_coverage"]
+    min_cov = kwargs["minimum_sequence_coverage"]
     if min_cov is not None:
         if isinstance(min_cov, int):
             min_cov /= 100
@@ -788,19 +789,19 @@ def modify_alignment(focus_ali, target_seq_index, region_start, **kwargs):
     )
 
     describe_coverage(
-        ali, prefix, region_start, kwargs["max_gaps_per_column"]
+        ali, prefix, region_start, kwargs["minimum_column_coverage"]
     ).to_csv(
         outcfg["statistics_file"], float_format="%.3f",
         index=False
     )
 
     # Make columns with too many gaps lowercase
-    max_gaps = kwargs["max_gaps_per_column"]
-    if max_gaps is not None:
-        if isinstance(max_gaps, int):
-            max_gaps /= 100
+    min_col_cov = kwargs["minimum_column_coverage"]
+    if min_col_cov is not None:
+        if isinstance(min_col_cov, int):
+            min_col_cov /= 100
 
-        lc_cols = ali.count(ali._match_gap, axis="pos") >= max_gaps
+        lc_cols = ali.count(ali._match_gap, axis="pos") > 1 - min_col_cov
         ali = ali.lowercase_columns(lc_cols)
 
     with open(outcfg["alignment_file"], "w") as f:
