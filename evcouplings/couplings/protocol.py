@@ -5,8 +5,8 @@ Authors:
   Thomas A. Hopf
 """
 
-import evcouplings.couplings.tools as ct
-import evcouplings.couplings.pairs as pairs
+from evcouplings.couplings import tools as ct
+from evcouplings.couplings import pairs as pairs
 
 from evcouplings.align.alignment import (
     read_fasta, ALPHABET_PROTEIN
