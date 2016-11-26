@@ -529,13 +529,13 @@ class CouplingsModel:
         """
         seq_lens = list(set(map(len, sequences)))
         if len(seq_lens) != 1:
-            raise (ValueError("Input sequences have different lengths: " + str(seq_lens)))
+            raise ValueError("Input sequences have different lengths: " + str(seq_lens))
 
         L_seq = seq_lens[0]
         if L_seq != self.L:
-            raise (
-                ValueError("Sequence lengths do not correspond to model length: {} {}".format(
-                    L_seq, self.L)
+            raise ValueError(
+                "Sequence lengths do not correspond to model length: {} {}".format(
+                    L_seq, self.L
                 )
             )
 
