@@ -29,6 +29,7 @@ _SLICE = np.s_[:]
 HAMILTONIAN_COMPONENTS = [FULL, COUPLINGS, FIELDS] = [0, 1, 2]
 NUM_COMPONENTS = len(HAMILTONIAN_COMPONENTS)
 
+
 # Methods for fast calculations (moved outside of class for numba jit)
 
 
@@ -191,6 +192,7 @@ class CouplingsModel:
     Class to store parameters of pairwise undirected graphical model of sequences
     and compute evolutionary couplings, sequence statistical energies, etc.
     """
+
     def __init__(self, filename, precision="float32", file_format="plmc_v2", **kwargs):
         """
         Initializes the object with raw values read from binary .Jij file
@@ -527,11 +529,11 @@ class CouplingsModel:
         """
         seq_lens = list(set(map(len, sequences)))
         if len(seq_lens) != 1:
-            raise(ValueError("Input sequences have different lengths: " + str(seq_lens)))
+            raise (ValueError("Input sequences have different lengths: " + str(seq_lens)))
 
         L_seq = seq_lens[0]
         if L_seq != self.L:
-            raise(
+            raise (
                 ValueError("Sequence lengths do not correspond to model length: {} {}".format(
                     L_seq, self.L)
                 )
@@ -820,7 +822,7 @@ class CouplingsModel:
             """
             (fi, lambda_h, N) = args
             logZ = np.log(np.exp(x).sum())
-            return N * (logZ - (fi * x).sum()) + lambda_h * ((x**2).sum())
+            return N * (logZ - (fi * x).sum()) + lambda_h * ((x ** 2).sum())
 
         def _gradient(x, *args):
             """
@@ -1125,21 +1127,21 @@ class CouplingsModel:
         """
         new = file_format.lower() == "plmc_v2"
         with open(out_file, "wb") as f:
-            np.array([self.L,self.num_symbols]).tofile(f)
+            np.array([self.L, self.num_symbols]).tofile(f)
             if new:
                 np.array([self.N_valid,
-                self.N_valid,
-                self.N_invalid,
-                self.num_iter,
-                self.num_iter,
-                self.theta,
-                self.lambda_h,
-                self.lambda_J,
-                self.lambda_group,
-                self.N_eff]).tofile(f)
-                self.alphabet.dtype="S1"
+                          self.N_valid,
+                          self.N_invalid,
+                          self.num_iter,
+                          self.num_iter,
+                          self.theta,
+                          self.lambda_h,
+                          self.lambda_J,
+                          self.lambda_group,
+                          self.N_eff]).tofile(f)
+                self.alphabet.dtype = "S1"
                 self.alphabet[np.where(self.alphabet != b"")].tofile(f)
-                self.alphabet.dtype="U1"
+                self.alphabet.dtype = "U1"
                 self.weights.tofile(f)
             self.target_seq.dtype = "S1"
             self.target_seq[np.where(self.target_seq != b"")].tofile(f)
@@ -1151,7 +1153,7 @@ class CouplingsModel:
             if not new:
                 for i in range(self.L - 1):
                     for j in range(i + 1, self.L):
-                        np.array([i+1, j+1], dtype="int32").tofile(f)
+                        np.array([i + 1, j + 1], dtype="int32").tofile(f)
                         self.f_ij[i, j].astype(precision).tofile(f)
                         self.J_ij[i, j].astype(precision).tofile(f)
             else:
@@ -1159,7 +1161,6 @@ class CouplingsModel:
                     for j in range(i + 1, self.L):
                         self.f_ij[i, j].astype(precision).tofile(f)
 
-
                 for i in range(self.L - 1):
                     for j in range(i + 1, self.L):
-                        self.J_ij[i,j].astype(precision).tofile(f)
+                        self.J_ij[i, j].astype(precision).tofile(f)
