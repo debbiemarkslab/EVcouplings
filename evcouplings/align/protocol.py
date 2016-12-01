@@ -638,9 +638,8 @@ def existing(**kwargs):
     # dump config to YAML file for debugging/logging
     write_config_file(prefix + ".align_existing.outcfg", outcfg)
 
-    # in the end, return both alignment object (if in memory)
-    # and path to final alignment file
-    return outcfg, ali
+    # return results of protocol
+    return outcfg
 
 
 def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, **kwargs):
@@ -1030,8 +1029,7 @@ def standard(**kwargs):
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".align_standard.outcfg", outcfg)
 
-    # in the end, return both alignment object (if in memory)
-    # and path to final alignment file
+    # return results of protocol
     return outcfg
 
 
