@@ -3,15 +3,6 @@ Class to store parameters of undirected graphical model of
 sequences and perform calculations using the model
 (statistical energies, coupling scores).
 
-Note: this used to be ev_couplings.py previously.
-
-TODO:
-  (1) add gauge transformations back in
-  (2) consider switching to InvalidParameterError
-      from ValueError (however, goal is that this
-      file does not have any dependencies on rest
-      of module so it can be independently distributed)
-
 Authors:
   Thomas A. Hopf
 """
@@ -185,6 +176,63 @@ def _delta_hamiltonian(pos, subs, target_seq, J_ij, h_i):
             # delta_Jij -= J_ij[i, j, target_seq[i], target_seq[j]]
 
     return np.array([delta_Jij + delta_hi, delta_Jij, delta_hi])
+
+
+@jit(nopython=True)
+def _zero_sum_gauge(J_ij, inplace=False):
+    """
+    Transform coupling matrix into zero-sum gauge
+    (i.e., row and column sums of each ij submatrix are 0)
+
+    Parameters
+    ----------
+    J_ij : np.array
+        Coupling matrix of size L x L x num_symbols x num_symbols
+        that should be transformed into zero-sum gauge
+    inplace : bool, optional (default: False)
+        Modify original matrix (True), or return transformed
+        matrix in a new matrix
+
+    Returns
+    -------
+    J_ij_0 : np.array
+        J_ij transformed into zero-sum gauge
+    """
+    L, L2, num_symbols, num_symbols2 = J_ij.shape
+    assert L == L2 and num_symbols == num_symbols2
+
+    if inplace:
+        J_ij_0 = J_ij
+    else:
+        J_ij_0 = np.empty((L, L, num_symbols, num_symbols))
+
+    # go through all pairs of positions
+    for i in range(L - 1):
+        for j in range(i + 1, L):
+            ij_mat = J_ij[i, j]
+
+            # calculate matrix, row and column averages
+            avg_ab = np.mean(ij_mat)
+
+            # can't use axis argument of np.mean in numba,
+            # so have to calculate rows/cols manually
+            avg_a = np.empty((num_symbols))
+            avg_b = np.empty((num_symbols))
+            ij_mat_T = ij_mat.T
+
+            for k in range(num_symbols):
+                avg_a[k] = np.mean(ij_mat[k])
+                avg_b[k] = np.mean(ij_mat_T[k])
+
+            # subtract correction terms from each entry
+            for a in range(num_symbols):
+                for b in range(num_symbols):
+                    J_ij_0[i, j, a, b] = (
+                        ij_mat[a, b] - avg_a[a] - avg_b[b] + avg_ab
+                    )
+                    J_ij_0[j, i, b, a] = J_ij_0[i, j, a, b]
+
+    return J_ij_0
 
 
 class CouplingsModel:
@@ -705,16 +753,19 @@ class CouplingsModel:
     def _calculate_ecs(self):
         """
         Calculates FN and CN scores as defined in Ekeberg et al., Phys Rev E, 2013,
-        as well as MI scores. Assumes parameters are in zero-sum gauge.
+        as well as MI scores.
         """
         # calculate Frobenius norm for each pair of sites (i, j)
         # also calculate mutual information
         self._fn_scores = np.zeros((self.L, self.L))
         self._mi_scores_raw = np.zeros((self.L, self.L))
 
+        # transform couplings into zero-sum gauge
+        J_ij_0 = _zero_sum_gauge(self.J_ij)
+
         for i in range(self.L - 1):
             for j in range(i + 1, self.L):
-                self._fn_scores[i, j] = np.linalg.norm(self.J_ij[i, j], "fro")
+                self._fn_scores[i, j] = np.linalg.norm(J_ij_0[i, j], "fro")
                 self._fn_scores[j, i] = self._fn_scores[i, j]
 
                 # mutual information
