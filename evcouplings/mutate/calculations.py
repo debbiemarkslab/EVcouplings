@@ -125,7 +125,7 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
 
 
 def single_mutant_matrix(model, output_column="prediction_epistatic",
-                         exclude_self_subs=False):
+                         exclude_self_subs=True):
     """
     Create table with all possible single substitutions of
     target sequence in CouplingsModel object.
@@ -136,7 +136,7 @@ def single_mutant_matrix(model, output_column="prediction_epistatic",
         Model that will be used to predict single mutants
     output_column : str, default: "prediction_epistatic"
         Name of column in Dataframe that will contain predictions
-    exclude_self_subs : bool, default: False
+    exclude_self_subs : bool, default: True
         Exclude self-substitutions (e.g. A100A) from results
 
     Returns
