@@ -27,8 +27,9 @@ def compute_distance_map(pdb_id, pdb_chain, output_file=None):
 def add_distances(df, dist_map):
     df = df.copy()
     df.loc[:, "dist"] = [
-        dist_map.contact_map[i][j] for (i, j) in zip(df.i, df.j)
-        if i in dist_map.contact_map and j in dist_map.contact_map[i]
+        dist_map.contact_map[i][j] if i in dist_map.contact_map and j in dist_map.contact_map[i]
+        else float("nan")
+        for (i, j) in zip(df.i, df.j)
     ]
     return df
 
