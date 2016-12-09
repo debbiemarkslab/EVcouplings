@@ -204,7 +204,7 @@ def _zero_sum_gauge(J_ij, inplace=False):
     if inplace:
         J_ij_0 = J_ij
     else:
-        J_ij_0 = np.empty((L, L, num_symbols, num_symbols))
+        J_ij_0 = np.zeros((L, L, num_symbols, num_symbols))
 
     # go through all pairs of positions
     for i in range(L - 1):
@@ -216,8 +216,8 @@ def _zero_sum_gauge(J_ij, inplace=False):
 
             # can't use axis argument of np.mean in numba,
             # so have to calculate rows/cols manually
-            avg_a = np.empty((num_symbols))
-            avg_b = np.empty((num_symbols))
+            avg_a = np.zeros((num_symbols))
+            avg_b = np.zeros((num_symbols))
             ij_mat_T = ij_mat.T
 
             for k in range(num_symbols):
