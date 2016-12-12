@@ -216,8 +216,8 @@ def _zero_sum_gauge(J_ij, inplace=False):
 
             # can't use axis argument of np.mean in numba,
             # so have to calculate rows/cols manually
-            avg_a = np.zeros((num_symbols))
-            avg_b = np.zeros((num_symbols))
+            avg_a = np.zeros(num_symbols)
+            avg_b = np.zeros(num_symbols)
             ij_mat_T = ij_mat.T
 
             for k in range(num_symbols):
