@@ -64,7 +64,7 @@ def standard(**kwargs):
             "alphabet", "segments", "ignore_gaps", "iterations",
             "lambda_h", "lambda_J", "lambda_group",
             "scale_clusters",
-            "cpu", "plmc", "save_model",
+            "cpu", "plmc", "save_model", "reuse_ecs",
         ]
     )
 
