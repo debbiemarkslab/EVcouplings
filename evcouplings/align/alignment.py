@@ -1007,7 +1007,7 @@ def frequencies(matrix, seq_weights, num_symbols):
         for i in range(L):
             fi[i, matrix[s, i]] += seq_weights[s]
 
-    return fi / float(N)
+    return fi / N
 
 
 @jit(nopython=True)
