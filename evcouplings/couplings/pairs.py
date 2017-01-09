@@ -136,7 +136,7 @@ class ScoreMixtureModel:
     Assign to each EC score the probability of being in the
     lognormal tail of a normal-lognormal mixture model.
     """
-    def __init__(self, x, max_fun=10000, max_iter=1000):
+    def __init__(self, x, clamp_mu=False, max_fun=10000, max_iter=1000):
         """
         Mixture model of evolutionary coupling scores to
         determine signifcant scores that are in high-scoring,
@@ -146,6 +146,9 @@ class ScoreMixtureModel:
         ----------
         x : np.array (or list-like)
             EC scores from which to infer the mixture model
+        clamp_mu : bool, optional (default: False)
+            Fix mean of Gaussian component to 0 instead of
+            fitting it based on data
         max_fun : int
             Maximum number of function evaluations
         max_iter : int
@@ -154,10 +157,10 @@ class ScoreMixtureModel:
         x = np.array(x)
 
         # Infer parameters of mixture model
-        self.params = self._learn_params(x, max_fun, max_iter)
+        self.params = self._learn_params(x, clamp_mu, max_fun, max_iter)
 
     @classmethod
-    def _learn_params(cls, x, max_fun, max_iter):
+    def _learn_params(cls, x, clamp_mu, max_fun, max_iter):
         """
         Infer parameters of mixture model.
 
@@ -165,6 +168,9 @@ class ScoreMixtureModel:
         ----------
         x : np.array (or list-like)
             EC scores from which to infer the mixture model
+        clamp_mu : bool, optional (default: False)
+            Fix mean of Gaussian component to 0 instead of
+            fitting it based on data
         max_fun : int
             Maximum number of function evaluations
         max_iter : int
@@ -195,12 +201,20 @@ class ScoreMixtureModel:
 
         # Target function for minimization
         def target_func(params):
+            if clamp_mu:
+                params[0] = 0
+
             return -np.sum(np.log(cls._gaussian_lognormal(x, params)))
 
         # Minimize function
         coeff = op.fmin(
             target_func, param, maxfun=max_fun, maxiter=max_iter, disp=False
         )
+
+        # If clamping mu, also set to 0 in the end, so this value
+        # is used for probability calculations
+        if clamp_mu:
+            coeff[0] = 0
 
         q = coeff[2]
         # Check if fit worked
@@ -335,7 +349,7 @@ class ScoreMixtureModel:
         return posterior
 
 
-def add_mixture_probability(ecs, score="cn", plot=False):
+def add_mixture_probability(ecs, score="cn", clamp_mu=False, plot=False):
     """
     Add lognormal mixture model probability to EC table.
 
@@ -345,6 +359,9 @@ def add_mixture_probability(ecs, score="cn", plot=False):
         EC table with scores
     score : str, optional (default: "cn")
         Score on which mixture model will be based
+    clamp_mu : bool, optional (default: False)
+        Fix mean of Gaussian component to 0 instead of
+        fitting it based on data
     plot : bool, optional (default: False)
         Plot score distribution and probabilities
 
@@ -359,7 +376,7 @@ def add_mixture_probability(ecs, score="cn", plot=False):
     ec_prob = deepcopy(ecs)
 
     # learn mixture model
-    mm = ScoreMixtureModel(ecs.loc[:, score])
+    mm = ScoreMixtureModel(ecs.loc[:, score], clamp_mu)
 
     # assign probability
     ec_prob.loc[:, "probability"] = mm.probability(
