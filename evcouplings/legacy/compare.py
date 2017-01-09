@@ -45,7 +45,7 @@ def add_precision(df, distance_threshold=5):
 def ec_scores_compared(ecs, contact_map, dist_cutoff=None, output_file=None):
     x = add_distances(ecs, contact_map)
     if dist_cutoff is not None:
-        x = add_precision(x)
+        x = add_precision(x, dist_cutoff)
 
     if output_file is not None:
         x.to_csv(output_file, index=False)
