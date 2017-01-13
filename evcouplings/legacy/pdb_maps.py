@@ -328,7 +328,7 @@ class DistanceMatrix:
         Create contact_map.py-style ContactMap
         from distance matrix object.
         """
-        from contact_map import ContactMap
+        from evcouplings.legacy.contact_map import ContactMap
         distance_dict = defaultdict(defaultdict)
 
         # convert into integer-indexed dictionary as expected by ContactMap class
