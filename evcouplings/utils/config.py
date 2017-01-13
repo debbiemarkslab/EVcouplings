@@ -9,7 +9,7 @@ Authors:
   Thomas A. Hopf
 """
 
-import ruamel.yaml as yaml
+import ruamel_yaml as yaml
 
 
 class MissingParameterError(Exception):
