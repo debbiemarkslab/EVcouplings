@@ -74,3 +74,210 @@ def _distances(residues_i, coords_i, residues_j, coords_j, symmetric):
                 dists[i, j] = min_dist
 
     return dists
+
+
+class DistanceMap:
+    """
+    Compute, store and accesss pairwise residue
+    distances in PDB 3D structures
+    """
+    def __init__(self, residues_i, residues_j, dist_matrix, symmetric):
+        """
+        Create new distance map object
+
+        Parameters
+        ----------
+        residues_i : pandas.DataFrame
+            Table containing residue annotation for
+            first axis of distance matrix
+        residues_j : pandas.DataFrame
+            Table containing residue annotation for
+            second axis of distance matrix
+        dist_matrix : np.array
+            2D matrix containing residue distances
+            (of size len(residues_i) x len(residues_j))
+        symmetric : bool
+            Indicates if distance matrix is symmetric
+        """
+        self.residues_i = residues_i
+        self.residues_j = residues_j
+        self.dist_matrix = dist_matrix
+
+    @classmethod
+    def _extract_coords(cls, coords):
+        """
+        Prepare coordinates as suitable input
+        for _distances() function
+
+        Parameters
+        ----------
+        coords : pandas.DataFrame
+            Atom coordinates for PDB chain
+            (.coords property of Chain object)
+
+        Returns
+        -------
+        atom_ranges : np.array
+            Matrix of size N_i x 2, where N_i = number
+            of residues in PDB chain. Each row of this matrix
+            contains the first and last (inclusive) index of
+            the atoms comprising this residue in the xyz_coords
+            matrix
+        xyz_coords : np.array
+            N_a x 3 matrix containing 3D coordinates
+            of all atoms (where N_a is total number of
+            atoms in chain)
+        """
+        # put indices into column rather than index,
+        # so we can access values after groupby
+        C = coords.reset_index()
+
+        # matrix of 3D coordinates
+        xyz_coords = np.stack(
+            (C.x.values, C.y.values, C.z.values)
+        ).T
+
+        # extract what the first and last atom index
+        # of each residue is
+        C_grp = C.groupby("residue_index")
+        atom_ranges = np.stack(
+            (C_grp.first().loc[:, "index"].values,
+             C_grp.last().loc[:, "index"].values)
+        ).T
+
+        return atom_ranges, xyz_coords
+
+    @classmethod
+    def from_coords(cls, chain_i, chain_j=None):
+        """
+        Compute distance matrix from PDB chain
+        coordinates.
+
+        Parameters
+        ----------
+        chain_i : Chain
+            PDB chain to be used for first axis of matrix
+        chain_j : Chain, optional (default: None)
+            PDB chain to be used for second axis of matrix.
+            If not given, will be set to chain_i, resulting
+            in a symmetric distance matrix
+
+        Returns
+        -------
+        DistanceMap
+            Distance map computed from given
+            coordinates
+        """
+        ranges_i, coords_i = cls._extract_coords(chain_i.coords)
+
+        # if no second chain given, compute a symmetric distance
+        # matrix (mainly relevant for intra-chain contacts)
+        if chain_j is None:
+            symmetric = True
+            chain_j = chain_i
+            ranges_j, coords_j = ranges_i, coords_i
+        else:
+            symmetric = False
+            ranges_j, coords_j = cls._extract_coords(chain_j.coords)
+
+        # compute distances using jit-compiled function
+        dists = _distances(
+            ranges_i, coords_i,
+            ranges_j, coords_j,
+            symmetric
+        )
+
+        # create distance matrix object
+        return cls(
+            chain_i.residues, chain_j.residues,
+            dists, symmetric
+        )
+
+    @classmethod
+    def from_file(cls, filename):
+        """
+        Load existing distance map from file
+
+        Parameters
+        ----------
+        filename : str
+            Path to distance map file
+
+        Returns
+        -------
+        DistanceMap
+            Loaded distance map
+        """
+        raise NotImplementedError
+
+    def to_file(self, filename):
+        """
+        Store distance map in file
+
+        Parameters
+        ----------
+        filename : str
+            Path to distance map file
+        """
+        raise NotImplementedError
+
+    def dist(i, j, raise_na=True):
+        """
+        Return distance of residue pair
+
+        Parameters
+        ----------
+        i : int
+            Index of position on first axis
+        j : int
+            Index of position on second axis
+        raise_na : bool, optional (default: True)
+            Raise error if i or j is not
+            contained in either axis
+
+        Returns
+        -------
+        # TODO
+
+        Raises
+        ------
+        ValueError
+            If index i or j is invalid
+        """
+        raise NotImplementedError
+
+    def contacts(self, max_dist=5.0, min_dist=None):
+        """
+        Return list of pairs below distance threshold
+
+        Parameters
+        ----------
+        max_dist : float, optional (default: 5.0)
+            Maximum distance for any pair to be
+            considered a contact
+        min_dist : float, optional (default: None)
+            Minimum distance of any pair to be
+            returned (may be useful if extracting
+            different distance ranges from matrix)
+
+        Returns
+        -------
+        # TODO
+        """
+        raise NotImplementedError
+
+    def aggregate():
+        """
+        Aggregate with other distance map(s)
+
+        # TODO: Maybe as classmethod?
+
+        Parameters
+        ----------
+        # TODO
+
+        Returns
+        -------
+        # TODO
+        """
+        raise NotImplementedError
