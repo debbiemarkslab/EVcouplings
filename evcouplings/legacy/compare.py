@@ -1,5 +1,5 @@
-import evcouplings.legacy.pdb3d
-import evcouplings.legacy.pdb_maps
+import evcouplings.legacy.pdb3d as pdb3d
+import evcouplings.legacy.pdb_maps as pdb_maps
 
 
 def compute_distance_map(pdb_id, pdb_chain, output_file=None):
