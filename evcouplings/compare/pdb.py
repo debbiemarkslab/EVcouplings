@@ -36,7 +36,7 @@ DSSP_3_STATE_MAP = {
 }
 
 # Store residue and coordinate information for a PDB chain
-Chain = namedtuple("Chain", ["residues", "atoms"])
+Chain = namedtuple("Chain", ["residues", "coords"])
 
 
 class PDB:
@@ -272,15 +272,15 @@ class PDB:
             for i in residue_indeces
         ])
 
-        atoms = OrderedDict([
+        coords = OrderedDict([
             ("residue_index", residue_number),
             ("atom_id", self.mmtf.atom_id_list[atom_indeces]),
             ("atom_name", atom_names),
             ("x", self.mmtf.x_coord_list[atom_indeces]),
-            ("y", self.mmtf.y_coord_list[atom_indeces]), 
+            ("y", self.mmtf.y_coord_list[atom_indeces]),
             ("z", self.mmtf.z_coord_list[atom_indeces]),
         ])
 
-        atom_df = pd.DataFrame(atoms)
+        coord_df = pd.DataFrame(coords)
 
-        return Chain(res_df, atom_df)
+        return Chain(res_df, coord_df)
