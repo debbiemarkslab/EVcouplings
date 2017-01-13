@@ -6,6 +6,7 @@ Authors:
 """
 
 import numpy as np
+import pandas as pd
 from numba import jit
 
 
@@ -102,6 +103,7 @@ class DistanceMap:
         self.residues_i = residues_i
         self.residues_j = residues_j
         self.dist_matrix = dist_matrix
+        self.symmetric = symmetric
 
     @classmethod
     def _extract_coords(cls, coords):
@@ -208,7 +210,29 @@ class DistanceMap:
         DistanceMap
             Loaded distance map
         """
-        raise NotImplementedError
+        residues = pd.read_csv(
+            filename + ".csv", index_col=0,
+            dtype={
+                "resseq_index": str,
+                "coord_index": str,
+                "chain_index": int,
+            }
+        )
+
+        dist_matrix = np.load(filename + ".npy")
+
+        if "axis" in residues.columns:
+            symmetric = False
+            residues_i = residues.query("axis == 'i'").drop("axis", axis=1)
+            residues_j = residues.query("axis == 'j'").drop("axis", axis=1)
+        else:
+            symmetric = True
+            residues_i = residues
+            residues_j = residues
+
+        return cls(
+            residues_i, residues_j, dist_matrix, symmetric
+        )
 
     def to_file(self, filename):
         """
@@ -217,9 +241,26 @@ class DistanceMap:
         Parameters
         ----------
         filename : str
-            Path to distance map file
+            Prefix of distance map files
+            (will create .csv and .npy file)
         """
-        raise NotImplementedError
+        def _add_axis(df, axis):
+            res = df.copy()
+            res.loc[:, "axis"] = axis
+            return res
+
+        if self.symmetric:
+            residues = self.residues_i
+        else:
+            res_i = _add_axis(self.residues_i, "i")
+            res_j = _add_axis(self.residues_j, "j")
+            residues = res_i.append(res_j)
+
+        # save residue table
+        residues.to_csv(filename + ".csv", index=True)
+
+        # save distance matrix
+        np.save(filename + ".npy", self.dist_matrix)
 
     def dist(i, j, raise_na=True):
         """
