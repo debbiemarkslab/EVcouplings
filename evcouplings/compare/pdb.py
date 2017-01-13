@@ -5,7 +5,7 @@ Authors:
   Thomas A. Hopf
 """
 
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict
 from mmtf import fetch, parse
 import numpy as np
 import pandas as pd
@@ -35,8 +35,21 @@ DSSP_3_STATE_MAP = {
     "S": "C",
 }
 
-# Store residue and coordinate information for a PDB chain
-Chain = namedtuple("Chain", ["residues", "coords"])
+
+class Chain:
+    """
+    Container for PDB chain residue and coordinate information
+    """
+    def __init__(self, residues, coords):
+        """
+        """
+        self.residues = residues
+        self.coords = coords
+        # TODO: handle default mapping to PDB
+
+    # def remap(self, mapping):
+    #     # TODO: create copy of dataframe
+    #    return
 
 
 class PDB:
