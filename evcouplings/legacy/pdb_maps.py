@@ -15,7 +15,7 @@ from copy import deepcopy
 from collections import defaultdict
 import numpy
 
-import pdb3d
+import evcouplings.legacy.pdb3d as pdb3d
 
 
 class ContactMap:
