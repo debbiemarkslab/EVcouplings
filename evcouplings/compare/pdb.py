@@ -5,7 +5,7 @@ Authors:
   Thomas A. Hopf
 """
 
-from collections import OrderedDict
+from collections import namedtuple, OrderedDict
 from mmtf import fetch, parse
 import numpy as np
 import pandas as pd
@@ -34,6 +34,9 @@ DSSP_3_STATE_MAP = {
     "T": "C",
     "S": "C",
 }
+
+# Store residue and coordinate information for a PDB chain
+Chain = namedtuple("Chain", ["residues", "atoms"])
 
 
 class PDB:
@@ -173,10 +176,9 @@ class PDB:
 
         Returns
         -------
-        ??? # TODO - bundle in a namedtuple?
-
-        # TODO: write coordinates to file and check
-        (also with NMR structure (multiple models)
+        Chain
+            namedtuple containing DataFrames listing residues
+            and atom coordinates
         """
         if not (0 <= model < self.num_models):
             raise ValueError(
@@ -260,4 +262,25 @@ class PDB:
             lambda x: DSSP_3_STATE_MAP[x], na_action="ignore"
         )
 
-        return res_df
+        # finally, get atom names and coordinates for all residues
+        atom_first = self.first_atom_index[residue_indeces]
+        atom_last = self.last_atom_index[residue_indeces]
+        atom_names = np.concatenate(self._residue_type_atom_names[group_types])
+        residue_number = np.repeat(res_df.index, atom_last - atom_first)
+        atom_indeces = np.concatenate([
+            np.arange(self.first_atom_index[i], self.last_atom_index[i])
+            for i in residue_indeces
+        ])
+
+        atoms = OrderedDict([
+            ("residue_index", residue_number),
+            ("atom_id", self.mmtf.atom_id_list[atom_indeces]),
+            ("atom_name", atom_names),
+            ("x", self.mmtf.x_coord_list[atom_indeces]),
+            ("y", self.mmtf.y_coord_list[atom_indeces]), 
+            ("z", self.mmtf.z_coord_list[atom_indeces]),
+        ])
+
+        atom_df = pd.DataFrame(atoms)
+
+        return Chain(res_df, atom_df)
