@@ -5,7 +5,7 @@ Authors:
   Thomas A. Hopf
 """
 
-from collections import OrderedDict
+from collections import OrderedDict, Iterable
 from mmtf import fetch, parse
 import numpy as np
 import pandas as pd
@@ -42,14 +42,158 @@ class Chain:
     """
     def __init__(self, residues, coords):
         """
+        Create new PDB chain, indexed by residue coordinate
+        indeces
+
+        Parameters
+        ----------
+        residues : pandas.DataFrame
+            List of residues (as computed by PDB.get_chain())
+        coords : pandas.DataFrame
+            List of atom coordinates (as computed by
+            PDB.get_chain())
         """
         self.residues = residues
         self.coords = coords
-        # TODO: handle default mapping to PDB
 
-    # def remap(self, mapping):
-    #     # TODO: create copy of dataframe
-    #    return
+    def _update_ids(self, ids):
+        """
+        Update residue identifiers, and remove any
+        residue that does not have new id. Also
+        removes corresponding atom coordinates.
+
+        Parameters
+        ----------
+        ids : pandas.Series (or list-like)
+            New identifiers to be assigned to
+            residue table. Has to be of same length
+            in same order as residue table.
+
+        Returns
+        -------
+        Chain
+            Chain with new residue identifiers
+        """
+        residues = self.residues.copy()
+        residues.loc[:, "id"] = ids.copy()
+        residues = residues.dropna(subset=["id"])
+
+        # drop coordinates of residues that were not kept
+        coords = self.coords.loc[
+            self.coords.residue_index.isin(residues.index)
+        ]
+
+        return Chain(residues, coords)
+
+    def to_seqres(self):
+        """
+        Return copy of chain with main index set to
+        SEQRES numbering. Residues that do not have
+        a SEQRES id will be dropped.
+
+        Returns
+        -------
+        Chain
+            Chain with seqres IDs as main index
+        """
+        return self._update_ids(
+            self.residues.loc[:, "seqres_id"]
+        )
+
+    def filter_atoms(self, atom_name="CA"):
+        """
+        Filter coordinates of chain, e.g. to
+        compute C_alpha-C_alpha distances
+
+        Parameters
+        ----------
+        atom_name : str, optional (default: "CA")
+            Name of atoms to keep
+
+        Returns
+        -------
+        Chain
+            Chain containing only filtered atoms (and those
+            residues that have such an atom)
+        """
+        coords = self.coords.loc[
+            self.coords.atom_name == atom_name
+        ].copy()
+
+        residues = self.residues.loc[
+            self.residues.index.isin(coords.residue_index)
+        ].copy()
+
+        return Chain(residues, coords)
+
+    def remap(self, mapping, source_id="seqres_id"):
+        """
+        Remap chain into different numbering scheme
+        (e.g. from seqres to uniprot numbering)
+
+        Parameters
+        ----------
+        mapping : dict
+            Mapping of residue identifiers from
+            source_id (current main index of PDB chain)
+            to new identifiers.
+
+            mapping may either be:
+            1. dict(str -> str) to map individual residue
+               IDs. Keys and values of dictionary will be
+               typecast to string before the mapping, so it
+               is possible to pass in integer values too
+               (if the source or target IDs are numbers)
+            2. dict((int, int) -> (int, int)) to map ranges
+               of numbers to ranges of numbers. This should
+               typically be only used with RESSEQ or UniProt
+               numbering. End index or range is *inclusive*
+               Note that residue IDs in the end will still
+               be handled as strings when mapping.
+
+        source_id: {"seqres_id", "coord_id", "id"}, optional (default: "seqres_id")
+            Residue identifier in chain to map *from*
+            (will be used as key to access mapping)
+
+        Returns
+        -------
+        Chain
+            Chain with remapped numbering ("id" column
+            in residues DataFrame)
+        """
+        # get one key to test which type of mapping we have
+        # (range-based, or individual residues)
+        test_key = next(iter(mapping.keys()))
+
+        # test for range-based mapping
+        if isinstance(test_key, Iterable) and not isinstance(test_key, str):
+            # build up inidividual residue mapping
+            final_mapping = {}
+            for (source_start, source_end), (target_start, target_end) in mapping.items():
+                source = map(
+                    str, range(source_start, source_end + 1)
+                )
+
+                target = map(
+                    str, range(target_start, target_end + 1)
+                )
+
+                final_mapping.update(
+                    dict(zip(source, target))
+                )
+        else:
+            # individual residue mapping, make sure all strings
+            final_mapping = {
+                str(s): str(t) for (s, t) in mapping.items()
+            }
+
+        # remap identifiers using mapping
+        ids = self.residues.loc[:, source_id].map(
+            final_mapping, na_action="ignore"
+        )
+
+        # create remapped chain
+        return self._update_ids(ids)
 
 
 class PDB:
@@ -243,8 +387,9 @@ class PDB:
         group_types = m.group_type_list[residue_indeces]
 
         res = OrderedDict([
-            ("resseq_index", m.sequence_index_list[residue_indeces]),
-            ("coord_index", self.residue_ids[residue_indeces]),
+            ("id", self.residue_ids[residue_indeces]),
+            ("seqres_id", m.sequence_index_list[residue_indeces]),
+            ("coord_id", self.residue_ids[residue_indeces]),
             ("one_letter_code", self._residue_names_1[group_types]),
             ("three_letter_code", self._residue_names_3[group_types]),
             ("chain_index", chain_indeces),
@@ -256,16 +401,18 @@ class PDB:
 
         # shift seqres indexing to start at 1;
         # However, do not add to positions without sequence index (-1)
-        res_df.loc[res_df.resseq_index >= 0, "resseq_index"] += 1
+        res_df.loc[res_df.seqres_id >= 0, "seqres_id"] += 1
 
         # turn all indeces into strings and create proper NaN values
-        res_df.loc[:, "coord_index"] = (
-            res_df.loc[:, "coord_index"].astype(str)
+        res_df.loc[:, "coord_id"] = (
+            res_df.loc[:, "coord_id"].astype(str)
         )
 
-        res_df.loc[:, "resseq_index"] = (
-            res_df.loc[:, "resseq_index"].astype(str).replace("-1", np.nan)
+        res_df.loc[:, "seqres_id"] = (
+            res_df.loc[:, "seqres_id"].astype(str).replace("-1", np.nan)
         )
+        # copy updated coordinate indeces
+        res_df.loc[:, "id"] = res_df.loc[:, "coord_id"]
 
         res_df.loc[:, "one_letter_code"] = res_df.loc[:, "one_letter_code"].replace("?", np.nan)
         res_df.loc[:, "sec_struct"] = res_df.loc[:, "sec_struct"].replace("", np.nan)

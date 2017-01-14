@@ -213,8 +213,8 @@ class DistanceMap:
         residues = pd.read_csv(
             filename + ".csv", index_col=0,
             dtype={
-                "resseq_index": str,
-                "coord_index": str,
+                "seqres_id": str,
+                "coord_id": str,
                 "chain_index": int,
             }
         )
@@ -312,6 +312,7 @@ class DistanceMap:
         Aggregate with other distance map(s)
 
         # TODO: Maybe as classmethod?
+        # TODO: how to make sure union has all distances?
 
         Parameters
         ----------
