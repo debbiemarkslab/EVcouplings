@@ -105,6 +105,15 @@ class DistanceMap:
         self.dist_matrix = dist_matrix
         self.symmetric = symmetric
 
+        # create mappings from identifier to entry in distance matrix
+        self.id_map_i = {
+            id_: i for (i, id_) in enumerate(self.residues_i.id.values)
+        }
+
+        self.id_map_j = {
+            id_: j for (j, id_) in enumerate(self.residues_j.id.values)
+        }
+
     @classmethod
     def _extract_coords(cls, coords):
         """
@@ -262,30 +271,76 @@ class DistanceMap:
         # save distance matrix
         np.save(filename + ".npy", self.dist_matrix)
 
-    def dist(i, j, raise_na=True):
+    def dist(self, i, j, raise_na=True):
         """
         Return distance of residue pair
 
         Parameters
         ----------
-        i : int
-            Index of position on first axis
-        j : int
-            Index of position on second axis
+        i : int or str
+            Identifier of position on first axis
+        j : int or str
+            Identifier of position on second axis
         raise_na : bool, optional (default: True)
             Raise error if i or j is not
-            contained in either axis
+            contained in either axis. If False,
+            returns np.nan for undefined entries.
 
         Returns
         -------
-        # TODO
+        np.float
+            Distance of pair (i, j). If raise_na
+            is False and identifiers are not valid,
+            distance will be np.nan
 
         Raises
         ------
-        ValueError
-            If index i or j is invalid
+        KeyError
+            If index i or j is not a valid identifier
+            for respective chain
         """
-        raise NotImplementedError
+        # internally all identifiers are handled
+        # as strings, so convert
+        i, j = str(i), str(j)
+
+        if i not in self.id_map_i:
+            if raise_na:
+                raise KeyError(
+                    "{} not contained in first axis of "
+                    "distance map".format(i)
+                )
+            else:
+                return np.nan
+
+        if j not in self.id_map_j:
+            if raise_na:
+                raise KeyError(
+                    "{} not contained in second axis of "
+                    "distance map".format(j)
+                )
+            else:
+                return np.nan
+
+        return self.dist_matrix[
+            self.id_map_i[i],
+            self.id_map_j[j]
+        ]
+
+    def __getitem__(self, identifiers):
+        """
+        Parameters
+        ----------
+        index : tuple(str, str) or tuple(int, int)
+            Identifiers of residues on first and
+            second chain
+
+        Raises
+        -------
+        KeyError
+            If either residue identifier not valid
+        """
+        i, j = identifiers
+        return self.dist(i, j, raise_na=True)
 
     def contacts(self, max_dist=5.0, min_dist=None):
         """
