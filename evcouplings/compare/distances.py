@@ -303,6 +303,7 @@ class DistanceMap:
         # as strings, so convert
         i, j = str(i), str(j)
 
+        # check if identifiers are valid for either axis
         if i not in self.id_map_i:
             if raise_na:
                 raise KeyError(
@@ -321,6 +322,7 @@ class DistanceMap:
             else:
                 return np.nan
 
+        # if valid, return distance of pair
         return self.dist_matrix[
             self.id_map_i[i],
             self.id_map_j[j]
@@ -354,13 +356,43 @@ class DistanceMap:
         min_dist : float, optional (default: None)
             Minimum distance of any pair to be
             returned (may be useful if extracting
-            different distance ranges from matrix)
+            different distance ranges from matrix).
+            Distance has to be > min_dist, (not >=).
 
         Returns
         -------
-        # TODO
+        contacts : pandas.DataFrame
+            Table with residue-residue contacts, with the
+            following columns:
+                1) id_i: identifier of residue in chain i
+                2) id_j: identifier of residue in chain j
+                3) dist: pair distance
         """
-        raise NotImplementedError
+        # find which entries of matrix fulfill
+        # distance criteria
+        if min_dist is None:
+            cond = np.where(self.dist_matrix <= max_dist)
+        else:
+            cond = np.where(
+                (self.dist_matrix <= max_dist) &
+                (self.dist_matrix > min_dist)
+            )
+
+        i_all, j_all = cond
+
+        # exclude diagonal entries of matrix since
+        # they always have distance 0
+        nodiag = i_all != j_all
+        i = i_all[nodiag]
+        j = j_all[nodiag]
+
+        # extract residue ids and distances for all contacts
+        contacts = pd.DataFrame()
+        contacts.loc[:, "id_i"] = self.residues_i.id.values[i]
+        contacts.loc[:, "id_j"] = self.residues_j.id.values[j]
+        contacts.loc[:, "dist"] = self.dist_matrix[i, j]
+
+        return contacts
 
     def aggregate():
         """
