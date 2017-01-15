@@ -139,9 +139,13 @@ class DistanceMap:
             of all atoms (where N_a is total number of
             atoms in chain)
         """
-        # put indices into column rather than index,
+        # First, reset index and drop because indices might
+        # be discontinuous after removal of atoms (we need that
+        # indices correspond to boundaries of each residue in
+        # raw numpy array).
+        # Second, move index into column,
         # so we can access values after groupby
-        C = coords.reset_index()
+        C = coords.reset_index(drop=True).reset_index()
 
         # matrix of 3D coordinates
         xyz_coords = np.stack(
