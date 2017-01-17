@@ -10,6 +10,8 @@ import os
 from os import path
 import tempfile
 import subprocess
+import urllib.request
+import shutil
 import requests
 
 
@@ -243,3 +245,22 @@ def get(url, output_path=None, allow_redirects=False):
 
     except requests.exceptions.RequestException as e:
         raise ResourceError() from e
+
+
+def get_urllib(url, output_path):
+    """
+    Download external resource to file using urllib.
+    This function is intended for cases where get()
+    implemented using requests can not be used, e.g.
+    for download from an FTP server.
+
+    Parameters
+    ----------
+    url : str
+        URL of resource that should be downloaded
+    output_path: str, optional
+        Save contents of URL to this file
+        (only for text files)
+    """
+    with urllib.request.urlopen(url) as r, open(output_path, 'wb') as f:
+        shutil.copyfileobj(r, f)
