@@ -6,9 +6,13 @@ Authors:
 """
 
 from collections import OrderedDict, Iterable
+from os import path
+
 from mmtf import fetch, parse
 import numpy as np
 import pandas as pd
+
+from evcouplings.utils.system import valid_file
 
 # Mapping from MMTF secondary structure codes to DSSP symbols
 MMTF_DSSP_CODE_MAP = {
@@ -444,3 +448,46 @@ class PDB:
         coord_df = pd.DataFrame(coords)
 
         return Chain(res_df, coord_df)
+
+
+def load_structures(pdb_ids, structure_dir=None):
+    """
+    Load PDB structures from files / web
+
+    Parameters
+    ----------
+    pdb_ids : Iterable
+        List / iterable containing PDB identifiers
+        to be loaded.
+    structure_dir : str, optional (default: None)
+        Path to directory with structures. Structures
+        filenames must be in the format 5p21.mmtf.
+        If a file can not be found, will try to fetch
+        from web instead.
+
+    Returns
+    -------
+    structures : dict(str -> PDB)
+        Dictionary containing loaded structures.
+        Keys (PDB identifiers) will be lower-case.
+    """
+    # collect loaded structures in dict(id -> PDB)
+    structures = {}
+
+    # load structure by structure
+    for pdb_id in set(pdb_ids):
+        pdb_id = pdb_id.lower()
+
+        has_file = False
+        if structure_dir is not None:
+            structure_file = path.join(structure_dir, pdb_id + ".mmtf")
+            has_file = valid_file(structure_file)
+
+        # see if we can load locally from disk
+        if has_file:
+            structures[pdb_id] = PDB.from_file(structure_file)
+        else:
+            # otherwise fetch from web
+            structures[pdb_id] = PDB.from_id(pdb_id)
+
+    return structures
