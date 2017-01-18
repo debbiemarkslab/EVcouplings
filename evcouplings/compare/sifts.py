@@ -113,6 +113,10 @@ class SIFTS:
 
         self.sequence_file = sequence_file
 
+        # if path for sequence file given, but not there, create
+        if sequence_file is not None and not valid_file(sequence_file):
+            self.create_sequence_file(sequence_file)
+
         # add Uniprot ID column if we have sequence mapping
         # from FASTA file
         if self.sequence_file is not None:
