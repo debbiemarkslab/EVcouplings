@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 from numba import jit
 
+from evcouplings.compare.pdb import load_structures
+
 
 @jit(nopython=True)
 def _distances(residues_i, coords_i, residues_j, coords_j, symmetric):
@@ -398,19 +400,251 @@ class DistanceMap:
 
         return contacts
 
-    def aggregate():
+    @classmethod
+    def aggregate(cls, *matrices, intersect=False, agg_func=np.nanmin):
         """
         Aggregate with other distance map(s)
 
-        # TODO: Maybe as classmethod?
-        # TODO: how to make sure union has all distances?
+        # TODO: make classmethod?
 
         Parameters
         ----------
-        # TODO
+        *matrices : DistanceMap
+            *args-style list of DistanceMaps that
+            will be aggregated.
+            Note: the id column of each axis may only
+            contain numeric residue ids (and no characters
+            such as insertion codes)
+        intersect : bool, optional (default: False)
+            If True, intersect indices of the given
+            distance maps. Otherwise, union of indices
+            will be used.
+        agg_func : function (default: numpy.nanmin)
+            Function that will be used to aggregate
+            distance matrices. Needs to take a
+            parameter "axis" to aggregate over
+            all matrices.
 
         Returns
         -------
-        # TODO
+        DistanceMap
+            Aggregated distance map
+
+        Raises
+        ------
+        ValueError
+            If residue identifiers are not numeric
         """
-        raise NotImplementedError
+        def _merge_axis(axis):
+            # create set of residue identifiers along axis
+            # for each distance map. Note that identifiers
+            # have to be numeric for easy sorting, so
+            # cast to int first
+            ids = [
+                pd.to_numeric(
+                    getattr(m, axis).id, errors="raise"
+                ).astype(int)
+                for m in matrices
+            ]
+
+            # turn series into sets
+            id_sets = [set(id_list) for id_list in ids]
+
+            # then create final set of identifiers along axis
+            # either as union or intersection
+            if intersect:
+                new_ids = set.intersection(*id_sets)
+            else:
+                new_ids = set.union(*id_sets)
+
+            # create new axis index object for final distance map
+            new_axis_df = pd.DataFrame(sorted(new_ids), columns=["id"])
+
+            # create mapping from one distance matrix into the other
+            # by aligning indeces from 0 in either matrix through
+            # join on their residue id
+            new_axis_map = new_axis_df.reset_index()
+            mappings = [
+                new_axis_map.merge(
+                    id_list.to_frame("id").reset_index(drop=True).reset_index(),
+                    on="id", how="inner",
+                    suffixes=("_agg", "_src")
+                ) for id_list in ids
+            ]
+
+            # turn residue ids back into strings
+            new_axis_df.loc[:, "id"] = new_axis_df.loc[:, "id"].astype(str)
+
+            return new_axis_df, mappings
+
+        # make sure all matrices are either symmetric or non-symmetric
+        symmetries = np.array([m.symmetric for m in matrices])
+        if not np.all(symmetries[0] == symmetries):
+            raise ValueError(
+                "DistanceMaps are mixed symmetric/non-symmetric."
+            )
+
+        # create new axes of distance map
+        new_res_i, maps_i = _merge_axis("residues_i")
+        new_res_j, maps_j = _merge_axis("residues_j")
+
+        # this is used to collected distance matrices for
+        # later aggregtation
+        new_mat = np.full(
+            (len(matrices), len(new_res_i), len(new_res_j)),
+            np.nan
+        )
+
+        # put individual matrices into new indexing system
+        # of merged distance map
+        for k, m in enumerate(matrices):
+            i_src, j_src = np.meshgrid(
+                maps_i[k].index_src.values,
+                maps_j[k].index_src.values,
+                indexing="ij"
+            )
+
+            i_agg, j_agg = np.meshgrid(
+                maps_i[k].index_agg.values,
+                maps_j[k].index_agg.values,
+                indexing="ij"
+            )
+
+            new_mat[k][i_agg, j_agg] = m.dist_matrix[i_src, j_src]
+
+        # aggregate
+        agg_mat = agg_func(new_mat, axis=0)
+
+        return DistanceMap(
+            new_res_i, new_res_j, agg_mat, symmetries[0]
+        )
+
+
+def _prepare_structures(structures, sifts_result):
+    """
+    Get structures ready for distance calculation
+
+    Parameters
+    ----------
+    structures : str or dict
+        See intra_dists function for explanation
+    sifts_result:
+        See intra_dists function for explanation
+
+    Returns
+    -------
+    dict
+        dictionary with lower-case PDB ids as keys
+        and PDB objects as value
+    """
+    # load structures if not yet done so
+    if structures is None or isinstance(structures, str):
+        print("loading")
+        structures = load_structures(
+            sifts_result.hits.pdb_id, structures
+        )
+
+    return structures
+
+
+def _prepare_chain(structures, pdb_id, pdb_chain, atom_filter, mapping):
+    """
+    Prepare PDB chain for distance calculation
+
+    Parameters
+    ----------
+    structures : dict
+        Dictionary containing loaded PDB objects
+    pdb_id : str
+        ID of structure to extract chain from
+    pdb_chain: str
+        Chain ID to extract
+    atom_filter : str
+        Filter for this type of atom. Set to None
+        if no filtering should be applied
+    mapping : dict
+        Seqres to Uniprot mapping that will be applied
+        to Chain object
+
+    Returns
+    -------
+    Chain
+        Chain prepared for distance calculation
+    """
+    # get chain from structure
+    chain = structures[pdb_id].get_chain(pdb_chain)
+
+    # filter atoms if option selected
+    if atom_filter is not None:
+        chain = chain.filter_atoms(atom_filter)
+
+    # remap chain to Uniprot
+    chain = chain.remap(mapping)
+
+    return chain
+
+
+def intra_dists(sifts_result, structures=None, atom_filter=None,
+                intersect=False, agg_func=np.nanmin):
+    """
+    Compute intra-chain distances in PDB files.
+
+    Parameters
+    ----------
+    sifts_result : SIFTSResult
+        Input structures and mapping to use
+        for distance map calculation
+    structures : str or dict, optional (default: None)
+        If str: Load structures from directory this string
+        points to. Missing structures will be fetched
+        from web.
+
+        If dict: dictionary with lower-case PDB ids as keys
+        and PDB objects as values. This dictionary has to
+        contain all necessary structures, missing ones will
+        not be fetched. This dictionary can be created using
+        pdb.load_structures.
+    atom_filter : str, optional (default: None)
+        Filter coordinates to contain only these atoms. E.g.
+        set to "CA" to compute C_alpha - C_alpha distances
+        instead of minimum atom distance over all atoms in
+        both residues.
+    intersect : bool, optional (default: False)
+        If True, intersect indices of the given
+        distance maps. Otherwise, union of indices
+        will be used.
+    agg_func : function (default: numpy.nanmin)
+        Function that will be used to aggregate
+        distance matrices.
+
+    Returns
+    -------
+    DistanceMap
+        Computed aggregated distance map
+        across all input structures
+
+    """
+    # if no structures given, or path to files, load first
+    structures = _prepare_structures(structures, sifts_result)
+
+    # aggegrated distance map
+    agg_distmap = None
+
+    # compute individual distance maps and aggregate
+    for i, r in sifts_result.hits.iterrows():
+        # extract and remap PDB chain
+        chain = _prepare_chain(
+            structures, r["pdb_id"], r["pdb_chain"],
+            atom_filter, sifts_result.mapping[r["mapping_index"]]
+        )
+
+        # compute distance map
+        distmap = DistanceMap.from_coords(chain)
+
+        # aggregate
+        if agg_distmap is None:
+            agg_distmap = distmap
+        else:
+            agg_distmap = DistanceMap.aggregate(agg_distmap, distmap)
+
+    return agg_distmap
