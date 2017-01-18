@@ -65,8 +65,28 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
     return r.text
 
 
-# stores results of SIFTS structure/mapping identification
-SIFTSResult = namedtuple("SIFTSResult", ["hits", "mapping"])
+class SIFTSResult:
+    """
+    Store results of SIFTS structure/mapping identification.
+
+    (Full class defined for easify modification of fields)
+    """
+    def __init__(self, hits, mapping):
+        """
+        Create new SIFTS structure / mapping record.
+
+        Parameters
+        ----------
+        hits : pandas.DataFrame
+            Table with identified PDB chains
+        mapping : dict
+            Mapping from seqres to Uniprot numbering
+            for each PDB chain
+            (index by mapping_index column in hits
+            dataframe)
+        """
+        self.hits = hits
+        self.mapping = mapping
 
 
 class SIFTS:
@@ -215,13 +235,8 @@ class SIFTS:
         Returns
         -------
         SIFTSResult
-            namedtuple with two fields:
-            1) hits (pd.DataFrame) containing identified
-               PDB ids/chains
-            2) mappings from Uniprot to seqres numbering
-               (indexed by mapping_index column in hits
-               dataframe)
-
+            Identified hits plus index mappings
+            to Uniprot
         """
         # compile final set of hits
         hits = []
@@ -272,12 +287,8 @@ class SIFTS:
         Returns
         -------
         SIFTSResult
-            namedtuple with two fields:
-            1) hits (pd.DataFrame) containing identified
-               PDB ids/chains
-            2) mappings from Uniprot to seqres numbering
-               (indexed by mapping_index column in hits
-               dataframe)
+            Identified hits plus index mappings
+            to Uniprot
 
         Raises
         ------
@@ -350,9 +361,9 @@ class SIFTS:
 
         # only retain one chain if this option is active
         if reduce_chains:
-            hits, mapping = hit_table
-            hits = hits.groupby("pdb_id").first().reset_index()
-            hit_table = SIFTSResult(hits, mapping)
+            hit_table.hits = hit_table.hits.groupby(
+                "pdb_id"
+            ).first().reset_index()
 
         return hit_table
 
