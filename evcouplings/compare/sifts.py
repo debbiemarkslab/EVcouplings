@@ -11,7 +11,6 @@ Authors:
   Thomas A. Hopf
 """
 
-from collections import namedtuple
 import pandas as pd
 import requests
 
@@ -297,6 +296,7 @@ class SIFTS:
             not unambigously map to one Uniprot
             entry
         """
+        pdb_id = pdb_id.lower()
         query = "pdb_id == @pdb_id"
 
         # filter by PDB chain if selected
