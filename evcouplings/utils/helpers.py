@@ -45,3 +45,26 @@ def wrap(text, width=80):
     return "\n".join(
         [text[i:i + width] for i in range(0, len(text), width)]
     )
+
+
+def range_overlap(a, b):
+    """
+    Source: http://stackoverflow.com/questions/2953967/
+            built-in-function-for-computing-overlap-in-python
+    Note that ends of range are not inclusive
+
+    Parameters
+    ----------
+    a : tuple(int, int)
+        Start and end of first range
+        (end of range is not inclusive)
+    b : tuple(int, int)
+        Start and end of second range
+        (end of range is not inclusive)
+
+    Returns
+    -------
+    int
+        Length of overlap between ranges a and b
+    """
+    return max(0, min(a[1], b[1]) - max(a[0], b[0]))

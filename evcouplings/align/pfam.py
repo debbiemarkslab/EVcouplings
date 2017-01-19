@@ -12,6 +12,7 @@ Authors:
 """
 import pandas as pd
 from evcouplings.align.tools import run_hmmscan, read_hmmer_domtbl
+from evcouplings.utils.helpers import range_overlap
 
 
 def create_family_size_table(full_pfam_file):
@@ -60,28 +61,6 @@ def remove_clan_overlaps(pfam_table):
     pd.DataFrame
         Pfam hit table with lower-scoring overlaps removed
     """
-    def _overlap(a, b):
-        """
-        Source: http://stackoverflow.com/questions/2953967/
-                built-in-function-for-computing-overlap-in-python
-        Note that ends of range are not inclusive
-
-        Parameters
-        ----------
-        a : tuple(int, int)
-            Start and end of first range
-            (end of range is not inclusive)
-        b : tuple(int, int)
-            Start and end of second range
-            (end of range is not inclusive)
-
-        Returns
-        -------
-        int
-            Length of overlap between ranges a and b
-        """
-        return max(0, min(a[1], b[1]) - max(a[0], b[0]))
-
     # could make this a parameter, if switching to E-values
     # we would have to changing sorting order of DataFrame
     # and sign of comparison further below.
@@ -108,7 +87,7 @@ def remove_clan_overlaps(pfam_table):
         for idx1, hit1 in grp.iterrows():
             for idx2, hit2 in grp.iterrows():
                 if idx1 < idx2:
-                    if _overlap(
+                    if range_overlap(
                         (int(hit1["ali_from"]), int(hit1["ali_to"]) + 1),
                         (int(hit2["ali_from"]), int(hit2["ali_to"]) + 1),
                     ) > 0:
