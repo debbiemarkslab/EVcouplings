@@ -536,7 +536,7 @@ class DistanceMap:
         )
 
 
-def _prepare_structures(structures, sifts_result):
+def _prepare_structures(structures, pdb_id_list):
     """
     Get structures ready for distance calculation
 
@@ -544,8 +544,8 @@ def _prepare_structures(structures, sifts_result):
     ----------
     structures : str or dict
         See intra_dists function for explanation
-    sifts_result:
-        See intra_dists function for explanation
+    pdb_id_list:
+        List of PDB entries to load
 
     Returns
     -------
@@ -555,9 +555,8 @@ def _prepare_structures(structures, sifts_result):
     """
     # load structures if not yet done so
     if structures is None or isinstance(structures, str):
-        print("loading")
         structures = load_structures(
-            sifts_result.hits.pdb_id, structures
+            pdb_id_list, structures
         )
 
     return structures
@@ -645,7 +644,9 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
 
     """
     # if no structures given, or path to files, load first
-    structures = _prepare_structures(structures, sifts_result)
+    structures = _prepare_structures(
+        structures, sifts_result.hits.pdb_id
+    )
 
     # aggegrated distance map
     agg_distmap = None
@@ -726,7 +727,9 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
         across all input structures
     """
     # if no structures given, or path to files, load first
-    structures = _prepare_structures(structures, sifts_result)
+    structures = _prepare_structures(
+        structures, sifts_result.hits.pdb_id
+    )
 
     # aggegrated distance map
     agg_distmap = None
