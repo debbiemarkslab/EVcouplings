@@ -5,6 +5,8 @@ Authors:
   Thomas A. Hopf
 """
 
+from itertools import combinations
+
 import numpy as np
 import pandas as pd
 from numba import jit
@@ -400,6 +402,19 @@ class DistanceMap:
 
         return contacts
 
+    def transpose(self):
+        """
+        Transpose distance map (i.e. swap axes)
+
+        Returns
+        -------
+        DistanceMap
+            Transposed copy of distance map
+        """
+        return DistanceMap(
+            self.residues_j, self.residues_i, self.dist_matrix.T, self.symmetric
+        )
+
     @classmethod
     def aggregate(cls, *matrices, intersect=False, agg_func=np.nanmin):
         """
@@ -648,3 +663,93 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
             agg_distmap = DistanceMap.aggregate(agg_distmap, distmap)
 
     return agg_distmap
+
+
+def multimer_dists(sifts_result, structures=None, atom_filter=None,
+                   intersect=False, agg_func=np.nanmin):
+    """
+    Compute homomultimer distances (between repeated copies of the
+    same entity) in PDB file. Resulting distance matrix will be
+    symmetric by minimization over upper and lower triangle of matrix,
+    even if the complex structure is not symmetric.
+
+    Parameters
+    ----------
+    sifts_result : SIFTSResult
+        Input structures and mapping to use
+        for distance map calculation
+    structures : str or dict, optional (default: None)
+        If str: Load structures from directory this string
+        points to. Missing structures will be fetched
+        from web.
+
+        If dict: dictionary with lower-case PDB ids as keys
+        and PDB objects as values. This dictionary has to
+        contain all necessary structures, missing ones will
+        not be fetched. This dictionary can be created using
+        pdb.load_structures.
+    atom_filter : str, optional (default: None)
+        Filter coordinates to contain only these atoms. E.g.
+        set to "CA" to compute C_alpha - C_alpha distances
+        instead of minimum atom distance over all atoms in
+        both residues.
+    intersect : bool, optional (default: False)
+        If True, intersect indices of the given
+        distance maps. Otherwise, union of indices
+        will be used.
+    agg_func : function (default: numpy.nanmin)
+        Function that will be used to aggregate
+        distance matrices.
+
+    Returns
+    -------
+    DistanceMap
+        Computed aggregated distance map
+        across all input structures
+    """
+    # if no structures given, or path to files, load first
+    structures = _prepare_structures(structures, sifts_result)
+
+    # aggegrated distance map
+    agg_distmap = None
+
+    # go through each structure
+    for pdb_id, grp in sifts_result.hits.groupby("pdb_id"):
+        # extract all chains for this structure
+        chains = {
+            r["pdb_chain"]: _prepare_chain(
+                structures, r["pdb_id"], r["pdb_chain"],
+                atom_filter, sifts_result.mapping[r["mapping_index"]]
+            )
+            for i, r in grp.iterrows()
+        }
+
+        # compare all possible pairs of chains
+        for ch_i, ch_j in combinations(grp.pdb_chain, 2):
+            distmap = DistanceMap.from_coords(chains[ch_i], chains[ch_j])
+
+            # symmetrize matrix (for ECs we are only interested if a pair
+            # is close in some combination)
+            distmap_sym = DistanceMap.aggregate(
+                distmap, distmap.transpose(), intersect=intersect
+            )
+            distmap_sym.symmetric = True
+
+            # aggregate with other chain combinations
+            if agg_distmap is None:
+                agg_distmap = distmap_sym
+            else:
+                agg_distmap = DistanceMap.aggregate(
+                    agg_distmap, distmap_sym, intersect=intersect
+                )
+
+    return agg_distmap
+
+
+def inter_dists(sifts_result_i, sifts_result_j, structures=None,
+                atom_filter=None, intersect=False, agg_func=np.nanmin):
+    """
+    Compute inter-chain distances (between different entities)
+    in PDB file.
+    """
+    raise NotImplementedError
