@@ -781,9 +781,114 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
 
 def inter_dists(sifts_result_i, sifts_result_j, structures=None,
-                atom_filter=None, intersect=False, agg_func=np.nanmin):
+                atom_filter=None, intersect=False, agg_func=np.nanmin,
+                output_prefix=None):
     """
     Compute inter-chain distances (between different entities)
-    in PDB file.
+    in PDB file. Resulting distance map is typically not
+    symmetric, with either axis corresponding to either chain.
+    Inter-distances are calculated on all combinations of chains
+    that have the same PDB id in sifts_result_i and sifts_result_j.
+
+    Parameters
+    ----------
+    sifts_result_i : SIFTSResult
+        Input structures and mapping to use
+        for first axis of computed distance map
+    sifts_result_j : SIFTSResult
+        Input structures and mapping to use
+        for second axis of computed distance map
+    structures : str or dict, optional (default: None)
+        If str: Load structures from directory this string
+        points to. Missing structures will be fetched
+        from web.
+
+        If dict: dictionary with lower-case PDB ids as keys
+        and PDB objects as values. This dictionary has to
+        contain all necessary structures, missing ones will
+        not be fetched. This dictionary can be created using
+        pdb.load_structures.
+    atom_filter : str, optional (default: None)
+        Filter coordinates to contain only these atoms. E.g.
+        set to "CA" to compute C_alpha - C_alpha distances
+        instead of minimum atom distance over all atoms in
+        both residues.
+    intersect : bool, optional (default: False)
+        If True, intersect indices of the given
+        distance maps. Otherwise, union of indices
+        will be used.
+    agg_func : function (default: numpy.nanmin)
+        Function that will be used to aggregate
+        distance matrices.
+    output_prefix : str, optional (default: None)
+        If given, save individual and final contact maps
+        to files prefixed with this string. The appended
+        file suffixes map to row index in sifts_results.hits
+
+    Returns
+    -------
+    DistanceMap
+        Computed aggregated distance map
+        across all input structures
     """
-    raise NotImplementedError
+    def _get_chains(sifts_result):
+        return {
+            i: _prepare_chain(
+                structures, r["pdb_id"], r["pdb_chain"],
+                atom_filter, sifts_result.mapping[r["mapping_index"]]
+            )
+            for i, r in sifts_result.hits.iterrows()
+        }
+
+    # if no structures given, or path to files, load first
+    structures = _prepare_structures(
+        structures,
+        sifts_result_i.hits.pdb_id.append(
+            sifts_result_j.hits.pdb_id
+        )
+    )
+
+    # aggegrated distance map
+    agg_distmap = None
+
+    # create output folder if necessary
+    if output_prefix is not None:
+        create_prefix_folders(output_prefix)
+
+    # determine which combinations of chains to look at
+    # (anything that has same PDB identifier)
+    combis = sifts_result_i.hits.reset_index().merge(
+        sifts_result_j.hits.reset_index(),
+        on="pdb_id", suffixes=("_i", "_j")
+    )
+
+    # extract chains for each subunit
+    chains_i = _get_chains(sifts_result_i)
+    chains_j = _get_chains(sifts_result_j)
+
+    # go through all chain combinations
+    for i, r in combis.iterrows():
+        index_i = r["index_i"]
+        index_j = r["index_j"]
+
+        # compute distance map for current chain pair
+        distmap = DistanceMap.from_coords(
+            chains_i[index_i],
+            chains_j[index_j],
+        )
+
+        # save individual distance map
+        if output_prefix is not None:
+            distmap_sym.to_file("{}_{}_{}".format(
+                output_prefix, index_i, index_j)
+            )
+
+        # aggregate with other chain combinations
+        if agg_distmap is None:
+            agg_distmap = distmap
+        else:
+            agg_distmap = DistanceMap.aggregate(
+                agg_distmap, distmap, intersect=intersect
+            )
+
+    return agg_distmap
