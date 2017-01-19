@@ -12,6 +12,7 @@ import pandas as pd
 from numba import jit
 
 from evcouplings.compare.pdb import load_structures
+from evcouplings.utils.system import create_prefix_folders
 
 
 @jit(nopython=True)
@@ -600,7 +601,7 @@ def _prepare_chain(structures, pdb_id, pdb_chain, atom_filter, mapping):
 
 
 def intra_dists(sifts_result, structures=None, atom_filter=None,
-                intersect=False, agg_func=np.nanmin):
+                intersect=False, agg_func=np.nanmin, output_prefix=None):
     """
     Compute intra-chain distances in PDB files.
 
@@ -631,6 +632,10 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
     agg_func : function (default: numpy.nanmin)
         Function that will be used to aggregate
         distance matrices.
+    output_prefix : str, optional (default: None)
+        If given, save individual and final contact maps
+        to files prefixed with this string. The appended
+        file suffixes map to row index in sifts_results.hits
 
     Returns
     -------
@@ -645,6 +650,10 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
     # aggegrated distance map
     agg_distmap = None
 
+    # create output folder if necessary
+    if output_prefix is not None:
+        create_prefix_folders(output_prefix)
+
     # compute individual distance maps and aggregate
     for i, r in sifts_result.hits.iterrows():
         # extract and remap PDB chain
@@ -656,6 +665,10 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         # compute distance map
         distmap = DistanceMap.from_coords(chain)
 
+        # save individual distance map
+        if output_prefix is not None:
+            distmap.to_file("{}_{}".format(output_prefix, i))
+
         # aggregate
         if agg_distmap is None:
             agg_distmap = distmap
@@ -666,7 +679,8 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
 
 
 def multimer_dists(sifts_result, structures=None, atom_filter=None,
-                   intersect=False, agg_func=np.nanmin):
+                   intersect=False, agg_func=np.nanmin,
+                   output_prefix=None):
     """
     Compute homomultimer distances (between repeated copies of the
     same entity) in PDB file. Resulting distance matrix will be
@@ -700,6 +714,10 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
     agg_func : function (default: numpy.nanmin)
         Function that will be used to aggregate
         distance matrices.
+    output_prefix : str, optional (default: None)
+        If given, save individual and final contact maps
+        to files prefixed with this string. The appended
+        file suffixes map to row index in sifts_results.hits
 
     Returns
     -------
@@ -713,20 +731,27 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
     # aggegrated distance map
     agg_distmap = None
 
+    # create output folder if necessary
+    if output_prefix is not None:
+        create_prefix_folders(output_prefix)
+
     # go through each structure
-    for pdb_id, grp in sifts_result.hits.groupby("pdb_id"):
+    for pdb_id, grp in sifts_result.hits.reset_index().groupby("pdb_id"):
         # extract all chains for this structure
-        chains = {
-            r["pdb_chain"]: _prepare_chain(
-                structures, r["pdb_id"], r["pdb_chain"],
-                atom_filter, sifts_result.mapping[r["mapping_index"]]
+        chains = [
+            (
+                r["index"],
+                _prepare_chain(
+                    structures, r["pdb_id"], r["pdb_chain"],
+                    atom_filter, sifts_result.mapping[r["mapping_index"]]
+                )
             )
             for i, r in grp.iterrows()
-        }
+        ]
 
         # compare all possible pairs of chains
-        for ch_i, ch_j in combinations(grp.pdb_chain, 2):
-            distmap = DistanceMap.from_coords(chains[ch_i], chains[ch_j])
+        for (index_i, ch_i), (index_j, ch_j) in combinations(chains, 2):
+            distmap = DistanceMap.from_coords(ch_i, ch_j)
 
             # symmetrize matrix (for ECs we are only interested if a pair
             # is close in some combination)
@@ -734,6 +759,12 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
                 distmap, distmap.transpose(), intersect=intersect
             )
             distmap_sym.symmetric = True
+
+            # save individual distance map
+            if output_prefix is not None:
+                distmap_sym.to_file("{}_{}_{}".format(
+                    output_prefix, index_i, index_j)
+                )
 
             # aggregate with other chain combinations
             if agg_distmap is None:
