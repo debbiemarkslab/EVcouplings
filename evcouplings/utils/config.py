@@ -24,6 +24,23 @@ class InvalidParameterError(Exception):
     """
 
 
+def parse_config(config_str):
+    """
+    Parse a configuration string
+
+    Parameters
+    ----------
+    config_str : str
+        Configuration to be parsed
+
+    Returns
+    -------
+    dict
+        Configuration dictionary
+    """
+    return yaml.safe_load(config_str)
+
+
 def read_config_file(filename):
     """
     Read and parse a configuration file.
