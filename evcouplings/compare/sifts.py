@@ -541,9 +541,9 @@ class SIFTS:
             if prefix is not None:
                 mn.to_csv("{}_{}.csv".format(prefix, i), index=False)
 
-            # extract final mapping from query (i) to seqres (k)
+            # extract final mapping from query (k) to seqres (i)
             map_ = dict(
-                zip(mn.i, mn.k)
+                zip(mn.k, mn.i)
             )
 
             return map_
