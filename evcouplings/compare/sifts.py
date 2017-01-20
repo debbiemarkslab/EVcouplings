@@ -14,13 +14,47 @@ Authors:
 import pandas as pd
 import requests
 
-from evcouplings.align.alignment import read_fasta
+from evcouplings.align.alignment import (
+    Alignment, read_fasta, parse_header
+)
+
+from evcouplings.align.protocol import jackhmmer_search
+from evcouplings.align.tools import read_hmmer_domtbl
+from evcouplings.compare.mapping import alignment_index_mapping, map_indices
 from evcouplings.utils.system import (
     get_urllib, ResourceError, valid_file
 )
+from evcouplings.utils.config import parse_config
+from evcouplings.utils.helpers import range_overlap
 
 UNIPROT_MAPPING_URL = "http://www.uniprot.org/mapping/"
 SIFTS_URL = "ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz"
+
+JACKHMMER_CONFIG = """
+prefix:
+sequence_id:
+sequence_file:
+region:
+first_index: 1
+
+use_bitscores: True
+domain_threshold: 0.5
+sequence_threshold: 0.5
+iterations: 1
+database: sequence_database
+
+extract_annotation: False
+cpu: 1
+nobias: False
+reuse_alignment: False
+checkpoints_hmm: False
+checkpoints_ali: False
+
+# database
+jackhmmer: ../../software/hmmer-3.1b2-macosx-intel/binaries/jackhmmer
+sequence_database:
+sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
+"""
 
 
 def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
@@ -62,6 +96,75 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
         )
 
     return r.text
+
+
+def find_homologs_jackhmmer(**kwargs):
+    """
+    Identify homologs using jackhmmer
+
+    Parameters
+    ----------
+    **kwargs
+        Passed into jackhmmer_search protocol
+        (see documentation for available options)
+
+    Returns
+    -------
+    ali : evcouplings.align.Alignment
+        Alignment of homologs of query sequence
+        in sequence database
+    hits : pandas.DataFrame
+        Tabular representation of hits
+    """
+    # load default configuration
+    config = parse_config(JACKHMMER_CONFIG)
+
+    # update with overrides from kwargs
+    config = {
+        **config,
+        **kwargs,
+    }
+
+    # create temporary output if no prefix is given
+    if config["prefix"] is None:
+        config["prefix"] = path.join(tempdir(), "compare")
+
+    # run jackhmmer against sequence database
+    ar = jackhmmer_search(**config)
+
+    with open(ar["raw_alignment_file"]) as a:
+        ali = Alignment.from_file(a, "stockholm")
+
+    # read hmmer hittable and simplify
+    hits = read_hmmer_domtbl(ar["hittable_file"])
+
+    hits.loc[:, "uniprot_ac"] = hits.loc[:, "target_name"].map(lambda x: x.split("|")[1])
+    hits.loc[:, "uniprot_id"] = hits.loc[:, "target_name"].map(lambda x: x.split("|")[2])
+
+    hits = hits.rename(
+        columns={
+            "domain_score": "bitscore",
+            "domain_i_Evalue": "e_value",
+            "ali_from": "alignment_start",
+            "ali_to": "alignment_end",
+        }
+    )
+
+    hits.loc[:, "alignment_start"] = pd.to_numeric(hits.alignment_start).astype(int)
+    hits.loc[:, "alignment_end"] = pd.to_numeric(hits.alignment_end).astype(int)
+
+    hits.loc[:, "alignment_id"] = (
+        hits.target_name + "/" +
+        hits.alignment_start.astype(str) + "-" +
+        hits.alignment_end.astype(str)
+    )
+
+    hits = hits.loc[
+        :, ["alignment_id", "uniprot_ac", "uniprot_id", "alignment_start",
+            "alignment_end", "bitscore", "e_value"]
+    ]
+
+    return ali, hits
 
 
 class SIFTSResult:
@@ -367,19 +470,112 @@ class SIFTS:
 
         return hit_table
 
-    def by_alignment(self, sequence, reduce_chains=False):
+    def by_alignment(self, min_overlap=20, reduce_chains=False, **kwargs):
         """
         Find structures by sequence alignment between
         query sequence and sequences in PDB.
 
-        # TODO: offer option to use HMM profile for this
+        # TODO: offer option to start from HMM profile for this
 
         Parameters
         ----------
-        # TODO: offer file or sequence
+        min_overlap : int, optional (default: 20)
+            Require at least this many aligned positions
+            with the target structure
+        reduce_chains : bool, optional (Default: True)
+            If true, keep only first chain per PDB ID
+            (i.e. remove redundant occurrences of same
+            protein in PDB structures). Should be set to
+            False to identify homomultimeric contacts.
+        **kwargs
+            Passed into jackhmmer_search protocol
+            (see documentation for available options).
+            Additionally, if "prefix" is given, individual
+            mappings will be saved to files suffixed by
+            the respective key in mapping table.
 
         Returns
         -------
-        # TODO
+        SIFTSResult
+            Record of hits and mappings found for this
+            query sequence by alignment. See by_pdb_id()
+            for detailed explanation of fields.
         """
-        raise NotImplementedError
+        def _create_mapping(i, r):
+            _, query_start, query_end = parse_header(ali.ids[0])
+
+            # create mapping from query into PDB Uniprot sequence
+            # A_i will be query sequence indeces, A_j Uniprot sequence indeces
+            m = map_indices(
+                ali[0], query_start, query_end,
+                ali[r["alignment_id"]], r["alignment_start"], r["alignment_end"]
+            )
+
+            # create mapping from PDB Uniprot into seqres numbering
+            # j will be Uniprot sequence index, k seqres index
+            n = pd.DataFrame(
+                {
+                    "j": list(range(r["uniprot_start"], r["uniprot_end"] + 1)),
+                    "k": list(range(r["resseq_start"], r["resseq_end"] + 1)),
+                }
+            )
+
+            # need to convert to strings since other mapping has indeces as strings
+            n.loc[:, "j"] = n.j.astype(str)
+            n.loc[:, "k"] = n.k.astype(str)
+
+            # join over Uniprot indeces (i.e. j);
+            # get rid of any position that is not aligned
+            mn = m.merge(n, on="j", how="inner").dropna()
+
+            # store index mappings if filename prefix is given
+            prefix = kwargs.get("prefix", None)
+            if prefix is not None:
+                mn.to_csv("{}_{}.csv".format(prefix, i), index=False)
+
+            # extract final mapping from query (i) to seqres (k)
+            map_ = dict(
+                zip(mn.i, mn.k)
+            )
+
+            return map_
+
+        if self.sequence_file is None:
+            raise ValueError(
+                "Need to have SIFTS sequence file. "
+                "Create using create_sequence_file() "
+                "method or constructor."
+            )
+
+        ali, hits = find_homologs_jackhmmer(
+            sequence_database=self.sequence_file, **kwargs
+        )
+
+        # merge with internal table to identify overlap of
+        # aligned regions and regions with structural coverage
+        hits = hits.merge(
+            self.table, on="uniprot_ac", suffixes=("", "_")
+        )
+
+        hits.loc[:, "overlap"] = [
+            range_overlap(
+                (r["uniprot_start"], r["uniprot_end"]),
+                (r["alignment_start"], r["alignment_end"])
+            ) for i, r in hits.iterrows()
+        ]
+
+        # remove hits with too little residue coverage
+        hits = hits.query("overlap >= @min_overlap")
+
+        # if requested, only keep one chain per PDB;
+        # sort by score before this to keep best hit
+        if reduce_chains:
+            hits = hits.sort_values(by="bitscore", ascending=False)
+            hits = hits.groupby("pdb_id").first().reset_index()
+
+        # create mappings and store in SIFTSResult object
+        mappings = {
+            i: _create_mapping(i, r) for i, r in hits.iterrows()
+        }
+
+        return SIFTSResult(hits, mappings)
