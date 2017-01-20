@@ -233,6 +233,14 @@ class SIFTS:
             }
         )
 
+        # Problem: for a subset of entries, the seqres and Uniprot
+        # ranges do not align (different lengths). For now, we have
+        # to drop these, the only solution would be to use the
+        # individual SIFTS xml files.
+        self.table = self.table.query(
+            "(resseq_end - resseq_start) == (uniprot_end - uniprot_start)"
+        )
+
         self.sequence_file = sequence_file
 
         # if path for sequence file given, but not there, create
@@ -577,5 +585,10 @@ class SIFTS:
         mappings = {
             i: _create_mapping(i, r) for i, r in hits.iterrows()
         }
+
+        # put mapping index into column
+        hits = hits.reset_index().rename(
+            columns={"index": "mapping_index"}
+        )
 
         return SIFTSResult(hits, mappings)
