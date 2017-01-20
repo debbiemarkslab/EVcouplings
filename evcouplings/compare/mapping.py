@@ -20,11 +20,29 @@ def map_indices(seq_i, start_i, end_i,
 
     Parameters
     ----------
-    # TODO
+    seq_i : str
+        First aligned sequence
+    start_i : int
+        Index of first position in first sequence
+    end_i : int
+        Index of last position in first sequence
+        (used for verification purposes only)
+    seq_j : str
+        Second aligned sequence
+    start_j : int
+        Index of first position in second sequence
+    end_j : int
+        Index of last position in second sequence
+        (used for verification purposes only)
 
     Returns
     -------
-    # TODO
+    pandas.DataFrame
+        Mapping table containing assignment of
+        1) index in first sequence (i)
+        2) symbol in first sequence (A_i)
+        3) index in second sequence (j)
+        4) symbol in second sequence (A_j)
     """
     NA = np.nan
     pos_i = start_i
@@ -66,11 +84,27 @@ def alignment_index_mapping(alignment_file, format="stockholm",
 
     Parameters
     ----------
-    # TODO
+    alignment_file : str
+        Path of alignment file containing sequences for
+        which indices shoul dbe mapped
+    format : {"stockholm", "fasta"}
+        Format of alignment file
+    target_seq : str, optional (default: None)
+        Identifier of sequence around which the index
+        mapping will be centered. If None, first sequence
+        in alignment will be used.
 
     Returns
     -------
-    # TODO
+    pandas.DataFrame
+        Mapping table containing assignment of
+        1) index in target sequence (i)
+        2) symbol in target sequence (A_i)
+
+        For all other sequences in alignment, the following
+        two columns:
+        3) index in second sequence (j_<sequence id>)
+        4) symbol in second sequence (A_j_<sequence_id>)
     """
     # read alignment that is basis of mapping
     with open(alignment_file) as a:
