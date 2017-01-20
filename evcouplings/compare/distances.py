@@ -562,7 +562,8 @@ def _prepare_structures(structures, pdb_id_list):
     return structures
 
 
-def _prepare_chain(structures, pdb_id, pdb_chain, atom_filter, mapping):
+def _prepare_chain(structures, pdb_id, pdb_chain,
+                   atom_filter, mapping, model=0):
     """
     Prepare PDB chain for distance calculation
 
@@ -580,6 +581,8 @@ def _prepare_chain(structures, pdb_id, pdb_chain, atom_filter, mapping):
     mapping : dict
         Seqres to Uniprot mapping that will be applied
         to Chain object
+    model : int, optional (default: 0)
+        Use this model from PDB structure
 
     Returns
     -------
@@ -587,7 +590,7 @@ def _prepare_chain(structures, pdb_id, pdb_chain, atom_filter, mapping):
         Chain prepared for distance calculation
     """
     # get chain from structure
-    chain = structures[pdb_id].get_chain(pdb_chain)
+    chain = structures[pdb_id].get_chain(pdb_chain, model)
 
     # filter atoms if option selected
     if atom_filter is not None:
@@ -600,7 +603,8 @@ def _prepare_chain(structures, pdb_id, pdb_chain, atom_filter, mapping):
 
 
 def intra_dists(sifts_result, structures=None, atom_filter=None,
-                intersect=False, agg_func=np.nanmin, output_prefix=None):
+                intersect=False, agg_func=np.nanmin, output_prefix=None,
+                model=0):
     """
     Compute intra-chain distances in PDB files.
 
@@ -635,6 +639,8 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         If given, save individual and final contact maps
         to files prefixed with this string. The appended
         file suffixes map to row index in sifts_results.hits
+    model : int, optional (default: 0)
+        Index of model in PDB structure that should be used
 
     Returns
     -------
@@ -660,7 +666,8 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         # extract and remap PDB chain
         chain = _prepare_chain(
             structures, r["pdb_id"], r["pdb_chain"],
-            atom_filter, sifts_result.mapping[r["mapping_index"]]
+            atom_filter, sifts_result.mapping[r["mapping_index"]],
+            model
         )
 
         # compute distance map
@@ -681,7 +688,7 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
 
 def multimer_dists(sifts_result, structures=None, atom_filter=None,
                    intersect=False, agg_func=np.nanmin,
-                   output_prefix=None):
+                   output_prefix=None, model=0):
     """
     Compute homomultimer distances (between repeated copies of the
     same entity) in PDB file. Resulting distance matrix will be
@@ -719,6 +726,8 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
         If given, save individual and final contact maps
         to files prefixed with this string. The appended
         file suffixes map to row index in sifts_results.hits
+    model : int, optional (default: 0)
+        Index of model in PDB structure that should be used
 
     Returns
     -------
@@ -746,7 +755,8 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
                 r["index"],
                 _prepare_chain(
                     structures, r["pdb_id"], r["pdb_chain"],
-                    atom_filter, sifts_result.mapping[r["mapping_index"]]
+                    atom_filter, sifts_result.mapping[r["mapping_index"]],
+                    model
                 )
             )
             for i, r in grp.iterrows()
@@ -782,7 +792,7 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
 def inter_dists(sifts_result_i, sifts_result_j, structures=None,
                 atom_filter=None, intersect=False, agg_func=np.nanmin,
-                output_prefix=None):
+                output_prefix=None, model=0):
     """
     Compute inter-chain distances (between different entities)
     in PDB file. Resulting distance map is typically not
@@ -824,6 +834,8 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         If given, save individual and final contact maps
         to files prefixed with this string. The appended
         file suffixes map to row index in sifts_results.hits
+    model : int, optional (default: 0)
+        Index of model in PDB structure that should be used
 
     Returns
     -------
@@ -835,7 +847,8 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         return {
             i: _prepare_chain(
                 structures, r["pdb_id"], r["pdb_chain"],
-                atom_filter, sifts_result.mapping[r["mapping_index"]]
+                atom_filter, sifts_result.mapping[r["mapping_index"]],
+                model
             )
             for i, r in sifts_result.hits.iterrows()
         }
