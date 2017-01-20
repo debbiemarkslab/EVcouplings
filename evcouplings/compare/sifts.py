@@ -11,6 +11,8 @@ Authors:
   Thomas A. Hopf
 """
 
+from os import path
+
 import pandas as pd
 import requests
 
@@ -22,7 +24,7 @@ from evcouplings.align.protocol import jackhmmer_search
 from evcouplings.align.tools import read_hmmer_domtbl
 from evcouplings.compare.mapping import alignment_index_mapping, map_indices
 from evcouplings.utils.system import (
-    get_urllib, ResourceError, valid_file
+    get_urllib, ResourceError, valid_file, tempdir
 )
 from evcouplings.utils.config import parse_config
 from evcouplings.utils.helpers import range_overlap
