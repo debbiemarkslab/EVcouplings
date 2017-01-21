@@ -397,8 +397,8 @@ class DistanceMap:
 
         # extract residue ids and distances for all contacts
         contacts = pd.DataFrame()
-        contacts.loc[:, "id_i"] = self.residues_i.id.values[i]
-        contacts.loc[:, "id_j"] = self.residues_j.id.values[j]
+        contacts.loc[:, "i"] = self.residues_i.id.values[i]
+        contacts.loc[:, "j"] = self.residues_j.id.values[j]
         contacts.loc[:, "dist"] = self.dist_matrix[i, j]
 
         return contacts
