@@ -648,7 +648,17 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         Computed aggregated distance map
         across all input structures
 
+    Raises
+    ------
+    ValueError
+        If sifts_result is empty (no structure hits)
+
     """
+    if len(sifts_result.hits) == 0:
+        raise ValueError(
+            "sifts_result is empty (no structure hits, but at least one required)"
+        )
+
     # if no structures given, or path to files, load first
     structures = _prepare_structures(
         structures, sifts_result.hits.pdb_id
@@ -734,7 +744,18 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
     DistanceMap
         Computed aggregated distance map
         across all input structures
+
+    Raises
+    ------
+    ValueError
+        If sifts_result is empty (no structure hits)
+
     """
+    if len(sifts_result.hits) == 0:
+        raise ValueError(
+            "sifts_result is empty (no structure hits, but at least one required)"
+        )
+
     # if no structures given, or path to files, load first
     structures = _prepare_structures(
         structures, sifts_result.hits.pdb_id
@@ -842,6 +863,12 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
     DistanceMap
         Computed aggregated distance map
         across all input structures
+    
+    Raises
+    ------
+    ValueError
+        If sifts_result_i or sifts_result_j is empty
+        (no structure hits)
     """
     def _get_chains(sifts_result):
         return {
@@ -852,6 +879,12 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
             )
             for i, r in sifts_result.hits.iterrows()
         }
+
+    if len(sifts_result_i.hits) == 0 or len(sifts_result_j.hits) == 0:
+        raise ValueError(
+            "sifts_result_i or sifts_result_j is empty "
+            "(no structure hits, but at least one required)"
+        )
 
     # if no structures given, or path to files, load first
     structures = _prepare_structures(
