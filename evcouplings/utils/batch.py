@@ -18,16 +18,27 @@ except:
     import ruamel.yaml as yaml
 
 from tempfile import NamedTemporaryFile
-
+from enum import Enum
 # ENUMS
 # (PEND, RUN, USUSP, PSUSP, SSUSP, DONE, and EXIT statuses)
 
 
 from evcouplings.utils import PersistentDict
 
-EStatus = (lambda **enums: type('Enum', (), enums))(RUN=0, PEND=1, SUSP=2, EXIT=3, DONE=4)
-EResource = (lambda **enums: type('Enum', (), enums))(time=0, mem=1, nodes=2, queue=3, error=4, out=5)
+class EStatus(Enum):
+      RUN = 0
+      PEND = 1
+      SUSP = 2
+      EXIT = 3
+      DONE = 4
 
+class EResource(Enum):
+      time = 0
+      mem = 1
+      nodes = 2
+      queue = 3
+      error = 4
+      out = 5	
 
 #Metaclass for Plugins
 class APluginRegister(abc.ABCMeta):
@@ -223,7 +234,7 @@ class LSFSubmitter(ASubmitter):
             raise ValueError("Command "+repr(command_id)+" has not been submitted yet.")
 
         submit = self.__monitor.format(job_id=job_id)
-
+        
         try:
             p = subprocess.Popen(submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
@@ -289,7 +300,6 @@ class LSFSubmitter(ASubmitter):
             dependent=dep,
             name=command.id
         )
-
         try:
             p = subprocess.Popen(submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
@@ -410,8 +420,8 @@ class Command(object):
         return self.id == other.id
 
     def __str__(self):
-        return "Command:{id}:\n\t{commands}".format(id=self.id,
-                                                    commands="&".join(self.command)[:16])
+        return "Command:{id}:\n\t{commands}".format(id=self.id, commands="&".join(self.command)[:16])
 
     def __repr__(self):
         return "Command({id})".format(id=self.id)
+
