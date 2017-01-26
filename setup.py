@@ -118,6 +118,6 @@ setup(
     #ext_modules=[d2s_module],
 
     # Run-time dependencies. (will be installed by pip when EVcouplings is installed)
-    install_requires=['setuptools>=18.2', 'pandas', 'numpy', 'scipy', 'numba','ruamel.yaml', 'joblib', 'requests', 'mmtf-python', 'leveldb'],
+    install_requires=['setuptools>=18.2', 'pandas', 'numpy', 'scipy', 'numba','ruamel.yaml', 'joblib', 'requests', 'mmtf-python'],
 
 )

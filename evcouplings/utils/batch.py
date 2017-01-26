@@ -8,17 +8,22 @@ Authors:
 import abc
 import inspect
 import os
-import leveldb
 import subprocess
 import uuid
 import re
-import ruamel_yaml as yaml
+import time
+try:
+    import ruamel_yaml as yaml
+except:
+    import ruamel.yaml as yaml
 
 from tempfile import NamedTemporaryFile
 
 # ENUMS
 # (PEND, RUN, USUSP, PSUSP, SSUSP, DONE, and EXIT statuses)
-import time
+
+
+from evcouplings.utils import PersistentDict
 
 EStatus = (lambda **enums: type('Enum', (), enums))(RUN=0, PEND=1, SUSP=2, EXIT=3, DONE=4)
 EResource = (lambda **enums: type('Enum', (), enums))(time=0, mem=1, nodes=2, queue=3, error=4, out=5)
@@ -35,7 +40,7 @@ class APluginRegister(abc.ABCMeta):
         if not hasattr(cls, 'registry'):
             cls.registry = dict()
         if not inspect.isabstract(cls):
-            cls.registry.setdefault(str(cls().name).lower(), []).append(cls)
+            cls.registry[str(cls().name).lower()]= cls
 
     def __getitem__(cls, args):
         name = args
@@ -50,12 +55,11 @@ class APluginRegister(abc.ABCMeta):
         return cls.__name__ + ": " + ", ".join([sc.__name__ for sc in cls])
 
 
-class ASubmitter(object):
+class ASubmitter(object, metaclass=APluginRegister):
     """
     Iterface for all submitters
 
     """
-    __metaclass__ = APluginRegister
 
     @abc.abstractproperty
     def isBlocking(self):
@@ -139,33 +143,6 @@ class ASubmitter(object):
         raise NotImplementedError
 
 
-class SubitterFactory(object):
-
-    class __metaclass__(type):
-        def __init__(cls, name, bases, nmspc):
-            type.__init__(cls, name, bases, nmspc)
-
-        def __call__(self, _name, *args, **kwargs):
-            '''
-            If a third person wants to write a new Submitter. He/She has to inherit from ASubmitter.
-            That's it nothing more.
-            '''
-
-            try:
-                return ASubmitter[str(_name).lower()](*args, **kwargs)
-            except KeyError as e:
-                    raise ValueError("This submitter is currently not supported")
-
-    @staticmethod
-    def available_methods():
-        """
-        Returns a dictionary of available epitope predictors and their supported versions
-        :return: dict(str,list(str) - dictionary of epitope predictors represented as string and a list of supported
-                                      versions
-        """
-        return {k: sorted(versions.iterkeys()) for k, versions in ASubmitter.registry.iteritems()}
-
-
 class LSFSubmitter(ASubmitter):
     """
     Implements an LSF submitter
@@ -193,9 +170,10 @@ class LSFSubmitter(ASubmitter):
         db_path: str
             the string to a LevelDB for command persistence
         """
+        print("Init is called")
         self.__blocking = blocking
         if db_path is None:
-            tmp_db = NamedTemporaryFile(delete=False)
+            tmp_db = NamedTemporaryFile(delete=False, dir=os.getcwd(), suffix=".db")
             tmp_db.close()
             self.__is_temp_db = True
             self.__db_path = tmp_db.name
@@ -203,11 +181,15 @@ class LSFSubmitter(ASubmitter):
             self.__is_temp_db = False
             self.__db_path = db_path
 
-        self.__db = leveldb.LevelDB(self.__db_path)
+        self.__db = PersistentDict(self.__db_path)
 
     def __del__(self):
-        if self.__is_temp_db:
-            os.remove(self.__db_path)
+        try:
+            self.__db.close()
+            if self.__is_temp_db:
+                os.remove(self.__db_path)
+        except AttributeError:
+            pass
 
     @property
     def isBlocking(self):
@@ -236,7 +218,7 @@ class LSFSubmitter(ASubmitter):
 
     def __internal_monitor(self, command_id):
         try:
-            job_id = yaml.load(self.__db.Get(command_id), yaml.RoundTripLoader)["job_id"]
+            job_id = yaml.load(self.__db[command_id], yaml.RoundTripLoader)["job_id"]
         except KeyError:
             raise ValueError("Command "+repr(command_id)+" has not been submitted yet.")
 
@@ -254,9 +236,10 @@ class LSFSubmitter(ASubmitter):
 
         status = self.__get_status(stdo)
 
-        entry = yaml.load(self.__db.Get(command_id), yaml.RoundTripLoader)
+        entry = yaml.load(self.__db[command_id], yaml.RoundTripLoader)
         entry["status"] = status
-        self.__db.Put(command_id, yaml.dump(entry, Dumper=yaml.RoundTripDumper))
+        self.__db[command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+        self.__db.sync()
 
         return status
 
@@ -286,12 +269,12 @@ class LSFSubmitter(ASubmitter):
         if dependent is not None:
             try:
                 if isinstance(dependent , Command):
-                    d_info = yaml.load(self.__db.Get(dependent.id), yaml.RoundTripLoader)
+                    d_info = yaml.load(self.__db[dependent.id], yaml.RoundTripLoader)
                     dep = "-w {}".format(d_info["job_id"])
                 else:
                     dep_jobs = []
                     for d in dependent:
-                        d_info = yaml.load(self.__db.Get(d.id), yaml.RoundTripLoader)
+                        d_info = yaml.load(self.__db[d.id], yaml.RoundTripLoader)
                         dep_jobs.append(d_info["job_id"])
                     # not sure if comma-separated is correct
                     dep = "-w {}".format(",".join(dep_jobs))
@@ -310,7 +293,7 @@ class LSFSubmitter(ASubmitter):
 
         try:
             p = subprocess.Popen(submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+                                 stderr=subprocess.PIPE)
             stdo, stde = p.communicate()
             stdr = p.returncode
             if stdr > 0:
@@ -322,7 +305,7 @@ class LSFSubmitter(ASubmitter):
         job_id = self.__get_job_id(stdo)
         try:
             # update entry if existing:
-            entry = yaml.load(self.__db.Get(command.id), yaml.RoundTripLoader)
+            entry = yaml.load(self.__db[command.id], yaml.RoundTripLoader)
             entry["name"] = command.name
             entry["tries"] += 1
             entry["job_id"] = job_id
@@ -331,7 +314,7 @@ class LSFSubmitter(ASubmitter):
             entry["resources"] = command.resources
             entry["workdir"] = command.workdir
             entry["environment"] = command.environment
-            self.__db.Put(command.id, yaml.dump(entry, Dumper=yaml.RoundTripDumper))
+            self.__db[command.id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
         except KeyError:
             # add new entry
             entry = {
@@ -344,12 +327,14 @@ class LSFSubmitter(ASubmitter):
                 "workdir": command.workdir,
                 "environment": command.environment
             }
-            self.__db.Put(command.id, yaml.dump(entry, Dumper=yaml.RoundTripDumper))
+            self.__db[command.id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+            self.__db.sync()
+
         return job_id
 
     def cancel(self, command):
         try:
-            job_id = yaml.load(self.__db.Get(command.id), yaml.RoundTripLoader)["job_id"]
+            job_id = yaml.load(self.__db[command.id], yaml.RoundTripLoader)["job_id"]
         except KeyError:
             raise ValueError("Command "+repr(command)+" has not been submitted yet.")
 
@@ -366,9 +351,10 @@ class LSFSubmitter(ASubmitter):
             raise RuntimeError(e)
 
         # TODO: update db - Delete entry or just update?
-        entry = yaml.load(self.__db.Get(command.id), yaml.RoundTripLoader)
+        entry = yaml.load(self.__db[command.id], yaml.RoundTripLoader)
         entry["status"] = EStatus.EXIT
-        self.__db.Put(command.id, yaml.dump(entry, Dumper=yaml.RoundTripDumper))
+        self.__db[command.id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+        self.__db.sync()
 
         return True
 
