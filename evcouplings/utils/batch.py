@@ -166,7 +166,7 @@ class LSFSubmitter(ASubmitter):
     __resources = ""
     __resources_flag = {EResource.queue: "-q",
                         EResource.time: "-W",
-                        EResource.mem: "-M",
+                        EResource.mem: "-R",
                         EResource.nodes: "-n",
                         EResource.error: "-e",
                         EResource.out: "-o"}
@@ -288,12 +288,14 @@ class LSFSubmitter(ASubmitter):
                         d_info = yaml.load(self.__db[d.id], yaml.RoundTripLoader)
                         dep_jobs.append(d_info["job_id"])
                     # not sure if comma-separated is correct
-                    dep = "-w {}".format(",".join(dep_jobs))
+                    dep = "-w {}".format(" && ".join("ended({})".format(d) for d in dep_jobs))
             except KeyError:
                 raise ValueError("Specified depended jobs have not been submitted yet.")
 
         cmd = " && ".join(command.environment)+ " && " + " && ".join(command.command)
-        resources =" ".join("{} {}".format(self.__resources_flag[k], v) for k, v in command.resources.items())
+        resources = " ".join("{} {}".format(self.__resources_flag[k], v)
+                             if k != EResource.mem else "{} 'rusage[mem={}]'".format(self.__resources_flag[k], v)
+                             for k, v in command.resources.items())
         submit = self.__submit.format(
             cmd=cmd,
             resources=resources,
