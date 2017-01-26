@@ -1,6 +1,5 @@
 from unittest import TestCase
-from evcouplings.utils import SubmitterFactory
-
+from evcouplings.utils import SubmitterFactory, Command, EResource
 
 class TestSubmitter(TestCase):
     def setUp(self):
@@ -12,3 +11,16 @@ class TestSubmitter(TestCase):
     def test_submitter_factory_init(self):
         lsf = SubmitterFactory("lsf",blocking=True,db_path="test.db")
         assert lsf.isBlocking == True
+
+    def minimal_example(self):
+        lsf = SubmitterFactory("lsf")
+        c = Command("sleep 1h",
+                    name="test",
+                    environment="source /home/bs224/.bashrc",
+                    workdir="/home/bs224/",
+                    resources={EResource.time: "01:01", EResource.queue: "short"})
+
+        job_id = lsf.submit(c)
+        print(lsf.monitor(c))
+        lsf.cancle(c)
+        print(lsf.mointor(c))

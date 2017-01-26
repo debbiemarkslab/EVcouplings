@@ -149,11 +149,12 @@ class LSFSubmitter(ASubmitter):
 
     """
     __name = "lsf"
-    __submit = "bsub {resources}-J {name} {dependent}-q {queue} {cmd}"
+    __submit = "bsub -J {name} {dependent} {resources} '{cmd}'"
     __monitor = "bjobs {job_id}"
     __cancle = "bkill {job_id}"
     __resources = ""
-    __resources_flag = {EResource.time: "-W",
+    __resources_flag = {EResource.queue: "-q",
+                        EResource.time: "-W",
                         EResource.mem: "-M",
                         EResource.nodes: "-n",
                         EResource.error: "-e",
@@ -170,7 +171,6 @@ class LSFSubmitter(ASubmitter):
         db_path: str
             the string to a LevelDB for command persistence
         """
-        print("Init is called")
         self.__blocking = blocking
         if db_path is None:
             tmp_db = NamedTemporaryFile(delete=False, dir=os.getcwd(), suffix=".db")
@@ -234,7 +234,7 @@ class LSFSubmitter(ASubmitter):
         except Exception as e:
             raise RuntimeError(e)
 
-        status = self.__get_status(stdo)
+        status = self.__get_status(stdo.decode("utf-8"))
 
         entry = yaml.load(self.__db[command_id], yaml.RoundTripLoader)
         entry["status"] = status
@@ -285,8 +285,7 @@ class LSFSubmitter(ASubmitter):
         resources =" ".join("{} {}".format(self.__resources_flag[k], v) for k, v in command.resources.items())
         submit = self.__submit.format(
             cmd=cmd,
-            queue=command.resources[EResource.queue],
-            resoruces=resources,
+            resources=resources,
             dependent=dep,
             name=command.id
         )
@@ -302,7 +301,7 @@ class LSFSubmitter(ASubmitter):
             raise RuntimeError(e)
 
         # get job id and submit to db
-        job_id = self.__get_job_id(stdo)
+        job_id = self.__get_job_id(stdo.decode("utf-8"))
         try:
             # update entry if existing:
             entry = yaml.load(self.__db[command.id], yaml.RoundTripLoader)
@@ -397,7 +396,7 @@ class Command(object):
             A dictionary defining resources that can be used by the job (time, memory,
         """
 
-        self.id = uuid.uuid4().bytes
+        self.id = str(uuid.uuid4())
         self.name = name
 
         self.command = [command] if isinstance(command, str) else command
@@ -411,8 +410,8 @@ class Command(object):
         return self.id == other.id
 
     def __str__(self):
-        return "Command:{id}:\n\t{commands}".format(id=str(uuid.UUID(bytes=self.id)),
+        return "Command:{id}:\n\t{commands}".format(id=self.id,
                                                     commands="&".join(self.command)[:16])
 
     def __repr__(self):
-        return "Command({id}}".format(id=str(uuid.UUID(bytes=self.id)))
+        return "Command({id})".format(id=self.id)

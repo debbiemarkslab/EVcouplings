@@ -18,7 +18,6 @@ class ASubmitterFactory(abc.ABCMeta):
         '''
 
         try:
-            print(kwargs)
             return ASubmitter[str(_name).lower()](blocking=kwargs.get("blocking", False),
                                                   db_path=kwargs.get("db_path", None))
         except KeyError as e:
