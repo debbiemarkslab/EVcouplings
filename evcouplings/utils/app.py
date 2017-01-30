@@ -9,11 +9,20 @@ Authors:
 """
 
 import re
+from copy import deepcopy
 
 import click
 
-from evcouplings.utils.system import valid_file, ResourceError
-from evcouplings.utils.config import read_config_file, InvalidParameterError
+from evcouplings.utils.system import (
+    create_prefix_folders, ResourceError, valid_file
+)
+
+from evcouplings.utils.config import (
+    InvalidParameterError, read_config_file, write_config_file
+)
+
+# store individual config files in files with this name
+CONFIG_NAME = "{}_config.txt"
 
 
 def substitute_config(**kwargs):
@@ -58,7 +67,7 @@ def substitute_config(**kwargs):
             )
         )
 
-    config = read_config_file(config_file)
+    config = read_config_file(config_file, preserve_order=True)
 
     # substitute command-line parameters into configuration
     # (if straightforward substitution)
@@ -153,6 +162,65 @@ def substitute_config(**kwargs):
                 }
 
     return config
+
+
+def unroll_config(config):
+    """
+    Create individual job configs from master config file
+    (e.g. containing batch section)
+
+    Parameters
+    ----------
+    config : dict
+        Global run dictionary that will be split
+        up into individual pipeline jobs
+
+    Returns
+    -------
+    jobs : list
+        List of paths to individual config files
+        that can be fed into pipeline one by one
+    """
+    # get global prefix of run and create folder
+    prefix = config["global"]["prefix"]
+    create_prefix_folders(prefix)
+
+    # check if we have a single job or need to unroll
+    # into multiple jobs
+    if config["batch"] is None:
+        cfg_filename = CONFIG_NAME.format(prefix)
+        write_config_file(cfg_filename, config)
+        jobs = [cfg_filename]
+    else:
+        jobs = []
+        # go through all specified runs
+        for sub_id, delta_config in config["batch"].items():
+            # create copy of config and update for current subjob
+            sub_config = deepcopy(config)
+
+            # these are not batch jobs anymore, so deactivate section
+            sub_config["batch"] = None
+
+            # create prefix of subjob (may contain / to route
+            # subjob output to subfolder)
+            sub_prefix = prefix + sub_id
+
+            # in case subprefices might be folder, create it
+            create_prefix_folders(sub_prefix)
+
+            # apply subconfig delta
+            # (assuming parameters are nested in two layers)
+            for section in delta_config:
+                for param, value in delta_config[section].items():
+                    sub_config[section][param] = value
+
+            # save config for individual job
+            subcfg_filename = CONFIG_NAME.format(sub_prefix)
+            write_config_file(subcfg_filename, sub_config)
+
+            jobs.append(subcfg_filename)
+
+    return jobs
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
