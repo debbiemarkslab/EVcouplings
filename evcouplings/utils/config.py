@@ -24,7 +24,7 @@ class InvalidParameterError(Exception):
     """
 
 
-def parse_config(config_str):
+def parse_config(config_str, preserve_order=False):
     """
     Parse a configuration string
 
@@ -32,16 +32,22 @@ def parse_config(config_str):
     ----------
     config_str : str
         Configuration to be parsed
+    preserve_order : bool, optional (default: True)
+        Preserve formatting of input configuration
+        string
 
     Returns
     -------
     dict
         Configuration dictionary
     """
-    return yaml.safe_load(config_str)
+    if preserve_order:
+        return yaml.load(config_str, Loader=yaml.RoundTripLoader)
+    else:
+        return yaml.safe_load(config_str)
 
 
-def read_config_file(filename):
+def read_config_file(filename, preserve_order=False):
     """
     Read and parse a configuration file.
 
@@ -56,9 +62,7 @@ def read_config_file(filename):
         Configuration dictionary
     """
     with open(filename) as f:
-        config = yaml.safe_load(f)
-
-    return config
+        return parse_config(f, preserve_order)
 
 
 def write_config_file(out_filename, config):
@@ -72,9 +76,14 @@ def write_config_file(out_filename, config):
     config : dict
         Config data that will be written to file
     """
+    if isinstance(config, yaml.comments.CommentedBase):
+        dumper = yaml.RoundTripDumper
+    else:
+        dumper = yaml.Dumper
+
     with open(out_filename, "w") as f:
         f.write(
-            yaml.dump(config, default_flow_style=False)
+            yaml.dump(config, Dumper=dumper, default_flow_style=False)
         )
 
 
