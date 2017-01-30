@@ -53,7 +53,7 @@ checkpoints_hmm: False
 checkpoints_ali: False
 
 # database
-jackhmmer: ../../software/hmmer-3.1b2-macosx-intel/binaries/jackhmmer
+jackhmmer: jackhmmer
 sequence_database:
 sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
 """
