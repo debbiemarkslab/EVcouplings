@@ -1,17 +1,14 @@
 """
 Pipelining of different stages of method
 
-TODO:
-- subfolders / prefix?
-- proper argument parsing and overriding
-  of options in config file
-- callbacks after stages
-
 Authors:
   Thomas A. Hopf
 """
 
 from sys import argv, exit, stderr
+
+import click
+
 from evcouplings.utils.config import (
     read_config_file, check_required, write_config_file
 )
@@ -31,21 +28,25 @@ PIPELINES = {
 }
 
 
-def run(**kwargs):
+def execute(**kwargs):
     """
-    Execute a configuration
+    Execute a pipeline configuration
 
     Parameters
     ----------
-    # TODO
+    **kwargs
+        Input configuration for pipeline
+        (see pipeline config files for
+        example of how this should look like)
 
     Returns
     -------
-    # TODO
+    global_state : dict
+        Global output state of pipeline
     """
     check_required(
         kwargs,
-        ["pipeline", "stages", "prefix", "global"]
+        ["pipeline", "stages", "global"]
     )
 
     # check if valid pipeline was selected
@@ -65,7 +66,7 @@ def run(**kwargs):
 
     # get definition of selected pipeline
     pipeline = PIPELINES[kwargs["pipeline"]]
-    prefix = kwargs["prefix"]
+    prefix = kwargs["global"]["prefix"]
 
     # make sure output directory exists
     # TODO: Exception handling here if this fails
@@ -141,22 +142,28 @@ def run(**kwargs):
     return global_state
 
 
-if __name__ == "__main__":
-    # TODO: replace this with proper arg parsing
-    if len(argv) == 2:
-        config_file = argv[1]
-        verify_resources(
-            "Config file does not exist or is empty.",
-            config_file
-        )
-        config = read_config_file(config_file)
-        outcfg = run(**config)
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
-        # TODO: save outcfg?
-        print(outcfg)
-    else:
-        print(
-            "Usage: {} <config file>".format(argv[0]),
-            file=stderr
-        )
-        exit(1)
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument('config')
+def run(**kwargs):
+    """
+    EVcouplings pipeline execution
+    """
+    config_file = kwargs["config"]
+    verify_resources(
+        "Config file does not exist or is empty.",
+        config_file
+    )
+
+    # read configuration and execute
+    config = read_config_file(config_file)
+    outcfg = execute(**config)
+
+    # print final configuration (end result)
+    print(outcfg)
+
+
+if __name__ == '__main__':
+    run()
