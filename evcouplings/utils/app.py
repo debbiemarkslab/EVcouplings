@@ -18,7 +18,8 @@ from evcouplings.utils.system import (
 )
 
 from evcouplings.utils.config import (
-    InvalidParameterError, read_config_file, write_config_file
+    check_required, InvalidParameterError,
+    read_config_file, write_config_file
 )
 
 # store individual config files in files with this name
@@ -223,6 +224,14 @@ def unroll_config(config):
     return jobs
 
 
+def run_jobs(config_files):
+    """
+    Submit config to pipeline
+    """
+    print(config_files)
+    return
+
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
@@ -290,11 +299,25 @@ def app(**kwargs):
     of multiple jobs that only vary in this parameter, with all other parameters
     constant.
     """
+    # substitute commmand line options in config file
     config = substitute_config(**kwargs)
-    print(config)
-    # TODO: if only running align stage but not couplings, set Meff computation to True
-    # TODO: memory requirement "auto"
-    # TODO: where to handle exceptions, make this a separate function?
+
+    # check minimal set of parameters is present in config
+    check_required(
+        config,
+        ["pipeline", "stages", "global"]
+    )
+
+    # for convenience, turn on N_eff computation if we run alignment,
+    # but not the couplings stage
+    if "align" in config["stages"] and "couplings" not in config["stages"]:
+        config["align"]["compute_num_effective_seqs"] = True
+
+    # unroll batch jobs into individual pipeline jobs
+    jobs = unroll_config(config)
+
+    # run pipeline computation for each individual (unrolled) config
+    run_jobs(jobs)
 
 
 if __name__ == '__main__':
