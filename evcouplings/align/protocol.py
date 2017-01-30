@@ -501,9 +501,6 @@ def existing(**kwargs):
         focus_mode
         focus_sequence
         segments
-
-    ali : Alignment
-        Final sequence alignment
     """
     check_required(
         kwargs,
