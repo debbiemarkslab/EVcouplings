@@ -12,10 +12,7 @@ import subprocess
 import uuid
 import re
 import time
-try:
-    import ruamel_yaml as yaml
-except:
-    import ruamel.yaml as yaml
+import ruamel.yaml as yaml
 
 from tempfile import NamedTemporaryFile
 from enum import Enum
@@ -25,25 +22,29 @@ from enum import Enum
 
 from evcouplings.utils import PersistentDict
 
-class EStatus(Enum):
-      RUN = 0
-      PEND = 1
-      SUSP = 2
-      EXIT = 3
-      DONE = 4
 
-class EResource(Enum):
-      time = 0
-      mem = 1
-      nodes = 2
-      queue = 3
-      error = 4
-      out = 5	
+EStatus = (lambda **enums: type('Enum', (), enums))(
+    RUN="run",
+    PEND="pend",
+    SUSP="susp",
+    EXIT="exit",
+    DONE="done"
+)
 
-#Metaclass for Plugins
+EResource = (lambda **enums: type('Enum', (), enums))(
+    time="time",
+    mem="mem",
+    nodes="nodes",
+    queue="queue",
+    error="error",
+    out="done"
+)
+
+
+# Metaclass for Plugins
 class APluginRegister(abc.ABCMeta):
     """
-        This class allows automatic registration of new plugins.
+    This class allows automatic registration of new plugins.
     """
     def __init__(cls, name, bases, nmspc):
         super(APluginRegister, cls).__init__(name, bases, nmspc)
@@ -51,7 +52,7 @@ class APluginRegister(abc.ABCMeta):
         if not hasattr(cls, 'registry'):
             cls.registry = dict()
         if not inspect.isabstract(cls):
-            cls.registry[str(cls().name).lower()]= cls
+            cls.registry[str(cls().name).lower()] = cls
 
     def __getitem__(cls, args):
         name = args
@@ -69,7 +70,6 @@ class APluginRegister(abc.ABCMeta):
 class ASubmitter(object, metaclass=APluginRegister):
     """
     Iterface for all submitters
-
     """
 
     @abc.abstractproperty
@@ -157,12 +157,11 @@ class ASubmitter(object, metaclass=APluginRegister):
 class LSFSubmitter(ASubmitter):
     """
     Implements an LSF submitter
-
     """
     __name = "lsf"
     __submit = "bsub -J {name} {dependent} {resources} '{cmd}'"
     __monitor = "bjobs {job_id}"
-    __cancle = "bkill {job_id}"
+    __cancel = "bkill {job_id}"
     __resources = ""
     __resources_flag = {EResource.queue: "-q",
                         EResource.time: "-W",
@@ -231,21 +230,27 @@ class LSFSubmitter(ASubmitter):
         try:
             job_id = yaml.load(self.__db[command_id], yaml.RoundTripLoader)["job_id"]
         except KeyError:
-            raise ValueError("Command "+repr(command_id)+" has not been submitted yet.")
+            raise ValueError(
+                "Command " + repr(command_id) + " has not been submitted yet."
+            )
 
         submit = self.__monitor.format(job_id=job_id)
-        
+
         try:
             p = subprocess.Popen(submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+                                 stderr=subprocess.PIPE, universal_newlines=True)
             stdo, stde = p.communicate()
             stdr = p.returncode
             if stdr > 0:
-                raise RuntimeError("Unsuccessful monitoring of " + repr(command_id) + " (EXIT!=0) with error: " + stde)
+                raise RuntimeError(
+                    "Unsuccessful monitoring of " + repr(command_id) +
+                    " (EXIT!=0) with error: " + stde
+                )
+
         except Exception as e:
             raise RuntimeError(e)
 
-        status = self.__get_status(stdo.decode("utf-8"))
+        status = self.__get_status(stdo)
 
         entry = yaml.load(self.__db[command_id], yaml.RoundTripLoader)
         entry["status"] = status
@@ -260,8 +265,8 @@ class LSFSubmitter(ASubmitter):
         only needed if blocking
         """
         if not unfinished:
-            #initial call
-            for k,v in self.__db.RangeIter():
+            # initial call
+            for k, v in self.__db.RangeIter():
                 status = self.__internal_monitor(k)
                 if status in [EStatus.PEND, EStatus.RUN]:
                     unfinished.append(k)
@@ -279,7 +284,7 @@ class LSFSubmitter(ASubmitter):
         dep = ""
         if dependent is not None:
             try:
-                if isinstance(dependent , Command):
+                if isinstance(dependent, Command):
                     d_info = yaml.load(self.__db[dependent.id], yaml.RoundTripLoader)
                     dep = "-w {}".format(d_info["job_id"])
                 else:
@@ -292,28 +297,43 @@ class LSFSubmitter(ASubmitter):
             except KeyError:
                 raise ValueError("Specified depended jobs have not been submitted yet.")
 
-        cmd = " && ".join(command.environment)+ " && " + " && ".join(command.command)
-        resources = " ".join("{} {}".format(self.__resources_flag[k], v)
-                             if k != EResource.mem else "{} 'rusage[mem={}]'".format(self.__resources_flag[k], v)
-                             for k, v in command.resources.items())
+        if command.environment is not None:
+            env_command = " && ".join(command.environment)
+            env_command += " && "
+        else:
+            env_command = ""
+
+        cmd = env_command + " && ".join(command.command)
+        resources = " ".join(
+            "{} {}".format(self.__resources_flag[k], v)
+            if k != EResource.mem else "{} 'rusage[mem={}]'".format(self.__resources_flag[k], v)
+            for k, v in command.resources.items()
+        )
+
         submit = self.__submit.format(
             cmd=cmd,
             resources=resources,
             dependent=dep,
             name=command.id
         )
+
         try:
-            p = subprocess.Popen(submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+            p = subprocess.Popen(
+                submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, universal_newlines=True, cwd=command.workdir
+            )
             stdo, stde = p.communicate()
             stdr = p.returncode
+
             if stdr > 0:
-                raise RuntimeError("Unsuccessful execution of " + repr(command) + " (EXIT!=0) with error: " + stde)
+                raise RuntimeError(
+                    "Unsuccessful execution of " + repr(command) + " (EXIT!=0) with error: " + stde
+                )
         except Exception as e:
             raise RuntimeError(e)
 
         # get job id and submit to db
-        job_id = self.__get_job_id(stdo.decode("utf-8"))
+        job_id = self.__get_job_id(stdo)
         try:
             # update entry if existing:
             entry = yaml.load(self.__db[command.id], yaml.RoundTripLoader)
@@ -347,17 +367,22 @@ class LSFSubmitter(ASubmitter):
         try:
             job_id = yaml.load(self.__db[command.id], yaml.RoundTripLoader)["job_id"]
         except KeyError:
-            raise ValueError("Command "+repr(command)+" has not been submitted yet.")
+            raise ValueError(
+                "Command " + repr(command) + " has not been submitted yet."
+            )
 
-        submit = self.__cancle.format(job_id=job_id)
+        submit = self.__cancel.format(job_id=job_id)
 
         try:
             p = subprocess.Popen(submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+                                 stderr=subprocess.PIPE, universal_newlines=True)
             stdo, stde = p.communicate()
             stdr = p.returncode
             if stdr > 0:
-                raise RuntimeError("Unsuccessful cancelation of " + repr(command) + " (EXIT!=0) with error: " + stde)
+                raise RuntimeError(
+                    "Unsuccessful cancelation of " + repr(command) +
+                    " (EXIT!=0) with error: " + stde
+                )
         except Exception as e:
             raise RuntimeError(e)
 
@@ -396,16 +421,18 @@ class Command(object):
         Parameters:
         -----------
         command: str/list(str)
-            A single string or a list of strings representing the fully configured commands to be executed
+            A single string or a list of strings representing the fully
+            configured commands to be executed
         name: str
             The name of the command.
         environment: str/list(str)
-            A string representing all calls that should be executed before command that configure the environment
-            (e.g., export or source commands).
+            A string representing all calls that should be executed before
+            command that configure the environment (e.g., export or source commands).
         workdir: str
             Full path or relational path to working dir in which command is executed
         resources: dict(Resource:str)
-            A dictionary defining resources that can be used by the job (time, memory,
+            A dictionary defining resources that can be used by the job
+            (time, memory, queue, ...)
         """
 
         self.id = str(uuid.uuid4())
@@ -422,8 +449,9 @@ class Command(object):
         return self.id == other.id
 
     def __str__(self):
-        return "Command:{id}:\n\t{commands}".format(id=self.id, commands="&".join(self.command)[:16])
+        return "Command:{id}:\n\t{commands}".format(
+            id=self.id, commands="&".join(self.command)[:16]
+        )
 
     def __repr__(self):
         return "Command({id})".format(id=self.id)
-
