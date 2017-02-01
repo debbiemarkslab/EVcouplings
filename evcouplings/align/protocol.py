@@ -676,6 +676,7 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
         [
             "prefix", "seqid_filter", "hhfilter",
             "minimum_sequence_coverage", "minimum_column_coverage",
+            "compute_num_effective_seqs", "theta",
         ]
     )
 
@@ -776,6 +777,39 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
 
         # if we remove columns, we have to update list of positions
         pos_list = pos_list[~lc_cols]
+    else:
+        lc_cols = None
+
+    # compute effective number of sequences
+    # (this is intended for cases where coupling stage is
+    # not run, but this number is wanted nonetheless)
+    if kwargs["compute_num_effective_seqs"]:
+        # make sure we only compute N_eff on the columns
+        # that would be used for model inference, dispose
+        # the rest
+        if lc_cols is None:
+            cut_ali = ali
+        else:
+            cut_ali = ali.select(columns=~lc_cols)
+
+        # compute sequence weights
+        cut_ali.set_weights(kwargs["theta"])
+
+        # N_eff := sum of all sequence weights
+        n_eff = float(cut_ali.weights.sum())
+    else:
+        n_eff = None
+
+    # store description of final sequence alignment in outcfg
+    # (note these parameters will be updated by couplings protocol)
+    outcfg.update(
+        {
+            "num_sites": len(pos_list),
+            "num_sequences": len(ali),
+            "effective_sequences": n_eff,
+            "region_start": region_start,
+        }
+    )
 
     # create segment in outcfg
     outcfg["segments"] = [
