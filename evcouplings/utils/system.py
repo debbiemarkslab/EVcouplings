@@ -43,8 +43,6 @@ def run(cmd, stdin=None, check_returncode=True,
         ExternalToolError
     working_dir : str, optional (default: None)
         Change to this directory before running command
-    binary_stream : bool, optional (default: False)
-        Treat STDIN/STDOUT/STDERR as binary streams or not
     shell : bool, optional
         Invoke shell when calling subprocess (default: False)
 
