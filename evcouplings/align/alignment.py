@@ -844,13 +844,6 @@ class Alignment:
         ----------
         identity_threshold : float, optional (default: 0.8)
             Sequence identity threshold
-
-        Returns
-        -------
-        np.array
-            Vector of length N that contains weights for
-            all sequences in alignment. Note that this is
-            a reference to self.weights.
         """
         self.__ensure_mapped_matrix()
 
