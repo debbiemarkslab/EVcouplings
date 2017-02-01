@@ -199,12 +199,15 @@ def unroll_config(config):
             # create copy of config and update for current subjob
             sub_config = deepcopy(config)
 
-            # these are not batch jobs anymore, so deactivate section
-            sub_config["batch"] = None
-
             # create prefix of subjob (may contain / to route
             # subjob output to subfolder)
             sub_prefix = prefix + sub_id
+
+            # these are not batch jobs anymore, so deactivate section
+            sub_config["batch"] = None
+
+            # create full prefix for subjob
+            sub_config["global"]["prefix"] = sub_prefix
 
             # in case subprefices might be folder, create it
             create_prefix_folders(sub_prefix)
