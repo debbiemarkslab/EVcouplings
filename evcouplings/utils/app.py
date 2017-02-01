@@ -83,6 +83,12 @@ def substitute_config(**kwargs):
             outer, inner = CONFIG_MAP[param]
             config[outer][inner] = value
 
+    # make sure that number of CPUs requested by
+    # programs within pipeline does not exceed
+    # number of cores requested in environment
+    if config["environment"]["cores"] is not None:
+        config["global"]["cpu"] = config["environment"]["cores"]
+
     # handle the more complicated parameters
 
     # If alignment is given, run "existing" protocol
