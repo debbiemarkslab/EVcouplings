@@ -77,8 +77,18 @@ def execute(**kwargs):
     # the pipeline
     global_state = kwargs["global"]
 
+    # keep track of how many stages are still
+    # to be run, so we can leave out stages at
+    # the end of workflow below
+    num_stages_to_run = len(stages)
+
     # iterate through individual stages
     for (stage, runner) in pipeline:
+        # check if anything else is left to
+        # run, otherwise skip
+        if num_stages_to_run == 0:
+            break
+
         # define custom prefix for stage and create folder
         # stage_prefix = path.join(prefix, stage, "")
         stage_prefix = prefix
@@ -107,6 +117,9 @@ def execute(**kwargs):
 
             # save output of stage in config file
             write_config_file(stage_outcfg, outcfg)
+
+            # one less stage to put through after we ran this...
+            num_stages_to_run -= 1
         else:
             # skip state by injecting state from previous run
             verify_resources(
