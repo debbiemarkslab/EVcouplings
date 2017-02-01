@@ -10,8 +10,14 @@ Authors:
 
 import re
 from copy import deepcopy
+from sys import executable
+from os import path
 
 import click
+
+from evcouplings import utils
+from evcouplings.utils import pipeline
+from evcouplings.utils import summarize
 
 from evcouplings.utils.system import (
     create_prefix_folders, ResourceError, valid_file
@@ -227,12 +233,89 @@ def unroll_config(config):
     return jobs
 
 
-def run_jobs(config_files):
+def run_jobs(config_files, global_config):
     """
     Submit config to pipeline
+
+    Parameters
+    ----------
+    config_files : list of str
+        Paths to config files of subjobs
+    global_config : dict
+        Master configuration (if only one job,
+        the contents of this dictionary will be
+        equal to the single element of config_files)
     """
-    print(config_files)
-    return
+    python = executable
+    pipeline_path = path.abspath(pipeline.__file__)
+    summarize_path = path.abspath(summarize.__file__)
+
+    cmd_base = "{} {}".format(python, pipeline_path)
+    summ_base = "{} {}".format(python, summarize_path)
+
+    # create submitter from global (pre-unrolling) configuration
+    submitter = utils.SubmitterFactory(
+        global_config["environment"]["engine"],
+        db_path=global_config["global"]["prefix"] + "_job_database.txt"
+    )
+
+    # load all configs for jobs
+    # do this before submitting, so that each job
+    # can potentially have information about all
+    # other jobs (e.g. for summarizing runs)
+    job_to_cfg = {
+        job: utils.read_config_file(job) for job in config_files
+    }
+
+    # job_to_prefix = {
+    #     job: job_to_cfg[job]["global"]["prefix"] for job in job_to_cfg
+    # }
+
+    summ_cmd = "{} {} {}".format(
+        summ_base,
+        global_config["pipeline"],
+        global_config["global"]["prefix"],
+        " ".join(config_files)
+    )
+
+    # collect individual submitted jobs here
+    commands = []
+
+    # prepare individual jobs for submission
+    for job, job_cfg in job_to_cfg.items():
+        job_prefix = job_cfg["global"]["prefix"]
+
+        # create submission command
+        env = job_cfg["environment"]
+        cmd = utils.Command(
+            [
+                "{} {}".format(cmd_base, job),
+                summ_cmd
+            ],
+            name=job_prefix,
+            environment=env["configuration"],
+            workdir=None,
+            resources={
+                utils.EResource.queue: env["queue"],
+                utils.EResource.time: env["time"],
+                utils.EResource.mem: env["memory"],
+                utils.EResource.nodes: env["cores"],
+                utils.EResource.out: job_prefix + "_stdout.log",
+                utils.EResource.error: job_prefix + "_stderr.log",
+            }
+        )
+
+        # store job for later dependency creation
+        commands.append(cmd)
+
+        # finally, submit job
+        submitter.submit(cmd)
+
+    # submit final summarizer
+    # TODO - hold for now
+
+    # wait for all runs to finish (but only if necessary)
+    submitter.join()
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -317,10 +400,10 @@ def app(**kwargs):
         config["align"]["compute_num_effective_seqs"] = True
 
     # unroll batch jobs into individual pipeline jobs
-    jobs = unroll_config(config)
+    subjob_cfg_files = unroll_config(config)
 
     # run pipeline computation for each individual (unrolled) config
-    run_jobs(jobs)
+    run_jobs(subjob_cfg_files, config)
 
 
 if __name__ == '__main__':
