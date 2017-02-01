@@ -43,6 +43,7 @@ EResource = (lambda **enums: type('Enum', (), enums))(
     out="done"
 )
 
+
 class EJob(Enum): # Internal messages for broker
     SUBMIT = 0
     MONITOR = 1
@@ -361,7 +362,6 @@ class LSFSubmitter(ASubmitter):
             except KeyError:
                 raise ValueError("Specified depended jobs have not been submitted yet.")
 
-
         combine = " && " if command.environment else ""
         cmd = " && ".join(command.environment) + combine + " && ".join(command.command)
         resources = " ".join("{} {}".format(self.__resources_flag[k], v)
@@ -463,16 +463,18 @@ class LSFSubmitter(ASubmitter):
                     break
                 else:
                     time.sleep(2)
+
+
 ########################################################################################################################
 #
-# Local submitter function
+# Local submitter
 #
 ########################################################################################################################
 
 
-class Worker(mp.Process):
+class _Worker(mp.Process):
     """
-    Worker class that runs commands
+    _Worker class that runs commands
 
     """
 
@@ -522,9 +524,9 @@ class Worker(mp.Process):
             raise RuntimeError(e)
 
 
-class Broker(mp.Process):
+class _Broker(mp.Process):
     """
-    Broker process handling dependencies and
+    _Broker process handling dependencies and
     submission of jobs
     """
 
@@ -538,7 +540,7 @@ class Broker(mp.Process):
 
         self.__worker = []
         for i in range(ncpu):
-            p = Worker(self.__input_queue, self.__worker_queue, self.__results_queue_worker)
+            p = _Worker(self.__input_queue, self.__worker_queue, self.__results_queue_worker)
             self.__worker.append(p)
             p.start()
 
@@ -630,8 +632,8 @@ class Broker(mp.Process):
                 tb = traceback.format_exc()
                 self.__results_queue_master.put((e, tb))
 
-    def __condition_fulfilled(self, depndent):
-        for d in depndent:
+    def __condition_fulfilled(self, dependent):
+        for d in dependent:
             status = self.__monitor(d)
             if status == EStatus.EXIT:
                 return EStatus.EXIT
@@ -646,7 +648,7 @@ class Broker(mp.Process):
             entry["name"] = command.name
             entry["tries"] += 1
             entry["job_id"] = None
-            entry["status"] = EStatus.PEND.name
+            entry["status"] = EStatus.PEND
             entry["command"] = command.command
             entry["resources"] = command.resources
             entry["workdir"] = command.workdir
@@ -658,7 +660,7 @@ class Broker(mp.Process):
                 "name": command.name,
                 "job_id": None,
                 "tries": 1,
-                "status": EStatus.PEND.name,
+                "status": EStatus.PEND,
                 "command": command.command,
                 "resources": command.resources,
                 "workdir": command.workdir,
@@ -696,7 +698,6 @@ class Broker(mp.Process):
         status: EStatus
             The status of the command
         """
-        print("In monitor")
         if command in self.__pending_dict:
             return EStatus.PEND
 
@@ -709,7 +710,7 @@ class Broker(mp.Process):
         cmd = entry["command"][0]
 
         try:
-            # I think if PID is completed this should throuigh an error ....
+            # I think if PID is completed this should through an error ....
             p = psutil.Process(pid=p_id)
             status = p.status()
             p_cmd = " ".join(p.cmdline())
@@ -720,7 +721,7 @@ class Broker(mp.Process):
             if cmd not in p_cmd:
                 c_stat = EStatus.DONE
 
-            if status in [psutil.STATUS_DEAD, psutil.STATUS_ZOMBIE]:
+            elif status in [psutil.STATUS_DEAD, psutil.STATUS_ZOMBIE]:
                 p.kill()
                 c_stat = EStatus.EXIT
 
@@ -733,7 +734,7 @@ class Broker(mp.Process):
         except psutil.AccessDenied:
             c_stat = EStatus.RUN
 
-        entry["status"] = c_stat.name
+        entry["status"] = c_stat
         self.__db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
         self.__db.sync()
         return c_stat
@@ -753,7 +754,7 @@ class Broker(mp.Process):
             entry = yaml.load(self.__db[c_id], yaml.RoundTripLoader)
         except KeyError:
             raise ValueError("Command " + repr(c_id) + " has not been submitted yet.")
-        entry["status"] = status.name
+        entry["status"] = status
         self.__db[c_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
         self.__db.sync()
 
@@ -776,8 +777,8 @@ class LocalSubmitter(ASubmitter):
         self.__job_queue = mp.JoinableQueue()
         self.__pending_dict = mp.Manager().dict()
         self.__results_queue = mp.Queue()
-        self.__broker = Broker(self.__broker_queue, self.__job_queue, self.__results_queue,
-                               self.__pending_dict, db_path=db_path, ncpu=ncpu)
+        self.__broker = _Broker(self.__broker_queue, self.__job_queue, self.__results_queue,
+                                self.__pending_dict, db_path=db_path, ncpu=ncpu)
         self.__broker.start()
 
     def __del__(self):
