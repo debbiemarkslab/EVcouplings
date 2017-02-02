@@ -11,6 +11,7 @@ TODO:
 Authors:
   Thomas A. Hopf
   Agnes Toth-Petroczy (original mixture model code)
+  John Ingraham (skew normal mixture model)
 """
 
 from math import ceil
@@ -131,10 +132,14 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     return e.sort_values(by="enrichment", ascending=False)
 
 
-class ScoreMixtureModel:
+class LegacyScoreMixtureModel:
     """
     Assign to each EC score the probability of being in the
     lognormal tail of a normal-lognormal mixture model.
+
+    Note: this is the original version of the score mixture model
+    with a normal distribution noise component, this has been
+    superseded by a model using a skew normal distribution
     """
     def __init__(self, x, clamp_mu=False, max_fun=10000, max_iter=1000):
         """
@@ -311,6 +316,12 @@ class ScoreMixtureModel:
             List of scores
         plot : bool, optional (default: False)
             Plot score distribution and probabilities
+
+        Returns
+        -------
+        posterior : np.array(float)
+            Posterior probability of being in signal
+            component of mixture model
         """
         x = np.array(x)
         p_lognormal = self._lognormal(x, self.params)
@@ -349,7 +360,278 @@ class ScoreMixtureModel:
         return posterior
 
 
-def add_mixture_probability(ecs, score="cn", clamp_mu=False, plot=False):
+class ScoreMixtureModel:
+    """
+    Assign to each EC score the probability of being in the
+    lognormal tail of a skew normal-lognormal mixture model.
+    """
+    def __init__(self, x):
+        """
+        Mixture model of evolutionary coupling scores to
+        determine signifcant scores that are in high-scoring,
+        positive tail of distribution.
+
+        Parameters
+        ----------
+        x : np.array (or list-like)
+            EC scores from which to infer the mixture model
+        """
+        x = np.array(x)
+
+        # Infer parameters of mixture model
+        self.params = self._learn_params(x)
+
+    @classmethod
+    def skewnorm_pdf(cls, x, location, scale, skew):
+        """
+        Probability density of skew normal distribution
+        (noise component)
+
+        Parameters
+        ---------
+        x : np.array(float)
+            Data for which probability density should be calculated
+        location : float
+            Location parameter of skew normal distribution
+        scale : float
+            Scale parameter of skew normal distribution
+        skew : float
+            Skew parameter of skew normal distribution
+
+        Returns
+        ------
+        density : np.array(float)
+            Probability density for input array x
+        """
+        x_transform = (x - location) / scale
+        density = (
+            2 / scale *
+            stats.norm.pdf(x_transform) *
+            stats.norm.cdf(skew * x_transform)
+        )
+
+        return density
+
+    @classmethod
+    def lognorm_pdf(cls, x, logmu, logsig):
+        """
+        Probability density of lognormal distribution
+        (signal component)
+
+        Parameters
+        ---------
+        x : np.array(float)
+            Data for which probability density should be calculated
+        logmu : float
+            Location of lognormal distribution (signal component)
+        logsig : float
+            Scale parameter of lognormal distribution (signal component)
+
+        Returns
+        ------
+        density : np.array(float)
+            Probability density for input array x
+        """
+        density = np.zeros(len(x))
+        xpos = x > 0
+        density[xpos] = stats.norm.pdf(
+            np.log(x[xpos]), loc=logmu, scale=logsig
+        ) / x[xpos]
+
+        return density
+
+    @classmethod
+    def skewnorm_constraint(cls, scale, skew):
+        """
+        Given scale and skew, returns location parameter to yield mean zero
+
+        Parameters
+        ----------
+        scale : float
+            Scale parameter of skew normal distribution
+        skew : float
+            Skew parameter of skew normal distribution
+
+        Returns
+        -------
+        location : float
+            Location parameter of skew normal distribution s.t.
+            mean of distribution is equal to 0
+        """
+        location = -scale * skew / np.sqrt(1 + skew**2) * np.sqrt(2 / np.pi)
+        return location
+
+    @classmethod
+    def mixture_pdf(cls, x, p, scale, skew, logmu, logsig):
+        """
+        Compute mixture probability
+
+        Parameters
+        ----------
+        x : np.array(float)
+            Data for which probability density should be calculated
+        p : float
+            Mixing fraction between components for noise component
+            (signal component will be 1-p)
+        scale : float
+            Scale parameter of skew normal distribution (noise component)
+        skew : float
+            Skew parameter of skew normal distribution (noise component)
+        logmu : float
+            Location of lognormal distribution (signal component)
+        logsig : float
+            Scale parameter of lognormal distribution (signal component)
+
+        Returns
+        -------
+        density : np.array(float)
+            Probability density for input array x
+        """
+        location = cls.skewnorm_constraint(scale, skew)
+        density = (
+            p * cls.skewnorm_pdf(x, location, scale, skew) +
+            (1 - p) * cls.lognorm_pdf(x, logmu, logsig)
+        )
+
+        return density
+
+    @classmethod
+    def posterior_signal(cls, x, p, scale, skew, logmu, logsig):
+        """
+        Compute posterior probability of being in signal component
+
+        Parameters
+        ----------
+        x : np.array(float)
+            Data for which probability density should be calculated
+        p : float
+            Mixing fraction between components for noise component
+            (signal component will be 1-p)
+        scale : float
+            Scale parameter of skew normal distribution (noise component)
+        skew : float
+            Skew parameter of skew normal distribution (noise component)
+        logmu : float
+            Location of lognormal distribution (signal component)
+        logsig : float
+            Scale parameter of lognormal distribution (signal component)
+
+        Returns
+        -------
+        posterior : np.array(float)
+            Posterior probability of being in signal component
+            for input array x
+        """
+        P = cls.mixture_pdf(x, p, scale, skew, logmu, logsig)
+        posterior = np.zeros(P.shape)
+        f2 = cls.lognorm_pdf(x, logmu, logsig)
+        posterior[x > 0] = (1 - p) * f2[x > 0] / P[x > 0]
+
+        return posterior
+
+    @classmethod
+    def _learn_params(cls, x):
+        """
+        Infer parameters of mixture model.
+
+        Parameters
+        ----------
+        x : np.array(float)
+            EC scores from which to infer the mixture model
+
+        Returns
+        -------
+        theta : np.array(float)
+            Array with inferred parameters of model
+            (mixing fraction, skew-normal scale, skew-normal skew,
+            log-normal mean, log-normal stddev)
+        """
+        # mixing fraction, skew-normal scale, skew-normal skew,
+        # log-normal mean, log-normal stddev
+        theta = np.array(
+            [0.5, np.std(x), 0, np.log(np.max(x)), 0.1]
+        )
+
+        def loglk_fun(params):
+            return np.sum(np.log(cls.mixture_pdf(x, *params)))
+
+        loglk = loglk_fun(theta)
+        delta_loglk = 100
+        max_iter = 200
+        cur_iter = 0
+        tolerance = 0.0001
+
+        while delta_loglk > tolerance and cur_iter < max_iter:
+            # E step
+            z = 1 - cls.posterior_signal(x, *theta)
+
+            # M step
+            # MLE of the mixing fraction is the mean z
+            theta[0] = np.mean(z)
+
+            # Log-normal component
+            # MLE is the z-weighted mean and std deviation of the log-scores
+            pos_ix = x > 0
+            z_complement = 1 - z[pos_ix]
+            log_score = np.log(x[pos_ix])
+            theta[3] = np.sum(z_complement * log_score) / np.sum(z_complement)
+            theta[4] = np.sqrt(
+                np.sum(z_complement * (log_score - theta[3])**2) / z_complement.sum()
+            )
+
+            # Skew-normal distribution
+            # MLE requires numerical optimization
+            def objfun(params):
+                return -np.sum(
+                    z * np.log(
+                        cls.skewnorm_pdf(
+                            x, cls.skewnorm_constraint(params[0], params[1]),
+                            params[0], params[1]
+                        )
+                    )
+                )
+
+            theta[1:3] = op.fmin(objfun, theta[1:3], disp=False)
+
+            # Test for EM convergence
+            loglk_new = loglk_fun(theta)
+            delta_loglk = loglk_new - loglk
+            loglk = loglk_new
+
+            # status update
+            cur_iter += 1
+
+        return theta
+
+    def probability(self, x, plot=False):
+        """
+        Calculate posterior probability of EC pair to
+        be located in positive (lognormal) tail of the
+        distribution.
+
+        Parameters
+        ----------
+        x : np.array (or list-like)
+            List of scores
+
+        Returns
+        -------
+        posterior : np.array(float)
+            Posterior probability of being in signal
+            component of mixture model
+        """
+        posterior = self.posterior_signal(x, *self.params)
+
+        if plot:
+            plt.hist(x, normed=True, bins=50, color="k")
+            plt.plot(x, self.mixture_pdf(x, *self.params), color="r", lw=3)
+            plt.plot(x, posterior, color="gold", lw=3)
+
+        return posterior
+
+
+def add_mixture_probability(ecs, model="skewnormal", score="cn",
+                            clamp_mu=False, plot=False):
     """
     Add lognormal mixture model probability to EC table.
 
@@ -357,6 +639,9 @@ def add_mixture_probability(ecs, score="cn", clamp_mu=False, plot=False):
     ----------
     ecs : pd.DataFrame
         EC table with scores
+    model : {"skewnormal", "normal"}, optional (default: skewnormal)
+        Use model with skew-normal or normal distribution
+        for the noise component of mixture model
     score : str, optional (default: "cn")
         Score on which mixture model will be based
     clamp_mu : bool, optional (default: False)
@@ -376,11 +661,19 @@ def add_mixture_probability(ecs, score="cn", clamp_mu=False, plot=False):
     ec_prob = deepcopy(ecs)
 
     # learn mixture model
-    mm = ScoreMixtureModel(ecs.loc[:, score], clamp_mu)
+    if model == "skewnormal":
+        mm = ScoreMixtureModel(ecs.loc[:, score].values)
+    elif model == "normal":
+        mm = LegacyScoreMixtureModel(ecs.loc[:, score].values, clamp_mu)
+    else:
+        raise ValueError(
+            "Invalid model selection, valid options are: "
+            "skewnormal, normal"
+        )
 
     # assign probability
     ec_prob.loc[:, "probability"] = mm.probability(
-        ec_prob.loc[:, score], plot=plot
+        ec_prob.loc[:, score].values, plot=plot
     )
 
     return ec_prob
