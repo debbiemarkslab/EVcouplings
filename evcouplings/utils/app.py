@@ -277,7 +277,7 @@ def run_jobs(config_files, global_config):
     #     job: job_to_cfg[job]["global"]["prefix"] for job in job_to_cfg
     # }
 
-    summ_cmd = "{} {} {}".format(
+    summ_cmd = "{} {} {} {}".format(
         summ_base,
         global_config["pipeline"],
         global_config["global"]["prefix"],
@@ -399,6 +399,12 @@ def app(**kwargs):
         config,
         ["pipeline", "stages", "global"]
     )
+
+    # make sure parameters make sense (minimally...)
+    if config["global"]["prefix"] is None or config["global"]["sequence_id"] is None:
+        raise InvalidParameterError(
+            "Prefix or sequence identifier not defined."
+        )
 
     # for convenience, turn on N_eff computation if we run alignment,
     # but not the couplings stage
