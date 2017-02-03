@@ -186,8 +186,13 @@ def standard(**kwargs):
         # save results of search for possible restart
         write_config_file(plm_outcfg_file, plmc_result)
 
-    # read and sort ECs, write to csv file
+    # read and sort ECs
     ecs = pairs.read_raw_ec_file(outcfg["raw_ec_file"])
+
+    # add mixture model probability
+    ecs = pairs.add_mixture_probability(ecs)
+
+    # write updated table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
 
     segments = kwargs["segments"]
