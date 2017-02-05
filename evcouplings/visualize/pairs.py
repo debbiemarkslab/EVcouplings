@@ -133,19 +133,19 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     if monomer is not None:
         plot_pairs(
             monomer.contacts(distance_cutoff),
-            symmetric=False, style=scale_func(STYLE_CONTACT)
+            symmetric=False, style=scale_func(monomer_style)
         )
 
     # plot multimer contacts
     if multimer is not None:
         plot_pairs(
             multimer.contacts(distance_cutoff),
-            symmetric=False, style=scale_func(STYLE_CONTACT_MULTIMER)
+            symmetric=False, style=scale_func(multimer_style)
         )
 
     # plot ECs
     if ecs is not None:
-        plot_pairs(ecs, symmetric=True, style=scale_func(STYLE_EC))
+        plot_pairs(ecs, symmetric=True, style=scale_func(ec_style))
 
     # plot secondary structure
     if show_secstruct:
