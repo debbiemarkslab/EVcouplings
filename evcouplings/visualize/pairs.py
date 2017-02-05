@@ -52,6 +52,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                      distance_cutoff=5, scale_sizes=True,
                      ec_style=STYLE_EC, monomer_style=STYLE_CONTACT,
                      multimer_style=STYLE_CONTACT_MULTIMER,
+                     secstruct_style=STYLE_SECSTRUCT,
                      margin=5, invert_y=True, bound_by_structure=True,
                      show_secstruct=True, ax=None):
     """
@@ -81,6 +82,9 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         Style for monomer contact plotting (kwargs to plt.scatter)
     multimer_style : dict, optional (default: STYLE_CONTACT_MULTIMER)
         Style for multimer contact plotting (kwargs to plt.scatter)
+    secstruct_style : dict, optional (default: STYLE_SECSTRUCT)
+        Style for secondary structure plotting
+        (kwargs to secondary_structure_cartoon())
     margin : int, optional (default: 5)
         Space to add around contact map
     invert_y : bool, optional (default: True)
@@ -151,7 +155,8 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     if show_secstruct:
         try:
             plot_secondary_structure(
-                monomer.residues_i, monomer.residues_j, style=scale_func(STYLE_SECSTRUCT)
+                monomer.residues_i, monomer.residues_j,
+                style=scale_func(secstruct_style)
             )
         except AttributeError:
             # DataFrame has no secondary structure, cannot do anything here
