@@ -5,6 +5,8 @@ Authors:
   Thomas A. Hopf
 """
 
+import numpy as np
+
 
 def add_distances(ec_table, dist_map, target_column="dist"):
     """
@@ -88,8 +90,8 @@ def add_precision(ec_table, dist_cutoff=5, score="cn",
     return ec_table
 
 
-def coupling_scores_compared(ec_table, dist_map, dist_cutoff=5,
-                             output_file=None, score="cn",
+def coupling_scores_compared(ec_table, dist_map, dist_map_multimer=None,
+                             dist_cutoff=5, output_file=None, score="cn",
                              min_sequence_dist=6):
     """
     Utility function to create "CouplingScores.csv"-style
@@ -102,6 +104,10 @@ def coupling_scores_compared(ec_table, dist_map, dist_cutoff=5,
     dist_map : DistanceMap
         Distance map that will be used to annotate
         distances in ec_table
+    dist_map_multimer : DistanceMap, optional (default: None)
+        Additional multimer distance map. If given,
+        the distance for any EC pair will be the minimum
+        out of the monomer and multimer distances.
     dist_cutoff : float, optional (default: 5)
         Upper distance cutoff (in Angstrom) for a
         pair to be considered a true positive contact
@@ -120,7 +126,14 @@ def coupling_scores_compared(ec_table, dist_map, dist_cutoff=5,
         EC table with added distances, and precision
         if dist_cutoff is given.
     """
-    x = add_distances(ec_table, dist_map)
+    if dist_map_multimer is None:
+        x = add_distances(ec_table, dist_map)
+    else:
+        x = add_distances(ec_table, dist_map, "dist_intra")
+        x = add_distances(x, dist_map_multimer, "dist_multimer")
+        x.loc[:, "dist"] = np.fmin(
+            x.dist_intra, x.dist_multimer
+        )
 
     if min_sequence_dist is not None:
         x = x.query("abs(i - j) >= @min_sequence_dist")
