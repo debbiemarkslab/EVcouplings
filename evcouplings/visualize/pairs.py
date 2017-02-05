@@ -347,7 +347,7 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         and secondary structure. If None, defaults
         to the width of secondary structure * 3.
     """
-    def _extract_secstruct(secstruct):
+    def _extract_secstruct(secstruct, axis_range):
         # turn into dictionary representation if
         # passed as a DataFrame
         if isinstance(secstruct, pd.DataFrame):
@@ -357,6 +357,16 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
                     secstruct.sec_struct_3state
                 )
             )
+
+        # make sure we only retain secondary structure
+        # inside the range of the plot, otherwise
+        # drawing artifacts occur
+        range_min = min(axis_range)
+        range_max = max(axis_range)
+        secstruct = {
+            i: sstr for (i, sstr) in secstruct.items()
+            if range_min <= i < range_max
+        }
 
         first_pos, last_pos = min(secstruct), max(secstruct) + 1
 
@@ -380,12 +390,12 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
     if secstruct_j is None:
         secstruct_j = secstruct_i
 
-    start_i, end_i, segments_i = _extract_secstruct(secstruct_i)
-    start_j, end_j, segments_j = _extract_secstruct(secstruct_j)
-
     # get axis ranges to place secondary structure drawings
     x_range = ax.get_xlim()
     y_range = ax.get_ylim()
+
+    start_i, end_i, segments_i = _extract_secstruct(secstruct_i, x_range)
+    start_j, end_j, segments_j = _extract_secstruct(secstruct_j, y_range)
 
     # i corresponds to x-axis, j to y-axis
     if margin is None:
