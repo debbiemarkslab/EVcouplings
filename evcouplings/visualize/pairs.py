@@ -49,11 +49,11 @@ STYLE_SECSTRUCT = {
 
 
 def plot_contact_map(ecs=None, monomer=None, multimer=None,
-                     distance_cutoff=5, ax=None, scale_sizes=True,
+                     distance_cutoff=5, scale_sizes=True,
                      ec_style=STYLE_EC, monomer_style=STYLE_CONTACT,
                      multimer_style=STYLE_CONTACT_MULTIMER,
                      margin=5, invert_y=True, bound_by_structure=True,
-                     show_secstruct=True):
+                     show_secstruct=True, ax=None):
     """
     Wrapper for simple contact map plots with monomer and
     multimer contacts. For full flexibility, compose your own
@@ -61,7 +61,39 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
 
     Parameters
     ----------
-    # TODO
+    ecs : pandas.DataFrame
+        Table of evolutionary couplings to plot (using columns
+        "i" and "j")
+    monomer : evcouplings.compare.distances.DistanceMap
+        Monomer distance map (intra-chain distances)
+    multimer : evcouplings.compare.distances.DistanceMap
+        Multimer distance map (multimeric inter-chain distances)
+    distance_cutoff : float, optional (default: 5)
+        Pairs with distance <= this cutoff are considered
+        residue pair contacts
+    scale_sizes : bool, optional (default: True)
+        Rescale sizes of points on scatter plots as well as
+        secondery structure plotting width based on
+        overall size of protein
+    ec_style : dict, optional (default: STYLE_EC)
+        Style for EC plotting (kwargs to plt.scatter)
+    monomer_style : dict, optional (default: STYLE_CONTACT)
+        Style for monomer contact plotting (kwargs to plt.scatter)
+    multimer_style : dict, optional (default: STYLE_CONTACT_MULTIMER)
+        Style for multimer contact plotting (kwargs to plt.scatter)
+    margin : int, optional (default: 5)
+        Space to add around contact map
+    invert_y : bool, optional (default: True)
+        Invert the y axis of the contact map so both sequences
+        run from N -to C- terminus starting from top left corner
+    bound_by_structure : bool, optional (default: True)
+        Limit range of contact map to positions covered by
+        monomer structure
+    show_structure : bool, optional (default: True)
+        Draw secondary structure on both axes (extracted
+        from monomer distancemap)
+    ax : Matplotlib Axes object, optional (default: None)
+        Axes the plot will be drawn on
     """
     if ecs is None and monomer is None and multimer is None:
         raise ValueError(
@@ -389,27 +421,57 @@ def secondary_structure_cartoon(
         line_width=2, min_sse_length=0, clipping=False,
         helix_color="k", strand_color="k", coil_color="k",
         draw_coils=True
-    ):
+):
     """
     Plot a 1D secondary structure cartoon.
 
-    ax: matplotlib axis to draw on
-
-    sse: list of secondary structure elements:
-         (type, start, end), where type is either
-         H (helix), E (sheet), or C (coil/other)
-
-    sequence_start: index of first residue in sequence
-    horizontal: plot secondary structure horizontally or
-         vertically
-
-    flip_direction: go from right to left / top to bottom
-    center: coordinate along which 1D plot runs
-    width: width of plot around center
-    helix_turn_length: number of residues per sine
-    strand_width_factor: extension of strand rectangle around
-        center as a fraction of width
-    line_width: line width (points) for sequence/helix plotting
+    Parameters
+    ----------
+    sse : list
+        Secondary structure elements, as returned by
+        find_secondary_structure_segments(). Tuples
+        in the list have the form (type, start, end),
+        where type is either H (helix), E (sheet),
+        or C (coil/other)
+    ax: matplotlib Axes object
+        Axis to draw cartoon on
+    sequence_start : float, optional (default:0)
+        Plot coordinate of first position from which
+        cartoon will be drawn
+    sequence_end : float, optional (default: None)
+        Last coordinate up to which cartoon will
+        be drawn
+    horizontal : bool, optional (default: True)
+        If True, draw cartoon horizontally, vertically
+        otherwise
+    flip_direction : bool, optional (default: False)
+        Invert drawing direction (from right to left)
+    center : float, optional (default: True)
+        Center plot coordinate along which cartoon
+        will be drawn
+    width : float, optional (default: 1)
+        Width of secondary structure cartoon
+    helix_turn_length : float, optional (default: 1)
+        Length for a full helix turn in plot coordinates
+        (number of residues per sine)
+    strand_width_factor : float, optional (default: 0.5)
+        Width of strand relative to full width of cartoon
+    line_width : float, optional (default: 2)
+        Line width for drawing
+    min_sse_length : float, optional (default: 0)
+        Only draw secondary structure elements with
+        length greater than this threshold
+    clipping : bool, optional (default: False)
+        Clip drawing at plot axis (must be False
+        to draw outside contact map area)
+    helix_color : str or tuple, optional (default: "k")
+        Matplotlib color to be used for helices
+    strand_color : str or tuple, optional (default: "k")
+        Matplotlib color to be used for beta strands
+    coil_color : str or tuple, optional (default: "k")
+        Matplotlib color to be used for all other positions
+    draw_coils : bool, optional (Default: True)
+        If true, draw line for coil segments.
     """
     def _transform(x, y):
         """
@@ -526,7 +588,25 @@ def find_secondary_structure_segments(sse_string, offset=0):
     """
     Identify segments of secondary structure elements in string
 
-    End index is exclusive.
+    Parameters
+    ----------
+    sse_string : str
+        String with secondary structure states of sequence
+        ("H", "E", "-"/"C")
+    offset : int, optional (default: 0)
+        Shift start/end indices of segments by this offset
+
+    Returns
+    -------
+    start : int
+        Index of first position (equal to "offset")
+    end : int
+        Index of last position
+    segments : list
+        List of tuples with the following elements:
+        1) secondary structure element (str)
+        2) start position of segment (int)
+        3) end position of segment, exlusive (int)
     """
     if len(sse_string) < 1:
         raise ValueError("Secondary structure string must have length > 0.")
