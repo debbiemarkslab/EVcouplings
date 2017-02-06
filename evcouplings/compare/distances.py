@@ -231,6 +231,7 @@ class DistanceMap:
         residues = pd.read_csv(
             filename + ".csv", index_col=0,
             dtype={
+                "id": str,
                 "seqres_id": str,
                 "coord_id": str,
                 "chain_index": int,
