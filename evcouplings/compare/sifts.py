@@ -449,7 +449,7 @@ class SIFTS:
 
         return SIFTSResult(hits_df, mappings)
 
-    def by_pdb_id(self, pdb_id, pdb_chain=None, uniprot_ac=None):
+    def by_pdb_id(self, pdb_id, pdb_chain=None, uniprot_id=None):
         """
         Find structures and mapping by PDB id
         and chain name
@@ -461,10 +461,10 @@ class SIFTS:
         pdb_chain : str, optional (default: None)
             PDB chain name (if not given, all
             chains for PDB entry will be returned)
-        uniprot_ac : str, optional (default: None)
+        uniprot_id : str, optional (default: None)
             Filter to keep only this Uniprot accession
-            number (necessary for chimeras, or multi-
-            chain complexes with differen proteins)
+            number or identifier (necessary for chimeras,
+            or multi-chain complexes with different proteins)
 
         Returns
         -------
@@ -486,10 +486,14 @@ class SIFTS:
         if pdb_chain is not None:
             query += " and pdb_chain == @pdb_chain"
 
-        # filter by UniProt AC if selected
+        # filter by UniProt AC/ID if selected
         # (to remove chimeras)
-        if uniprot_ac is not None:
-            query += " and uniprot_ac == @uniprot_ac"
+        if uniprot_id is not None:
+            if "uniprot_id" in self.table.columns:
+                query += (" and (uniprot_ac == @uniprot_id or "
+                          "uniprot_id == @uniprot_id)")
+            else:
+                query += " and uniprot_ac == @uniprot_id"
 
         x = self.table.query(query)
 
@@ -497,12 +501,15 @@ class SIFTS:
         # be the case with multiple chains, or with
         # chimeras)
         if len(x.uniprot_ac.unique()) > 1:
+            id_list = ", ".join(x.uniprot_ac.unique())
+
+            if "uniprot_id" in self.table.columns:
+                id_list += " or " + ", ".join(x.uniprot_id.unique())
+
             raise ValueError(
                 "Multiple Uniprot sequences on chains, "
-                "please disambiguate using uniprot_ac "
-                "parameter: {}".format(
-                    ", ".join(x.uniprot_ac.unique())
-                )
+                "please disambiguate using uniprot_id "
+                "parameter: {}".format(id_list)
             )
 
         # create hit and mapping result
