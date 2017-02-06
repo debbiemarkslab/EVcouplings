@@ -53,7 +53,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                      ec_style=STYLE_EC, monomer_style=STYLE_CONTACT,
                      multimer_style=STYLE_CONTACT_MULTIMER,
                      secstruct_style=STYLE_SECSTRUCT,
-                     margin=5, invert_y=True, bound_by_structure=True,
+                     margin=5, invert_y=True, boundaries="union",
                      show_secstruct=True, ax=None):
     """
     Wrapper for simple contact map plots with monomer and
@@ -90,9 +90,14 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     invert_y : bool, optional (default: True)
         Invert the y axis of the contact map so both sequences
         run from N -to C- terminus starting from top left corner
-    bound_by_structure : bool, optional (default: True)
-        Limit range of contact map to positions covered by
-        monomer structure
+    boundaries : {"union", "intersection", "ecs", "structure"} or tuple,
+                 optional (default: "union")
+        Set axis range (min/max) of contact map as follows:
+        - "union": Positions either in ECs or 3D structure
+        - "intersection": Positions both in ECs and 3D structure
+        - "ecs": Positions in ECs
+        - "structure": Positions in 3D structure
+        - tuple(float, float): Specify upper/lower bound manually
     show_structure : bool, optional (default: True)
         Draw secondary structure on both axes (extracted
         from monomer distancemap)
@@ -107,25 +112,58 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     if ax is None:
         ax = plt.gca()
 
-    # determine and set plot boundaries
-    if bound_by_structure:
-        if monomer is None:
+    # check how to set contact map boundaries
+    if isinstance(boundaries, tuple):
+        if len(boundaries) != 2:
             raise ValueError(
-                "Cannot determine plot boundaries from structure "
-                "since no monomer distance map is given"
+                "boundaries must be a tuple with 2 elements (min, max)."
             )
-        bounding_data = monomer.contacts(distance_cutoff)
-
+        min_x, max_x = boundaries
     else:
-        if ecs is None:
+        # determine what sets of positions are for ECs/contact maps
+        ec_pos = set()
+        monomer_pos = set()
+        multimer_pos = set()
+
+        if ecs is not None:
+            ec_pos = set(ecs.i.astype(int)).union(ecs.j.astype(int))
+
+        if monomer is not None:
+            monomer_pos = set(monomer.residues_i.id.astype(int))
+
+        if multimer is not None:
+            multimer_pos = set(monomer.residues_i.id.astype(int))
+
+        structure_pos = monomer_pos.union(multimer_pos)
+
+        # maximum ranges spanned by structure or ECs
+        min_ec, max_ec = min(ec_pos), max(ec_pos)
+        min_struct, max_struct = min(structure_pos), max(structure_pos)
+
+        # determine and set plot boundaries
+        if boundaries == "union":
+            min_x = min(min_ec, min_struct)
+            max_x = max(max_ec, max_struct)
+        elif boundaries == "intersection":
+            min_x = max(min_ec, min_struct)
+            max_x = min(max_ec, max_struct)
+        elif boundaries == "ecs":
+            min_x = min_ec
+            max_x = max_ec
+        elif boundaries == "structure":
+            min_x = min_struct
+            max_x = max_struct
+        else:
             raise ValueError(
-                "Cannot determine plot boundaries from ECs "
-                "since no EC list is given"
+                "Not a valid value for boundaries: {}".format(
+                    boundaries
+                )
             )
 
-        bounding_data = ecs
-
-    set_range(bounding_data, ax=ax, margin=margin, invert_y=invert_y)
+    set_range(
+        x=(min_x, max_x), y=(min_x, max_x),
+        ax=ax, margin=margin, invert_y=invert_y
+    )
 
     # enable rescaling of points and secondary structure if necessary
     if scale_sizes:
@@ -215,22 +253,32 @@ def plot_pairs(pairs, symmetric=False, ax=None, style=None):
     return paths
 
 
-def set_range(pairs, symmetric=True, ax=None, margin=0, invert_y=True):
+def set_range(pairs=None, symmetric=True, x=None, y=None,
+              ax=None, margin=0, invert_y=True):
     """
     Set axes ranges for contact map based
     on minimal/maximal values in pair list
 
     Parameters
     ----------
-    pairs : pandas.DataFrame
+    pairs : pandas.DataFrame, optional (default: None)
         DataFrame with pairs (will be extracted
         from columns named "i" and "j" and
         converted to integer values and used
-        to define x- and y-axes, respectively)
+        to define x- and y-axes, respectively).
+        If None, if x and y have to be specified.
     symmetric : bool, optional (default:True)
         If true, will define range on joint set
         of values in columns i and j, resulting
         in a square contact map
+    x : tuple(float, float), optional (default: None)
+        Set x-axis range with this range (min, max).
+        Will be extended by margin, and overrides any
+        value for x-axis derived using pairs.
+    y : tuple(float, float), optional (default: None)
+        Set y-axis range with this range (min, max)
+        Will be extended by margin, and overrides any
+        value for y-axis derived using pairs.
     ax : matplotlib Axes object
         Axes for which plot range will be changed
     margin : int, optional (default: 0)
@@ -245,22 +293,47 @@ def set_range(pairs, symmetric=True, ax=None, margin=0, invert_y=True):
         Set range for x-axis
     y_range : tuple(int, int)
         Set range for y-axis
-    """
-    i = pairs.i.astype(int)
-    j = pairs.j.astype(int)
 
+    Raises
+    ------
+    ValueError
+        If any axis range remains unspecified
+    """
     if ax is None:
         ax = plt.gca()
 
-    if symmetric:
-        x_range = (
-            min(i.min(), j.min()) - margin,
-            max(i.max(), j.max()) + margin
+    x_range, y_range = None, None
+
+    # infer plot range from data
+    if pairs is not None:
+        i = pairs.i.astype(int)
+        j = pairs.j.astype(int)
+
+        if symmetric:
+            x_range = (
+                min(i.min(), j.min()) - margin,
+                max(i.max(), j.max()) + margin
+            )
+            y_range = x_range
+        else:
+            x_range = (i.min() - margin, i.max() + margin)
+            y_range = (j.min() - margin, j.max() + margin)
+
+    # Override with user-specified values
+    if x is not None:
+        x_range = x
+
+    if y is not None:
+        y_range = y
+
+    if x_range is None or y_range is None:
+        raise ValueError(
+            "Axis remained unspecified (make sure to either "
+            "set pairs pr x_range/y_range) :"
+            " x: {} y: {}".format(
+                x_range, y_range
+            )
         )
-        y_range = x_range
-    else:
-        x_range = (i.min() - margin, i.max() + margin)
-        y_range = (j.min() - margin, j.max() + margin)
 
     # maintain axis inversion
     # (which gets undone by setting x/ylim)
