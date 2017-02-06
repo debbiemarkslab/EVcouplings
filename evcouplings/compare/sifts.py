@@ -12,6 +12,7 @@ Authors:
 """
 
 from os import path
+import json
 
 import pandas as pd
 import requests
@@ -31,6 +32,7 @@ from evcouplings.utils.helpers import range_overlap
 
 UNIPROT_MAPPING_URL = "http://www.uniprot.org/mapping/"
 SIFTS_URL = "ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz"
+SIFTS_REST_API = "http://www.ebi.ac.uk/pdbe/api/mappings/uniprot_segments/{}"
 
 JACKHMMER_CONFIG = """
 prefix:
@@ -202,10 +204,14 @@ class SIFTS:
         """
         Create new SIFTS mapper from mapping table.
 
+        Note that creation of the mapping files, if not existing,
+        takes a while.
+
         Parameters
         ----------
         sifts_table_file : str
-            Path to SIFTS pdb_chain_uniprot.csv
+            Path to *corrected* SIFTS pdb_chain_uniprot.csv
+            To generate this file, point to an empty file path.
         sequence_file : str, optional (default: None)
             Path to file containing all UniProt sequences
             in SIFTS (used for homology-based identification
@@ -213,32 +219,16 @@ class SIFTS:
             Note: This file can be created using the
             create_sequence_file() method.
         """
-        # test if table exists, if not, download
+        # test if table exists, if not, download and modify
         if not valid_file(sifts_table_file):
-            get_urllib(SIFTS_URL, sifts_table_file)
+            self._create_mapping_table(sifts_table_file)
 
-        # load table and rename columns for internal use, if SIFTS
-        # ever decided to rename theirs
         self.table = pd.read_csv(
             sifts_table_file, comment="#"
-        ).rename(
-            columns={
-                "PDB": "pdb_id",
-                "CHAIN": "pdb_chain",
-                "SP_PRIMARY": "uniprot_ac",
-                "RES_BEG": "resseq_start",
-                "RES_END": "resseq_end",
-                "PDB_BEG": "coord_start",
-                "PDB_END": "coord_end",
-                "SP_BEG": "uniprot_start",
-                "SP_END": "uniprot_end",
-            }
         )
 
-        # Problem: for a subset of entries, the seqres and Uniprot
-        # ranges do not align (different lengths). For now, we have
-        # to drop these, the only solution would be to use the
-        # individual SIFTS xml files.
+        # final table has still some entries where lengths do not match,
+        # remove thlse
         self.table = self.table.query(
             "(resseq_end - resseq_start) == (uniprot_end - uniprot_start)"
         )
@@ -253,6 +243,86 @@ class SIFTS:
         # from FASTA file
         if self.sequence_file is not None:
             self._add_uniprot_ids()
+
+    def _create_mapping_table(self, sifts_table_file):
+        """
+        Create modified SIFTS mapping table (based on
+        file at SIFTS_URL). For some of the entries,
+        the Uniprot sequence ranges do not map to a.
+        SEQRES sequence range of the same length. These
+        PDB IDs will be entirely replaced by a segment-
+        based mapping extracted from the SIFTS REST API.
+
+        Parameters
+        ----------
+        sifts_table_file : str
+            Path where computed table will be stored
+        """
+        def extract_rows(M, pdb_id):
+            res = []
+
+            M = M[pdb_id.lower()]["UniProt"]
+
+            for uniprot_ac, Ms in M.items():
+                for x in Ms["mappings"]:
+                    res.append({
+                        "pdb_id": pdb_id,
+                        "pdb_chain": x["chain_id"],
+                        "uniprot_ac": uniprot_ac,
+                        "resseq_start": x["start"]["residue_number"],
+                        "resseq_end": x["end"]["residue_number"],
+                        "coord_start": x["start"]["author_residue_number"],
+                        "coord_end": x["end"]["author_residue_number"],
+                        "uniprot_start": x["unp_start"],
+                        "uniprot_end": x["unp_end"],
+                    })
+
+            return res
+
+        get_urllib(SIFTS_URL, sifts_table_file)
+
+        # load table and rename columns for internal use, if SIFTS
+        # ever decided to rename theirs
+        table = pd.read_csv(
+            sifts_table_file, comment="#",
+            compression="gzip"
+        ).rename(
+            columns={
+                "PDB": "pdb_id",
+                "CHAIN": "pdb_chain",
+                "SP_PRIMARY": "uniprot_ac",
+                "RES_BEG": "resseq_start",
+                "RES_END": "resseq_end",
+                "PDB_BEG": "coord_start",
+                "PDB_END": "coord_end",
+                "SP_BEG": "uniprot_start",
+                "SP_END": "uniprot_end",
+            }
+        )
+
+        # identify problematic PDB IDs
+        problematic_ids = table.query(
+            "(resseq_end - resseq_start) != (uniprot_end - uniprot_start)"
+        ).pdb_id.unique()
+
+        # collect new mappings from segment based REST API
+        res = []
+        for i, pdb_id in enumerate(problematic_ids):
+            r = requests.get(
+                SIFTS_REST_API.format(pdb_id.lower())
+            )
+            mapping = json.loads(r.text)
+
+            res += extract_rows(mapping, pdb_id)
+
+        # remove bad PDB IDs from table and add new mapping
+        new_table = table.loc[~table.pdb_id.isin(problematic_ids)]
+        new_table = new_table.append(
+            pd.DataFrame(res).loc[:, table.columns]
+        )
+
+        # save for later reuse
+        new_table.to_csv(sifts_table_file, index=False)
 
     def _add_uniprot_ids(self):
         """
