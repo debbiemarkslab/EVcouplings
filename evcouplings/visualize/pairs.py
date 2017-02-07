@@ -355,7 +355,7 @@ def set_range(pairs=None, symmetric=True, x=None, y=None,
         x_range = (x[0] - margin, x[1] + margin)
 
     if y is not None:
-        y_range = (y[0] - margin, x[1] + margin)
+        y_range = (y[0] - margin, y[1] + margin)
 
     if x_range is None or y_range is None:
         raise ValueError(
