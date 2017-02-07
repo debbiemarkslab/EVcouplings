@@ -49,12 +49,13 @@ STYLE_SECSTRUCT = {
 
 
 def plot_contact_map(ecs=None, monomer=None, multimer=None,
-                     distance_cutoff=5, scale_sizes=True,
+                     distance_cutoff=5, secondary_structure=None,
+                     show_secstruct=True, scale_sizes=True,
                      ec_style=STYLE_EC, monomer_style=STYLE_CONTACT,
                      multimer_style=STYLE_CONTACT_MULTIMER,
                      secstruct_style=STYLE_SECSTRUCT,
                      margin=5, invert_y=True, boundaries="union",
-                     show_secstruct=True, ax=None):
+                     ax=None):
     """
     Wrapper for simple contact map plots with monomer and
     multimer contacts. For full flexibility, compose your own
@@ -72,6 +73,15 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     distance_cutoff : float, optional (default: 5)
         Pairs with distance <= this cutoff are considered
         residue pair contacts
+    secondary_structure : dict or pandas.DataFrame
+        Secondary structure to be displayed on both axis
+        (if not given, will try to extract from monomer
+        distance map). For format of dict or DataFrame,
+        see documentation of plot_secondary_structure().
+    show_secstruct : bool, optional (default: True)
+        Draw secondary structure on both axes (either
+        passed in explicitly using secondary_structure,
+        or extracted from monomer distancemap)
     scale_sizes : bool, optional (default: True)
         Rescale sizes of points on scatter plots as well as
         secondery structure plotting width based on
@@ -98,9 +108,6 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         - "ecs": Positions in ECs
         - "structure": Positions in 3D structure
         - tuple(float, float): Specify upper/lower bound manually
-    show_structure : bool, optional (default: True)
-        Draw secondary structure on both axes (extracted
-        from monomer distancemap)
     ax : Matplotlib Axes object, optional (default: None)
         Axes the plot will be drawn on
     """
@@ -137,8 +144,19 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         structure_pos = monomer_pos.union(multimer_pos)
 
         # maximum ranges spanned by structure or ECs
-        min_ec, max_ec = min(ec_pos), max(ec_pos)
-        min_struct, max_struct = min(structure_pos), max(structure_pos)
+        # if any of the sets is not given, revert to
+        # the other set of positions in else case
+        # (in these cases, union and intersection will
+        # be trivially the one set that is actually defined)
+        if len(ec_pos) > 0:
+            min_ec, max_ec = min(ec_pos), max(ec_pos)
+        else:
+            min_ec, max_ec = min(structure_pos), max(structure_pos)
+
+        if len(structure_pos) > 0:
+            min_struct, max_struct = min(structure_pos), max(structure_pos)
+        else:
+            min_struct, max_struct = min(ec_pos), max(ec_pos)
 
         # determine and set plot boundaries
         if boundaries == "union":
@@ -175,31 +193,44 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     if monomer is not None:
         plot_pairs(
             monomer.contacts(distance_cutoff),
-            symmetric=False, style=scale_func(monomer_style)
+            symmetric=False, style=scale_func(monomer_style),
+            ax=ax
         )
 
     # plot multimer contacts
     if multimer is not None:
         plot_pairs(
             multimer.contacts(distance_cutoff),
-            symmetric=False, style=scale_func(multimer_style)
+            symmetric=False, style=scale_func(multimer_style),
+            ax=ax
         )
 
     # plot ECs
     if ecs is not None:
-        plot_pairs(ecs, symmetric=True, style=scale_func(ec_style))
+        plot_pairs(
+            ecs, symmetric=True, style=scale_func(ec_style), ax=ax
+        )
 
     # plot secondary structure
     if show_secstruct:
-        try:
+        # if secondary structure given explicitly, use it
+        if secondary_structure is not None:
             plot_secondary_structure(
-                monomer.residues_i, monomer.residues_j,
-                style=scale_func(secstruct_style)
+                secondary_structure, secondary_structure,
+                style=scale_func(secstruct_style), ax=ax
             )
-        except AttributeError:
-            # DataFrame has no secondary structure, cannot do anything here
-            # (this happens when merging across multiple distance maps)
-            pass
+        else:
+            # otherwise, see if we can extract it from monomer
+            # distance map
+            try:
+                plot_secondary_structure(
+                    monomer.residues_i, monomer.residues_j,
+                    style=scale_func(secstruct_style), ax=ax
+                )
+            except AttributeError:
+                # DataFrame has no secondary structure, cannot do anything here
+                # (this happens when merging across multiple distance maps)
+                pass
 
 
 def plot_pairs(pairs, symmetric=False, ax=None, style=None):
@@ -403,7 +434,7 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         Can be a dictionary of position (int) to
         secondary structure character ("H", "E", "-"/"C"),
         or a DataFrame with columns "id" and "sec_struct_3state"
-        (as returned by DistanceMap.residues_i
+        (as returned by Chain.residues, and DistanceMap.residues_i
         and DistanceMap.residues_j).
     secstruct_j : dict or pd.DataFrame, optional (default: None)
         Secondary structure for y-axis of plot.
