@@ -109,28 +109,6 @@ def identify_structures(**kwargs):
     return sifts_map
 
 
-def plot_cm(ecs, d_intra, d_mult, output_file=None, boundaries="union", secstruct=None):
-    """
-    #TODO
-    """
-    with misc.plot_context("Arial"):
-        fig = plt.figure(figsize=(8, 7))
-        pairs.plot_contact_map(
-            ecs, d_intra, d_mult,
-            secstruct_style={"helix_turn_length": 4, "width": 0.5},
-            secondary_structure=secstruct,
-            show_secstruct=True,
-            margin=10,
-            boundaries=boundaries
-        )
-
-        plt.suptitle("{} evolutionary couplings".format(len(ecs)), fontsize=14)
-
-        if output_file is not None:
-            plt.savefig(output_file, bbox_inches="tight")
-            # plt.close(fig)  # TODO: reenable
-
-
 def make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs):
     """
     # TODO
@@ -143,6 +121,28 @@ def make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kw
     -------
     # TODO
     """
+
+    def plot_cm(ecs, output_file=None, boundaries="union", secstruct=None):
+        """
+        #TODO
+        """
+        with misc.plot_context("Arial"):
+            fig = plt.figure(figsize=(8, 8))
+            pairs.plot_contact_map(
+                ecs, d_intra, d_multimer,
+                secstruct_style={"helix_turn_length": 4, "width": 0.5},
+                secondary_structure=secstruct,
+                show_secstruct=True,
+                margin=10,
+                boundaries=kwargs["boundaries"]
+            )
+
+            plt.suptitle("{} evolutionary couplings".format(len(ecs)), fontsize=14)
+
+            if output_file is not None:
+                plt.savefig(output_file, bbox_inches="tight")
+                # plt.close(fig)  # TODO: reenable
+
     check_required(
         kwargs,
         [
@@ -181,12 +181,7 @@ def make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kw
         for c in cutoffs:
             ec_set = ecs_longrange.query("probability >= @c")
             output_file = prefix + "_significant_ECs_{}.pdf".format(c)
-            plot_cm(
-                ec_set, d_intra, d_multimer,
-                output_file=output_file,
-                boundaries=kwargs["boundaries"],
-                secstruct=res_ss
-            )
+            plot_cm(ec_set, output_file=output_file)
             cm_files.append(output_file)
 
     # based on number of long-range ECs
@@ -211,12 +206,7 @@ def make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kw
     for c in range(lowest, highest + 1, step):
         ec_set = ecs_longrange.iloc[:c]
         output_file = prefix + "_{}_ECs.pdf".format(c)
-        plot_cm(
-            ec_set, d_intra, d_multimer,
-            output_file=output_file,
-            boundaries=kwargs["boundaries"],
-            secstruct=res_ss
-        )
+        plot_cm(ec_set, output_file=output_file)
         cm_files.append(output_file)
 
     # give back list of all contact map file names
