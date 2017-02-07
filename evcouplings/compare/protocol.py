@@ -29,7 +29,7 @@ from evcouplings.compare.ecs import (
 from evcouplings.visualize import pairs, misc
 
 
-def identify_structures(**kwargs):
+def _identify_structures(**kwargs):
     """
     Identify set of 3D structures for comparison
 
@@ -109,31 +109,45 @@ def identify_structures(**kwargs):
     return sifts_map
 
 
-def make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs):
+def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs):
     """
-    # TODO
+    Plot contact maps with all ECs above a certain probability threshold,
+    or a given count of ECs
 
     Parameters
     ----------
-    # TODO
+    ec_table : pandas.DataFrame
+        Full set of evolutionary couplings (all pairs)
+    sifts_map : SIFTSResult
+        Table of identified PDB structures with index mappings
+    structures : dict(str: PDB)
+        Dictionary of loaded PDB structures
+    d_intra : DistanceMap
+        Computed residue-residue distances inside chain
+    d_multimer : DistanceMap
+        Computed residue-residue distances between homomultimeric
+        chains
+    **kwargs
+        Further plotting parameters, see check_required in code
+        for necessary values.
 
     Returns
     -------
-    # TODO
+    cm_files : list(str)
+        Paths of generated contact map files
     """
 
     def plot_cm(ecs, output_file=None, boundaries="union", secstruct=None):
         """
-        #TODO
+        Simple wrapper for contact map plotting
         """
         with misc.plot_context("Arial"):
             fig = plt.figure(figsize=(8, 8))
             pairs.plot_contact_map(
                 ecs, d_intra, d_multimer,
-                secstruct_style={"helix_turn_length": 4, "width": 0.5},
                 secondary_structure=secstruct,
                 show_secstruct=True,
-                margin=10,
+                margin=5,
                 boundaries=kwargs["boundaries"]
             )
 
@@ -141,7 +155,7 @@ def make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kw
 
             if output_file is not None:
                 plt.savefig(output_file, bbox_inches="tight")
-                # plt.close(fig)  # TODO: reenable
+                plt.close(fig)
 
     check_required(
         kwargs,
@@ -230,7 +244,12 @@ def standard(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        # TODO
+        ec_file_compared_all
+        ec_file_compared_all_longrange
+        pdb_structure_hits
+        distmap_monomer
+        distmap_multimer
+        contact_map_files
     """
     check_required(
         kwargs,
@@ -258,11 +277,11 @@ def standard(**kwargs):
     )
 
     # make sure output directory exists
-    # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
 
     # Step 1: Identify 3D structures for comparison
-    sifts_map = identify_structures(**{
+
+    sifts_map = _identify_structures(**{
         **kwargs,
         "prefix": prefix + "/compare_find"
     })
@@ -272,53 +291,69 @@ def standard(**kwargs):
     )
 
     # Step 2: Compute distance maps
-    # load all structures at one
+
+    # load all structures at once
     structures = load_structures(
         sifts_map.hits.pdb_id,
         kwargs["pdb_mmtf_dir"]
     )
 
     # compute distance maps and save
-    d_intra = intra_dists(
-        sifts_map, structures, atom_filter=kwargs["atom_filter"],
-        output_prefix=prefix + "/compare_distmap_intra"
-    )
-    d_intra.to_file(outcfg["distmap_monomer"])
-
-    # compute multimer distances, if requested
-    # note that d_multimer can be None if there
-    # are no structures with multiple chains
-    if kwargs["compare_multimer"]:
-        d_multimer = multimer_dists(
+    # (but only if we found some structure)
+    if len(sifts_map.hits) > 0:
+        d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
-            output_prefix=prefix + "/compare_distmap_multimer"
+            output_prefix=prefix + "/compare_distmap_intra"
         )
-    else:
-        d_multimer = None
+        d_intra.to_file(outcfg["distmap_monomer"])
 
-    if d_multimer is not None:
-        d_multimer.to_file(outcfg["distmap_multimer"])
+        # compute multimer distances, if requested;
+        # note that d_multimer can be None if there
+        # are no structures with multiple chains
+        if kwargs["compare_multimer"]:
+            d_multimer = multimer_dists(
+                sifts_map, structures, atom_filter=kwargs["atom_filter"],
+                output_prefix=prefix + "/compare_distmap_multimer"
+            )
+        else:
+            d_multimer = None
+
+        # if we have a multimer contact mapin the end, save it
+        if d_multimer is not None:
+            d_multimer.to_file(outcfg["distmap_multimer"])
+        else:
+            outcfg["distmap_multimer"] = None
     else:
+        # if no structures, can not compute distance maps
+        d_intra = None
+        d_multimer = None
+        outcfg["distmap_monomer"] = None
         outcfg["distmap_multimer"] = None
 
     # Step 3: Compare ECs to distance maps
+
     ec_table = pd.read_csv(kwargs["ec_file"])
 
     for out_file, min_seq_dist in [
-        (outcfg["ec_file_compared_longrange"], kwargs["min_sequence_distance"]),
-        (outcfg["ec_file_compared_all"], 0),
+        ("ec_file_compared_longrange", kwargs["min_sequence_distance"]),
+        ("ec_file_compared_all", 0),
     ]:
-        coupling_scores_compared(
-            ec_table, d_intra, d_multimer,
-            dist_cutoff=kwargs["distance_cutoff"],
-            output_file=out_file,
-            score="cn",
-            min_sequence_dist=min_seq_dist
-        )
+        # compare ECs only if we minimally have intra distance map
+        if d_intra is not None:
+            coupling_scores_compared(
+                ec_table, d_intra, d_multimer,
+                dist_cutoff=kwargs["distance_cutoff"],
+                output_file=outcfg[out_file],
+                score="cn",
+                min_sequence_dist=min_seq_dist
+            )
+        else:
+            outcfg[out_file] = None
 
     # Step 4: Make contact map plots
+    # if no structures available, defaults to EC-only plot
 
-    outcfg["contact_map_files"] = make_contact_maps(
+    outcfg["contact_map_files"] = _make_contact_maps(
         ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs
     )
 
