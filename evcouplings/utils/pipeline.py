@@ -18,12 +18,14 @@ from evcouplings.utils.system import (
 
 import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp
+import evcouplings.compare.protocol as cm
 
 # supported pipelines
 PIPELINES = {
     "protein_monomer": [
         ("align", ap.run),
         ("couplings", cp.run),
+        ("compare", cm.run),
     ]
 }
 
