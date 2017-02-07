@@ -35,11 +35,13 @@ def identify_structures(**kwargs):
 
     Parameters
     ----------
-    # TODO
+    **kwargs
+        See check_required in code below
 
     Returns
     -------
-    # TODO
+    SIFTSResult
+        Identified structures and residue index mappings
     """
     def _filter_by_id(x, id_list):
         x = deepcopy(x)
@@ -129,6 +131,98 @@ def plot_cm(ecs, d_intra, d_mult, output_file=None, boundaries="union", secstruc
             # plt.close(fig)  # TODO: reenable
 
 
+def make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs):
+    """
+    # TODO
+
+    Parameters
+    ----------
+    # TODO
+
+    Returns
+    -------
+    # TODO
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "min_sequence_distance",
+            "plot_probability_cutoffs",
+            "boundaries", "plot_lowest_count",
+            "plot_highest_count", "plot_increase",
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    cm_files = []
+
+    ecs_longrange = ec_table.query(
+        "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
+    )
+
+    # get secondary structure (for now from first hit)
+    if len(sifts_map.hits) > 0:
+        hit = sifts_map.hits.iloc[0]
+        res_ss = structures[hit.pdb_id].get_chain(
+            hit.pdb_chain, model=0
+        ).remap(
+            sifts_map.mapping[hit.mapping_index]
+        ).residues
+    else:
+        res_ss = None
+
+    # based on significance cutoff
+    if kwargs["plot_probability_cutoffs"]:
+        cutoffs = kwargs["plot_probability_cutoffs"]
+        if not isinstance(cutoffs, list):
+            cutoffs = []
+
+        for c in cutoffs:
+            ec_set = ecs_longrange.query("probability >= @c")
+            output_file = prefix + "_significant_ECs_{}.pdf".format(c)
+            plot_cm(
+                ec_set, d_intra, d_multimer,
+                output_file=output_file,
+                boundaries=kwargs["boundaries"],
+                secstruct=res_ss
+            )
+            cm_files.append(output_file)
+
+    # based on number of long-range ECs
+
+    # identify number of sites in EC model
+    num_sites = len(
+        set.union(set(ec_table.i.unique()), set(ec_table.j.unique()))
+    )
+
+    # transform fraction of number of sites into discrete number of ECs
+    def _discrete_count(x):
+        if isinstance(x, float):
+            x = ceil(x * num_sites)
+        return int(x)
+
+    # range of plots to make
+    lowest = _discrete_count(kwargs["plot_lowest_count"])
+    highest = _discrete_count(kwargs["plot_highest_count"])
+    step = _discrete_count(kwargs["plot_increase"])
+
+    # create individual plots
+    for c in range(lowest, highest + 1, step):
+        ec_set = ecs_longrange.iloc[:c]
+        output_file = prefix + "_{}_ECs.pdf".format(c)
+        plot_cm(
+            ec_set, d_intra, d_multimer,
+            output_file=output_file,
+            boundaries=kwargs["boundaries"],
+            secstruct=res_ss
+        )
+        cm_files.append(output_file)
+
+    # give back list of all contact map file names
+    return cm_files
+
+
 def standard(**kwargs):
     """
     Protocol:
@@ -153,10 +247,7 @@ def standard(**kwargs):
         [
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter", "compare_multimer",
-            "distance_cutoff", "plot_probability_cutoffs",
-            "compare_multimer", "plot_probability_cutoffs",
-            "boundaries", "plot_lowest_count",
-            "plot_highest_count", "plot_increase",
+            "distance_cutoff", "compare_multimer",
         ]
     )
 
@@ -236,64 +327,10 @@ def standard(**kwargs):
         )
 
     # Step 4: Make contact map plots
-    cm_files = []
 
-    ecs_longrange = ec_table.query(
-        "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
+    outcfg["contact_map_files"] = make_contact_maps(
+        ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs
     )
-
-    # get secondary structure (for now from first hit)
-    if len(sifts_map.hits) > 0:
-        hit = sifts_map.hits.iloc[0]
-        res_ss = structures[hit.pdb_id].get_chain(
-            hit.pdb_chain, model=0
-        ).remap(
-            sifts_map.mapping[hit.mapping_index]
-        ).residues
-    else:
-        res_ss = None
-
-    # based on significance cutoff
-    if kwargs["plot_probability_cutoffs"]:
-        cutoffs = kwargs["plot_probability_cutoffs"]
-        if not isinstance(cutoffs, list):
-            cutoffs = []
-
-        for c in cutoffs:
-            ec_set = ecs_longrange.query("probability >= @c")
-            output_file = prefix + "_significant_ECs_{}.pdf".format(c)
-            plot_cm(
-                ec_set, d_intra, d_multimer,
-                output_file=output_file,
-                boundaries=kwargs["boundaries"],
-                secstruct=res_ss
-            )
-            cm_files.append(output_file)
-
-    # based on number of long-range ECs
-    num_sites = len(set.union(set(ec_table.i.unique()), set(ec_table.j.unique())))
-
-    def _discrete_count(x):
-        if isinstance(x, float):
-            x = ceil(x * num_sites)
-        return int(x)
-
-    lowest = _discrete_count(kwargs["plot_lowest_count"])
-    highest = _discrete_count(kwargs["plot_highest_count"])
-    step = _discrete_count(kwargs["plot_increase"])
-
-    for c in range(lowest, highest + 1, step):
-        ec_set = ecs_longrange.iloc[:c]
-        output_file = prefix + "_{}_ECs.pdf".format(c)
-        plot_cm(
-            ec_set, d_intra, d_multimer,
-            output_file=output_file,
-            boundaries=kwargs["boundaries"],
-            secstruct=res_ss
-        )
-        cm_files.append(output_file)
-
-    outcfg["contact_map_files"] = cm_files
 
     return outcfg
 
