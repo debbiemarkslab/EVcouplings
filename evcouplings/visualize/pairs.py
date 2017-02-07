@@ -352,10 +352,10 @@ def set_range(pairs=None, symmetric=True, x=None, y=None,
 
     # Override with user-specified values
     if x is not None:
-        x_range = x
+        x_range = (x[0] - margin, x[1] + margin)
 
     if y is not None:
-        y_range = y
+        y_range = (y[0] - margin, x[1] + margin)
 
     if x_range is None or y_range is None:
         raise ValueError(
