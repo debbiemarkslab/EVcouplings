@@ -166,6 +166,7 @@ def run(**kwargs):
     """
     EVcouplings pipeline execution
     """
+    print(__name__)
     config_file = kwargs["config"]
     verify_resources(
         "Config file does not exist or is empty.",

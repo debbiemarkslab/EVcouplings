@@ -108,16 +108,17 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     # IMPORTANT: script names need to be in lower case ! ! ! (otherwise
     # deinstallation does not work)
-    #entry_points={
-    #    'console_scripts': [
-    #        'evcouplings=evcouplings.Apps.evcouplings_app:main',
-    #    ],
-    #},
+    entry_points={
+        'console_scripts': [
+            'evcouplings=evcouplings.utils.app:app',
+            'evcouplings_runcfg=evcouplings.utils.pipeline:run',
+        ],
+    },
 
     #ext_modules=[helloworld_module],
     #ext_modules=[d2s_module],
 
     # Run-time dependencies. (will be installed by pip when EVcouplings is installed)
-    install_requires=['setuptools>=18.2', 'pandas', 'numpy', 'scipy', 'numba','ruamel.yaml', 'joblib', 'requests', 'mmtf-python', 'click'],
+    install_requires=['setuptools>=18.2', 'pandas', 'numpy', 'scipy', 'numba','ruamel.yaml', 'matplotlib', 'requests', 'mmtf-python', 'click'],
 
 )
