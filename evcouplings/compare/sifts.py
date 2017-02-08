@@ -271,8 +271,14 @@ class SIFTS:
                         "uniprot_ac": uniprot_ac,
                         "resseq_start": x["start"]["residue_number"],
                         "resseq_end": x["end"]["residue_number"],
-                        "coord_start": x["start"]["author_residue_number"],
-                        "coord_end": x["end"]["author_residue_number"],
+                        "coord_start": (
+                            str(x["start"]["author_residue_number"]) +
+                            x["start"]["author_insertion_code"].replace(" ", "")
+                        ),
+                        "coord_end": (
+                            str(x["end"]["author_residue_number"]) +
+                            x["end"]["author_insertion_code"].replace(" ", "")
+                        ),
                         "uniprot_start": x["unp_start"],
                         "uniprot_end": x["unp_end"],
                     })
@@ -308,6 +314,7 @@ class SIFTS:
         # collect new mappings from segment based REST API
         res = []
         for i, pdb_id in enumerate(problematic_ids):
+            print(i)  # TODO: remove
             r = requests.get(
                 SIFTS_REST_API.format(pdb_id.lower())
             )
