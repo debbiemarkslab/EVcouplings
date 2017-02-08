@@ -5,6 +5,10 @@ Authors:
   Thomas A. Hopf
 """
 
+# chose backend for command-line usage
+import matplotlib
+matplotlib.use("Agg")
+
 from sys import argv, exit, stderr
 
 import click
@@ -166,7 +170,6 @@ def run(**kwargs):
     """
     EVcouplings pipeline execution
     """
-    print(__name__)
     config_file = kwargs["config"]
     verify_resources(
         "Config file does not exist or is empty.",
