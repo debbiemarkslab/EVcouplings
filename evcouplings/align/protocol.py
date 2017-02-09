@@ -494,7 +494,7 @@ def existing(**kwargs):
 
         alignment_file
         statistics_file
-        sequence_file
+        target_sequence_file
         annotation_file (None)
         frequencies_file
         identities_file
@@ -610,8 +610,8 @@ def existing(**kwargs):
     focus_ali.ids[focus_index] = header
 
     # write target sequence to file
-    sequence_file = prefix + ".fa"
-    with open(sequence_file, "w") as f:
+    target_sequence_file = prefix + ".fa"
+    with open(target_sequence_file, "w") as f:
         write_fasta(
             [(header, focus_seq_nogap)], f
         )
@@ -625,7 +625,7 @@ def existing(**kwargs):
     # generate output configuration of protocol
     outcfg = {
         **mod_outcfg,
-        "sequence_file": sequence_file,
+        "target_sequence_file": target_sequence_file,
         "focus_sequence": header,
     }
 
@@ -842,7 +842,7 @@ def jackhmmer_search(**kwargs):
         Output configuration of the protocol, including
         the following fields:
 
-        sequence_file
+        target_sequence_file
         raw_alignment_file
         hittable_file
         focus_mode
@@ -867,7 +867,7 @@ def jackhmmer_search(**kwargs):
     create_prefix_folders(prefix)
 
     # store search sequence file here
-    sequence_file = prefix + ".fa"
+    target_sequence_file = prefix + ".fa"
 
     # make sure search sequence is defined and load it
     full_seq_file, (full_seq_id, full_seq) = fetch_sequence(
@@ -884,7 +884,7 @@ def jackhmmer_search(**kwargs):
         kwargs["sequence_id"],
         kwargs["region"],
         kwargs["first_index"],
-        sequence_file
+        target_sequence_file
     )
 
     # run jackhmmer... allow to reuse pre-exisiting
@@ -914,7 +914,7 @@ def jackhmmer_search(**kwargs):
 
         # run search process
         ali = at.run_jackhmmer(
-            query=sequence_file,
+            query=target_sequence_file,
             database=kwargs[kwargs["database"]],
             prefix=prefix,
             use_bitscores=kwargs["use_bitscores"],
@@ -936,7 +936,7 @@ def jackhmmer_search(**kwargs):
 
     # prepare output dictionary with result files
     outcfg = {
-        "sequence_file": sequence_file,
+        "target_sequence_file": target_sequence_file,
         "focus_mode": True,
         "raw_alignment_file": ali["alignment"],
         "hittable_file": ali["domtblout"],
@@ -989,7 +989,7 @@ def standard(**kwargs):
         alignment_file
         raw_alignment_file
         statistics_file
-        sequence_file
+        target_sequence_file
         annotation_file
         frequencies_file
         identities_file
@@ -1098,7 +1098,7 @@ def run(**kwargs):
         alignment_file
         [raw_alignment_file]
         statistics_file
-        sequence_file
+        target_sequence_file
         [annotation_file]
         frequencies_file
         identities_file
