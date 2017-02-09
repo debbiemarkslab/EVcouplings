@@ -843,7 +843,7 @@ def jackhmmer_search(**kwargs):
         the following fields:
 
         target_sequence_file
-        full_sequence_file
+        sequence_file
         raw_alignment_file
         hittable_file
         focus_mode
@@ -939,7 +939,7 @@ def jackhmmer_search(**kwargs):
     # prepare output dictionary with result files
     outcfg = {
         "target_sequence_file": target_sequence_file,
-        "full_sequence_file": full_sequence_file,
+        "sequence_file": full_sequence_file,
         "focus_mode": True,
         "raw_alignment_file": ali["alignment"],
         "hittable_file": ali["domtblout"],
@@ -993,7 +993,7 @@ def standard(**kwargs):
         raw_alignment_file
         statistics_file
         target_sequence_file
-        full_sequence_file
+        sequence_file
         annotation_file
         frequencies_file
         identities_file
@@ -1103,7 +1103,7 @@ def run(**kwargs):
         [raw_alignment_file]
         statistics_file
         target_sequence_file
-        [full_sequence_file]
+        sequence_file
         [annotation_file]
         frequencies_file
         identities_file
