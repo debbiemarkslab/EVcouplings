@@ -724,4 +724,4 @@ class SIFTS:
             hits_grouped = hits_grouped.sort_values(by="bitscore", ascending=False)
             hits_grouped = hits_grouped.groupby("pdb_id").first().reset_index()
 
-        return SIFTSResult(hits_grouped, mappings), hits
+        return SIFTSResult(hits_grouped, mappings)
