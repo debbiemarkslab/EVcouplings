@@ -13,6 +13,7 @@ Authors:
 
 from os import path
 import json
+from collections import OrderedDict
 
 import pandas as pd
 import requests
@@ -314,7 +315,6 @@ class SIFTS:
         # collect new mappings from segment based REST API
         res = []
         for i, pdb_id in enumerate(problematic_ids):
-            print(i)  # TODO: remove
             r = requests.get(
                 SIFTS_REST_API.format(pdb_id.lower())
             )
@@ -658,23 +658,70 @@ class SIFTS:
             ) for i, r in hits.iterrows()
         ]
 
+        # collect complete index mappings in here...
+        mappings = {}
+        # ... as well as dataframe rows for assignment of hit to mapping
+        mapping_rows = []
+
+        # complication: if there are multiple segments per hit and chain, we should
+        # reduce these into a single mapping (even though split mappings
+        # are possible in principle) so we can count unique number of hits etc.
+        hit_columns = ["alignment_id", "pdb_id", "pdb_chain"]
+        for i, (hit, grp) in enumerate(
+            hits.groupby(hit_columns)
+        ):
+            cur_seg_mapping = {}
+            for j, r in grp.iterrows():
+                cur_seg_mapping.update(
+                    _create_mapping(j, r)
+                )
+
+            # store assignment of group to mapping index
+            mapping_rows.append(
+                list(hit) + [i, len(grp) > 1]
+            )
+
+            mappings[i] = cur_seg_mapping
+
+        # create dataframe from mapping rows
+        mapping_df = pd.DataFrame(
+            mapping_rows, columns=hit_columns + [
+                "mapping_index", "grouped_segments",
+            ]
+        )
+
+        # now group again, to aggregate dataframe
+        def _agg_type(x):
+            if x == "overlap":
+                return "sum"
+            elif x.endswith("_start"):
+                return "min"
+            elif x.endswith("end"):
+                return "max"
+            else:
+                return "first"
+
+        agg_types = OrderedDict(
+            [(c, _agg_type(c)) for c in hits.columns
+             if c not in hit_columns]
+        )
+
+        hits_grouped = hits.groupby(
+            hit_columns
+        ).agg(agg_types).reset_index()
+
+        # join with mapping information
+        hits_grouped = hits_grouped.merge(
+            mapping_df, on=hit_columns
+        )
+
         # remove hits with too little residue coverage
-        hits = hits.query("overlap >= @min_overlap")
+        hits_grouped = hits_grouped.query("overlap >= @min_overlap")
 
         # if requested, only keep one chain per PDB;
         # sort by score before this to keep best hit
         if reduce_chains:
-            hits = hits.sort_values(by="bitscore", ascending=False)
-            hits = hits.groupby("pdb_id").first().reset_index()
+            hits_grouped = hits_grouped.sort_values(by="bitscore", ascending=False)
+            hits_grouped = hits_grouped.groupby("pdb_id").first().reset_index()
 
-        # create mappings and store in SIFTSResult object
-        mappings = {
-            i: _create_mapping(i, r) for i, r in hits.iterrows()
-        }
-
-        # put mapping index into column
-        hits = hits.reset_index().rename(
-            columns={"index": "mapping_index"}
-        )
-
-        return SIFTSResult(hits, mappings)
+        return SIFTSResult(hits_grouped, mappings), hits
