@@ -198,11 +198,15 @@ def unroll_config(config):
     prefix = config["global"]["prefix"]
     create_prefix_folders(prefix)
 
+    # write master config file (pre-unroll);
+    # if no batch job, this will be the only
+    # config file
+    cfg_filename = CONFIG_NAME.format(prefix)
+    write_config_file(cfg_filename, config)
+
     # check if we have a single job or need to unroll
     # into multiple jobs
     if config["batch"] is None:
-        cfg_filename = CONFIG_NAME.format(prefix)
-        write_config_file(cfg_filename, config)
         jobs = [cfg_filename]
     else:
         jobs = []
