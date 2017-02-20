@@ -6,10 +6,11 @@ Authors:
 """
 
 from evcouplings.couplings import tools as ct
-from evcouplings.couplings import pairs as pairs
+from evcouplings.couplings import pairs, mapping
 
 from evcouplings.align.alignment import (
-    read_fasta, ALPHABET_PROTEIN
+    read_fasta, ALPHABET_PROTEIN, ALPHABET_DNA,
+    ALPHABET_RNA
 )
 
 from evcouplings.utils.config import (
@@ -21,6 +22,12 @@ from evcouplings.utils.system import (
     create_prefix_folders, valid_file,
     verify_resources,
 )
+
+ALPHABET_MAP = {
+    "aa": ALPHABET_PROTEIN,
+    "dna": ALPHABET_DNA,
+    "rna": ALPHABET_RNA,
+}
 
 
 def standard(**kwargs):
@@ -99,16 +106,35 @@ def standard(**kwargs):
     # regularization strength on couplings J_ij
     lambda_J = kwargs["lambda_J"]
 
+    segments = kwargs["segments"]
+    if segments is not None:
+        segments = [
+            mapping.Segment.from_list(s) for s in segments
+        ]
+
+    # first determine size of alphabet;
+    # default is amino acid alphabet
+    if kwargs["alphabet"] is None:
+        alphabet = ALPHABET_PROTEIN
+        alphabet_setting = None
+    else:
+        alphabet = kwargs["alphabet"]
+
+        # allow shortcuts for protein, DNA, RNA
+        if alphabet in ALPHABET_MAP:
+            alphabet = ALPHABET_MAP[alphabet]
+
+        # if we have protein alphabet, do not set
+        # as plmc parameter since default parameter,
+        # has some implementation advantages for focus mode
+        if alphabet == ALPHABET_PROTEIN:
+            alphabet_setting = None
+        else:
+            alphabet_setting = alphabet
+
     # scale lambda_J to proportionally compensate
     # for higher number of J_ij compared to h_i?
     if kwargs["lambda_J_times_Lq"]:
-        # first determine size of alphabet;
-        # plmc default is amino acid alphabet
-        if kwargs["alphabet"] is None:
-            alphabet = ALPHABET_PROTEIN
-        else:
-            alphabet = kwargs["alphabet"]
-
         num_symbols = len(alphabet)
 
         # if we ignore gaps, there is one character less
@@ -157,7 +183,7 @@ def standard(**kwargs):
             outcfg["raw_ec_file"],
             outcfg["model_file"],
             focus_seq=kwargs["focus_sequence"],
-            alphabet=kwargs["alphabet"],
+            alphabet=alphabet_setting,
             theta=kwargs["theta"],
             scale=kwargs["scale_clusters"],
             ignore_gaps=kwargs["ignore_gaps"],
@@ -195,7 +221,6 @@ def standard(**kwargs):
     # write updated table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
 
-    segments = kwargs["segments"]
     if segments is not None and len(segments) > 1:
         # TODO: implement remapping to individual segments
         # (may differ between focusmode and non-focusmode)
