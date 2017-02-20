@@ -37,8 +37,7 @@ def standard(**kwargs):
     Infer ECs from alignment using plmc.
 
     # TODO:
-    (1) remapping based on segments, e.g. for complexes
-    (2) add enrichment calculation (but must make complex-ready)
+    (1) make EC enrichment calculation segment-ready
 
     Parameters
     ----------
@@ -211,19 +210,28 @@ def standard(**kwargs):
         # save results of search for possible restart
         write_config_file(plm_outcfg_file, plmc_result)
 
+    # store useful information about model in outcfg
+    outcfg.update({
+        "num_sites": plmc_result["num_valid_sites"],
+        "num_sequences": plmc_result["num_valid_seqs"],
+        "effective_sequences": plmc_result["effective_samples"],
+        "region_start": plmc_result["region_start"],
+    })
+
     # read and sort ECs
     ecs = pairs.read_raw_ec_file(outcfg["raw_ec_file"])
 
     # add mixture model probability
     ecs = pairs.add_mixture_probability(ecs)
 
-    # TODO: make full if condition again
-    if segments is not None and len(segments) > 1:
-        # TODO: implement remapping to individual segments
-        # (may differ between focusmode and non-focusmode)
-        raise NotImplementedError(
-            "Segment remapping not yet implemented."
+    if segments is not None:  # and (len(segments) > 1 or not kwargs["focus_mode"]):
+        # create index mapping
+        seg_mapper = mapping.SegmentIndexMapper(
+            kwargs["focus_mode"], outcfg["region_start"], *segments
         )
+
+        # apply to EC table
+        ecs = mapping.segment_map_ecs(ecs, seg_mapper)
 
     # write updated table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
@@ -234,14 +242,6 @@ def standard(**kwargs):
         outcfg["enrichment_file"] = prefix + "_enrichment.csv"
         ecs_enriched = pairs.enrichment(ecs)
         ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
-
-    # store useful information about model in outcfg
-    outcfg.update({
-        "num_sites": plmc_result["num_valid_sites"],
-        "num_sequences": plmc_result["num_valid_seqs"],
-        "effective_sequences": plmc_result["effective_samples"],
-        "region_start": plmc_result["region_start"],
-    })
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
@@ -269,11 +269,22 @@ def run(**kwargs):
 
     Returns
     -------
-    # TODO
+    outcfg : dict
+        Output configuration of couplings stage
+        Dictionary with results in following fields:
+        (in brackets: not mandatory)
 
-    Dictionary with results of stage in following fields:
-    (in brackets: not returned by all protocols)
-        # TODO
+         ec_file
+         effective_sequences
+         [enrichment_file]
+         focus_mode
+         focus_sequence
+         model_file
+         num_sequences
+         num_sites
+         raw_ec_file
+         region_start
+         segments
     """
     check_required(kwargs, ["protocol"])
 
