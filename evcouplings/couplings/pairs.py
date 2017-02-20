@@ -118,7 +118,7 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
 
     # now sum cumulative strength of EC for each position
     ec_sums = pd.DataFrame(
-        stacked_ecs.groupby("i").sum()
+        stacked_ecs.groupby(["i", "A_i"]).sum()
     )
 
     # average EC strength for top ECs
@@ -128,7 +128,7 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     # an individual position exceeds average strength in top
     ec_sums.loc[:, "enrichment"] = ec_sums.loc[:, score] / avg_degree
 
-    e = ec_sums.reset_index().loc[:, ["i", "enrichment"]]
+    e = ec_sums.reset_index().loc[:, ["i", "A_i", "enrichment"]]
     return e.sort_values(by="enrichment", ascending=False)
 
 
