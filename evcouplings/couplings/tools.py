@@ -85,7 +85,7 @@ def parse_plmc_log(log):
     # some output only defined in focus mode
     focus_index = None
     valid_sites, total_sites = None, None
-    region_start = None
+    region_start = 1
 
     try:
         focus_index = int(matches["focus"][1])
