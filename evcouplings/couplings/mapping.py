@@ -8,7 +8,7 @@ Authors:
 
 from collections import Iterable
 from copy import deepcopy
-
+import pandas as pd
 
 class Segment:
     """
@@ -287,3 +287,40 @@ class SegmentIndexMapper:
             Monomer indices mapped into couplings object numbering
         """
         return self.__map(x, self.target_to_model)
+
+
+def segment_map_ecs(ecs, mapper):
+    """
+    Map EC dataframe in model numbering into
+    segment numbering
+
+    Parameters
+    ----------
+    ecs : pandas.DataFrame
+        EC table (with columns i and j)
+
+    Returns
+    -------
+    pandas.DataFrame
+        Mapped EC table (with columns i and j
+        mapped, and additional columns
+        segment_i and segment_j)
+    """
+    ecs = deepcopy(ecs)
+
+    def _map_column(col):
+        seg_col = "segment_" + col
+        # create new dataframe with two columns
+        # 1) mapped segment, 2) mapped position
+        col_m = pd.DataFrame(
+            mapper.to_target(ecs.loc[:, col]),
+            columns=[seg_col, col]
+        )
+        ecs.loc[:, col] = col_m.loc[:, col]
+        ecs.loc[:, seg_col] = col_m.loc[:, seg_col]
+
+    # map both position columns (and add segment id)
+    _map_column("i")
+    _map_column("j")
+
+    return ecs
