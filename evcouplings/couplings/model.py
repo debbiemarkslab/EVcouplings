@@ -558,6 +558,10 @@ class CouplingsModel:
         self._index_list = deepcopy(mapping)
         self.index_map = {b: a for a, b in enumerate(self.index_list)}
 
+        # update ECs, if they were already calculated
+        if hasattr(self, "_ecs"):
+            self._calculate_ecs()
+
     def convert_sequences(self, sequences):
         """
         Converts sequences in string format into internal symbol representation
