@@ -37,9 +37,8 @@ def standard(**kwargs):
     Infer ECs from alignment using plmc.
 
     # TODO:
-    (1) auto-infer alphabet from segments?
-    (2) make alphabet an output of alignment stage?
-    (3) remapping based on segments, e.g. for complexes
+    (1) remapping based on segments, e.g. for complexes
+    (2) add enrichment calculation (but must make complex-ready)
 
     Parameters
     ----------
@@ -218,15 +217,23 @@ def standard(**kwargs):
     # add mixture model probability
     ecs = pairs.add_mixture_probability(ecs)
 
-    # write updated table to csv file
-    ecs.to_csv(outcfg["ec_file"], index=False)
-
+    # TODO: make full if condition again
     if segments is not None and len(segments) > 1:
         # TODO: implement remapping to individual segments
         # (may differ between focusmode and non-focusmode)
         raise NotImplementedError(
             "Segment remapping not yet implemented."
         )
+
+    # write updated table to csv file
+    ecs.to_csv(outcfg["ec_file"], index=False)
+
+    # compute EC enrichment (for now, for single segments
+    # only since enrichment code cannot handle multiple segments)
+    if segments is not None or len(segments) == 1:
+        outcfg["enrichment_file"] = prefix + "_enrichment.csv"
+        ecs_enriched = pairs.enrichment(ecs)
+        ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
 
     # store useful information about model in outcfg
     outcfg.update({
