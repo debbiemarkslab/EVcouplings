@@ -555,7 +555,7 @@ class CouplingsModel:
                 )
             )
 
-        self._index_list = np.array(mapping)
+        self._index_list = deepcopy(mapping)
         self.index_map = {b: a for a, b in enumerate(self.index_list)}
 
     def convert_sequences(self, sequences):
