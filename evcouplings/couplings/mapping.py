@@ -6,8 +6,8 @@ Authors:
   Thomas A. Hopf
 """
 
-from collections import defaultdict, Iterable
-import numpy as np
+from collections import Iterable
+from copy import deepcopy
 
 
 class Segment:
@@ -90,132 +90,195 @@ class Segment:
         ]
 
 
-class ComplexIndexMapper:
+class SegmentIndexMapper:
     """
-    Map indices of sequences into concatenated EVcouplings
-    object numbering space. Can in principle also be used
-    to remap indices for a single sequence.
+    Map indices of one or more sequence segments into
+    CouplingsModel internal numbering space. Can also
+    be used to (trivially) remap indices for a single sequence.
     """
-    def __init__(self, couplings, couplings_range, *monomer_ranges):
+    def __init__(self, focus_mode, first_index, *segments):
         """
-        Ranges are tuples of form (start: int, end: int)
-        couplings_range must match the range of EVcouplings object
-        Example: ComplexIndexMapper(c, (1, 196), (1, 103), (1, 93))
+        Create index mapping from individual segments
 
         Parameters
         ----------
-        couplings : EVcouplings
-            Couplings object of complex
-        couplings_range : (int, int)
-            Numbering range in couplings that monomers will be
-            mapped to
-        *monomer_ranges: (int, int):
-            Tuples containing numbering range of each monomer
+        focus_mode : bool
+            Set to true if model was inferred in focus mode,
+            False otherwise.
+        first_index : int
+            Index of first position in model/sequence.
+            For nonfocus mode, should always be one. For focus
+            mode, corresponds to index given in sequence header
+            (1 if not in alignment)
+        *segments: (int, int):
+            Segments containing numberings for each
+            individual segment
         """
-        if len(monomer_ranges) < 1:
-            raise ValueError("Give at least one monomer range")
+        # store segments so we retain full information
+        self.segments = deepcopy(segments)
 
-        self.couplings_range = couplings_range
-        self.monomer_ranges = monomer_ranges
-        self.monomer_to_full_range = {}
+        # build up target indices by going through all segments
+        self.target_pos = []
+        for s in segments:
+            if focus_mode:
+                # in focus mode, we simply assemble the
+                # ranges of continuous indices, because
+                # numbering in model is also continuous
+                cur_target = range(
+                    s.region_start, s.region_end + 1
+                )
+            else:
+                # in non-focus mode, we need to assemble
+                # the indices of actual model positions,
+                # since the numbering in model may be
+                # discontinuous
+                cur_target = s.positions
 
-        # create a list of positions per region that directly
-        # aligns against the full complex range in c_range
-        r_map = []
-        for i, (r_start, r_end) in enumerate(monomer_ranges):
-            m_range = range(r_start, r_end + 1)
-            r_map += zip([i] * len(m_range), m_range)
-            self.monomer_to_full_range[i] = m_range
+            # create tuples of (segment_id, target_pos)
+            self.target_pos += list(zip(
+                [s.segment_id] * len(cur_target),
+                cur_target
+            ))
 
-        c_range = range(couplings_range[0], couplings_range[1] + 1)
-        if len(r_map) != len(c_range):
-            raise ValueError(
-                "Complex range and monomer ranges do not have equivalent lengths "
-                "(complex: {}, sum of monomers: {}).".format(len(c_range), len(r_map))
-            )
+        # create correspond list of model positions;
+        # note that in focus mode, not all of these
+        # positions might actually be in the model
+        # (if they correspond to lowercase columns)
+        self.model_pos = list(range(
+            first_index, first_index + len(self.target_pos)
+        ))
 
-        # These dicts might contain indices not contained in
-        # couplings object because they are lowercase in alignment
-        self.monomer_to_couplings = dict(zip(r_map, c_range))
-        self.couplings_to_monomer = dict(zip(c_range, r_map))
+        # mapping from target sequences (segments) into
+        # model numbering space (continuous numbering)
+        self.target_to_model = dict(
+            zip(self.target_pos, self.model_pos)
+        )
 
-        # store all indices per subunit that are actually
-        # contained in couplings object
-        self.monomer_indices = defaultdict(list)
-        for (monomer, m_res), c_res in sorted(self.monomer_to_couplings.items()):
-            if c_res in couplings.tn():
-                self.monomer_indices[monomer].append(m_res)
+        # inverse mapping from model numbering into target
+        # numbering
+        self.model_to_target = dict(
+            zip(self.model_pos, self.target_pos)
+        )
 
-    def __map(self, indices, mapping_dict):
+    def patch_model(self, model, inplace=True):
         """
-        Applies a mapping either to a single index, or to a list of indices
+        Change numbering of CouplingModel object
+        so that it uses segment-based numbering
 
         Parameters
         ----------
-        indices: int, or (int, int), or lists thereof
-            Indices in input numbering space
-
-        mapping_dict : dict(int->(int, int)) or dict((int, int): int)
-            Mapping from one numbering space into the other
+        model : CouplingsModel
+            Model that will be updated to segment-
+            based numbering
+        inplace : bool, optional (default: True)
+            If True, change passed model; otherwise
+            returnnew object
 
         Returns
         -------
-        list of int, or list of (int, int)
-            Mapped indices
-        """
-        if isinstance(indices, Iterable) and not isinstance(indices, tuple):
-            return np.array([mapping_dict[x] for x in indices])
-        else:
-            return mapping_dict[indices]
+        CouplingsModel
+            Model with updated numbering
+            (if inplace is False, this will
+            point to original model)
 
-    def __call__(self, monomer, res):
+        Raises
+        ------
+        ValueError
+            If segment mapping does not match
+            internal model numbering
         """
-        Function-style syntax for single residue to be mapped
-        (calls toc method)
+        if not inplace:
+            model = deepcopy(model)
+
+        try:
+            mapped = [
+                self.model_to_target[pos]
+                for pos in model.index_list
+            ]
+        except KeyError:
+            raise ValueError(
+                "Mapping from target to model positions does "
+                "not contain all positions of internal model numbering"
+            )
+
+        # update model mapping
+        model.index_list = mapped
+
+        # return updated model
+        return model
+
+    def __map(self, indices, mapping_dict):
+        """
+        Applies index mapping either to a single index,
+        or to a list of indices
 
         Parameters
         ----------
-        monomer : int
-            Number of monomer
-        res : int
-            Position in monomer numbering
+        indices: int, or (str, int), or lists thereof
+            Indices in input numbering space
+
+        mapping_dict : dict(int->(str, int)) or dict((str, int)-> int)
+            Mapping from one indexing space into the other
+
+        Returns
+        -------
+        list of int, or list of (str, int)
+            Mapped indices
+        """
+        if isinstance(indices, Iterable) and not isinstance(indices, tuple):
+            return [mapping_dict[x] for x in indices]
+        else:
+            return mapping_dict[indices]
+
+    def __call__(self, segment_id, pos):
+        """
+        Function-style syntax for single position to be mapped
+        (calls to_model method)
+
+        Parameters
+        ----------
+        segment_id : str
+            Identifier of segment
+        pos : int
+            Position in segment numbering
 
         Returns
         -------
         int
             Index in coupling object numbering space
         """
-        return self.toc((monomer, res))
+        return self.to_model((segment_id, pos))
 
-    def tom(self, x):
+    def to_target(self, x):
         """
-        Map couplings TO *M*onomer
+        Map model index to target index
 
         Parameters
         ----------
         x : int, or list of ints
-            Indices in coupling object
+            Indices in model numbering
 
         Returns
         -------
-        (int, int), or list of (int, int)
-            Indices mapped into monomer numbering. Tuples are
-            (monomer, index in monomer sequence)
+        (str, int), or list of (str, int)
+            Indices mapped into target numbering.
+            Tuples are (segment_id, index_in_segment)
         """
-        return self.__map(x, self.couplings_to_monomer)
+        return self.__map(x, self.model_to_target)
 
-    def toc(self, x):
+    def to_model(self, x):
         """
-        Map monomer TO *C*ouplings / complex
+        Map target index to model index
 
         Parameters
         ----------
-        x : (int, int), or list of (int, int)
-            Indices in momnomers (monomer, index in monomer sequence)
+        x : (str, int), or list of (str, int)
+            Indices in target indexing
+            (segment_id, index_in_segment)
 
         Returns
         -------
         int, or list of int
             Monomer indices mapped into couplings object numbering
         """
-        return self.__map(x, self.monomer_to_couplings)
+        return self.__map(x, self.target_to_model)
