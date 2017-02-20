@@ -783,10 +783,17 @@ class CouplingsModel:
         ecs = []
         for i in range(self.L - 1):
             for j in range(i + 1, self.L):
+                # if we have custom indeces, cannot compute sequence distance
+                # easily, unless we use segment information
+                try:
+                    seqdist = abs(self.index_list[i] - self.index_list[j])
+                except TypeError:
+                    seqdist = np.nan
+
                 ecs.append((
                     self.index_list[i], self.target_seq[i],
                     self.index_list[j], self.target_seq[j],
-                    abs(self.index_list[i] - self.index_list[j]),
+                    seqdist,
                     self._mi_scores_raw[i, j], self._mi_scores_apc[i, j],
                     self._fn_scores[i, j], self._cn_scores[i, j]
                 ))
