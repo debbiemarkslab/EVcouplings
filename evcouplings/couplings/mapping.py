@@ -17,15 +17,13 @@ class Segment:
     or monomers in a concatenated complex alignment)
     """
     def __init__(self, segment_type, sequence_id,
-                 region_start, region_end, positions,
+                 region_start, region_end, positions=None,
                  segment_id="A"):
         """
         Create a new sequence segment
 
         Parameters
         ----------
-        segment_id : str
-            Identifier of segment (must be unique)
         segment_type : {"aa", "dna", "rna"}
             Type of sequence
         sequence_id : str
@@ -35,17 +33,24 @@ class Segment:
         region_end : int
             End index of sequence segment (position
             is inclusive)
-        position_list : list(int)
+        positions : list(int), optional (default: None)
             Positions in the sequence alignment that
             will be used for EC calculation
             (all positions corresponding to uppercase
-            residues)
+            residues). Compulsory parameter when using
+            non-focus mode.
+        segment_id : str
+            Identifier of segment (must be unique)
         """
         self.segment_type = segment_type
         self.sequence_id = sequence_id
         self.region_start = region_start
         self.region_end = region_end
-        self.positions = list(map(int, positions))
+        if positions is not None:
+            self.positions = list(map(int, positions))
+        else:
+            self.positions = None
+
         self.segment_id = segment_id
 
     @classmethod
