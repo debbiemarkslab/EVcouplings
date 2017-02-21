@@ -138,7 +138,6 @@ def _protein_monomer_plot(ali_table, data):
         ali_table.domain_threshold, ali_table.N_eff / ali_table.num_cov,
         "ok-", label="# Sequences"
     )
-
     ax_cov.set_xlabel("Domain inclusion threshold")
     ax_cov.set_ylabel("# effective sequences / L")
     ax_cov.set_title("Sequences and coverage", fontsize=FONTSIZE)
@@ -182,12 +181,14 @@ def _protein_monomer_plot(ali_table, data):
 
     ax_distr.set_xlabel("% sequence identity to query")
     ax_distr.set_title("Sequence identity distribution", fontsize=FONTSIZE)
+    ax_distr.set_xlim(0, 1)
     ax_distr.set_ylim(0, 1)
     ax_distr.legend()
 
     ax_gaps.set_title("Gap statistics", fontsize=FONTSIZE)
     ax_gaps.set_xlabel("Sequence index")
     ax_gaps.set_ylabel("Column coverage (1 - % gaps)")
+    ax_gaps.autoscale(enable=True, axis='x', tight=True)
     ax_gaps.set_ylim(0, 1)
     ax_gaps.legend(loc="best")
 
