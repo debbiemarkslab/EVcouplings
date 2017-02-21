@@ -919,16 +919,25 @@ class CouplingsModel:
 
         Parameters
         ----------
-        indices : Iterable of items to be mapped, or single item
-        mapping: Dictionary containing mapping into new space
+        indices : Iterable, or single item of any type
+            Items that should be mapped into new space.
+            Tuples and strings will not be used as an
+            Iterable, but as single items.
+        mapping : dict
+            Mapping into new space
 
         Returns
         -------
         Iterable, or single item
             Items mapped into new space
         """
-        if ((isinstance(indices, Iterable) and not isinstance(indices, str)) or
-                (isinstance(indices, str) and len(indices) > 1)):
+        is_sequence = (
+            isinstance(indices, Iterable) and
+            not isinstance(indices, str) and
+            not isinstance(indices, tuple)
+        )
+
+        if is_sequence:
             return np.array(
                 [mapping[i] for i in indices]
             )
