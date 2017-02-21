@@ -4,6 +4,5 @@ __pycache__
 *.DS_Store
 .idea
 
-notebooks/*
+notebooks_dev/*
 
-notebooks/alignment_development_v1.ipynb
