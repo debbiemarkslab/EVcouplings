@@ -1,8 +1,7 @@
 __pycache__
 *.pyc
-*.ipynb
 *.DS_Store
 .idea
-
+*.ipynb_checkpoints*
 notebooks_dev/*
 
