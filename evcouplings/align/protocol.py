@@ -7,6 +7,7 @@ Authors:
 
 from collections import OrderedDict, Iterable
 import re
+from shutil import copy
 
 import numpy as np
 import pandas as pd
@@ -65,8 +66,15 @@ def fetch_sequence(sequence_id, sequence_file,
             allow_redirects=True
         )
     else:
-        # if we have sequence file, pass it through
-        out_file = sequence_file
+        # if we have sequence file, try to copy it
+        try:
+            copy(sequence_file, out_file)
+        except FileNotFoundError:
+            raise ResourceError(
+                "sequence_file does not exist: {}".format(
+                    sequence_file
+                )
+            )
 
     # also make sure input file has something in it
     verify_resources(
