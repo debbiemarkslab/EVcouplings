@@ -266,10 +266,13 @@ def standard(**kwargs):
     prefix = kwargs["prefix"]
 
     outcfg = {
-        "ec_file_compared_all": prefix + "_CouplingScoresCompared_all.csv",
-        "ec_file_compared_longrange": prefix + "_CouplingScoresCompared_longrange.csv",
-        "pdb_structure_hits": prefix + "_structure_hits.csv",
-        "pdb_structure_hits_unfiltered": prefix + "_structure_hits_unfiltered.csv",
+        "ec_compared_all_file": prefix + "_CouplingScoresCompared_all.csv",
+        "ec_compared_longrange_file": prefix + "_CouplingScoresCompared_longrange.csv",
+        "pdb_structure_hits_file": prefix + "_structure_hits.csv",
+        "pdb_structure_hits_unfiltered_file": prefix + "_structure_hits_unfiltered.csv",
+        # cannot have the distmap files end with "_file" because there are
+        # two files (.npy and .csv), which would cause problems with automatic
+        # checking if those files exist
         "distmap_monomer": prefix + "_distance_map_monomer",
         "distmap_multimer": prefix + "_distance_map_multimer",
     }
@@ -292,12 +295,12 @@ def standard(**kwargs):
 
     # save selected PDB hits
     sifts_map.hits.to_csv(
-        outcfg["pdb_structure_hits"], index=False
+        outcfg["pdb_structure_hits_file"], index=False
     )
 
     # also save full list of hits
     sifts_map_full.hits.to_csv(
-        outcfg["pdb_structure_hits_unfiltered"], index=False
+        outcfg["pdb_structure_hits_unfiltered_file"], index=False
     )
 
     # Step 2: Compute distance maps
