@@ -502,6 +502,8 @@ def existing(**kwargs):
 
         alignment_file
         statistics_file
+        sequence_file
+        first_index
         target_sequence_file
         annotation_file (None)
         frequencies_file
@@ -633,6 +635,8 @@ def existing(**kwargs):
     # generate output configuration of protocol
     outcfg = {
         **mod_outcfg,
+        "sequence_file": target_sequence_file,
+        "first_index": region_start,
         "target_sequence_file": target_sequence_file,
         "focus_sequence": header,
     }
