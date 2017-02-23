@@ -718,10 +718,16 @@ class SIFTS:
         # remove hits with too little residue coverage
         hits_grouped = hits_grouped.query("overlap >= @min_overlap")
 
+        hits_grouped.loc[:, "bitscore"] = pd.to_numeric(
+            hits_grouped.loc[:, "bitscore"], errors="coerce"
+        )
+        hits_grouped = hits_grouped.sort_values(by="bitscore", ascending=False)
+
         # if requested, only keep one chain per PDB;
         # sort by score before this to keep best hit
         if reduce_chains:
-            hits_grouped = hits_grouped.sort_values(by="bitscore", ascending=False)
             hits_grouped = hits_grouped.groupby("pdb_id").first().reset_index()
+            # sort again, just to be sure...
+            hits_grouped = hits_grouped.sort_values(by="bitscore", ascending=False)
 
         return SIFTSResult(hits_grouped, mappings)
