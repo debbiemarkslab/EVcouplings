@@ -97,6 +97,8 @@ def _identify_structures(**kwargs):
 
             sifts_map = _filter_by_id(sifts_map, pdb_ids)
 
+    sifts_map_full = deepcopy(sifts_map)
+
     # limit number of hits and structures
     if kwargs["max_num_hits"] is not None:
         sifts_map.hits = sifts_map.hits.iloc[:kwargs["max_num_hits"]]
@@ -106,7 +108,7 @@ def _identify_structures(**kwargs):
         keep_ids = keep_ids[:kwargs["max_num_structures"]]
         sifts_map = _filter_by_id(sifts_map, keep_ids)
 
-    return sifts_map
+    return sifts_map, sifts_map_full
 
 
 def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs):
@@ -266,6 +268,7 @@ def standard(**kwargs):
         "ec_file_compared_all": prefix + "_CouplingScoresCompared_all.csv",
         "ec_file_compared_longrange": prefix + "_CouplingScoresCompared_longrange.csv",
         "pdb_structure_hits": prefix + "_structure_hits.csv",
+        "pdb_structure_hits_unfiltered": prefix + "_structure_hits_unfiltered.csv",
         "distmap_monomer": prefix + "_distance_map_monomer",
         "distmap_multimer": prefix + "_distance_map_multimer",
     }
@@ -281,13 +284,19 @@ def standard(**kwargs):
 
     # Step 1: Identify 3D structures for comparison
 
-    sifts_map = _identify_structures(**{
+    sifts_map, sifts_map_full = _identify_structures(**{
         **kwargs,
         "prefix": prefix + "/compare_find"
     })
 
+    # save selected PDB hits
     sifts_map.hits.to_csv(
         outcfg["pdb_structure_hits"], index=False
+    )
+
+    # also save full list of hits
+    sifts_map_full.hits.to_csv(
+        outcfg["pdb_structure_hits_unfiltered"], index=False
     )
 
     # Step 2: Compute distance maps
