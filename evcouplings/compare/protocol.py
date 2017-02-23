@@ -86,18 +86,19 @@ def _identify_structures(**kwargs):
             kwargs["sequence_id"], reduce_chains=reduce_chains
         )
 
-        if kwargs["pdb_ids"] is not None:
-            pdb_ids = kwargs["pdb_ids"]
-
-            # make sure we have a list of PDB IDs
-            if not isinstance(pdb_ids, list):
-                pdb_ids = [pdb_ids]
-
-            pdb_ids = [x.lower() for x in pdb_ids]
-
-            sifts_map = _filter_by_id(sifts_map, pdb_ids)
-
     sifts_map_full = deepcopy(sifts_map)
+
+    # filter ID list down to manually selected PDB entries
+    if kwargs["pdb_ids"] is not None:
+        pdb_ids = kwargs["pdb_ids"]
+
+        # make sure we have a list of PDB IDs
+        if not isinstance(pdb_ids, list):
+            pdb_ids = [pdb_ids]
+
+        pdb_ids = [x.lower() for x in pdb_ids]
+
+        sifts_map = _filter_by_id(sifts_map, pdb_ids)
 
     # limit number of hits and structures
     if kwargs["max_num_hits"] is not None:
