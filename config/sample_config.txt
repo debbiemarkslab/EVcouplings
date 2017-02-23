@@ -101,6 +101,7 @@ compare:
     # if by_alignment is False, will use pdb_ids parameter below
     by_alignment: True
     sequence_file:
+    first_index:
     region:
     alignment_min_overlap: 20
     use_bitscores: True
