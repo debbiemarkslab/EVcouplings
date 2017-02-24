@@ -348,8 +348,8 @@ def standard(**kwargs):
     ec_table = pd.read_csv(kwargs["ec_file"])
 
     for out_file, min_seq_dist in [
-        ("ec_file_compared_longrange", kwargs["min_sequence_distance"]),
-        ("ec_file_compared_all", 0),
+        ("ec_compared_longrange_file", kwargs["min_sequence_distance"]),
+        ("ec_compared_all_file", 0),
     ]:
         # compare ECs only if we minimally have intra distance map
         if d_intra is not None:

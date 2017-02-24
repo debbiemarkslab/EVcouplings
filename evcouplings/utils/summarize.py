@@ -60,7 +60,7 @@ def protein_monomer(prefix, configs):
 
             stat_file = R["statistics_file"]
             ec_file = R.get("ec_file", "")
-            ec_comp_file = R.get("ec_file_compared_longrange", "")
+            ec_comp_file = R.get("ec_compared_longrange_file", "")
 
             prefix_to_cfgs[(sub_prefix)] = (C, R)
 
