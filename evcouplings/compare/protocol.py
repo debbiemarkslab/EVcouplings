@@ -147,6 +147,7 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
             fig = plt.figure(figsize=(8, 8))
             pairs.plot_contact_map(
                 ecs, d_intra, d_multimer,
+                distance_cutoff=kwargs["distance_cutoff"],
                 secondary_structure=secstruct,
                 show_secstruct=kwargs["draw_secondary_structure"],
                 margin=5,
