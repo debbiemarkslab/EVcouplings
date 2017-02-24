@@ -2,7 +2,7 @@
 
 Predict protein structure, function and mutations using evolutionary sequence covariation.
 
-*Please note that this package is in an early stage and under activate development. The API might change at any point without prior warning - use at your own risk :)*
+*Please note that this package is in an early stage and under active development. The API might change at any point without prior warning - use at your own risk :)*
 
 ## Installation and setup
 
