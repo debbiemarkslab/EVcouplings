@@ -8,17 +8,20 @@ Authors:
 import abc
 import inspect
 import os
+import signal
 import subprocess
+import traceback
 import uuid
 import re
 import time
+import psutil
+import queue
+
 import ruamel.yaml as yaml
+import multiprocessing as mp
 
 from tempfile import NamedTemporaryFile
 from enum import Enum
-# ENUMS
-# (PEND, RUN, USUSP, PSUSP, SSUSP, DONE, and EXIT statuses)
-
 
 from evcouplings.utils import PersistentDict
 
@@ -41,11 +44,72 @@ EResource = (lambda **enums: type('Enum', (), enums))(
 )
 
 
+class EJob(Enum): # Internal messages for broker
+    SUBMIT = 0
+    MONITOR = 1
+    CANCEL = 2
+    STOP = 3
+    UPDATE = 4
+    PID = 5
+
+
+class Command(object):
+    """
+    Wrapper around the command parameters needed
+    to execute a script
+    """
+
+    def __init__(self, command, name=None, environment=None, workdir=None, resources=None):
+        """
+        Class represents a command to be submitted and contains all relevant information
+
+        Parameters:
+        -----------
+        command: str/list(str)
+            A single string or a list of strings representing the fully configured commands to be executed
+        name: str
+            The name of the command.
+        environment: str/list(str)
+            A string representing all calls that should be executed before command that configure the environment
+            (e.g., export or source commands).
+        workdir: str
+            Full path or relational path to working dir in which command is executed
+        resources: dict(Resource:str)
+            A dictionary defining resources that can be used by the job (time, memory,
+        """
+
+        self.command_id = str(uuid.uuid4())
+        self.name = name
+
+        self.command = [command] if isinstance(command, str) else command
+        if environment is None:
+            self.environment = []
+        else:
+            self.environment = [environment] if isinstance(environment, str) else environment
+        self.workdir = workdir
+        self.resources = resources
+
+    def __eq__(self, other):
+        if not isinstance(other, Command):
+            return False
+        return self.command_id == other.command_id
+
+    def __str__(self):
+        return "Command:{id}:\n\t{commands}".format(id=self.command_id, commands="&".join(self.command)[:16])
+
+    def __repr__(self):
+        return "Command({id})".format(id=self.command_id)
+
+    def __hash__(self):
+        return hash(self.command_id)
+
+
 # Metaclass for Plugins
 class APluginRegister(abc.ABCMeta):
     """
     This class allows automatic registration of new plugins.
     """
+
     def __init__(cls, name, bases, nmspc):
         super(APluginRegister, cls).__init__(name, bases, nmspc)
 
@@ -224,6 +288,7 @@ class LSFSubmitter(ASubmitter):
                 return EStatus.EXIT
             else:
                 return EStatus.SUSP
+
         return status_map(stdo.split("\n")[1].split()[2])
 
     def __internal_monitor(self, command_id):
@@ -285,36 +350,28 @@ class LSFSubmitter(ASubmitter):
         if dependent is not None:
             try:
                 if isinstance(dependent, Command):
-                    d_info = yaml.load(self.__db[dependent.id], yaml.RoundTripLoader)
+                    d_info = yaml.load(self.__db[dependent.command_id], yaml.RoundTripLoader)
                     dep = "-w {}".format(d_info["job_id"])
                 else:
                     dep_jobs = []
                     for d in dependent:
-                        d_info = yaml.load(self.__db[d.id], yaml.RoundTripLoader)
+                        d_info = yaml.load(self.__db[d.command_id], yaml.RoundTripLoader)
                         dep_jobs.append(d_info["job_id"])
                     # not sure if comma-separated is correct
                     dep = "-w {}".format(" && ".join("ended({})".format(d) for d in dep_jobs))
             except KeyError:
                 raise ValueError("Specified depended jobs have not been submitted yet.")
 
-        if command.environment is not None:
-            env_command = " && ".join(command.environment)
-            env_command += " && "
-        else:
-            env_command = ""
-
-        cmd = env_command + " && ".join(command.command)
-        resources = " ".join(
-            "{} {}".format(self.__resources_flag[k], v)
-            if k != EResource.mem else "{} 'rusage[mem={}]'".format(self.__resources_flag[k], v)
-            for k, v in command.resources.items()
-        )
-
+        combine = " && " if command.environment else ""
+        cmd = " && ".join(command.environment) + combine + " && ".join(command.command)
+        resources = " ".join("{} {}".format(self.__resources_flag[k], v)
+                             if k != EResource.mem else "{} 'rusage[mem={}]'".format(self.__resources_flag[k], v)
+                             for k, v in command.resources.items())
         submit = self.__submit.format(
             cmd=cmd,
             resources=resources,
             dependent=dep,
-            name=command.id
+            name=command.command_id
         )
 
         try:
@@ -336,7 +393,7 @@ class LSFSubmitter(ASubmitter):
         job_id = self.__get_job_id(stdo)
         try:
             # update entry if existing:
-            entry = yaml.load(self.__db[command.id], yaml.RoundTripLoader)
+            entry = yaml.load(self.__db[command.command_id], yaml.RoundTripLoader)
             entry["name"] = command.name
             entry["tries"] += 1
             entry["job_id"] = job_id
@@ -345,7 +402,7 @@ class LSFSubmitter(ASubmitter):
             entry["resources"] = command.resources
             entry["workdir"] = command.workdir
             entry["environment"] = command.environment
-            self.__db[command.id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+            self.__db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
         except KeyError:
             # add new entry
             entry = {
@@ -358,14 +415,14 @@ class LSFSubmitter(ASubmitter):
                 "workdir": command.workdir,
                 "environment": command.environment
             }
-            self.__db[command.id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+            self.__db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
             self.__db.sync()
 
         return job_id
 
     def cancel(self, command):
         try:
-            job_id = yaml.load(self.__db[command.id], yaml.RoundTripLoader)["job_id"]
+            job_id = yaml.load(self.__db[command.command_id], yaml.RoundTripLoader)["job_id"]
         except KeyError:
             raise ValueError(
                 "Command " + repr(command) + " has not been submitted yet."
@@ -387,15 +444,15 @@ class LSFSubmitter(ASubmitter):
             raise RuntimeError(e)
 
         # TODO: update db - Delete entry or just update?
-        entry = yaml.load(self.__db[command.id], yaml.RoundTripLoader)
+        entry = yaml.load(self.__db[command.command_id], yaml.RoundTripLoader)
         entry["status"] = EStatus.EXIT
-        self.__db[command.id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+        self.__db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
         self.__db.sync()
 
         return True
 
     def monitor(self, command):
-        return self.__internal_monitor(command.id)
+        return self.__internal_monitor(command.command_id)
 
     def join(self):
         if self.isBlocking:
@@ -405,53 +462,357 @@ class LSFSubmitter(ASubmitter):
                 if not unfinished:
                     break
                 else:
-                    time.sleep(5)
+                    time.sleep(2)
 
 
-class Command(object):
+########################################################################################################################
+#
+# Local submitter
+#
+########################################################################################################################
+
+
+class _Worker(mp.Process):
     """
-    Wrapper around the command parameters needed
-    to execute a script
+    _Worker class that runs commands
+
     """
 
-    def __init__(self, command, name=None, environment=None, workdir=None, resources=None):
+    def __init__(self, broker_queue, input_queue, results_queue):
+        mp.Process.__init__(self)
+        self.__broker_queue = broker_queue
+        self.__input_queue = input_queue
+        self.__results_queue = results_queue
+
+    def run(self):
+        for job in iter(self.__input_queue.get, EJob.CANCEL):
+
+            self.__broker_queue.put((EJob.UPDATE, (job.command_id, EStatus.RUN)))
+            try:
+                self.__submit(job)
+                self.__broker_queue.put((EJob.UPDATE, (job.command_id, EStatus.DONE)))
+            except Exception as e:
+                self.__broker_queue.put((EJob.UPDATE, (job.command_id, EStatus.EXIT)))
+            self.__input_queue.task_done()
+
+    def __submit(self, command):
         """
-        Class represents a command to be submitted and contains all relevant information
+        local function to submit a job
+
+        Parameters:
+        ----------
+        command: Command
+            The Command object to execute
+
+        Returns
+        -------
+        PId: str
+            The process ID of the command
+        """
+        try:
+            combine = " && " if command.environment else ""
+            cmd = " && ".join(command.environment) + combine + " && ".join(command.command)
+            p = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, universal_newlines=True, cwd=command.workdir,
+                                 preexec_fn=os.setsid)
+            self.__broker_queue.put((EJob.PID, (command.command_id, p.pid)))
+            stdo, stde = p.communicate()
+            stdr = p.returncode
+            if stdr != 0:
+                raise RuntimeError("Unsuccessful execution of " + repr(command) + " (EXIT!=0) with error: " + stde)
+        except Exception as e:
+            raise RuntimeError(e)
+
+
+class _Broker(mp.Process):
+    """
+    _Broker process handling dependencies and
+    submission of jobs
+    """
+
+    def __init__(self, broker_queue, worker_queue, results_queue, pending_dict, db_path=None, ncpu=1):
+        mp.Process.__init__(self)
+        self.__input_queue = broker_queue
+        self.__results_queue_master = results_queue
+        self.__results_queue_worker = mp.Queue()
+        self.__worker_queue = worker_queue
+        self.__pending_dict = pending_dict
+
+        self.__worker = []
+        for i in range(ncpu):
+            p = _Worker(self.__input_queue, self.__worker_queue, self.__results_queue_worker)
+            self.__worker.append(p)
+            p.start()
+
+        if db_path is None:
+            tmp_db = NamedTemporaryFile(delete=False, dir=os.getcwd(), suffix=".db")
+            tmp_db.close()
+            self.__is_temp_db = True
+            self.__db_path = tmp_db.name
+        else:
+            self.__is_temp_db = False
+            self.__db_path = db_path
+
+        self.__db = PersistentDict(self.__db_path)
+
+    def __del__(self):
+        try:
+            self.__input_queue.close()
+            self.__results_queue_master.close()
+            self.__results_queue_worker.close()
+            self.__worker_queue.close()
+            self.__input_queue.join_thread()
+            self.__results_queue_master.join_thread()
+            self.__results_queue_worker.join_thread()
+            self.__worker_queue.join_thread()
+
+            # kill remaining runing commands
+            for k, v in self.__db.RangeIter():
+                if v["status"] not in [EStatus.EXIT, EStatus.DONE]:
+                    os.killpg(os.getpgid(v["job_id"]), signal.SIGKILL)
+
+            # terminate workers
+            for p in self.__worker:
+                p.terminate()
+            self.__db.close()
+            if self.__is_temp_db:
+                os.remove(self.__db_path)
+        except AttributeError:
+            pass
+
+    def run(self):
+        while True:
+            try:
+                args = self.__input_queue.get(True, 1)
+                ejob, args = args
+                if ejob == EJob.STOP:
+                    self.terminate()
+
+                elif ejob == EJob.MONITOR:
+                    self.__results_queue_master.put(self.__monitor(args))
+
+                elif ejob == EJob.CANCEL:
+                    status = self.__cancel(args)
+                    self.__results_queue_master.put(True)
+                    self.__update_status(args.command_id, status)
+
+                elif ejob == EJob.UPDATE:
+                    # some command has started message is coming from worker process
+                    c_id, status = args
+                    self.__update_status(c_id, status)
+
+                elif ejob == EJob.PID:
+                    job_id, p_id = args
+                    entry = yaml.load(self.__db[job_id], yaml.RoundTripLoader)
+                    entry["job_id"] = p_id
+                    self.__db[job_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+                    self.__db.sync()
+
+                else:
+                    job, dependent = args
+                    self.__add_command(job)
+                    if dependent is not None:
+                        self.__pending_dict[job] = dependent
+                    else:
+                        self.__worker_queue.put(job)
+
+            except queue.Empty:
+                # go through pending jobs and update status
+                # if one of the dependent jobs terminated with an error pending job is also terminated with error
+                for job, dependent in list(self.__pending_dict.items()):
+                    status = self.__condition_fulfilled(dependent)
+                    if status == EStatus.EXIT:
+                        # job cannot be called due to termination of dependent jobs
+                        self.__update_status(job.command_id, EStatus.EXIT)
+                        del self.__pending_dict[job]
+                    elif status == EStatus.RUN:
+                        self.__worker_queue.put(job)
+                        del self.__pending_dict[job]
+            except Exception as e:
+                tb = traceback.format_exc()
+                self.__results_queue_master.put((e, tb))
+
+    def __condition_fulfilled(self, dependent):
+        for d in dependent:
+            status = self.__monitor(d)
+            if status == EStatus.EXIT:
+                return EStatus.EXIT
+            if status != EStatus.DONE:
+                return EStatus.PEND
+        return EStatus.RUN
+
+    def __add_command(self, command):
+        try:
+            # update entry if existing:
+            entry = yaml.load(self.__db[command.command_id], yaml.RoundTripLoader)
+            entry["name"] = command.name
+            entry["tries"] += 1
+            entry["job_id"] = None
+            entry["status"] = EStatus.PEND
+            entry["command"] = command.command
+            entry["resources"] = command.resources
+            entry["workdir"] = command.workdir
+            entry["environment"] = command.environment
+            self.__db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+        except KeyError:
+            # add new entry
+            entry = {
+                "name": command.name,
+                "job_id": None,
+                "tries": 1,
+                "status": EStatus.PEND,
+                "command": command.command,
+                "resources": command.resources,
+                "workdir": command.workdir,
+                "environment": command.environment
+            }
+            self.__db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+            self.__db.sync()
+
+    def __cancel(self, command):
+        try:
+            entry = yaml.load(self.__db[command.command_id], yaml.RoundTripLoader)
+        except KeyError:
+            raise ValueError("Command " + repr(command.command_id) + " has not been submitted yet.")
+        p_id = entry["job_id"]
+        status = self.__monitor(command)
+        if status == EStatus.PEND:
+            del self.__pending_dict[command]
+        elif status in [EStatus.SUSP, EStatus.RUN]:
+            os.killpg(os.getpgid(p_id), signal.SIGKILL)
+        elif status == EStatus.DONE:
+            return status
+        return EStatus.EXIT
+
+    def __monitor(self, command):
+        """
+        local function to monitor a command via assigned pID
 
         Parameters:
         -----------
-        command: str/list(str)
-            A single string or a list of strings representing the fully
-            configured commands to be executed
-        name: str
-            The name of the command.
-        environment: str/list(str)
-            A string representing all calls that should be executed before
-            command that configure the environment (e.g., export or source commands).
-        workdir: str
-            Full path or relational path to working dir in which command is executed
-        resources: dict(Resource:str)
-            A dictionary defining resources that can be used by the job
-            (time, memory, queue, ...)
+        command: Command
+            The Command object
+
+        Returns:
+        --------
+        status: EStatus
+            The status of the command
         """
+        if command in self.__pending_dict:
+            return EStatus.PEND
 
-        self.id = str(uuid.uuid4())
-        self.name = name
+        try:
+            entry = yaml.load(self.__db[command.command_id], yaml.RoundTripLoader)
+        except KeyError:
+            raise ValueError("Command " + repr(command.command_id) + " has not been submitted yet.")
 
-        self.command = [command] if isinstance(command, str) else command
-        self.environment = [environment] if isinstance(environment, str) else environment
-        self.workdir = workdir
-        self.resources = resources
+        p_id = entry["job_id"]
+        cmd = entry["command"][0]
 
-    def __eq__(self, other):
-        if isinstance(other, Command):
-            return False
-        return self.id == other.id
+        try:
+            # I think if PID is completed this should through an error ....
+            p = psutil.Process(pid=p_id)
+            status = p.status()
+            p_cmd = " ".join(p.cmdline())
 
-    def __str__(self):
-        return "Command:{id}:\n\t{commands}".format(
-            id=self.id, commands="&".join(self.command)[:16]
-        )
+            # test status types # if status is ZOMBIE also kill the job
+            # pid can be already in use by other process... one has to check the command as well....
+            # if p_cmd is different than the original process is probably completed
+            if cmd not in p_cmd:
+                c_stat = EStatus.DONE
 
-    def __repr__(self):
-        return "Command({id})".format(id=self.id)
+            elif status in [psutil.STATUS_DEAD, psutil.STATUS_ZOMBIE]:
+                p.kill()
+                c_stat = EStatus.EXIT
+
+            elif status == psutil.STATUS_RUNNING:
+                c_stat = EStatus.SUSP
+            else:
+                c_stat = EStatus.SUSP
+        except psutil.NoSuchProcess:
+            c_stat = EStatus.DONE
+        except psutil.AccessDenied:
+            c_stat = EStatus.RUN
+
+        entry["status"] = c_stat
+        self.__db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+        self.__db.sync()
+        return c_stat
+
+    def __update_status(self, c_id, status):
+        """
+        updates the status of a command
+
+        Parameters:
+        -----------
+        c_id: str
+            The Command id
+        status: EStatus
+            The  new status
+        """
+        try:
+            entry = yaml.load(self.__db[c_id], yaml.RoundTripLoader)
+        except KeyError:
+            raise ValueError("Command " + repr(c_id) + " has not been submitted yet.")
+        entry["status"] = status
+        self.__db[c_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+        self.__db.sync()
+
+
+class LocalSubmitter(ASubmitter):
+    __name = "local"
+
+    def __init__(self, blocking=False, db_path=None, ncpu=1):
+        """
+        Init function
+
+        Parameters:
+        blocking: bool
+            determines whether join() blocks or not
+        db_path: str
+            the string to a LevelDB for command persistence
+        """
+        self.__blocking = blocking
+        self.__broker_queue = mp.Queue()
+        self.__job_queue = mp.JoinableQueue()
+        self.__pending_dict = mp.Manager().dict()
+        self.__results_queue = mp.Queue()
+        self.__broker = _Broker(self.__broker_queue, self.__job_queue, self.__results_queue,
+                                self.__pending_dict, db_path=db_path, ncpu=ncpu)
+        self.__broker.start()
+
+    def __del__(self):
+        try:
+            self.__broker.terminate()
+        except AttributeError:
+            pass
+
+    @property
+    def name(self):
+        return self.__name
+
+    @property
+    def isBlocking(self):
+        return self.__blocking
+
+    def submit(self, command, dependent=None):
+        if isinstance(dependent, Command) and dependent is not None:
+            dependent = [dependent]
+        self.__broker_queue.put((EJob.SUBMIT, (command, dependent)))
+        return command.command_id
+
+    def cancel(self, command):
+        self.__broker_queue.put((EJob.CANCEL, command))
+        return self.__results_queue.get()
+
+    def monitor(self, command):
+        self.__broker_queue.put((EJob.MONITOR, command))
+        return self.__results_queue.get()
+
+    def join(self):
+        if self.isBlocking:
+            while self.__pending_dict:
+                time.sleep(2)
+            self.__job_queue.join()
+        else:
+            pass

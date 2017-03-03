@@ -8,7 +8,6 @@ Authors:
 from collections import OrderedDict
 import pickle, json, csv, os, shutil
 
-
 class PersistentDict(dict):
     ''' Persistent dictionary with an API compatible with shelve and anydbm.
 
