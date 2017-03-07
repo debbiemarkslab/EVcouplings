@@ -99,7 +99,8 @@ def valid_file(file_path):
     """
     try:
         return os.stat(file_path).st_size > 0
-    except OSError:
+    except (OSError, TypeError):
+        # catch TypeError for nonsense paths, e.g. None
         return False
 
 
