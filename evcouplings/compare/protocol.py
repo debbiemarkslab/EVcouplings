@@ -198,9 +198,11 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
 
         for c in cutoffs:
             ec_set = ecs_longrange.query("probability >= @c")
-            output_file = prefix + "_significant_ECs_{}.pdf".format(c)
-            plot_cm(ec_set, output_file=output_file)
-            cm_files.append(output_file)
+            # only can plot if we have any significant ECs above threshold
+            if len(ec_set) > 0:
+                output_file = prefix + "_significant_ECs_{}.pdf".format(c)
+                plot_cm(ec_set, output_file=output_file)
+                cm_files.append(output_file)
 
     # based on number of long-range ECs
 
