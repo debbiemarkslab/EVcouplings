@@ -139,7 +139,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
             monomer_pos = set(monomer.residues_i.id.astype(int))
 
         if multimer is not None:
-            multimer_pos = set(monomer.residues_i.id.astype(int))
+            multimer_pos = set(multimer.residues_i.id.astype(int))
 
         structure_pos = monomer_pos.union(multimer_pos)
 
