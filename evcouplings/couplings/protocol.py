@@ -238,7 +238,7 @@ def standard(**kwargs):
 
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
-    if segments is not None or len(segments) == 1:
+    if segments is None or len(segments) == 1:
         outcfg["enrichment_file"] = prefix + "_enrichment.csv"
         ecs_enriched = pairs.enrichment(ecs)
         ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
