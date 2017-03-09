@@ -10,6 +10,7 @@ from collections import Iterable
 from copy import deepcopy
 import pandas as pd
 
+
 class Segment:
     """
     Represents a continuous stretch of sequence in a sequence
@@ -316,8 +317,10 @@ def segment_map_ecs(ecs, mapper):
             mapper.to_target(ecs.loc[:, col]),
             columns=[seg_col, col]
         )
-        ecs.loc[:, col] = col_m.loc[:, col]
-        ecs.loc[:, seg_col] = col_m.loc[:, seg_col]
+        # assign values instead of Series, because otherwise
+        # wrong values end up in column
+        ecs.loc[:, col] = col_m.loc[:, col].values
+        ecs.loc[:, seg_col] = col_m.loc[:, seg_col].values
 
     # map both position columns (and add segment id)
     _map_column("i")
