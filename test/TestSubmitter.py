@@ -1,4 +1,5 @@
 import os
+import unittest
 from unittest import TestCase
 from evcouplings.utils import SubmitterFactory, Command
 
@@ -52,8 +53,14 @@ class TestSubmitter(TestCase):
 
         local.submit(c1)
         local.submit(c2, dependent=c1)
-        local.monitor(c2)
-        assert local.monitor(c2) in ["susp", "pend"]
+        x = local.monitor(c2)
+
+        assert  x in ["susp", "pend"]
         local.join()
         assert os.path.exists("./test/test_submission.txt")
+        os.remove("./test/test_submission.txt")
         os.remove("./test/test.db")
+
+
+if __name__ == '__main__':
+    unittest.main()

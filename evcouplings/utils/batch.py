@@ -483,6 +483,7 @@ class _Worker(mp.Process):
         self.__broker_queue = broker_queue
         self.__input_queue = input_queue
         self.__results_queue = results_queue
+        self.daemon = True
 
     def run(self):
         for job in iter(self.__input_queue.get, EJob.CANCEL):
@@ -530,53 +531,23 @@ class _Broker(mp.Process):
     submission of jobs
     """
 
-    def __init__(self, broker_queue, worker_queue, results_queue, pending_dict, db_path=None, ncpu=1):
+    def __init__(self, broker_queue, worker_queue, results_queue, results_queue_worker, pending_dict, db_path=None):
         mp.Process.__init__(self)
         self.__input_queue = broker_queue
         self.__results_queue_master = results_queue
-        self.__results_queue_worker = mp.Queue()
+        self.__results_queue_worker = results_queue_worker
         self.__worker_queue = worker_queue
         self.__pending_dict = pending_dict
-
-        self.__worker = []
-        for i in range(ncpu):
-            p = _Worker(self.__input_queue, self.__worker_queue, self.__results_queue_worker)
-            self.__worker.append(p)
-            p.start()
-
-        if db_path is None:
-            tmp_db = NamedTemporaryFile(delete=False, dir=os.getcwd(), suffix=".db")
-            tmp_db.close()
-            self.__is_temp_db = True
-            self.__db_path = tmp_db.name
-        else:
-            self.__is_temp_db = False
-            self.__db_path = db_path
-
-        self.__db = PersistentDict(self.__db_path)
+        self.__db = PersistentDict(db_path)
 
     def __del__(self):
         try:
-            self.__input_queue.close()
-            self.__results_queue_master.close()
-            self.__results_queue_worker.close()
-            self.__worker_queue.close()
-            self.__input_queue.join_thread()
-            self.__results_queue_master.join_thread()
-            self.__results_queue_worker.join_thread()
-            self.__worker_queue.join_thread()
-
             # kill remaining runing commands
             for k, v in self.__db.RangeIter():
                 if v["status"] not in [EStatus.EXIT, EStatus.DONE]:
                     os.killpg(os.getpgid(v["job_id"]), signal.SIGKILL)
 
-            # terminate workers
-            for p in self.__worker:
-                p.terminate()
             self.__db.close()
-            if self.__is_temp_db:
-                os.remove(self.__db_path)
         except AttributeError:
             pass
 
@@ -777,13 +748,47 @@ class LocalSubmitter(ASubmitter):
         self.__job_queue = mp.JoinableQueue()
         self.__pending_dict = mp.Manager().dict()
         self.__results_queue = mp.Queue()
-        self.__broker = _Broker(self.__broker_queue, self.__job_queue, self.__results_queue,
-                                self.__pending_dict, db_path=db_path, ncpu=ncpu)
+        self.__results_queue_worker = mp.Queue()
+
+        if db_path is None:
+            tmp_db = NamedTemporaryFile(delete=False, dir=os.getcwd(), suffix=".db")
+            tmp_db.close()
+            self.__is_temp_db = True
+            self.__db_path = tmp_db.name
+        else:
+            self.__is_temp_db = False
+            self.__db_path = db_path
+
+        self.__broker = _Broker(self.__broker_queue, self.__job_queue, self.__results_queue, self.__results_queue_worker,
+                                self.__pending_dict, db_path=self.__db_path)
+        self.__broker.daemon = True
         self.__broker.start()
+
+        self.__worker = []
+        for i in range(ncpu):
+            p = _Worker(self.__broker_queue, self.__job_queue, self.__results_queue_worker)
+            p.daemon = True
+            self.__worker.append(p)
+            p.start()
 
     def __del__(self):
         try:
+            self.__broker_queue.close()
+            self.__job_queue.close()
+            self.__results_queue.close()
+            self.__results_queue_worker.close()
+
+            self.__broker_queue.join_thread()
+            self.__job_queue.join_thread()
+            self.__results_queue.join_thread()
+            self.__results_queue_worker.join_thread()
+
             self.__broker.terminate()
+            for w in self.__worker:
+                w.terminate()
+
+            if self.__is_temp_db:
+                os.remove(self.__db_path)
         except AttributeError:
             pass
 
