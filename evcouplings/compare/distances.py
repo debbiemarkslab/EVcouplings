@@ -864,7 +864,7 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
     DistanceMap
         Computed aggregated distance map
         across all input structures
-    
+
     Raises
     ------
     ValueError
