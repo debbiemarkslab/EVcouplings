@@ -4,6 +4,10 @@ python:
 - '3.6'
 before_install:
 - pip install --upgrade pip
+- sudo apt-get install zlib1g zlib1g-dev libedit libedit-dev llvm-3.8 llvm-3.8-dev llvm-dev
+- sudo pip install enum34 funcsigs
+- LLVM_CONFIG=/usr/bin/llvm-config-3.8 pip install llvmlite --user
+- LLVM_CONFIG=/usr/bin/llvm-config-3.8 pip install numba --user
 install:
 - python setup.py sdist --formats=zip -k
 - find ./dist -iname "*.zip" -print0 | xargs -0 pip install
