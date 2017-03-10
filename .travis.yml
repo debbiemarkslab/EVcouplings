@@ -1,0 +1,19 @@
+language: python
+python:
+- '3.5'
+- '3.6'
+before_install:
+- pip install --upgrade pip
+install:
+- python setup.py sdist --formats=zip -k
+- find ./dist -iname "*.zip" -print0 | xargs -0 pip install
+script:
+- python -m unittest -s test
+deploy:
+  provider: pypi
+  user: debbiemarkslab
+  password:
+    secure: Sb/tV/lGrmyHEJH62FLUd1E1MlsxNQh1gjNGOHcOJzaa3mvMoc2k2ImjTQK+FFnMTQ2NNPGotrKuAzgWWmOqCPzmlKOR+H+P3IceqoUX3LKxS+SFAl1NnH9PIXbhoS4qiX7/d4OkipoQYNEzGVsLljVlFOEoP4OC9OQe2lXuYd+9+fFTLMTzEreo1VF1q2A3oY/bjpny4eO43ilN6aiaFqgkST/2vy+akXL7pas+rGwe11OH+HswAcN5YJUQmaYvUirG9M99wCGrH+5p7wRdLOZHq3+KXfpQZ3NXawybYqttEi7cxsK8+Q3hdOf5s0bImuJtKqZtpj5/ie2OmwgfIqAFm9r/CuIpRQ7VPW0GcNG8xhOMUx2XpBhcy+e2Trq8o7/k7gbsSo2JStndeh1zm/1Ejk/ImOa7pSxNzazgXkaae75Oh4zG7WWzBpJ0elGSwq55SZUzXKskFAXXjL8bK77c1zt766olXLdmN+JfmrMKQURS+vJLGSVU/8zmk8GYkEP53u+u/UepsQ8N30cNZJvlxJQmwteI/FpsuY4MZ4zvnNpmpsProPMyQnE6KFI4c+fZpFcSXYbgQvkLhN0x8g9AshYKXYtWZd2/cQxWWK9tMTrkJSKKrZLhyCBFyXy1IgZp0ECPjMZYrunB/yPeIWFLACglL8d+I4pooJPwy+k= 
+  on:
+    tags: true
+
