@@ -27,7 +27,7 @@ install:
   - python setup.py sdist --formats=zip -k
   - find ./dist -iname "*.zip" -print0 | xargs -0 pip install
 script:
-- python -m unittest -s test
+  - python -m unittest discover -s test -p "Test*.py"
 deploy:
   provider: pypi
   user: debbiemarkslab
