@@ -170,7 +170,7 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
                     secondary_structure=None, wildtype_sequence=None,
                     min_value=None, max_value=None,
                     ax=None, colormap=plt.cm.RdBu_r,
-                    colormap_conservation=plt.cm.Oranges,
+                    colormap_conservation=plt.cm.Oranges, na_color="#bbbbbb",
                     title=None, position_label_size=8, substitution_label_size=8,
                     show_colorbar=True, colorbar_indicate_bounds=False,
                     secondary_structure_style=None):
@@ -210,6 +210,8 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
         Maps mutation effects to colors of matrix cells.
     colormap_conservation: matplotlib colormap object, optional (default: plt.cm.Oranges)
         Maps sequence conservation to colors of conservation vector plot.
+    na_color : str, optional (default: "#bbbbbb")
+        Color for missing values in matrix
     title : str, optional (default: None)
         If given, set title of plot to this value.
     position_label_size : int, optional (default: 8)
@@ -252,6 +254,12 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
     if max_value is None or min_value is None:
         max_value = np.abs(matrix_masked).max()
         min_value = -max_value
+
+    # set NaN color value in colormaps
+    colormap = deepcopy(colormap)
+    colormap.set_bad(na_color)
+    colormap_conservation = deepcopy(colormap_conservation)
+    colormap_conservation.set_bad(na_color)
 
     # determine size of plot (depends on how much tracks
     # with information we will add)
