@@ -105,3 +105,30 @@ def remove_chart_junk(ax=None, remove=("top", "right"),
             plt.setp(plt.gca().get_xticklabels(), visible=False)
         if hide_y_labels:
             plt.setp(plt.gca().get_yticklabels(), visible=False)
+
+
+def rgb2hex(r, g, b, a=None):
+    """
+    Transform RGB color into hexadecimal format
+
+    Parameters
+    ----------
+    r : float
+        Red component (0-1)
+    g : float
+        Green component (0-1)
+    b : float
+        Blue component (0-1)
+    a : float, optional (default: None)
+        Alpha channel, will be ignored
+        (exists only for convenient rgba
+        tuple unpacking)
+
+    Returns
+    -------
+    str
+        Hexadecimal color code (prefixed by #)
+    """
+    return "#{:02x}{:02x}{:02x}".format(
+        int(255 * r), int(255 * g), int(255 * b)
+    )
