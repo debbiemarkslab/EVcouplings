@@ -122,7 +122,8 @@ setup(
 
     install_requires=[
         'setuptools>=18.2', 'pandas', 'numpy', 'scipy', 'numba', 'ruamel.yaml',
-        'matplotlib', 'requests', 'mmtf-python', 'click', 'filelock', 'psutil'
+        'matplotlib', 'requests', 'mmtf-python', 'click', 'filelock', 'psutil',
+        'bokeh',
     ],
 
 
