@@ -4,12 +4,166 @@ Visualization of mutation effects
 Authors:
   Thomas A. Hopf
 """
+
+from math import isnan
+from copy import deepcopy
+
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+from bokeh import plotting as bp
+from bokeh.properties import value as bokeh_value
+from bokeh.models import HoverTool
 
 from evcouplings.visualize.pairs import (
     secondary_structure_cartoon, find_secondary_structure_segments
 )
+from evcouplings.visualize.misc import rgb2hex
+
+
+def matrix_base_bokeh(matrix, positions, substitutions,
+                      wildtype_sequence=None, label_size=8,
+                      min_value=None, max_value=None,
+                      colormap=plt.cm.RdBu_r, na_color="#bbbbbb",
+                      title=None):
+    """
+    Bokeh-based interactive mutation matrix plotting. This is the base
+    plotting function, see plot_mutation_matrix() for more convenient access.
+
+    Parameters
+    ----------
+    matrix : np.array(float)
+        2D numpy array with values for individual single mutations
+        (first axis: position, second axis: substitution)
+    positions : list(int) or list(str)
+        List of positions along x-axis of matrix
+        (length has to agree with first dimension of matrix)
+    substitutions : list(str)
+        List of substitutions along y-axis of matrix
+        (length has to agree with second dimension of matrix)
+    wildtype_sequence : str or list(str), optional (default: None)
+        Sequence of wild-type symbols. If given, will indicate wild-type
+        entries in matrix with a dot.
+    label_size : int, optional (default: 8)
+        Font size of x/y-axis labels.
+    min_value : float, optional (default: None)
+        Threshold colormap at this minimum value.
+    max_value : float, optional (default: None)
+        Threshold colormap at this maximum value.
+    colormap : matplotlib colormap object, optional (default: plt.cm.RdBu_r)
+        Maps mutation effects to colors of matrix cells.
+    na_color : str, optional (default: "#bbbbbb")
+        Color for missing values in matrix
+    title : str, optional (default: None)
+        If given, set title of plot to this value.
+
+    Returns
+    -------
+    bokeh.plotting.figure.Figure
+        Bokeh figure (for displaying or saving)
+    """
+
+    # figure out maximum and minimum values for color map
+    if max_value is None or min_value is None:
+        max_value = np.nanmax(np.abs(matrix))
+        min_value = -max_value
+
+    # use matplotlib colormaps to create color values,
+    # set ranges based on given values
+    norm = mpl.colors.Normalize(vmin=min_value, vmax=max_value)
+    mapper = plt.cm.ScalarMappable(norm=norm, cmap=colormap)
+
+    # build list of values for plotting from source matrix
+    pos_list = []
+    subs_list = []
+    color_list = []
+    effect_list = []
+
+    # go through values on x-axis (substitutions)
+    for i, pos in enumerate(positions):
+        if wildtype_sequence is not None:
+            wt_symbol = wildtype_sequence[i]
+            pos = "{} {}".format(wt_symbol, pos)
+        else:
+            wt_symbol = None
+            pos = str(pos)
+
+        # go through all values on y-axis (substitutions)
+        for j, subs in enumerate(substitutions):
+            pos_list.append(pos)
+            subs_list.append(str(subs))
+
+            cur_effect = matrix[i, j]
+            if isnan(cur_effect):
+                cur_effect_str = "n/a"
+                color_list.append(na_color)
+            else:
+                cur_effect_str = "{:.2f}".format(cur_effect)
+                color_list.append(
+                    rgb2hex(*mapper.to_rgba(cur_effect))
+                )
+
+            # attach info if this is WT to WT self substitution
+            if subs == wt_symbol:
+                cur_effect_str += " (WT)"
+
+            effect_list.append(cur_effect_str)
+
+    source = bp.ColumnDataSource(
+        data=dict(
+            position=pos_list,
+            substitution=subs_list,
+            color=color_list,
+            effect=effect_list,
+        )
+    )
+
+    TOOLS = "resize,hover"
+    height_factor = 12
+    width_factor = 10
+
+    # create lists of values for x- and y-axes, which will be
+    # axis labels;
+    # keep all of these as strings so we can have WT/substitution
+    # symbol in the label
+    if wildtype_sequence is None:
+        positions = list(map(str, positions))
+    else:
+        positions = [
+            "{} {}".format(wildtype_sequence[i], p)
+            for i, p in enumerate(positions)
+        ]
+
+    substitutions = list(map(str, substitutions))
+
+    p = bp.figure(
+        title=title,
+        x_range=positions, y_range=substitutions,
+        x_axis_location="above", plot_width=width_factor * len(positions),
+        plot_height=height_factor * len(substitutions),
+        toolbar_location="left", tools=TOOLS
+    )
+
+    p.rect(
+        "position", "substitution", 1, 1, source=source,
+        color="color", line_color=None
+    )
+
+    # modify plot style
+    p.grid.grid_line_color = None
+    p.axis.axis_line_color = None
+    p.axis.major_tick_line_color = None
+    p.axis.major_label_text_font_size = bokeh_value("{}pt".format(label_size))
+    p.axis.major_label_standoff = 0
+    p.xaxis.major_label_orientation = np.pi / 2
+    p.toolbar_location = None
+
+    p.select_one(HoverTool).tooltips = [
+        ('mutant', '@position @substitution'),
+        ('effect', '@effect'),
+    ]
+
+    return p
 
 
 def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
