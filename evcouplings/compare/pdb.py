@@ -7,12 +7,13 @@ Authors:
 
 from collections import OrderedDict, Iterable
 from os import path
+from urllib.error import HTTPError
 
 from mmtf import fetch, parse
 import numpy as np
 import pandas as pd
 
-from evcouplings.utils.system import valid_file
+from evcouplings.utils.system import valid_file, ResourceError
 
 # Mapping from MMTF secondary structure codes to DSSP symbols
 MMTF_DSSP_CODE_MAP = {
@@ -303,7 +304,12 @@ class PDB:
         PDB
             initialized PDB structure
         """
-        return cls(parse(filename))
+        try:
+            return cls(parse(filename))
+        except FileNotFoundError as e:
+            raise ResourceError(
+                "Could not find file {}".format(filename)
+            ) from e
 
     @classmethod
     def from_id(cls, pdb_id):
@@ -321,7 +327,12 @@ class PDB:
         PDB
             initialized PDB structure
         """
-        return cls(fetch(pdb_id))
+        try:
+            return cls(fetch(pdb_id))
+        except HTTPError as e:
+            raise ResourceError(
+                "Could not fetch MMTF data for {}".format(pdb_id)
+            ) from e
 
     def get_chain(self, chain, model=0):
         """
