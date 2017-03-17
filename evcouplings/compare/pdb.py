@@ -461,7 +461,7 @@ class PDB:
         return Chain(res_df, coord_df)
 
 
-def load_structures(pdb_ids, structure_dir=None):
+def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
     """
     Load PDB structures from files / web
 
@@ -475,12 +475,22 @@ def load_structures(pdb_ids, structure_dir=None):
         filenames must be in the format 5p21.mmtf.
         If a file can not be found, will try to fetch
         from web instead.
+    raise_missing : bool, optional (default: True)
+        Raise a ResourceError exception if any of the
+        PDB IDs cannot be loaded. If False, missing
+        entries will be ignored.
 
     Returns
     -------
     structures : dict(str -> PDB)
         Dictionary containing loaded structures.
         Keys (PDB identifiers) will be lower-case.
+
+    Raises
+    ------
+    ResourceError
+        Raised if raise_errors == True and any of the given
+        PDB IDs cannot be loaded.
     """
     # collect loaded structures in dict(id -> PDB)
     structures = {}
@@ -494,11 +504,15 @@ def load_structures(pdb_ids, structure_dir=None):
             structure_file = path.join(structure_dir, pdb_id + ".mmtf")
             has_file = valid_file(structure_file)
 
-        # see if we can load locally from disk
-        if has_file:
-            structures[pdb_id] = PDB.from_file(structure_file)
-        else:
-            # otherwise fetch from web
-            structures[pdb_id] = PDB.from_id(pdb_id)
+        try:
+            # see if we can load locally from disk
+            if has_file:
+                structures[pdb_id] = PDB.from_file(structure_file)
+            else:
+                # otherwise fetch from web
+                structures[pdb_id] = PDB.from_id(pdb_id)
+        except ResourceError as e:
+            if raise_errors:
+                raise
 
     return structures
