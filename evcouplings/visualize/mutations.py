@@ -9,16 +9,222 @@ from math import isnan
 from copy import deepcopy
 
 import numpy as np
+import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from bokeh import plotting as bp
-from bokeh.properties import value as bokeh_value
+from bokeh.core.properties import value as bokeh_value
 from bokeh.models import HoverTool
 
+from evcouplings.couplings.model import CouplingsModel
 from evcouplings.visualize.pairs import (
     secondary_structure_cartoon, find_secondary_structure_segments
 )
+from evcouplings.mutate.calculations import split_mutants
 from evcouplings.visualize.misc import rgb2hex
+from evcouplings.utils.calculations import entropy_vector
+
+AA_LIST_PROPERTY = "WFYPMILVAGCSTQNDEHRK"
+
+
+def plot_mutation_matrix(source, mutant_column="mutant",
+                         effect_column="prediction_epistatic",
+                         conservation_column="column_conservation",
+                         order=AA_LIST_PROPERTY,
+                         min_value=None, max_value=None,
+                         min_percentile=None, max_percentile=None,
+                         show_conservation=False,
+                         secondary_structure=None, engine="mpl",
+                         **matrix_style):
+    """
+    Plot a single-substitution mutation matrix
+
+    Parameters
+    ----------
+    source : evcouplings.couplings.CouplingsModel or pandas.DataFrame
+        Plot single mutation matrix predicted using CouplingsModel,
+        or effect data for single mutations DataFrame
+    mutant_column : str, optional (default: "mutant")
+        If using source dataframe, extract single mutations from this column.
+        Mutations have to be in format A100V.
+    effect_column : str, optional (default: "prediction_epistatic")
+        If using source dataframe, extract mutation effect from this column.
+        Effects must be numeric.
+    conservation_column : str, optional (default: "column_conservation")
+        If using source dataframe, extract column conservation information
+        from this column. Conservation values must be between 0 and 1. To
+        plot conservation, set show_conservation=True.
+    order : str or list, optional (default: AA_LIST_PROPERTY)
+        Reorder y-axis (substitutions) according to this parameter. If None,
+        substitutions will be inferred from source, and sorted alphabetically
+        if source is a DataFrame.
+    min_value : float, optional (default: None)
+        Threshold colormap at this minimum value. If None, defaults to
+        minimum value in matrix; if max_value is also None, defaults to
+        -max(abs(matrix))
+    max_value : float, optional (default: None)
+        Threshold colormap at this maximum value. If None, defaults to
+        maximum value in matrix; if min_value is also None, defaults to
+        max(abs(matrix))
+    min_percentile : int or float, optional (default: None)
+        Set min_value to this percentile of the effect distribution. Overrides
+        min_value.
+    max_percentile : int or float, optional (default: None)
+        Set max_value to this percentile of the effect distribution. Overrides
+        max_value.
+    show_conservation : bool, optional (default: False)
+        Plot positional conservation underneath matrix. Only possible for
+        engine == "mpl".
+    secondary_structure : dict or pd.DataFrame
+        Secondary structure to plot above matrix.
+        Can be a dictionary of position (int) to
+        secondary structure character ("H", "E", "-"/"C"),
+        or a DataFrame with columns "id" and "sec_struct_3state"
+        (as returned by Chain.residues, and DistanceMap.residues_i
+        and DistanceMap.residues_j). Only supported by engine == "mpl".
+    engine : {"mpl", "bokeh"}
+        Plot matrix using matplotlib (static, more visualization options)
+        or with bokeh (interactive, less visualization options)
+    **matrix_style : kwargs
+        Will be passed on to matrix_base_mpl or matrix_base_bokeh as kwargs
+
+    Returns
+    -------
+    matplotlib AxesSuplot or bokeh Figure
+        Figure/Axes object. Display bokeh figure using show().
+    """
+    def _extract_secstruct(secondary_structure):
+        """
+        Extract secondary structure for plotting functions
+        """
+        # turn into dictionary representation if
+        # passed as a DataFrame
+        if isinstance(secondary_structure, pd.DataFrame):
+            secondary_structure = dict(
+                zip(
+                    secondary_structure.id.astype(int),
+                    secondary_structure.sec_struct_3state
+                )
+            )
+
+        # make sure we only retain secondary structure
+        # inside the range of the mutation matrix
+        secondary_structure = {
+            i: sstr for (i, sstr) in secondary_structure.items()
+            if i in positions
+        }
+
+        secstruct_str = "".join(
+            [secondary_structure.get(i, "-") for i in positions]
+        )
+
+        return secstruct_str
+
+    conservation = None
+
+    # test if we will extract information from CouplingsModel,
+    # or from a dataframe with mutations
+    if isinstance(source, CouplingsModel):
+        matrix = source.smm()
+        positions = source.index_list
+        substitutions = source.alphabet
+        wildtype_sequence = source.seq()
+
+        if show_conservation:
+            conservation = entropy_vector(source)
+    else:
+        # extract position, WT and subs for each mutant, and keep singles only
+        source = split_mutants(
+            source, mutant_column
+        ).query("num_mutations == 1")
+
+        # turn positions into numbers (may be strings)
+        source.loc[:, "pos"] = pd.to_numeric(source.loc[:, "pos"]).astype(int)
+
+        # same for effects, ensure they are numeric
+        source.loc[:, effect_column] = pd.to_numeric(
+            source.loc[:, effect_column], errors="coerce"
+        )
+
+        substitutions = sorted(source.subs.unique())
+
+        # group dataframe to get positional information
+        source_grp = source.groupby("pos").first().reset_index().sort_values(by="pos")
+        positions = source_grp.pos.values
+        wildtype_sequence = source_grp.wt.values
+
+        if show_conservation:
+            source_grp.loc[:, conservation_column] = pd.to_numeric(
+                source_grp.loc[:, conservation_column], errors="coerce"
+            )
+            conservation = source_grp.loc[:, conservation_column].values
+
+        # create mutation effect matrix
+        matrix = np.full((len(positions), len(substitutions)), np.nan)
+
+        # mapping from position/substitution into matrix
+        pos_to_i = {p: i for i, p in enumerate(positions)}
+        subs_to_j = {s: j for j, s in enumerate(substitutions)}
+
+        # fill matrix with values
+        for idx, r in source.iterrows():
+            matrix[pos_to_i[r["pos"]], subs_to_j[r["subs"]]] = r[effect_column]
+
+    # reorder substitutions
+    if order is not None:
+        matrix_final = np.full((len(positions), len(substitutions)), np.nan)
+        substitutions_list = list(substitutions)
+
+        # go through new order row by row and put in right place
+        for i, subs in enumerate(order):
+            if subs in substitutions:
+                matrix_final[:, i] = matrix[:, substitutions_list.index(subs)]
+
+        # set substitutions to new list
+        substitutions = list(order)
+    else:
+        matrix_final = matrix
+
+    # determine ranges for matrix colormaps
+    # get effects without NaNs
+    effects = matrix_final.ravel()
+    effects = effects[np.isfinite(effects)]
+
+    if min_percentile is not None:
+        min_value = np.percentile(effects, min_percentile)
+
+    if max_percentile is not None:
+        max_value = np.percentile(effects, max_percentile)
+
+    matrix_style["min_value"] = min_value
+    matrix_style["max_value"] = max_value
+
+    # extract secondary structure
+    if secondary_structure is not None:
+        secondary_structure_str = _extract_secstruct(secondary_structure)
+    else:
+        secondary_structure_str = None
+
+    if engine == "mpl":
+        return matrix_base_mpl(
+            matrix_final, positions, substitutions,
+            conservation=conservation,
+            wildtype_sequence=wildtype_sequence,
+            secondary_structure=secondary_structure_str,
+            **matrix_style
+        )
+    elif engine == "bokeh":
+        # cannot pass conservation for bokeh
+        return matrix_base_bokeh(
+            matrix_final, positions, substitutions,
+            wildtype_sequence=wildtype_sequence,
+            **matrix_style
+        )
+    else:
+        raise ValueError(
+            "Invalid plotting engine selected, valid options are: "
+            "mpl, bokeh"
+        )
 
 
 def matrix_base_bokeh(matrix, positions, substitutions,
@@ -47,9 +253,13 @@ def matrix_base_bokeh(matrix, positions, substitutions,
     label_size : int, optional (default: 8)
         Font size of x/y-axis labels.
     min_value : float, optional (default: None)
-        Threshold colormap at this minimum value.
+        Threshold colormap at this minimum value. If None, defaults to
+        minimum value in matrix; if max_value is also None, defaults to
+        -max(abs(matrix))
     max_value : float, optional (default: None)
-        Threshold colormap at this maximum value.
+        Threshold colormap at this maximum value. If None, defaults to
+        maximum value in matrix; if min_value is also None, defaults to
+        max(abs(matrix))
     colormap : matplotlib colormap object, optional (default: plt.cm.RdBu_r)
         Maps mutation effects to colors of matrix cells.
     na_color : str, optional (default: "#bbbbbb")
@@ -64,9 +274,13 @@ def matrix_base_bokeh(matrix, positions, substitutions,
     """
 
     # figure out maximum and minimum values for color map
-    if max_value is None or min_value is None:
+    if max_value is None and min_value is None:
         max_value = np.nanmax(np.abs(matrix))
         min_value = -max_value
+    elif min_value is None:
+        min_value = np.nanmin(matrix)
+    elif max_value is None:
+        max_value = np.nanmax(matrix)
 
     # use matplotlib colormaps to create color values,
     # set ranges based on given values
@@ -173,7 +387,7 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
                     colormap_conservation=plt.cm.Oranges, na_color="#bbbbbb",
                     title=None, position_label_size=8, substitution_label_size=8,
                     show_colorbar=True, colorbar_indicate_bounds=False,
-                    secondary_structure_style=None):
+                    show_wt_char=True, label_filter=None, secondary_structure_style=None):
     """
     Matplotlib-based mutation matrix plotting. This is the base plotting function,
     see plot_mutation_matrix() for more convenient access.
@@ -200,9 +414,13 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
         Sequence of wild-type symbols. If given, will indicate wild-type
         entries in matrix with a dot.
     min_value : float, optional (default: None)
-        Threshold colormap at this minimum value.
+        Threshold colormap at this minimum value. If None, defaults to
+        minimum value in matrix; if max_value is also None, defaults to
+        -max(abs(matrix))
     max_value : float, optional (default: None)
-        Threshold colormap at this maximum value.
+        Threshold colormap at this maximum value. If None, defaults to
+        maximum value in matrix; if min_value is also None, defaults to
+        max(abs(matrix))
     ax : Matplotlib axes object, optional (default: None)
         Draw mutation matrix on this axis. If None, new figure and axis
         will be created.
@@ -223,6 +441,11 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
     colorbar_indicate_bounds : bool, optional (default: False)
         If True, add greater-than/less-than signs to limits of colorbar
         to indicate that colors were thresholded at min_value/max_value
+    show_wt_char : bool, optional (default: True)
+        Display wild-type symbol in axis labels
+    label_filter : function, optional (default: None)
+        Function with one argument (integer) that determines if a certain position
+        label will be printed (if label_filter(pos)==True) or not.
     secondary_structure_style : dict, optional (default: None)
         Pass on as **kwargs to evcouplings.visualize.pairs.secondary_structure_cartoon
         to determine appearance of secondary structure cartoon.
@@ -251,9 +474,13 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
     matrix_masked = np.ma.masked_where(np.isnan(matrix), matrix)
 
     # figure out maximum and minimum values for color map
-    if max_value is None or min_value is None:
+    if max_value is None and min_value is None:
         max_value = np.abs(matrix_masked).max()
         min_value = -max_value
+    elif min_value is None:
+        min_value = matrix_masked.min()
+    elif max_value is None:
+        max_value = matrix_masked.max()
 
     # set NaN color value in colormaps
     colormap = deepcopy(colormap)
@@ -337,9 +564,19 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
     # put labels along both axes of matrix
 
     # x-axis (positions)
-    for i, res in zip(x_range, positions):
+    for i, pos in zip(x_range, positions):
+        # filter labels, if selected
+        if label_filter is not None and not label_filter(pos):
+            continue
+
+        # determine what position label should be
+        if show_wt_char and wildtype_sequence is not None:
+            label = "{} {}".format(wildtype_sequence[i], pos)
+        else:
+            label = str(pos)
+
         ax.text(
-            i + LABEL_X_OFFSET, y_bottom_res, str(res),
+            i + LABEL_X_OFFSET, y_bottom_res, label,
             size=position_label_size,
             horizontalalignment='center',
             verticalalignment='top',
