@@ -51,7 +51,7 @@ STYLE_SECSTRUCT = {
 def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
     """
     Identify axis boundaries for contact map plots
-    
+
     Parameters
     ----------
     boundaries : {"union", "intersection", "ecs", "structure"} or tuple
@@ -144,7 +144,7 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
                     boundaries
                 )
             )
-        
+
         return min_val, max_val
 
     # check first if range is specified manually
@@ -301,7 +301,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                 secstruct_i = secondary_structure
                 secstruct_j = secondary_structure
             else:
-                if (not isinstance(secondary_structure, tuple) or 
+                if (not isinstance(secondary_structure, tuple) or
                         len(secondary_structure) != 2):
                     raise ValueError(
                         "When symmetric is True, secondary structure must "
