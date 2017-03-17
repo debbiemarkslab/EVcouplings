@@ -489,7 +489,7 @@ def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
     Raises
     ------
     ResourceError
-        Raised if raise_errors == True and any of the given
+        Raised if raise_missing is True and any of the given
         PDB IDs cannot be loaded.
     """
     # collect loaded structures in dict(id -> PDB)
@@ -512,7 +512,7 @@ def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
                 # otherwise fetch from web
                 structures[pdb_id] = PDB.from_id(pdb_id)
         except ResourceError as e:
-            if raise_errors:
+            if raise_missing:
                 raise
 
     return structures

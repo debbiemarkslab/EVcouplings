@@ -537,7 +537,7 @@ class DistanceMap:
         )
 
 
-def _prepare_structures(structures, pdb_id_list):
+def _prepare_structures(structures, pdb_id_list, raise_missing=True):
     """
     Get structures ready for distance calculation
 
@@ -547,6 +547,9 @@ def _prepare_structures(structures, pdb_id_list):
         See intra_dists function for explanation
     pdb_id_list:
         List of PDB entries to load
+    raise_missing : bool, optional (default: True)
+        Raise a ResourceError if any of the input structures can
+        not be loaded; otherwise, ignore missing entries.
 
     Returns
     -------
@@ -557,7 +560,7 @@ def _prepare_structures(structures, pdb_id_list):
     # load structures if not yet done so
     if structures is None or isinstance(structures, str):
         structures = load_structures(
-            pdb_id_list, structures
+            pdb_id_list, structures, raise_missing
         )
 
     return structures
@@ -605,7 +608,7 @@ def _prepare_chain(structures, pdb_id, pdb_chain,
 
 def intra_dists(sifts_result, structures=None, atom_filter=None,
                 intersect=False, agg_func=np.nanmin, output_prefix=None,
-                model=0):
+                model=0, raise_missing=True):
     """
     Compute intra-chain distances in PDB files.
 
@@ -642,6 +645,9 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         file suffixes map to row index in sifts_results.hits
     model : int, optional (default: 0)
         Index of model in PDB structure that should be used
+    raise_missing : bool, optional (default: True)
+        Raise a ResourceError if any of the input structures can
+        not be loaded; otherwise, ignore missing entries.
 
     Returns
     -------
@@ -653,7 +659,8 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
     ------
     ValueError
         If sifts_result is empty (no structure hits)
-
+    ResourceError
+        If any structure could not be loaded and raise_missing is True
     """
     if len(sifts_result.hits) == 0:
         raise ValueError(
@@ -662,7 +669,7 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
 
     # if no structures given, or path to files, load first
     structures = _prepare_structures(
-        structures, sifts_result.hits.pdb_id
+        structures, sifts_result.hits.pdb_id, raise_missing
     )
 
     # aggegrated distance map
@@ -674,6 +681,10 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
 
     # compute individual distance maps and aggregate
     for i, r in sifts_result.hits.iterrows():
+        # skip missing structures
+        if not raise_missing and r["pdb_id"] not in structures:
+            continue
+
         # extract and remap PDB chain
         chain = _prepare_chain(
             structures, r["pdb_id"], r["pdb_chain"],
@@ -699,7 +710,7 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
 
 def multimer_dists(sifts_result, structures=None, atom_filter=None,
                    intersect=False, agg_func=np.nanmin,
-                   output_prefix=None, model=0):
+                   output_prefix=None, model=0, raise_missing=True):
     """
     Compute homomultimer distances (between repeated copies of the
     same entity) in PDB file. Resulting distance matrix will be
@@ -739,6 +750,9 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
         file suffixes map to row index in sifts_results.hits
     model : int, optional (default: 0)
         Index of model in PDB structure that should be used
+    raise_missing : bool, optional (default: True)
+        Raise a ResourceError if any of the input structures can
+        not be loaded; otherwise, ignore missing entries.
 
     Returns
     -------
@@ -750,7 +764,8 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
     ------
     ValueError
         If sifts_result is empty (no structure hits)
-
+    ResourceError
+        If any structure could not be loaded and raise_missing is True
     """
     if len(sifts_result.hits) == 0:
         raise ValueError(
@@ -759,7 +774,7 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
     # if no structures given, or path to files, load first
     structures = _prepare_structures(
-        structures, sifts_result.hits.pdb_id
+        structures, sifts_result.hits.pdb_id, raise_missing
     )
 
     # aggegrated distance map
@@ -771,6 +786,10 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
     # go through each structure
     for pdb_id, grp in sifts_result.hits.reset_index().groupby("pdb_id"):
+        # skip missing structures
+        if not raise_missing and r["pdb_id"] not in structures:
+            continue
+
         # extract all chains for this structure
         chains = [
             (
@@ -814,7 +833,7 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
 def inter_dists(sifts_result_i, sifts_result_j, structures=None,
                 atom_filter=None, intersect=False, agg_func=np.nanmin,
-                output_prefix=None, model=0):
+                output_prefix=None, model=0, raise_missing=True):
     """
     Compute inter-chain distances (between different entities)
     in PDB file. Resulting distance map is typically not
@@ -858,6 +877,9 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         file suffixes map to row index in sifts_results.hits
     model : int, optional (default: 0)
         Index of model in PDB structure that should be used
+    raise_missing : bool, optional (default: True)
+        Raise a ResourceError if any of the input structures can
+        not be loaded; otherwise, ignore missing entries.
 
     Returns
     -------
@@ -870,6 +892,8 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
     ValueError
         If sifts_result_i or sifts_result_j is empty
         (no structure hits)
+    ResourceError
+        If any structure could not be loaded and raise_missing is True
     """
     def _get_chains(sifts_result):
         return {
@@ -879,6 +903,7 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
                 model
             )
             for i, r in sifts_result.hits.iterrows()
+            if raise_missing or r["pdb_id"] in structures
         }
 
     if len(sifts_result_i.hits) == 0 or len(sifts_result_j.hits) == 0:
@@ -892,7 +917,8 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         structures,
         sifts_result_i.hits.pdb_id.append(
             sifts_result_j.hits.pdb_id
-        )
+        ),
+        raise_missing
     )
 
     # aggegrated distance map
@@ -915,6 +941,10 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
 
     # go through all chain combinations
     for i, r in combis.iterrows():
+        # skip missing structures
+        if not raise_missing and r["pdb_id"] not in structures:
+            continue
+
         index_i = r["index_i"]
         index_j = r["index_j"]
 
