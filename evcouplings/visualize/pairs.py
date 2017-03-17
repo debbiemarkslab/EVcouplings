@@ -48,6 +48,128 @@ STYLE_SECSTRUCT = {
 }
 
 
+def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
+    """
+    Identify axis boundaries for contact map plots
+    
+    Parameters
+    ----------
+    boundaries : {"union", "intersection", "ecs", "structure"} or tuple
+             or list(tuple, tuple)
+        Set axis range (min/max) of contact map as follows:
+        - "union": Positions either in ECs or 3D structure
+        - "intersection": Positions both in ECs and 3D structure
+        - "ecs": Positions in ECs
+        - "structure": Positions in 3D structure
+        - tuple(float, float): Specify upper/lower bound manually
+        - [(float, float), (float, float)]: Specify upper/lower bounds
+          for both x-axis (first tuple) and y-axis (second tuple)
+    ecs : pandas.DataFrame
+        Table of evolutionary couplings to plot (using columns
+        "i" and "j")
+    monomer : evcouplings.compare.distances.DistanceMap
+        Monomer distance map (intra-chain distances)
+    multimer : evcouplings.compare.distances.DistanceMap
+        Multimer distance map (multimeric inter-chain distances)
+    symmetric : bool
+        Sets if distance maps and ECs are symmetric (intra-chain or homomultimer),
+        or not (inter-chain).
+
+    Returns
+    -------
+    (min_x, max_x) : (float, float)
+        First and last position on x-axis
+    (min_y, max_y) : (float, float)
+        First and last position on y-axis
+    """
+    def _find_pos(axis):
+        """
+        Find first and last index along a single contact map axis
+        """
+        # determine what sets of positions are for ECs/contact maps
+        ec_pos = set()
+        monomer_pos = set()
+        multimer_pos = set()
+
+        # need to merge i and j here if symmetric
+        if ecs is not None:
+            if symmetric:
+                ec_pos = set(ecs.i.astype(int)).union(ecs.j.astype(int))
+            else:
+                ec_pos = set(getattr(ecs, axis).astype(int))
+
+        if monomer is not None:
+            monomer_pos = set(
+                getattr(monomer, "residues_" + axis).id.astype(int)
+            )
+
+        if multimer is not None:
+            multimer_pos = set(
+                getattr(multimer, "residues_" + axis).id.astype(int)
+            )
+
+        structure_pos = monomer_pos.union(multimer_pos)
+
+        # maximum ranges spanned by structure or ECs
+        # if any of the sets is not given, revert to
+        # the other set of positions in else case
+        # (in these cases, union and intersection will
+        # be trivially the one set that is actually defined)
+        if len(ec_pos) > 0:
+            min_ec, max_ec = min(ec_pos), max(ec_pos)
+        else:
+            min_ec, max_ec = min(structure_pos), max(structure_pos)
+
+        if len(structure_pos) > 0:
+            min_struct, max_struct = min(structure_pos), max(structure_pos)
+        else:
+            min_struct, max_struct = min(ec_pos), max(ec_pos)
+
+        # determine and set plot boundaries
+        if boundaries == "union":
+            min_val = min(min_ec, min_struct)
+            max_val = max(max_ec, max_struct)
+        elif boundaries == "intersection":
+            min_val = max(min_ec, min_struct)
+            max_val = min(max_ec, max_struct)
+        elif boundaries == "ecs":
+            min_val = min_ec
+            max_val = max_ec
+        elif boundaries == "structure":
+            min_val = min_struct
+            max_val = max_struct
+        else:
+            raise ValueError(
+                "Not a valid value for boundaries: {}".format(
+                    boundaries
+                )
+            )
+        
+        return min_val, max_val
+
+    # check first if range is specified manually
+    if isinstance(boundaries, tuple):
+        if len(boundaries) != 2:
+            raise ValueError(
+                "boundaries must be a tuple with 2 elements (min, max)."
+            )
+        min_x, max_x = boundaries
+        min_y, max_y = boundaries
+    elif isinstance(boundaries, list):
+        if len(boundaries) != 2 or len(boundaries[0]) != 2 or len(boundaries[1]) != 2:
+            raise ValueError(
+                "boundaries must be a list of 2 tuples with 2 elements "
+                "[(min_x, max_x), (min_y, max_y)]."
+            )
+        min_x, max_x = boundaries[0]
+        min_y, max_y = boundaries[1]
+    else:
+        min_x, max_x = _find_pos("i")
+        min_y, max_y = _find_pos("j")
+
+    return (min_x, max_x), (min_y, max_y)
+
+
 def plot_contact_map(ecs=None, monomer=None, multimer=None,
                      distance_cutoff=5, secondary_structure=None,
                      show_secstruct=True, scale_sizes=True,
@@ -55,10 +177,11 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                      multimer_style=STYLE_CONTACT_MULTIMER,
                      secstruct_style=STYLE_SECSTRUCT,
                      margin=5, invert_y=True, boundaries="union",
-                     ax=None):
+                     symmetric=True, ax=None):
     """
-    Wrapper for simple contact map plots with monomer and
-    multimer contacts. For full flexibility, compose your own
+    Wrapper for simple contact map plots with optional
+    multimer contacts (can also handle non-symmetric inter-chain
+    contacts). For full flexibility, compose your own
     contact map plot using the functions used below.
 
     Parameters
@@ -78,6 +201,9 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         (if not given, will try to extract from monomer
         distance map). For format of dict or DataFrame,
         see documentation of plot_secondary_structure().
+        If symmetric == True, this has to be a two-element
+        tuple containing the secondary structures for the
+        x-axis and the y-axis, respectively.
     show_secstruct : bool, optional (default: True)
         Draw secondary structure on both axes (either
         passed in explicitly using secondary_structure,
@@ -100,14 +226,19 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     invert_y : bool, optional (default: True)
         Invert the y axis of the contact map so both sequences
         run from N -to C- terminus starting from top left corner
-    boundaries : {"union", "intersection", "ecs", "structure"} or tuple,
-                 optional (default: "union")
+    boundaries : {"union", "intersection", "ecs", "structure"} or tuple
+                 or list(tuple, tuple), optional (default: "union")
         Set axis range (min/max) of contact map as follows:
         - "union": Positions either in ECs or 3D structure
         - "intersection": Positions both in ECs and 3D structure
         - "ecs": Positions in ECs
         - "structure": Positions in 3D structure
         - tuple(float, float): Specify upper/lower bound manually
+        - [(float, float), (float, float)]: Specify upper/lower bounds
+          for both x-axis (first tuple) and y-axis (second tuple)
+    symmetric : bool, optional (default: True)
+        Sets if distance maps and ECs are symmetric (intra-chain or homomultimer),
+        or not (inter-chain).
     ax : Matplotlib Axes object, optional (default: None)
         Axes the plot will be drawn on
     """
@@ -119,67 +250,13 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     if ax is None:
         ax = plt.gca()
 
-    # check how to set contact map boundaries
-    if isinstance(boundaries, tuple):
-        if len(boundaries) != 2:
-            raise ValueError(
-                "boundaries must be a tuple with 2 elements (min, max)."
-            )
-        min_x, max_x = boundaries
-    else:
-        # determine what sets of positions are for ECs/contact maps
-        ec_pos = set()
-        monomer_pos = set()
-        multimer_pos = set()
-
-        if ecs is not None:
-            ec_pos = set(ecs.i.astype(int)).union(ecs.j.astype(int))
-
-        if monomer is not None:
-            monomer_pos = set(monomer.residues_i.id.astype(int))
-
-        if multimer is not None:
-            multimer_pos = set(multimer.residues_i.id.astype(int))
-
-        structure_pos = monomer_pos.union(multimer_pos)
-
-        # maximum ranges spanned by structure or ECs
-        # if any of the sets is not given, revert to
-        # the other set of positions in else case
-        # (in these cases, union and intersection will
-        # be trivially the one set that is actually defined)
-        if len(ec_pos) > 0:
-            min_ec, max_ec = min(ec_pos), max(ec_pos)
-        else:
-            min_ec, max_ec = min(structure_pos), max(structure_pos)
-
-        if len(structure_pos) > 0:
-            min_struct, max_struct = min(structure_pos), max(structure_pos)
-        else:
-            min_struct, max_struct = min(ec_pos), max(ec_pos)
-
-        # determine and set plot boundaries
-        if boundaries == "union":
-            min_x = min(min_ec, min_struct)
-            max_x = max(max_ec, max_struct)
-        elif boundaries == "intersection":
-            min_x = max(min_ec, min_struct)
-            max_x = min(max_ec, max_struct)
-        elif boundaries == "ecs":
-            min_x = min_ec
-            max_x = max_ec
-        elif boundaries == "structure":
-            min_x = min_struct
-            max_x = max_struct
-        else:
-            raise ValueError(
-                "Not a valid value for boundaries: {}".format(
-                    boundaries
-                )
-            )
+    # figure out how to set contact map boundaries
+    (min_x, max_x), (min_y, max_y) = find_boundaries(
+        boundaries, ecs, monomer, multimer, symmetric
+    )
 
     set_range(
-        x=(min_x, max_x), y=(min_x, max_x),
+        x=(min_x, max_x), y=(min_y, max_y),
         ax=ax, margin=margin, invert_y=invert_y
     )
 
@@ -190,6 +267,8 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         scale_func = lambda x: x
 
     # plot monomer contacts
+    # (distance maps will automatically be symmetric for
+    # intra/homomultimer, so do not request mirroring)
     if monomer is not None:
         plot_pairs(
             monomer.contacts(distance_cutoff),
@@ -198,6 +277,8 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         )
 
     # plot multimer contacts
+    # (distance maps will automatically be symmetric for
+    # intra/homomultimer, so again do not request mirroring)
     if multimer is not None:
         plot_pairs(
             multimer.contacts(distance_cutoff),
@@ -206,17 +287,30 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         )
 
     # plot ECs
+    # (may be symmetric or not, depending on use case)
     if ecs is not None:
         plot_pairs(
-            ecs, symmetric=True, style=scale_func(ec_style), ax=ax
+            ecs, symmetric=symmetric, style=scale_func(ec_style), ax=ax
         )
 
     # plot secondary structure
     if show_secstruct:
         # if secondary structure given explicitly, use it
         if secondary_structure is not None:
+            if symmetric:
+                secstruct_i = secondary_structure
+                secstruct_j = secondary_structure
+            else:
+                if (not isinstance(secondary_structure, tuple) or 
+                        len(secondary_structure) != 2):
+                    raise ValueError(
+                        "When symmetric is True, secondary structure must "
+                        "be a tuple (secstruct_i, secstruct_j)."
+                    )
+                secstruct_i, secstruct_j = secondary_structure
+
             plot_secondary_structure(
-                secondary_structure, secondary_structure,
+                secstruct_i, secstruct_j,
                 style=scale_func(secstruct_style), ax=ax
             )
         else:
