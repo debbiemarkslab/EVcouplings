@@ -14,7 +14,7 @@ from evcouplings.couplings.model import CouplingsModel
 from evcouplings.mutate.calculations import (
     single_mutant_matrix, predict_mutation_table
 )
-from evcouplings.visualize.mutations import plot_mutation_matrix
+import evcouplings
 from evcouplings.utils.config import (
     check_required, InvalidParameterError
 )
@@ -76,11 +76,11 @@ def standard(**kwargs):
         output_file(
             filename + ".html", "{} model".format(type_)
         )
-        fig = plot_mutation_matrix(model, engine="bokeh")
+        fig = evcouplings.visualize.mutations.plot_mutation_matrix(model, engine="bokeh")
         save(fig)
 
         # static matplotlib plot
-        plot_mutation_matrix(model)
+        evcouplings.visualize.mutations.plot_mutation_matrix(model)
         plt.savefig(filename + ".pdf", bbox_inches="tight")
 
     # create single mutation matrix table,
