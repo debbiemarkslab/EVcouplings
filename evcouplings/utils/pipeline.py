@@ -23,6 +23,7 @@ from evcouplings.utils.system import (
 import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp
 import evcouplings.compare.protocol as cm
+import evcouplings.mutate.protocol as mt
 
 # supported pipelines
 PIPELINES = {
@@ -30,6 +31,7 @@ PIPELINES = {
         ("align", ap.run),
         ("couplings", cp.run),
         ("compare", cm.run),
+        ("mutate", mt.run)
     ]
 }
 

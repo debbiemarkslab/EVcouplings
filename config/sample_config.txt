@@ -23,6 +23,7 @@ stages:
     - align
     - couplings
     - compare
+    - mutate
 
 global:
     sequence_id:
@@ -132,6 +133,12 @@ compare:
     plot_increase: 0.05
     boundaries: union
     draw_secondary_structure: True
+mutate:
+    protocol: standard
+    prefix:
+    model_file:
+    # predict the following file (mutants like A102V or A102V,K199W in column "mutant", comma-separated)
+    mutation_dataset_file:
     
 databases:
     uniprot: /groups/marks/databases/jackhmmer/uniprot/uniprot_2016_07.fasta
