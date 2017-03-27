@@ -991,7 +991,7 @@ def frequencies(matrix, seq_weights, num_symbols):
     Returns
     -------
     np.array
-        Matrix of size N x num_symbols containing relative
+        Matrix of size L x num_symbols containing relative
         column frequencies of all characters
     """
     N, L = matrix.shape
