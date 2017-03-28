@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 from sys import argv, exit, stderr
+from os import path
 
 import click
 
@@ -24,6 +25,7 @@ import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp
 import evcouplings.compare.protocol as cm
 import evcouplings.mutate.protocol as mt
+import evcouplings.complex.protocol as pp
 
 # supported pipelines
 PIPELINES = {
@@ -32,6 +34,12 @@ PIPELINES = {
         ("couplings", cp.run),
         ("compare", cm.run),
         ("mutate", mt.run)
+    ],
+    "protein_complex": [
+        ("align_1", ap.run),
+        ("align_2", ap.run),
+        ("concatenate", pp.run),
+        ("couplings", cp.run),
     ]
 }
 
@@ -97,9 +105,27 @@ def execute(**kwargs):
         if num_stages_to_run == 0:
             break
 
+        # check if config for stage is there
+        check_required(kwargs, [stage])
+
+        # check if the outputs of the stage have to
+        # be prefixed. This is necessary when the same
+        # protocol is used twice, e.g. align in complexes,
+        # so that there are no overlaps between keys, and
+        # output files
+        key_prefix = kwargs[stage].get("key_prefix", None)
+
         # define custom prefix for stage and create folder
         # stage_prefix = path.join(prefix, stage, "")
-        stage_prefix = prefix
+        if key_prefix is None:
+            stage_prefix = prefix
+        else:
+            # if we have a key_prefix for the current stage,
+            # we need to add this into the filename so there
+            # are no filename collisions
+            folder, file_prefix = path.split(prefix)
+            stage_prefix = path.join(folder, key_prefix + file_prefix)
+
         create_prefix_folders(stage_prefix)
 
         # config files for input and output of stage
@@ -122,6 +148,14 @@ def execute(**kwargs):
 
             # run stage
             outcfg = runner(**incfg)
+
+            # prefix output keys if this parameter is
+            # given in stage configuration, to avoid
+            # name clashes if same protocol run multiple times
+            if key_prefix is not None:
+                outcfg = {
+                    key_prefix + k: v for k, v in outcfg.items()
+                }
 
             # save output of stage in config file
             write_config_file(stage_outcfg, outcfg)

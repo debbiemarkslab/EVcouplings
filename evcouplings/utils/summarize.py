@@ -215,8 +215,21 @@ def _protein_monomer_plot(ali_table, data):
     return fig
 
 
+def protein_complex(prefix, configs):
+    """
+    Create results summary for run using
+    protein_complex pipeline
+
+    # TODO
+    """
+    raise NotImplementedError(
+        "EVcomplex summary not yet implemented."
+    )
+
+
 PIPELINE_TO_SUMMARIZER = {
     "protein_monomer": protein_monomer,
+    "protein_complex": protein_complex,
 }
 
 
