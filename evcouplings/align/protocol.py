@@ -501,6 +501,7 @@ def existing(**kwargs):
         the following fields:
 
         alignment_file
+        raw_focus_alignment_file
         statistics_file
         sequence_file
         first_index
@@ -680,6 +681,7 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
           statistics_file
           frequencies_file
           identities_file
+          raw_focus_alignment_file
     ali : Alignment
         Final processed alignment
     """
@@ -704,6 +706,7 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
         "statistics_file": prefix + "_alignment_statistics.csv",
         "frequencies_file": prefix + "_frequencies.csv",
         "identities_file": prefix + "_identities.csv",
+        "raw_focus_alignment_file": focus_fasta_file,
     }
 
     # swap target sequence to first position if it is not
@@ -1003,6 +1006,7 @@ def standard(**kwargs):
 
         alignment_file
         raw_alignment_file
+        raw_focus_alignment_file
         statistics_file
         target_sequence_file
         sequence_file
