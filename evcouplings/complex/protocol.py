@@ -8,11 +8,11 @@ Authors:
   Anna G. Green
 """
 
+from evcouplings.couplings.mapping import Segment
 from evcouplings.utils.config import (
     check_required, InvalidParameterError,
     read_config_file, write_config_file
 )
-
 from evcouplings.utils.system import (
     create_prefix_folders, valid_file,
     verify_resources,
@@ -59,7 +59,7 @@ def genome_distance(**kwargs):
         kwargs,
         [
             "prefix",
-            "first_alignment_file", "second_alignment_file",
+            "first_raw_focus_alignment_file", "second_raw_focus_alignment_file",
             "first_focus_sequence", "second_focus_sequence",
             "first_focus_mode", "second_focus_mode",
             "first_segments", "second_segments",
@@ -77,26 +77,38 @@ def genome_distance(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    # TODO: implement concatenation functionality here
+    # -------------------------------------------------
+    # TODO: implement concatenation functionality and
+    # postprocessing functionality here
+    # -------------------------------------------------
+
+    def _modify_segments(seg_list, seg_prefix):
+        # extract segments from list representation into objects
+        segs = [
+            Segment.from_list(s) for s in seg_list
+        ]
+        # update segment IDs
+        for i, s in enumerate(segs, start=1):
+            s.segment_id = "{}_{}".format(seg_prefix, i)
+
+        return segs
+
+    # merge segments - this allows to have more than one segment per
+    # "monomer" alignment
+    segments_1 = _modify_segments(kwargs["first_segments"], "A")
+    segments_2 = _modify_segments(kwargs["second_segments"], "B")
+    segments_complex = segments_1 + segments_2
 
     # make sure we return all the necessary information:
     # * alignment_file: final concatenated alignment that will go into plmc
     # * focus_sequence: this is the identifier of the concatenated target
     #   sequence which will be passed into plmc with -f
-    # * segments: these will be the numbering ranges
-    #   check the following example, in this case we will have to segments in the list
-    #
-    # outcfg["segments"] = [
-    #     Segment(
-    #         "aa", target_seq_id, region_start, region_start + ali.L - 1, pos_list
-    #     ).to_list()
-    # ]
 
     outcfg = {
         "alignment_file": None,  # TODO: specify
         "focus_mode": True,
         "focus_sequence": None,  # TODO: specify
-        "segments": None,        # TODO: specify
+        "segments": [s.to_list() for s in segments_complex],
         # optional but good to have:
         "num_sites": None,
         "num_sequences": None,
