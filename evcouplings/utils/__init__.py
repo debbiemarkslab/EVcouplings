@@ -4,7 +4,7 @@ from evcouplings.utils.helpers import *
 from evcouplings.utils.plots import *
 from evcouplings.utils.system import *
 from evcouplings.utils.batch import *
-
+from evcouplings.utils.constants import *
 
 class ASubmitterFactory(abc.ABCMeta):
     def __init__(cls, name, bases, nmspc):
