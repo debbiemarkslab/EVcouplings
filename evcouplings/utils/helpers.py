@@ -7,6 +7,8 @@ Authors:
 
 from collections import OrderedDict
 import pickle, json, csv, os, shutil
+from os import path
+import jinja2
 
 class PersistentDict(dict):
     ''' Persistent dictionary with an API compatible with shelve and anydbm.
@@ -142,3 +144,34 @@ def range_overlap(a, b):
         Length of overlap between ranges a and b
     """
     return max(0, min(a[1], b[1]) - max(a[0], b[0]))
+
+
+def render_template(template_file, mapping):
+    """
+    Render a template using jinja2 and substitute
+    values from mapping
+
+    Parameters
+    ----------
+    template_file : str
+        Path to jinja2 template
+    mapping : dict
+        Mapping used to substitute values
+        in the template
+
+    Returns
+    -------
+    str
+        Rendered template
+    """
+    template_dir, filename = path.split(template_file)
+
+    jinja_env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(template_dir),
+        trim_blocks=True,
+        lstrip_blocks=True
+    )
+
+    template = jinja_env.get_template(filename)
+
+    return template.render(mapping)
