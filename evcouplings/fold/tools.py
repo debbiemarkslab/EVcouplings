@@ -57,6 +57,8 @@ def run_cns(inp_script=None, inp_file=None, log_file=None, binary="cns"):
     env = deepcopy(os.environ)
     library_dir = path.join(cns_main_dir, "libraries")
     module_dir = path.join(cns_main_dir, "modules")
+
+    env["CNS_SOLVE"] = cns_main_dir
     env["CNS_LIB"] = library_dir
     env["CNS_MODULE"] = module_dir
     env["CNS_HELPLIB"] = path.join(cns_main_dir, "helplip")
