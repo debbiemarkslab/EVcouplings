@@ -5,8 +5,15 @@ Authors:
   Thomas A. Hopf
 """
 
+from os import path
+from pkg_resources import resource_filename, resource_string
+
+import pandas as pd
+
 from evcouplings.utils.config import InvalidParameterError
 from evcouplings.utils.constants import AA1_to_AA3
+from evcouplings.utils.helpers import render_template
+from evcouplings.utils.system import verify_resources
 
 
 def cns_seq_file(sequence, output_file=None, residues_per_line=16):
@@ -60,3 +67,239 @@ def cns_seq_file(sequence, output_file=None, residues_per_line=16):
             f.write(l3 + "\n")
 
     return output_file
+
+
+def _cns_render_template(template_name, mapping):
+    """
+    Render an included CNS template .inp
+
+    Parameters
+    ----------
+    template_name : str
+        Name of CNS template (e.g. dg_sa)
+    mapping : dict
+        Values to be substituted into template
+
+    Returns
+    -------
+    str
+        Rendered template
+    """
+    # get path of template within package
+    template_file = resource_filename(
+        __name__, "cns_templates/{}.inp".format(template_name)
+    )
+
+    verify_resources(
+        "CNS template does not exist: {}".format(template_file),
+        template_file
+    )
+
+    return render_template(template_file, mapping)
+
+
+def cns_mtf_inp(seq_infile, mtf_outfile, first_index=1, disulfide_bridges=None):
+    """
+    Create CNS input script (.inp) to create molecular
+    topology file (.mtf) from sequence (.seq file)
+
+    Parameters
+    ----------
+    seq_infile : str
+        Path to .seq input file (create using cns_seq_file())
+    mtf_outfile : str
+        Path where generated .mtf file should be stored
+    first_index : int, optional (default: 1)
+        Index of first residue in sequence
+    disulfide_bridges: list or pandas.DataFrame, optional (default: None)
+        Position pairs that should be linked by a disulfide
+        bridge. Can be:
+        * list of tuples (i, j)
+        * dataframe with columns i and j for positions, and A_i and A_j
+          for amino acid symbols. Will automatically select those pairs
+          (i, j) where A_i and A_j are 'C'.
+
+    Returns
+    -------
+    str:
+        Input script
+    """
+    # determine if disulfide bridge information will go into input script or not
+    if disulfide_bridges is None:
+        disulfides = []
+    else:
+        # if dataframe, extract (i, j) pairs where both residues are cysteine
+        if isinstance(disulfide_bridges, pd.DataFrame):
+            cys_pairs = disulfide_bridges.query("A_i == 'C' and A_j == 'C'")
+            pair_list = zip(cys_pairs.i, cys_pairs.j)
+        else:
+            pair_list = disulfide_bridges
+
+        # add index from 1 to list, since template needs running index
+        # for fields
+        disulfides = [
+            (idx, i, j) for idx, (i, j) in enumerate(pair_list, start=1)
+        ]
+
+    return _cns_render_template(
+        "generate_seq",
+        {
+            "renumber_index": first_index,
+            "sequence_infile": seq_infile,
+            "mtf_outfile": mtf_outfile,
+            "disulfide_list": disulfides
+        }
+    )
+
+
+def cns_extended_inp(mtf_infile, pdb_outfile):
+    """
+    Create CNS iput script (.inp) to create extended PDB file
+    from molecular topology file (.mtf)
+
+    Parameters
+    ----------
+    mtf_infile : str
+        Path to .mtf topology file
+    pdb_outfile : str
+        Path where extended .pdb file will be stored
+
+    Returns
+    -------
+    str:
+        Input script
+    """
+    return _cns_render_template(
+        "generate_extended",
+        {
+            "mtf_infile": mtf_infile,
+            "pdb_outfile": pdb_outfile,
+        }
+    )
+
+
+def cns_dgsa_inp(pdb_infile, mtf_infile, outfile_prefix,
+                 ec_pair_tbl_infile, ss_dist_tbl_infile,
+                 ss_angle_tbl_infile, num_structures=20,
+                 log_level="quiet"):
+    """
+    Create CNS iput script (.inp) to fold extended PDB file
+    using distance geometry and simulated annealing with
+    distance and dihedral angle constraints
+
+    Parameters
+    ----------
+    pdb_infile : str
+        Path to extended PDB structure that will be folded
+    mtf_infile : str
+        Path to molecular topology file corresponding to
+        pdb_infile
+    outfile_prefix : str
+        Prefix of output files
+    ec_pair_tbl_infile:
+        Path to .tbl file with distance restraints for
+        EC pairs
+    ss_dist_tbl_infile : str
+        Path to .tbl file with distance restraints for
+        secondary structure
+    ss_angle_tbl_infile : str
+        Path to .tbl file with dihedral angle restraints
+        for secondary structure
+    num_structures : int, optional (default: 20)
+        Number of trial structures to generate
+    log_level : str, optional (default: "quiet")
+        Log output level of CNS. Set to "verbose" to obtain
+        information about restraint violations.
+
+    Returns
+    -------
+    str:
+        Input script
+    """
+    return _cns_render_template(
+        "dg_sa",
+        {
+            "pdb_infile": pdb_infile,
+            "mtf_infile": mtf_infile,
+            "num_structures": num_structures,
+            "ec_pair_tbl_infile": ec_pair_tbl_infile,
+            "ss_dist_tbl_infile": ss_dist_tbl_infile,
+            "ss_angle_tbl_infile": ss_angle_tbl_infile,
+            "pdb_outfile_basename": outfile_prefix,
+            "hbond_tbl_infile": "",
+            "log_level": log_level,
+            "md_cool_noe_scale_factor": 5,
+            "ss_dist_noe_avg_mode": "cent",
+            "ec_pair_noe_avg_mode": "cent",
+        }
+    )
+
+
+def cns_generate_easy_inp(pdb_infile, pdb_outfile, mtf_outfile):
+    """
+    Create CNS input script (.inp) to run generate_easy
+    protocol (here, to add hydrogen bonds to models)
+
+    Parameters
+    ----------
+    pdb_infile : str
+        Path to 3D structure to which hydrogens will be added
+    pdb_outfile : str
+        Path where to to store updated structure
+    mtf_outfile : str
+        Path where to store molecular topology file corresponding
+        to updated structure
+
+    Returns
+    -------
+    str:
+        Input script
+    """
+    return _cns_render_template(
+        "generate_easy",
+        {
+            "pdb_infile": pdb_infile,
+            "mtf_outfile": mtf_outfile,
+            "pdb_outfile": pdb_outfile,
+            "hydrogen_flag": "true",
+            "pdb_o_format": "false",
+            "ile_cd_becomes": "",  # default: CD1
+            "ot1_becomes": "",     # default: O
+            "ot2_becomes": "",     # default: OXT
+        }
+    )
+
+
+def cns_minimize_inp(pdb_infile, mtf_infile, pdb_outfile, num_cycles=5):
+    """
+    Create CNS input script (.inp) to minimize model
+
+    Parameters
+    ----------
+    pdb_infile : str
+        Path to PDB structure that should be minimized
+        (created using generate_easy protocol)
+    mtf_infile : str
+        Path to corresponding .mtf topology file of
+        PDB structure (created using generate_easy protocol)
+    pdb_outfile : str
+        Path where minimized structure will be stored
+    num_cycles : int, optional (default: 5)
+        Number of minimization cycles
+
+    Returns
+    -------
+    str:
+        Input script
+    """
+    return _cns_render_template(
+        "model_minimize",
+        {
+            "pdb_infile": pdb_infile,
+            "mtf_infile": mtf_infile,
+            "pdb_outfile": pdb_outfile,
+            "num_cycles": num_cycles,
+            "use_cryst": "false",
+            "space_group": "",
+        }
+    )
