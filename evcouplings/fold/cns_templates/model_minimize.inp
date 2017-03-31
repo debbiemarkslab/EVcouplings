@@ -1,0 +1,295 @@
+{+ file: model_minimize.inp +}
+{+ directory: general +}
+{+ description: conjugate gradient minimization with no
+                experimental energy terms +}
+{+ authors: Axel T. Brunger and Paul D. Adams +}
+{+ copyright: Yale University +}
+
+{- Guidelines for using this file:
+   - all strings must be quoted by double-quotes
+   - logical variables (true/false) are not quoted
+   - do not remove any evaluate statements from the file
+   - the selections store1 through store8 are available for general use -}
+
+{- begin block parameter definition -} define(
+
+{======================= molecular structure =========================}
+
+{* structure file *}
+{===>} structure_infile="{{ mtf_infile }}";
+
+{* parameter files *}
+{===>} parameter_infile_1="CNS_TOPPAR:protein.param";
+{===>} parameter_infile_2="";
+{===>} parameter_infile_3="";
+{===>} parameter_infile_4="";
+{===>} parameter_infile_5="";
+
+{* coordinate file *}
+{===>} coordinate_infile="{{ pdb_infile }}";
+
+{===================== crystallographic symmetry =====================}
+
+{* use crystallographic symmetry *}
+{+ choice: true false +}
+{===>} use_cryst={{ use_cryst }};
+
+{* space group *}
+{* use International Table conventions with subscripts substituted
+   by parenthesis *}
+{===>} sg="{{ space_group }}";
+
+{* unit cell parameters in Angstroms and degrees *}
+{+ table: rows=1 "cell" cols=6 "a" "b" "c" "alpha" "beta" "gamma" +}
+{===>} a=61.76;
+{===>} b=40.73;
+{===>} c=26.74;
+{===>} alpha=90;
+{===>} beta=90;
+{===>} gamma=90;
+
+{=================== non-crystallographic symmetry ===================}
+
+{* NCS-restraints/constraints file *}
+{* see auxiliary/ncs.def *}
+{===>} ncs_infile="";
+
+{========================== atom selection ===========================}
+
+{* select atoms to be included in refinement *}
+{* it is essential to include hydrogen atoms if anything other than
+   regularization of geometry is being performed *}
+{* this should include all conformations if multiple conformations are used *}
+{===>} atom_select=(known);
+
+{* select fixed atoms *}
+{===>} atom_fixed=(none);
+
+{* select atoms to be harmonically restrained during minimization *}
+{===>} atom_harm=(none);
+
+{* harmonic restraint constant - for harmonically restrained atoms *}
+{===>} k_harmonic=10;
+
+{* select atoms in alternate conformation 1 *}
+{===>} conf_1=(none);
+
+{* select atoms in alternate conformation 2 *}
+{===>} conf_2=(none);
+
+{* select atoms in alternate conformation 3 *}
+{===>} conf_3=(none);
+
+{* select atoms in alternate conformation 4 *}
+{===>} conf_4=(none);
+
+{* additional restraints file *}
+{* eg. auxiliary/dna-rna_restraints.def *}
+{===>} restraints_infile="";
+
+{===================== minimization parameters =======================}
+
+{* number of minimization steps *}
+{===>} minimize_nstep=200;
+
+{* number of cycles *}
+{===>} num_cycles={{ num_cycles }};
+
+{* nonbonded cutoff (Angstroms) *}
+{===>} nonb_cutoff=13;
+
+{* dielectric constant *}
+{===>} dielectric=1;
+
+{=========================== output files ============================}
+
+{* output coordinate file *}
+{===>} coordinate_outfile="{{ pdb_outfile }}";
+
+{===========================================================================}
+{        things below this line do not normally need to be changed          }
+{===========================================================================}
+
+ ) {- end block parameter definition -}
+
+ checkversion 1.2
+
+ evaluate ($log_level=quiet)
+
+ structure @&structure_infile end
+
+ coordinates @&coordinate_infile
+
+ if ( &use_cryst = true ) then
+   xray
+     @@CNS_XTALLIB:spacegroup.lib (sg=&sg;
+                                   sgparam=$sgparam;)
+     a=&a b=&b c=&c  alpha=&alpha beta=&beta gamma=&gamma
+   end
+ end if
+
+ parameter
+   if ( &BLANK%parameter_infile_1 = false ) then
+      @@&parameter_infile_1
+   end if
+   if ( &BLANK%parameter_infile_2 = false ) then
+      @@&parameter_infile_2
+   end if
+   if ( &BLANK%parameter_infile_3 = false ) then
+      @@&parameter_infile_3
+   end if
+   if ( &BLANK%parameter_infile_4 = false ) then
+      @@&parameter_infile_4
+   end if
+   if ( &BLANK%parameter_infile_5 = false ) then
+      @@&parameter_infile_5
+   end if
+ end
+
+ if ( &use_cryst = true ) then
+   flags exclude * include bond angle impr dihe vdw elec pvdw pele ? end
+ else
+   flags exclude * include bond angle impr dihe vdw elec ? end
+ end if
+
+ param nbonds tolerence=? end end
+ evaluate ($toler=$result)
+
+ evaluate ($ctofnb=&nonb_cutoff-(2*$toler))
+ evaluate ($ctonnb=$ctofnb-1.0)
+
+ param
+   nbonds
+     cutnb=&nonb_cutoff
+     ctonnb=$ctonnb
+     ctofnb=$ctofnb
+     eps=&dielectric
+     ?
+   end
+ end
+
+ if ( &BLANK%ncs_infile = false ) then
+    inline @&ncs_infile
+ end if
+
+ if ( &BLANK%restraints_infile = false ) then
+     @&restraints_infile
+ end if
+
+ do (store9=0) (all)
+
+ evaluate ($nalt=1)
+ evaluate ($alt=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop nalt
+   if ( &exist_conf_$alt = true ) then
+     show sum(1) ( &conf_$alt )
+     if ( $result > 0 ) then
+       evaluate ($nalt=$nalt+1)
+     end if
+   else
+     evaluate ($done=true)
+     evaluate ($nalt=$nalt-1)
+   end if
+   evaluate ($alt=$alt+1)
+ end loop nalt
+
+ evaluate ($alt=1)
+ while ( $alt <= $nalt ) loop alt
+   do (store9=$alt) ( &conf_$alt )
+   evaluate ($alt=$alt+1)
+ end loop alt
+
+ igroup
+   interaction ( &atom_select and not(attr store9 > 0))
+               ( &atom_select and not(attr store9 > 0))
+   evaluate ($alt=1)
+   while ( $alt <= $nalt ) loop alcs
+     interaction ( &atom_select and ( attr store9 = $alt or attr store9 = 0 ))
+                 ( &atom_select and ( attr store9 = $alt ))
+     evaluate ($alt=$alt+1)
+   end loop alcs
+ end
+
+ fix selection=( &atom_fixed ) end
+
+ fastnb grid end
+
+ show sum(1) (&atom_harm)
+ if ( $result > 0 ) then
+   evaluate ($harmonic=true)
+ else
+   evaluate ($harmonic=false)
+ end if
+
+ if ( $harmonic = true ) then
+   do (refx=x) (all)
+   do (refy=y) (all)
+   do (refz=z) (all)
+   do (harm=0) (all)
+   do (harm=&k_harmonic) (&atom_harm)
+   flags include harm end
+ end if
+
+ evaluate ($cycle=1)
+
+ while ($cycle <= &num_cycles) loop main
+
+   if ( &minimize_nstep > 0 ) then
+     minimize lbfgs
+       nstep=&minimize_nstep
+       nprint=5
+       drop=10.0
+     end
+   end if
+
+   evaluate ($cycle=$cycle+1)
+
+ end loop main
+
+ print threshold=20.0 bond
+ evaluate ($rmsd_bond=$result)
+
+ print threshold=50.0 angle
+ evaluate ($rmsd_angle=$result)
+
+ set display=&coordinate_outfile end
+
+ display REMARK coordinates from energy minimization
+ display REMARK rmsd bonds= $rmsd_bond[f8.6]  rmsd angles= $rmsd_angle[f8.5]
+ display REMARK nonbonded cutoff= &nonb_cutoff Angstroms  dieletric= &dielectric
+ display REMARK cycles= &num_cycles steps= &minimize_nstep
+ if ( &use_cryst = true ) then
+   display REMARK sg= &STRIP%sg a= &a b= &b c= &c alpha= &alpha beta= &beta gamma= &gamma
+ end if
+ if ( &BLANK%parameter_infile_1 = false ) then
+    display REMARK parameter file 1  : &STRIP%parameter_infile_1
+ end if
+ if ( &BLANK%parameter_infile_2 = false ) then
+    display REMARK parameter file 2  : &STRIP%parameter_infile_2
+ end if
+ if ( &BLANK%parameter_infile_3 = false ) then
+    display REMARK parameter file 3  : &STRIP%parameter_infile_3
+ end if
+ if ( &BLANK%parameter_infile_4 = false ) then
+    display REMARK parameter file 4  : &STRIP%parameter_infile_4
+ end if
+ if ( &BLANK%parameter_infile_5 = false ) then
+    display REMARK parameter file 5  : &STRIP%parameter_infile_5
+ end if
+ display REMARK molecular structure file: &STRIP%structure_infile
+ display REMARK input coordinates: &STRIP%coordinate_infile
+ if ( &BLANK%restraints_infile = false ) then
+    display REMARK additional restraints file: &STRIP%restraints_infile
+ end if
+ if ( &BLANK%ncs_infile = false ) then
+   display REMARK ncs= &STRIP%ncs_type  ncs file= &STRIP%ncs_infile
+ else
+   display REMARK ncs= none
+ end if
+
+ remark
+
+ write coordinates output=&coordinate_outfile end
+
+ stop
