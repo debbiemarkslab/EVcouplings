@@ -103,7 +103,8 @@ def detect_secstruct_clash(i, j, secstruct):
     return False
 
 
-def secstruct_clashes(ec_pairs, residues, output_column="ss_clash"):
+def secstruct_clashes(ec_pairs, residues, output_column="ss_clash",
+                      secstruct_column="sec_struct_3state"):
     """
     Add secondary structure clashes to EC table
 
@@ -119,6 +120,9 @@ def secstruct_clashes(ec_pairs, residues, output_column="ss_clash"):
     output_column : str, optional (default: "secstruct_clash")
         Target column indicating if pair is in a
         clash or not
+    secstruct_column : str, optional (default: "sec_struct_3state")
+        Source column in ec_pairs with secondary structure
+        states (H, E, C)
 
     Returns
     -------
@@ -126,7 +130,7 @@ def secstruct_clashes(ec_pairs, residues, output_column="ss_clash"):
         Annotated EC table with clashes
     """
     ec_pairs = deepcopy(ec_pairs)
-    secstruct = dict(zip(residues.i, residues.ss_pred))
+    secstruct = dict(zip(residues.i, residues[secstruct_column]))
 
     ec_pairs.loc[:, output_column] = [
         detect_secstruct_clash(row["i"], row["j"], secstruct)
