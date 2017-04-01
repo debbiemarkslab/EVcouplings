@@ -8,11 +8,14 @@ Authors:
 from copy import deepcopy
 import os
 from os import path
+from collections import defaultdict
+
+import pandas as pd
 
 from evcouplings.utils.config import InvalidParameterError
 from evcouplings.utils.system import (
     run, valid_file, create_prefix_folders,
-    verify_resources, ResourceError
+    makedirs, verify_resources, ResourceError
 )
 
 
@@ -162,3 +165,147 @@ def run_cns_13(inp_script=None, inp_file=None, log_file=None,
     if log_file is not None:
         with open(log_file, "w") as f:
             f.write(stdout)
+
+
+def run_psipred(fasta_file, output_dir, binary="runpsipred"):
+    """
+    Run psipred secondary structure prediction
+
+    psipred output file convention: run_psipred creates
+    output files <rootname>.ss2 and <rootname2>.horiz
+    in the current working directory, where <rootname>
+    is extracted from the basename of the input file
+    (e.g. /home/test/<rootname>.fa)
+
+    Parameters
+    ----------
+    fasta_file : str
+        Input sequence file in FASTA format
+    output_dir : str
+        Directory in which output will be saved
+    binary : str, optional (default: "cns")
+        Path of psipred executable (runpsipred)
+
+    Returns
+    -------
+    ss2_file : str
+        Absolute path to prediction output in "VFORMAT"
+    horiz_file : str
+        Absolute path to prediction output in "HFORMAT"
+
+    Raises
+    ------
+    ExternalToolError
+        If call to psipred fails
+    """
+    # make sure we have absolute path
+    binary = path.abspath(binary)
+    fasta_file = path.abspath(fasta_file)
+    output_dir = path.abspath(output_dir)
+
+    # make sure input file is valid
+    verify_resources("Input FASTA file is invalid", fasta_file)
+
+    # make sure output directory exists
+    makedirs(output_dir)
+
+    # execute psipred;
+    # we have to start it from output directory so
+    # result files end up there (this is hardcoded
+    # in runpsipred)
+    return_code, stdout, stderr = run(
+        [binary, fasta_file], working_dir=output_dir,
+    )
+
+    # determine where psipred will store output based
+    # on logic from runpsipred script
+    rootname, _ = path.splitext(path.basename(fasta_file))
+    output_prefix = path.join(
+        output_dir, rootname
+    )
+
+    # construct paths to output files in vertical and horizontal formats
+    ss2_file = output_prefix + ".ss2"
+    horiz_file = output_prefix + ".horiz"
+
+    # make sure we actually predicted something
+    verify_resources(
+        "psipred output is invalid", ss2_file, horiz_file
+    )
+
+    return ss2_file, horiz_file
+
+
+def read_psipred_prediction(filename, first_index=1):
+    """
+    Read a psipred secondary structure prediction file
+    in horizontal or vertical format (auto-detected).
+
+    Parameters
+    ----------
+    filename : str
+        Path to prediction output file
+    first_index : int, optional (default: 1)
+        Index of first position in predicted sequence
+
+    Returns
+    -------
+    pred : pandas.DataFrame
+        Table containing secondary structure prediction,
+        with the following columns:
+        * i: position
+        * A_i: amino acid
+        * sec_struct_3state: prediction (H, E, C)
+
+        If reading vformat, also contains columns
+        for the individual (score_coil/helix/strand)
+
+        If reading hformat, also contains confidence
+        score between 1 and 9 (sec_struct_conf)
+    """
+    # detect file format
+    file_format = None
+    with open(filename) as f:
+        for line in f:
+            if line.startswith("# PSIPRED HFORMAT"):
+                file_format = "hformat"
+            elif line.startswith("# PSIPRED VFORMAT"):
+                file_format = "vformat"
+
+    if file_format == "vformat":
+        # read in output file
+        pred = pd.read_csv(
+            filename,
+            skip_blank_lines=True, comment="#",
+            delim_whitespace=True,
+            names=[
+                "i", "A_i", "sec_struct_3state",
+                "score_coil", "score_helix", "score_strand"
+            ],
+        )
+    elif file_format == "hformat":
+        content = defaultdict(str)
+        with open(filename) as f:
+            # go through file and assemble Conf, Pred, and AA lines
+            # into single strings
+            for line in f:
+                line = line.rstrip().replace(" ", "")
+                if ":" in line:
+                    key, _, value = line.partition(":")
+                    content[key] += value
+
+        pred = pd.DataFrame({
+            "A_i": list(content["AA"]),
+            "sec_struct_3state": list(content["Pred"]),
+            "sec_strut_conf": list(content["Conf"]),
+        })
+        pred.loc[:, "i"] = list(range(1, len(pred) + 1))
+    else:
+        raise InvalidParameterError(
+            "Input file is not a valid psipred prediciton file"
+        )
+
+    # shift indices if first_index != 1
+    pred.loc[:, "i"] += (first_index - 1)
+
+    return pred
