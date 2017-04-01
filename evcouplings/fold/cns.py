@@ -5,8 +5,7 @@ Authors:
   Thomas A. Hopf
 """
 
-from os import path
-from pkg_resources import resource_filename, resource_string
+from pkg_resources import resource_filename
 
 import pandas as pd
 
