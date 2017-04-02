@@ -309,7 +309,7 @@ def cns_minimize_inp(pdb_infile, mtf_infile, pdb_outfile, num_cycles=5):
 def _folding_config(config_file=None):
     """
     Load CNS folding configuration
-    
+
     Parameters
     ----------
     config_file: str, optional (default: None)
@@ -336,12 +336,37 @@ def _folding_config(config_file=None):
     return read_config_file(config_file)
 
 
-def cns_dist_restraint(resid_i, name_i, resid_j, name_j,
+def cns_dist_restraint(resid_i, atom_i, resid_j, atom_j,
                        dist, lower, upper, weight=None,
                        comment=None):
     """
-    # TODO
-    # TODO: add weight handling
+    Create a CNS distance restraint string
+
+    Parameters
+    ----------
+    resid_i : int
+        Index of first residue
+    atom_i : str
+        Name of selected atom in first residue
+    resid_j : int
+        Index of second residue
+    atom_j : str
+        Name of selected atom in second residue
+    dist : float
+        Restrain distance between residues to this value
+    lower : float
+        Lower bound delta on distance
+    upper : float
+        Upper bound delta on distance
+    weight : float, optional (default: None)
+        Weight for distance restraint
+    comment : str, optional (default: None)
+        Print comment at the end of restraint line
+
+    Returns
+    -------
+    r : str
+        Distance restraint
     """
     if weight is not None:
         weight_str = "weight {} ".format(weight)
@@ -356,8 +381,66 @@ def cns_dist_restraint(resid_i, name_i, resid_j, name_j,
     r = (
         "assign (resid {} and name {}) (resid {} and name {})  "
         "{} {} {} {}{}".format(
-            resid_i, name_i, resid_j, name_j, dist, lower, upper,
+            resid_i, atom_i, resid_j, atom_j, dist, lower, upper,
             weight_str, comment_str
+        )
+    )
+
+    return r
+
+
+def cns_dihedral_restraint(resid_i, atom_i, resid_j, atom_j,
+                           resid_k, atom_k, resid_l, atom_l,
+                           energy, degrees, range_, exponent,
+                           comment=None):
+    """
+    Create a CNS dihedral angle restraint string
+
+    Parameters
+    ----------
+    resid_i : int
+        Index of first residue
+    atom_i : str
+        Name of selected atom in first residue
+    resid_j : int
+        Index of second residue
+    atom_j : str
+        Name of selected atom in second residue
+    resid_k : int
+        Index of third residue
+    atom_k : str
+        Name of selected atom in third residue
+    resid_l : int
+        Index of fourth residue
+    atom_l : str
+        Name of selected atom in fourth residue
+    energy : float
+        Energy constant for restraint
+    degrees : float
+        Restrain angle to this value
+    range_ : float
+        Acceptable range around angle
+    exponent : int
+        Exponent of dihedral angle energy
+    comment : str, optional (default: None)
+        Print comment at the end of restraint line
+
+    Returns
+    -------
+    r : str
+        Dihedral angle restraint
+    """
+    if comment is not None:
+        comment_str = " ! {}".format(comment)
+    else:
+        comment_str = ""
+
+    r = (
+        "assign (resid {} and name {}) (resid {} and name {}) "
+        "(resid {} and name {}) (resid {} and name {})"
+        "  {} {} {} {}{}".format(
+            resid_i, atom_i, resid_j, atom_j, resid_k, atom_k, resid_l, atom_l,
+            energy, degrees, range_, exponent, comment_str
         )
     )
     return r
@@ -366,7 +449,7 @@ def cns_dist_restraint(resid_i, name_i, resid_j, name_j,
 def secstruct_dist_restraints(residues, output_file, config_file=None,
                               secstruct_column="sec_struct_3state"):
     """
-    Create .tbl file with dihedral angle restraints
+    Create .tbl file with distance restraints
     based on secondary structure prediction
 
     Logic based on choose_CNS_constraint_set.m,
@@ -417,7 +500,7 @@ def secstruct_dist_restraints(residues, output_file, config_file=None,
             sse_cfg = cfg[name]
 
             # define distance constraints based on increasing
-            # sequence distance, and if the secondary structure
+            # sequence distance, and test if the secondary structure
             # element reaches out that far. Specific distance restraints
             # are defined in config file for each sequence_dist
             for seq_dist, atoms in sorted(sse_cfg.items()):
@@ -442,3 +525,78 @@ def secstruct_dist_restraints(residues, output_file, config_file=None,
                                 AA1_to_AA3[aa[i]] + " " + AA1_to_AA3[aa[j]]
                             )
                             f.write(r + "\n")
+
+
+def secstruct_angle_restraints(residues, output_file, config_file=None,
+                               secstruct_column="sec_struct_3state"):
+    """
+    Create .tbl file with dihedral angle restraints
+    based on secondary structure prediction
+
+    Logic based on make_cns_angle_constraints.pl
+
+    Parameters
+    ----------
+    residues : pandas.DataFrame
+        Table containing positions (column i), residue
+        type (column A_i), and secondary structure for
+        each position
+    output_file : str
+        Path to file in which restraints will be saved
+    config_file : str, optional (default: None)
+        Path to config file with folding settings. If None,
+        will use default settings included in package
+        (restraints.yml).
+    secstruct_column : str, optional (default: sec_struct_3state)
+        Column name in residues dataframe from which secondary
+        structure will be extracted (has to be H, E, or C).
+    """
+
+    def _phi(pos, sse):
+        sse_cfg = cfg[sse]["phi"]
+        return cns_dihedral_restraint(
+            pos, "C",
+            pos + 1, "N",
+            pos + 1, "CA",
+            pos + 1, "C",
+            sse_cfg["energy_constant"],
+            sse_cfg["degrees"],
+            sse_cfg["range"],
+            sse_cfg["exponent"],
+        )
+
+    def _psi(pos, sse):
+        sse_cfg = cfg[sse]["psi"]
+        return cns_dihedral_restraint(
+            pos, "N",
+            pos, "CA",
+            pos, "C",
+            pos + 1, "N",
+            sse_cfg["energy_constant"],
+            sse_cfg["degrees"],
+            sse_cfg["range"],
+            sse_cfg["exponent"],
+        )
+
+    # get configuration (default or user-supplied)
+    cfg = _folding_config(config_file)["secstruct_angle_restraints"]
+
+    # extract amino acids and secondary structure into dictionary
+    secstruct = dict(zip(residues.i, residues[secstruct_column]))
+    aa = dict(zip(residues.i, residues.A_i))
+
+    i_min = residues.i.min()
+    i_max = residues.i.max()
+
+    with open(output_file, "w") as f:
+        # go through all positions
+        for i in range(i_min, i_max - 1):
+            # check if two subsequent identical secondary structure states
+            # helix
+            if secstruct[i] == "H" and secstruct[i + 1] == "H":
+                f.write(_phi(i, "helix") + "\n")
+                f.write(_psi(i, "helix") + "\n")
+            # strand
+            elif secstruct[i] == "E" and secstruct[i + 1] == "E":
+                f.write(_phi(i, "strand") + "\n")
+                f.write(_psi(i, "strand") + "\n")
