@@ -71,7 +71,7 @@ secstruct_angle_restraints:
 # Distance restraints derived from secondary
 # structure predictions
 secstruct_distance_restraints:
-    weight:
+    weight: 5
     helix:
         1:
             [O, O]: [3.07, 0.2]
