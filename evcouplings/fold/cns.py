@@ -14,7 +14,7 @@ from evcouplings.utils.config import (
 )
 from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.helpers import render_template
-from evcouplings.utils.system import verify_resources
+from evcouplings.utils.system import verify_resources, temp
 
 
 def cns_seq_file(sequence, output_file=None, residues_per_line=16):
