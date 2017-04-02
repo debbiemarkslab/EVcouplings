@@ -48,17 +48,6 @@ secstruct_angle_restraints:
     helix:
         phi:
             energy_constant: 0.5
-            degrees: -127.0
-            range: 20.0
-            exponent: 2
-        psi:
-            energy_constant: 0.5
-            degrees: 122
-            range: 20.0
-            exponent: 2
-    strand:
-        phi:
-            energy_constant: 0.5
             degrees: -57.0
             range: 7.0
             exponent: 2
@@ -66,6 +55,18 @@ secstruct_angle_restraints:
             energy_constant: 0.5
             degrees: -47.0
             range:  7.0
+            exponent: 2
+
+    strand:
+        phi:
+            energy_constant: 0.5
+            degrees: -127.0
+            range: 20.0
+            exponent: 2
+        psi:
+            energy_constant: 0.5
+            degrees: 122.0
+            range: 20.0
             exponent: 2
 
 # Distance restraints derived from secondary
