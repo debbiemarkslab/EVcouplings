@@ -202,3 +202,81 @@ def secstruct_angle_restraints(residues, output_file, config_file=None,
             elif secstruct[i] == "E" and secstruct[i + 1] == "E":
                 f.write(_phi(i, "strand") + "\n")
                 f.write(_psi(i, "strand") + "\n")
+
+
+def ec_dist_restraints(ec_pairs, output_file, config_file=None,
+                       restraint_formatter=cns_dist_restraint):
+    """
+    Create .tbl file with distance restraints
+    based on evolutionary couplings
+
+    Logic based on choose_CNS_constraint_set.m,
+    lines 449-515
+
+    Parameters
+    ----------
+    ec_pairs : pandas.DataFrame
+        Table with EC pairs that will be turned
+        into distance restraints
+        (with columns i, j, A_i, A_j)
+    output_file : str
+        Path to file in which restraints will be saved
+    config_file : str, optional (default: None)
+        Path to config file with folding settings. If None,
+        will use default settings included in package
+        (restraints.yml).
+    restraint_formatter : function, optional (default: cns_dist_restraint)
+        Function called to create string representation of restraint
+    """
+    # get configuration (default or user-supplied)
+    cfg = _folding_config(config_file)["pair_distance_restraints"]
+
+    with open(output_file, "w") as f:
+        # create distance restraints per EC row in table
+        for idx, ec in ec_pairs.iterrows():
+            i, j, aa_i, aa_j = ec["i"], ec["j"], ec["A_i"], ec["A_j"]
+
+            for type_ in ["c_alpha", "c_beta", "tertiary_atom"]:
+                tcfg = cfg[type_]
+
+                # check if we want this type of restraint first
+                if not tcfg["use"]:
+                    continue
+
+                # restraint weighting: currently only support none,
+                # or fixed numerical value
+                if isinstance(tcfg["weight"], str):
+                    # TODO: implement restraint weighting functions eventually
+                    raise NotImplementedError(
+                        "Restraint weighting functions not yet implemented: " +
+                        tcfg["weight"]
+                    )
+                else:
+                    weight = tcfg["weight"]
+
+                # determine which atoms to put restraint on
+                # can be residue-type specific dict or fixed value
+                atoms = tcfg["atoms"]
+                if isinstance(atoms, dict):
+                    atom_i = atoms[aa_i]
+                    atom_j = atoms[aa_j]
+                else:
+                    atom_i = atoms
+                    atom_j = atoms
+
+                # skip if we would put a CB restraint on glycine residues;
+                # this should be generalized to skip any invalid selection eventually
+                if ((aa_i == "G" and atom_i == "CB") or
+                        (aa_j == "G" and atom_j == "CB")):
+                    continue
+
+                # write restraint
+                r = restraint_formatter(
+                    i, atom_i, j, atom_j,
+                    dist=tcfg["dist"],
+                    lower=tcfg["lower"],
+                    upper=tcfg["upper"],
+                    weight=weight,
+                    comment=AA1_to_AA3[aa_i] + " " + AA1_to_AA3[aa_j]
+                )
+                f.write(r + "\n")

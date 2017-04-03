@@ -1,23 +1,27 @@
 # EC-derived distance restraints
 pair_distance_restraints:
-    weight:
     c_alpha:
         use: True
         dist: 4
         lower: 4
         upper: 3
+        weight:
+        atoms: CA
     c_beta:
         use: True
         dist: 4
         lower: 4
         upper: 3
+        weight:
+        atoms: CB
 
     # additional distance restraint on side chain atom
     tertiary_atom:
-        use: True
+        use: False
         dist: 3
         lower: 1
         upper: 1
+        weight:
         # determines which atom will be used depending
         # on residue type
         atoms:
