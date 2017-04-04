@@ -10,9 +10,6 @@ from pkg_resources import resource_filename
 from evcouplings.utils.config import read_config_file
 from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.system import verify_resources
-from evcouplings.fold.cns import (
-    cns_dist_restraint, cns_dihedral_restraint
-)
 
 
 def _folding_config(config_file=None):
@@ -45,9 +42,9 @@ def _folding_config(config_file=None):
     return read_config_file(config_file)
 
 
-def secstruct_dist_restraints(residues, output_file, config_file=None,
-                              secstruct_column="sec_struct_3state",
-                              restraint_formatter=cns_dist_restraint):
+def secstruct_dist_restraints(residues, output_file,
+                              restraint_formatter, config_file=None,
+                              secstruct_column="sec_struct_3state"):
     """
     Create .tbl file with distance restraints
     based on secondary structure prediction
@@ -63,6 +60,8 @@ def secstruct_dist_restraints(residues, output_file, config_file=None,
         each position
     output_file : str
         Path to file in which restraints will be saved
+    restraint_formatter : function
+        Function called to create string representation of restraint
     config_file : str, optional (default: None)
         Path to config file with folding settings. If None,
         will use default settings included in package
@@ -70,8 +69,6 @@ def secstruct_dist_restraints(residues, output_file, config_file=None,
     secstruct_column : str, optional (default: sec_struct_3state)
         Column name in residues dataframe from which secondary
         structure will be extracted (has to be H, E, or C).
-    restraint_formatter : function, optional (default: cns_dist_restraint)
-        Function called to create string representation of restraint
     """
     def _range_equal(start, end, char):
         """
@@ -132,9 +129,9 @@ def secstruct_dist_restraints(residues, output_file, config_file=None,
                             f.write(r + "\n")
 
 
-def secstruct_angle_restraints(residues, output_file, config_file=None,
-                               secstruct_column="sec_struct_3state",
-                               restraint_formatter=cns_dihedral_restraint):
+def secstruct_angle_restraints(residues, output_file,
+                               restraint_formatter, config_file=None,
+                               secstruct_column="sec_struct_3state"):
     """
     Create .tbl file with dihedral angle restraints
     based on secondary structure prediction
@@ -149,6 +146,8 @@ def secstruct_angle_restraints(residues, output_file, config_file=None,
         each position
     output_file : str
         Path to file in which restraints will be saved
+    restraint_formatter : function, optional
+        Function called to create string representation of restraint
     config_file : str, optional (default: None)
         Path to config file with folding settings. If None,
         will use default settings included in package
@@ -156,8 +155,6 @@ def secstruct_angle_restraints(residues, output_file, config_file=None,
     secstruct_column : str, optional (default: sec_struct_3state)
         Column name in residues dataframe from which secondary
         structure will be extracted (has to be H, E, or C).
-    restraint_formatter : function, optional (default: cns_dihedral_restraint)
-        Function called to create string representation of restraint
     """
 
     def _phi(pos, sse):
@@ -204,8 +201,8 @@ def secstruct_angle_restraints(residues, output_file, config_file=None,
                 f.write(_psi(i, "strand") + "\n")
 
 
-def ec_dist_restraints(ec_pairs, output_file, config_file=None,
-                       restraint_formatter=cns_dist_restraint):
+def ec_dist_restraints(ec_pairs, output_file,
+                       restraint_formatter, config_file=None):
     """
     Create .tbl file with distance restraints
     based on evolutionary couplings
@@ -221,12 +218,12 @@ def ec_dist_restraints(ec_pairs, output_file, config_file=None,
         (with columns i, j, A_i, A_j)
     output_file : str
         Path to file in which restraints will be saved
+    restraint_formatter : function
+        Function called to create string representation of restraint
     config_file : str, optional (default: None)
         Path to config file with folding settings. If None,
         will use default settings included in package
         (restraints.yml).
-    restraint_formatter : function, optional (default: cns_dist_restraint)
-        Function called to create string representation of restraint
     """
     # get configuration (default or user-supplied)
     cfg = _folding_config(config_file)["pair_distance_restraints"]

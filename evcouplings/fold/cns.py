@@ -11,7 +11,7 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from evcouplings.fold.restraints import (
-    ec_dist_restraints, secstruct_angle_restraints, secstruct_dist_restraints
+    ec_dist_restraints, secstruct_dist_restraints, secstruct_angle_restraints
 )
 from evcouplings.fold.tools import run_cns
 from evcouplings.utils.config import InvalidParameterError
@@ -493,14 +493,19 @@ def cns_dgsa_fold(residues, ec_pairs, prefix, config_file=None,
     ss_dist_tbl = rootname + "_ss_distance.tbl"
     ss_angle_tbl = rootname + "_ss_angle.tbl"
 
-    ec_dist_restraints(ec_pairs, ec_tbl, config_file)
+    ec_dist_restraints(
+        ec_pairs, ec_tbl, cns_dist_restraint,
+        config_file
+    )
 
     secstruct_dist_restraints(
-        residues, ss_dist_tbl, config_file, secstruct_column
+        residues, ss_dist_tbl, cns_dist_restraint,
+        config_file, secstruct_column
     )
 
     secstruct_angle_restraints(
-        residues, ss_angle_tbl, config_file, secstruct_column
+        residues, ss_angle_tbl, cns_dist_restraint,
+        config_file, secstruct_column
     )
 
     # create sequence file
