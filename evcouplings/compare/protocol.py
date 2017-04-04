@@ -194,7 +194,7 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
     if kwargs["plot_probability_cutoffs"]:
         cutoffs = kwargs["plot_probability_cutoffs"]
         if not isinstance(cutoffs, list):
-            cutoffs = []
+            cutoffs = [cutoffs]
 
         for c in cutoffs:
             ec_set = ecs_longrange.query("probability >= @c")
