@@ -158,6 +158,29 @@ def makedirs(directories):
     os.makedirs(directories, exist_ok=True)
 
 
+def insert_dir(prefix, *dirs):
+    """
+    Create new path by inserting additional
+    directories into the folder tree of prefix
+    (but keeping the filename prefix at the end),
+    i.e. /folders/in/prefix/*dirs/filename_prefix
+    
+    Parameters
+    ----------
+    prefix : str
+        Prefix of path that should be extended
+    *dirs : str
+        Add these directories at the end of path
+
+    Returns
+    -------
+    str
+        Extended path
+    """
+    base_dir, rootname = path.split(prefix)
+    return path.join(base_dir, *dirs, rootname)
+
+
 def temp():
     """
     Create a temporary file
