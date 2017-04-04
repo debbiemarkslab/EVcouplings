@@ -504,7 +504,7 @@ def cns_dgsa_fold(residues, ec_pairs, prefix, config_file=None,
     )
 
     secstruct_angle_restraints(
-        residues, ss_angle_tbl, cns_dist_restraint,
+        residues, ss_angle_tbl, cns_dihedral_restraint,
         config_file, secstruct_column
     )
 
