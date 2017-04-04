@@ -122,7 +122,7 @@ def verify_resources(message, *args):
     ResourceError
         If any of the resources does not exist or is empty
     """
-    invalid = [f for f in args if not valid_file(f)]
+    invalid = [str(f) for f in args if not valid_file(f)]
 
     if len(invalid) > 0:
         raise ResourceError(
