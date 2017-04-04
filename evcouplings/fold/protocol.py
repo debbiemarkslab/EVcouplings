@@ -56,6 +56,7 @@ def cns_dgsa(**kwargs):
 
     # TODO: allow to reuse secondary structure,
     # TODO: or have external file;
+    # TODO: parallelize using multiprocessing
     # TODO: create indextable-like file here
     # TODO: implement folding protocol here
     # TODO: cut to different parts of query sequence

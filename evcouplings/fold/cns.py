@@ -5,14 +5,21 @@ Authors:
   Thomas A. Hopf
 """
 
+import os
+from os import path
 import pandas as pd
+from pkg_resources import resource_filename
 
-from evcouplings.utils.config import (
-    read_config_file, InvalidParameterError
+from evcouplings.fold.restraints import (
+    ec_dist_restraints, secstruct_angle_restraints, secstruct_dist_restraints
 )
+from evcouplings.fold.tools import run_cns
+from evcouplings.utils.config import InvalidParameterError
 from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.helpers import render_template
-from evcouplings.utils.system import verify_resources, temp
+from evcouplings.utils.system import (
+    create_prefix_folders, verify_resources, temp, valid_file
+)
 
 
 def cns_seq_file(sequence, output_file=None, residues_per_line=16):
@@ -415,3 +422,167 @@ def cns_dihedral_restraint(resid_i, atom_i, resid_j, atom_j,
     )
 
     return r
+
+
+def cns_dgsa_fold(residues, ec_pairs, prefix, config_file=None,
+                  secstruct_column="sec_struct_3state",
+                  num_structures=20, min_cycles=5,
+                  log_level=None, binary="cns"):
+    """
+    Predict 3D structure coordinates using distance geometry
+    and simulated annealing-based folding protocol
+     
+    Parameters:
+    -----------
+    residues : pandas.DataFrame
+        Table containing positions (column i), residue
+        type (column A_i), and secondary structure for
+        each position
+    ec_pairs : pandas.DataFrame
+        Table with EC pairs that will be turned
+        into distance restraints
+        (with columns i, j, A_i, A_j)
+    prefix : str
+        Prefix for output files (can include directories).
+        Folders will be created automatically.
+    config_file : str, optional (default: None)
+        Path to config file with folding settings. If None,
+        will use default settings included in package
+        (restraints.yml)
+    secstruct_column : str, optional (default: sec_struct_3state)
+        Column name in residues dataframe from which secondary
+        structure will be extracted (has to be H, E, or C).
+    num_structures : int, optional (default: 20)
+        Number of trial structures to generate
+    min_cycles : int, optional (default: 5)
+        Number of minimization cycles at end of protocol
+    log_level : {None, "quiet", "verbose"}, optional (default: None)
+        Don't keep CNS log files, or switch to different degrees
+        of verbosity ("verbose" needed to obtain violation information)
+    binary : str, optional (default: "cns")
+        Path of CNS binary
+
+    Returns:
+    --------
+    final_models : dict
+        Mapping from model name to path of model
+    """
+    def _run_inp(inp_str, output_prefix):
+        with open(output_prefix + ".inp", "w") as f:
+            f.write(inp_str)
+
+        if log_level is not None:
+            log_file = output_prefix + ".log"
+        else:
+            log_file = None
+
+        run_cns(inp_str, log_file=log_file, binary=binary)
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    # CNS doesn't like paths above a certain length, so we
+    # will change into working directory and keep paths short.
+    # For this reason, extract path and filename prefix
+    dir_, rootname = path.split(prefix)
+    cwd = os.getcwd()
+    os.chdir(dir_)
+
+    # create restraints (EC pairs and secondary structure-based)
+    ec_tbl = rootname + "_couplings.tbl"
+    ss_dist_tbl = rootname + "_ss_distance.tbl"
+    ss_angle_tbl = rootname + "_ss_angle.tbl"
+
+    ec_dist_restraints(ec_pairs, ec_tbl, config_file)
+
+    secstruct_dist_restraints(
+        residues, ss_dist_tbl, config_file, secstruct_column
+    )
+
+    secstruct_angle_restraints(
+        residues, ss_angle_tbl, config_file, secstruct_column
+    )
+
+    # create sequence file
+    seq = "".join(residues.A_i)
+    seq_file = rootname + ".seq"
+    cns_seq_file(seq, seq_file)
+
+    # set up input files for folding
+    # make molecular topology file (will be written to mtf_file)
+    mtf_file = rootname + ".mtf"
+    _run_inp(
+        cns_mtf_inp(
+            seq_file, mtf_file, first_index=residues.i.min(),
+            disulfide_bridges=None
+        ), mtf_file
+    )
+
+    # make extended PDB file (will be in extended_file)
+    extended_file = rootname + "_extended.pdb"
+    _run_inp(
+        cns_extended_inp(
+            mtf_file, extended_file
+        ), extended_file
+    )
+
+    # fold using dg_sa protocol (filenames will have suffixes _1, _2, ...)
+
+    # have to pass either quiet or verbose to CNS (but will not store
+    # log file if log_level is None).
+    if log_level is None:
+        dgsa_log_level = "quiet"
+    else:
+        dgsa_log_level = log_level
+
+    _run_inp(
+        cns_dgsa_inp(
+            extended_file, mtf_file, rootname,
+            ec_tbl, ss_dist_tbl, ss_angle_tbl,
+            num_structures=num_structures,
+            log_level=dgsa_log_level
+        ), rootname + "_dgsa"
+    )
+
+    # add hydrogen atoms and minimize (for all
+    # generated candidate structures from dg_sa)
+
+    # keep track of final predicted structures
+    final_models = {}
+
+    for i in range(1, num_structures + 1):
+        input_root = "{}_{}".format(rootname, i)
+        input_model = input_root + ".pdb"
+
+        # check if we actually got the model from dg_sa
+        if not valid_file(input_model):
+            continue
+
+        # run generate_easy protocol to add hydrogen atoms
+        easy_pdb = input_root + "_h.pdb"
+        easy_mtf = input_root + "_h.mtf"
+        _run_inp(
+            cns_generate_easy_inp(
+                input_model, easy_pdb, easy_mtf
+            ), input_root + "_h"
+        )
+
+        # then minimize
+        min_pdb = input_root + "_hMIN.pdb"
+
+        _run_inp(
+            cns_minimize_inp(
+                easy_pdb, easy_mtf, min_pdb,
+                num_cycles=min_cycles
+            ), input_root + "_hMIN"
+        )
+
+        if valid_file(min_pdb):
+            final_models[min_pdb] = path.join(
+                dir_, min_pdb
+            )
+
+    # change back into original directory
+    os.chdir(cwd)
+
+    return final_models
