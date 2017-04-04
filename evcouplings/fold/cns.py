@@ -486,7 +486,9 @@ def cns_dgsa_fold(residues, ec_pairs, prefix, config_file=None,
     # For this reason, extract path and filename prefix
     dir_, rootname = path.split(prefix)
     cwd = os.getcwd()
-    os.chdir(dir_)
+
+    if dir_ != "":
+        os.chdir(dir_)
 
     # create restraints (EC pairs and secondary structure-based)
     ec_tbl = rootname + "_couplings.tbl"
