@@ -9,7 +9,6 @@ Authors:
 import matplotlib
 matplotlib.use("Agg")
 
-from sys import argv, exit, stderr
 from os import path
 
 import click
@@ -25,6 +24,7 @@ import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp
 import evcouplings.compare.protocol as cm
 import evcouplings.mutate.protocol as mt
+import evcouplings.fold.protocol as fd
 import evcouplings.complex.protocol as pp
 
 # supported pipelines
@@ -33,7 +33,8 @@ PIPELINES = {
         ("align", ap.run),
         ("couplings", cp.run),
         ("compare", cm.run),
-        ("mutate", mt.run)
+        ("mutate", mt.run),
+        ("fold", fd.run),
     ],
     "protein_complex": [
         ("align_1", ap.run),
