@@ -158,12 +158,11 @@ def makedirs(directories):
     os.makedirs(directories, exist_ok=True)
 
 
-def insert_dir(prefix, *dirs):
+def insert_dir(prefix, *dirs, rootname_subdir=True):
     """
     Create new path by inserting additional
     directories into the folder tree of prefix
     (but keeping the filename prefix at the end),
-    i.e. /folders/in/prefix/*dirs/filename_prefix
     
     Parameters
     ----------
@@ -171,6 +170,12 @@ def insert_dir(prefix, *dirs):
         Prefix of path that should be extended
     *dirs : str
         Add these directories at the end of path
+    rootname_subdir : bool, optional (default: True)
+        Given /my/path/prefix,
+        * if True, creates structure like
+        /my/path/prefix/*dirs/prefix
+        * if False, creates structure like
+        /my/path/*dirs/prefix
 
     Returns
     -------
@@ -178,8 +183,10 @@ def insert_dir(prefix, *dirs):
         Extended path
     """
     base_dir, rootname = path.split(prefix)
-    return path.join(base_dir, *dirs, rootname)
-
+    if rootname_subdir:
+        return path.join(prefix, *dirs, rootname)
+    else:
+        return path.join(base_dir, *dirs, rootname)
 
 def temp():
     """

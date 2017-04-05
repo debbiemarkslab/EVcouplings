@@ -11,21 +11,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from evcouplings.utils.config import (
-    check_required, InvalidParameterError,
-    read_config_file
+    check_required, InvalidParameterError
 )
 
 from evcouplings.utils.system import (
-    create_prefix_folders, valid_file, verify_resources
+    create_prefix_folders, insert_dir, verify_resources,
 )
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
-    intra_dists, multimer_dists, _prepare_chain
+    intra_dists, multimer_dists
 )
 from evcouplings.compare.sifts import SIFTS, SIFTSResult
-from evcouplings.compare.ecs import (
-    add_distances, coupling_scores_compared
-)
+from evcouplings.compare.ecs import coupling_scores_compared
 from evcouplings.visualize import pairs, misc
 
 
@@ -293,7 +290,7 @@ def standard(**kwargs):
 
     sifts_map, sifts_map_full = _identify_structures(**{
         **kwargs,
-        "prefix": prefix + "/compare_find"
+        "prefix": insert_dir(prefix, "compare")
     })
 
     # save selected PDB hits
@@ -319,7 +316,7 @@ def standard(**kwargs):
     if len(sifts_map.hits) > 0:
         d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
-            output_prefix=prefix + "/compare_distmap_intra"
+            output_prefix=insert_dir(prefix, "compare") + "_distmap_intra"
         )
         d_intra.to_file(outcfg["distmap_monomer"])
 
@@ -329,7 +326,7 @@ def standard(**kwargs):
         if kwargs["compare_multimer"]:
             d_multimer = multimer_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
-                output_prefix=prefix + "/compare_distmap_multimer"
+                output_prefix=insert_dir(prefix, "compare") + "_distmap_multimer"
             )
         else:
             d_multimer = None
