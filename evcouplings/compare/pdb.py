@@ -267,7 +267,15 @@ class PDB:
 
         # atom types and overall number of atoms in each type of residue
         self._residue_type_atom_names = _group_info("atomNameList")
+        self._residue_type_elements = _group_info("elementList")
+        self._residue_type_charges = _group_info("formalChargeList")
+
         self._residue_type_num_atoms = np.array([len(x) for x in self._residue_type_atom_names])
+
+        # prepare alternative location list as numpy array, with empty strings
+        self.alt_loc_list = np.array(
+            [x.replace("\x00", "") for x in mmtf.alt_loc_list]
+        )
 
         # compute first and last atom index for each residue/group
         # (by fetching corresponding length for each group based on group type)
@@ -441,6 +449,9 @@ class PDB:
         atom_first = self.first_atom_index[residue_indeces]
         atom_last = self.last_atom_index[residue_indeces]
         atom_names = np.concatenate(self._residue_type_atom_names[group_types])
+        elements = np.concatenate(self._residue_type_elements[group_types])
+        charges = np.concatenate(self._residue_type_charges[group_types])
+
         residue_number = np.repeat(res_df.index, atom_last - atom_first)
         atom_indeces = np.concatenate([
             np.arange(self.first_atom_index[i], self.last_atom_index[i])
@@ -451,9 +462,14 @@ class PDB:
             ("residue_index", residue_number),
             ("atom_id", self.mmtf.atom_id_list[atom_indeces]),
             ("atom_name", atom_names),
+            ("element", elements),
+            ("charge", charges),
             ("x", self.mmtf.x_coord_list[atom_indeces]),
             ("y", self.mmtf.y_coord_list[atom_indeces]),
             ("z", self.mmtf.z_coord_list[atom_indeces]),
+            ("alt_loc", self.alt_loc_list[atom_indeces]),
+            ("occupancy", self.mmtf.occupancy_list[atom_indeces]),
+            ("b_factor", self.mmtf.b_factor_list[atom_indeces]),
         ])
 
         coord_df = pd.DataFrame(coords)
