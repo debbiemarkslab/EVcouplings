@@ -787,7 +787,7 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
     # go through each structure
     for pdb_id, grp in sifts_result.hits.reset_index().groupby("pdb_id"):
         # skip missing structures
-        if not raise_missing and r["pdb_id"] not in structures:
+        if not raise_missing and pdb_id not in structures:
             continue
 
         # extract all chains for this structure
@@ -956,7 +956,7 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
 
         # save individual distance map
         if output_prefix is not None:
-            distmap_sym.to_file("{}_{}_{}".format(
+            distmap.to_file("{}_{}_{}".format(
                 output_prefix, index_i, index_j)
             )
 

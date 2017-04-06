@@ -14,7 +14,8 @@ from os import path
 import click
 
 from evcouplings.utils.config import (
-    read_config_file, check_required, write_config_file
+    read_config_file, check_required, write_config_file,
+    InvalidParameterError
 )
 from evcouplings.utils.system import (
     create_prefix_folders, verify_resources

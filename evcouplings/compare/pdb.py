@@ -720,7 +720,7 @@ class ClassicPDB:
         if chain not in self.model_to_chains[model]:
             raise ValueError(
                 "Invalid chain, valid chains are: " +
-                ",".join(chains)
+                ",".join(self.model_to_chains[model])
             )
 
         # get current chain
