@@ -40,6 +40,15 @@ DSSP_3_STATE_MAP = {
     "S": "C",
 }
 
+# format string for PDB ATOM records
+PDB_FORMAT = (
+    "{atom:<6s}{atom_id:>5} "
+    "{atom_name:4s}{alt_loc_ind:1s}{residue_name:<3s} "
+    "{chain_id:1s}{residue_id:>4}{ins_code:1}   "
+    "{x_coord:>8.3f}{y_coord:>8.3f}{z_coord:>8.3f}"
+    "{occupancy:>6.2f}{temp_factor:>6.2f}          "
+    "{element_symbol:>2}{charge:>2}"
+)
 
 class Chain:
     """
@@ -199,6 +208,93 @@ class Chain:
 
         # create remapped chain
         return self._update_ids(ids)
+
+    def to_file(self, fileobj, chain_id="A", end=True):
+        """
+        Write chain to a file in PDB format (mmCIF not yet
+        supported).
+        
+        Note that PDB files written this function may not 
+        be 100% compliant with the PDB format standards,
+        in particular:
+        * some HETATM records may turn into ATOM records
+          when starting from an mmtf file, if the record
+          has a one-letter code (such as MSE / M).
+        * code does not print TER record at the end of
+          a peptide chain
+        
+        Parameters
+        ----------
+        fileobj : file-like object
+            Write to this file handle
+        chain_id : str, optional (default: "A")
+            Assign this chain name in file (allows to redefine
+            chain name from whatever chain was originally)
+        end : bool, optional (default: True)
+            Print "END" record after chain (signals end of PDB file)
+        """
+        # merge residue-level information and atom-level information
+        # in one joint table (i.e. the way data is presented in a
+        # PDB/mmCIF file)
+        x = self.coords.merge(
+            self.residues, left_on="residue_index", right_index=True
+        )
+
+        # write one atom at a time
+        for idx, r in x.iterrows():
+            # split residue ID into position and insertion code
+            cid = str(r["id"])
+            if cid[-1].isalpha():
+                coord_id = cid[:-1]
+                ins_code = cid[-1]
+            else:
+                coord_id = cid
+                ins_code = ""
+
+            # atom element
+            element = r["element"].upper()
+
+            # need to split atom name into element and specifier
+            # (e.g. beta carbon element:C, specifier:B) so we
+            # can correctly justify in the 4-column atom
+            # name field: first 2 (right-justified) are
+            # element, second 2 (left-justified) are specifier
+            # (could use element directly, but just to be safe...)
+            atom_element = r["atom_name"][0:len(element)]
+            atom_spec = r["atom_name"][len(element):]
+            atom_name = "{:>2s}{:<2s}".format(atom_element, atom_spec)
+
+            # print charge if we have one (optional)
+            charge = r["charge"]
+            if charge != 0:
+                charge_sign = "-" if charge < 0 else "+"
+                charge_value = abs(charge)
+                charge_str = "{}{}".format(charge_value, charge_sign)
+            else:
+                charge_str = ""
+
+            # format line and write
+            s = PDB_FORMAT.format(
+                atom="HETATM" if r["hetatm"] else "ATOM",
+                atom_id=r["atom_id"],
+                atom_name=atom_name,
+                alt_loc_ind=r["alt_loc"],
+                residue_name=r["three_letter_code"],
+                chain_id=chain_id,
+                residue_id=coord_id,
+                ins_code=ins_code,
+                x_coord=r["x"],
+                y_coord=r["y"],
+                z_coord=r["z"],
+                occupancy=r["occupancy"],
+                temp_factor=r["b_factor"],
+                element_symbol=element,
+                charge=charge_str,
+            )
+            fileobj.write(s + "\n")
+
+        if end:
+            fileobj.write("END" + 77 * " " + "\n")
 
 
 class PDB:
@@ -444,6 +540,10 @@ class PDB:
         res_df.loc[:, "sec_struct_3state"] = res_df.loc[:, "sec_struct"].map(
             lambda x: DSSP_3_STATE_MAP[x], na_action="ignore"
         )
+
+        # proxy for HETATM records - will not work e.g. for MSE,
+        # which is listed as "M"
+        res_df.loc[:, "hetatm"] = res_df.one_letter_code.isnull()
 
         # finally, get atom names and coordinates for all residues
         atom_first = self.first_atom_index[residue_indeces]
