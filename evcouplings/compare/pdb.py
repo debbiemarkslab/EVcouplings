@@ -102,6 +102,9 @@ class Chain:
             self.coords.residue_index.isin(residues.index)
         ]
 
+        # reset atom index to consecutive numbers from 0
+        coords = coords.reset_index(drop=True)
+
         return Chain(residues, coords)
 
     def to_seqres(self):
@@ -126,8 +129,8 @@ class Chain:
 
         Parameters
         ----------
-        atom_name : str, optional (default: "CA")
-            Name of atoms to keep
+        atom_name : str or list-like, optional (default: "CA")
+            Name(s) of atoms to keep
 
         Returns
         -------
@@ -135,13 +138,53 @@ class Chain:
             Chain containing only filtered atoms (and those
             residues that have such an atom)
         """
-        coords = self.coords.loc[
-            self.coords.atom_name == atom_name
-        ].copy()
+        if isinstance(atom_name, str):
+            sel = self.coords.atom_name == atom_name
+        else:
+            sel = self.coords.atom_name.isin(atom_name)
 
+        # update dataframe to rows having the right atom(s)
+        coords = self.coords.loc[sel].copy()
+
+        # reset atom index to consecutive numbers from 0
+        coords = coords.reset_index(drop=True)
+
+        # if there are residues without any atoms, remove
+        # the entire residue
         residues = self.residues.loc[
             self.residues.index.isin(coords.residue_index)
         ].copy()
+
+        return Chain(residues, coords)
+
+    def filter_positions(self, positions):
+        """
+        Select a subset of positions from the chain
+        
+        Parameters
+        ----------
+        positions : list-like
+            Set of residues that will be kept
+
+        Returns
+        -------
+        Chain
+            Chain containing only the selected residues
+        """
+        # map all positions to be strings
+        positions = [str(p) for p in positions]
+
+        residues = self.residues.loc[
+            self.residues.id.isin(positions)
+        ].copy()
+
+        # drop coordinates of residues that were not kept
+        coords = self.coords.loc[
+            self.coords.residue_index.isin(residues.index)
+        ]
+
+        # reset atom index to consecutive numbers from 0
+        coords = coords.reset_index(drop=True)
 
         return Chain(residues, coords)
 
