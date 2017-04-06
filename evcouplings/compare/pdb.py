@@ -13,7 +13,12 @@ from mmtf import fetch, parse
 import numpy as np
 import pandas as pd
 
-from evcouplings.utils.system import valid_file, ResourceError
+from evcouplings.utils.config import InvalidParameterError
+from evcouplings.utils.constants import AA3_to_AA1
+from evcouplings.utils.helpers import DefaultOrderedDict
+from evcouplings.utils.system import (
+    valid_file, ResourceError, tempdir
+)
 
 # Mapping from MMTF secondary structure codes to DSSP symbols
 MMTF_DSSP_CODE_MAP = {
@@ -259,14 +264,23 @@ class Chain:
             # can correctly justify in the 4-column atom
             # name field: first 2 (right-justified) are
             # element, second 2 (left-justified) are specifier
-            # (could use element directly, but just to be safe...)
-            atom_element = r["atom_name"][0:len(element)]
-            atom_spec = r["atom_name"][len(element):]
-            atom_name = "{:>2s}{:<2s}".format(atom_element, atom_spec)
+            src_atom_name = r["atom_name"]
+
+            # to make things more complicated, there are cases like
+            # HE21 (CNS) or 1HE2 (PDB) which break if assuming
+            # that atom_element == element. In these cases, we
+            # just use the full raw string
+            if len(src_atom_name) == 4:
+                atom_name = src_atom_name
+            else:
+                atom_element = src_atom_name[0:len(element)]
+                atom_spec = src_atom_name[len(element):]
+                atom_name = "{:>2s}{:<2s}".format(atom_element, atom_spec)
 
             # print charge if we have one (optional)
             charge = r["charge"]
-            if charge != 0:
+            # test < and > to exclude nan values
+            if charge < 0 or charge > 0:
                 charge_sign = "-" if charge < 0 else "+"
                 charge_value = abs(charge)
                 charge_str = "{}{}".format(charge_value, charge_sign)
@@ -453,7 +467,7 @@ class PDB:
         Returns
         -------
         Chain
-            namedtuple containing DataFrames listing residues
+            Chain object containing DataFrames listing residues
             and atom coordinates
         """
         if not (0 <= model < self.num_models):
@@ -553,25 +567,231 @@ class PDB:
         charges = np.concatenate(self._residue_type_charges[group_types])
 
         residue_number = np.repeat(res_df.index, atom_last - atom_first)
-        atom_indeces = np.concatenate([
+        atom_indices = np.concatenate([
             np.arange(self.first_atom_index[i], self.last_atom_index[i])
             for i in residue_indeces
         ])
 
         coords = OrderedDict([
             ("residue_index", residue_number),
-            ("atom_id", self.mmtf.atom_id_list[atom_indeces]),
+            ("atom_id", self.mmtf.atom_id_list[atom_indices]),
             ("atom_name", atom_names),
             ("element", elements),
             ("charge", charges),
-            ("x", self.mmtf.x_coord_list[atom_indeces]),
-            ("y", self.mmtf.y_coord_list[atom_indeces]),
-            ("z", self.mmtf.z_coord_list[atom_indeces]),
-            ("alt_loc", self.alt_loc_list[atom_indeces]),
-            ("occupancy", self.mmtf.occupancy_list[atom_indeces]),
-            ("b_factor", self.mmtf.b_factor_list[atom_indeces]),
+            ("x", self.mmtf.x_coord_list[atom_indices]),
+            ("y", self.mmtf.y_coord_list[atom_indices]),
+            ("z", self.mmtf.z_coord_list[atom_indices]),
+            ("alt_loc", self.alt_loc_list[atom_indices]),
+            ("occupancy", self.mmtf.occupancy_list[atom_indices]),
+            ("b_factor", self.mmtf.b_factor_list[atom_indices]),
         ])
 
+        coord_df = pd.DataFrame(coords)
+
+        return Chain(res_df, coord_df)
+
+
+class ClassicPDB:
+    """
+    Class to handle "classic" PDB and mmCIF formats
+    (for new mmtf format see PDB class above). Wraps
+    around Biopython PDB functionality to provide a consistent
+    interface.
+    
+    Unlike the PDB class (based on mmtf), this object will
+    not be able to extract SEQRES indices corresponding to
+    ATOM-record residue indices.
+    """
+    def __init__(self, structure):
+        """
+        Initialize from Biopython Structure object
+
+        Normally one should use from_file() class
+        method to create object.
+
+        Parameters
+        ----------
+        structure : Bio.PDB.Structure.Structure
+            Biopython structure object (returned by
+            PDBParser, MMCIFParser or MMTFParser)
+        """
+        self.structure = structure
+        self.models = [
+            m.get_id() for m in self.structure
+        ]
+        self.model_to_chains = {
+            m: [
+                c.get_id() for c in self.structure[m]
+            ] for m in self.models
+        }
+
+
+    @classmethod
+    def from_file(cls, filename, file_format="pdb"):
+        """
+        Initialize structure from PDB/mmCIF file
+
+        Parameters
+        ----------
+        filename : str
+            Path of file
+        file_format : {"pdb", "cif"}, optional (default: "pdb")
+            Format of structure (old PDB format or mmCIF)
+
+        Returns
+        -------
+        ClassicPDB
+            Initialized PDB structure
+        """
+        try:
+            if file_format == "pdb":
+                from Bio.PDB import PDBParser
+                parser = PDBParser(QUIET=True)
+            elif file_format == "cif":
+                from Bio.PDB import FastMMCIFParser
+                parser = FastMMCIFParser(QUIET=True)
+            else:
+                raise InvalidParameterError(
+                    "Invalid file_format, valid options are: pdb, cif"
+                )
+
+            structure = parser.get_structure("", filename)
+            return cls(structure)
+        except FileNotFoundError as e:
+            raise ResourceError(
+                "Could not find file {}".format(filename)
+            ) from e
+
+    @classmethod
+    def from_id(cls, pdb_id):
+        """
+        Initialize structure by PDB ID (fetches
+        structure from RCSB servers)
+
+        Parameters
+        ----------
+        pdb_id : str
+            PDB identifier (e.g. 1hzx)
+
+        Returns
+        -------
+        PDB
+            initialized PDB structure
+        """
+        from urllib.error import URLError
+        from Bio.PDB import PDBList
+        pdblist = PDBList()
+
+        try:
+            # download PDB file to temporary directory
+            pdb_file = pdblist.retrieve_pdb_file(pdb_id, pdir=tempdir())
+            return cls.from_file(pdb_file, file_format="pdb")
+        except URLError as e:
+            raise ResourceError(
+                "Could not fetch PDB data for {}".format(pdb_id)
+            ) from e
+
+    def get_chain(self, chain, model=0):
+        """
+        Extract residue information and atom coordinates
+        for a given chain in PDB structure
+
+        Parameters
+        ----------
+        chain : str
+            Name of chain to be extracted (e.g. "A")
+        model : int, optional (default: 0)
+            Index of model to be extracted
+
+        Returns
+        -------
+        Chain
+            Chain object containing DataFrames listing residues
+            and atom coordinates
+        """
+        # check requested model is valid
+        if model not in self.models:
+            raise ValueError(
+                "Invalid model, valid models are: " +
+                ",".join(map(str, self.models))
+            )
+
+        # check requested chain is valid
+        if chain not in self.model_to_chains[model]:
+            raise ValueError(
+                "Invalid chain, valid chains are: " +
+                ",".join(chains)
+            )
+
+        # get current chain
+        c = self.structure[model][chain]
+
+        res = DefaultOrderedDict(list)
+        coords = DefaultOrderedDict(list)
+
+        # iterate through all residues in chain and
+        # accumulate information for dataframe building
+        for r_idx, r in enumerate(c):
+            het_flag, pos, ins_code = r.get_id()
+            ins_code = ins_code.replace(" ", "")
+            # print("x" + het_flag + "x", pos, "." + ins_code + ".")
+
+            residue_id = "{}{}".format(pos, ins_code)
+            res["id"].append(residue_id)
+            # we don't have seqres ID from atom records, unless we
+            # parsed additional annotation in header / mmCIF dict
+            res["seqres_id"].append(np.nan)
+            res["coord_id"].append(residue_id)
+
+            # residue name in 3- and 1-letter code
+            resname = r.get_resname()
+            if resname in AA3_to_AA1:
+                resname_one = AA3_to_AA1[resname]
+            else:
+                resname_one = np.nan
+            res["one_letter_code"].append(resname_one)
+            res["three_letter_code"].append(r.get_resname())
+
+            # information that is only straightforward to get from mmtf
+            res["chain_index"] = np.nan
+            res["chain_id"] = np.nan
+            res["sec_struct"] = np.nan
+            res["sec_struct_3state"] = np.nan
+
+            # at least we can identify easily what the hetatms
+            # are (as opposed to mmtf)
+            res["hetatm"].append(het_flag != " ")
+
+            # now iterate through all atoms for current residue
+            # and accumulate information
+            for a_idx, a in enumerate(r):
+                # this index links residues to coords
+                coords["residue_index"].append(r_idx)
+                # atom-specific information
+                coords["atom_id"].append(a.get_serial_number())
+                coords["atom_name"].append(a.get_name())
+                coords["element"].append(a.element)
+                # cannot get charge information from Biopython?
+                coords["charge"].append(np.nan)
+                x, y, z = a.get_coord()
+                coords["x"].append(x)
+                coords["y"].append(y)
+                coords["z"].append(z)
+                coords["alt_loc"].append(
+                    a.get_altloc().replace(" ", "")
+                )
+                coords["occupancy"].append(a.get_occupancy())
+                coords["b_factor"].append(a.get_bfactor())
+
+        # create residue table
+        res_df = pd.DataFrame(res)
+
+        # make sure that residue ids are strings
+        res_df.loc[:, "coord_id"] = (
+            res_df.loc[:, "coord_id"].astype(str)
+        )
+
+        # create coordinate table
         coord_df = pd.DataFrame(coords)
 
         return Chain(res_df, coord_df)
