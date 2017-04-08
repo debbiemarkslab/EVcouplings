@@ -16,6 +16,7 @@ import numpy as np
 from evcouplings.utils.calculations import dihedral_angle
 from evcouplings.visualize.pairs import find_secondary_structure_segments
 
+
 def _alpha_dihedrals(coords, segments):
     """
     Compute dihedral score for alpha-helical
@@ -287,7 +288,14 @@ def dihedral_ranking(structure, residues, sec_struct_column="sec_struct_3state",
 
     Returns
     -------
-    # TODO
+    int
+        Number of alpha dihedrals computed
+    float
+        Alpha dihedral score (unnormalized)
+    int
+        Number of beta dihedrals computed
+    float
+        Beta dihedral score (unnormalized)
     """
     # create table that, for each residue, contains
     # secondary structure and C_alpha coordinates.
@@ -375,16 +383,4 @@ def dihedral_ranking(structure, residues, sec_struct_column="sec_struct_3state",
         for weight, lower, upper in beta_weights
     ])
 
-    print(len(d_alpha), alpha_dihedral_score)
-    print(len(d_beta), beta_dihedral_score)
-    # TODO: handle values in borderline cases
-    # TODO: what is going on if no helix/strand in structure?
-    """
-    total_weighted_score(EC_binsIDX,struct_IDX) = 
-        good_beta_score(EC_binsIDX,struct_IDX)/(good_beta_dihedral_max + alpha_residue_count(EC_binsIDX,struct_IDX) )+ 
-        (good_alpha_count(EC_binsIDX,struct_IDX)/(good_beta_dihedral_max + alpha_residue_count(EC_binsIDX,struct_IDX)) );
-    """
-
-
-    # TODO: return value documentation
-    return d_alpha, d_beta
+    return len(d_alpha), alpha_dihedral_score, len(d_beta), beta_dihedral_score
