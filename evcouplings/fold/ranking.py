@@ -16,7 +16,6 @@ import numpy as np
 from evcouplings.utils.calculations import dihedral_angle
 from evcouplings.visualize.pairs import find_secondary_structure_segments
 
-
 def _alpha_dihedrals(coords, segments):
     """
     Compute dihedral score for alpha-helical
@@ -249,10 +248,15 @@ def _beta_dihedrals(coords, segments, max_strand_distance=7,
     # allow only up to two pairings per strand
     # (if more, take the two closest ones in 3D based on strand_dist)
     all_dihedrals = pd.DataFrame()
+    num_partners = defaultdict(int)
     for strand_i, partners in strand_partners.items():
         # only take two closest strands
-        for dist, strand_j, dihedrals in sorted(partners)[:2]:
-            all_dihedrals = all_dihedrals.append(dihedrals)
+        for dist, strand_j, dihedrals in sorted(partners):
+            # check we do not have two partners yet
+            if num_partners[strand_i] < 2 and num_partners[strand_j] < 2:
+                all_dihedrals = all_dihedrals.append(dihedrals)
+                num_partners[strand_i] += 1
+                num_partners[strand_j] += 1
 
     return all_dihedrals
 
