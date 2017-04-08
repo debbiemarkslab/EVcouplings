@@ -74,7 +74,8 @@ def _alpha_dihedrals(coords, segments):
     )
 
 
-def _beta_dihedrals(coords, segments, max_strand_distance=7):
+def _beta_dihedrals(coords, segments, max_strand_distance=7,
+                    original=True):
     """
     Compute dihedral score for beta strand
     segments.
@@ -96,6 +97,8 @@ def _beta_dihedrals(coords, segments, max_strand_distance=7):
     max_strand_distance : float, optional (default: 7)
         Maximum distance of strands to be considered
         for dihedral angle calculation
+    original : bool, optional (default: True):
+        Use exact implementation of 2011 ranking protocol
 
     Returns
     -------
@@ -126,9 +129,15 @@ def _beta_dihedrals(coords, segments, max_strand_distance=7):
             i, j = r["pos_i"], r["pos_j"]
             if has(i - 2) and has(i + 2) and has(j + 2):
                 d_par = np.linalg.norm(xyz(i + 2) - xyz(j + 2))
-                d_anti = np.linalg.norm(xyz(i - 2) - xyz(j + 2))
-                # TODO: alternative implementation consistent with angle output
-                # d_anti = np.linalg.norm(xyz(i + 2) - xyz(j - 2))
+
+                if original:
+                    # the residues chosen here disagree with residues
+                    # for angle calculation
+                    d_anti = np.linalg.norm(xyz(i - 2) - xyz(j + 2))
+                else:
+                    # alternative implementation consistent with angle
+                    # calculation
+                    d_anti = np.linalg.norm(xyz(i + 2) - xyz(j - 2))
 
                 # cast votes
                 total += 1
@@ -145,27 +154,28 @@ def _beta_dihedrals(coords, segments, max_strand_distance=7):
         res = []
         for idx, r in pairs.iterrows():
             i, j = r["pos_i"], r["pos_j"]
-            # """
-            if not has(j + 2):
-                continue
+            if original:
+                # the residues evaluated here disagree with residues
+                # used for angle calculation
+                if not has(j + 2):
+                    continue
 
-            if strands_parallel and not has(i + 2):
-                continue
+                if strands_parallel and not has(i + 2):
+                    continue
 
-            if not strands_parallel and not has(i - 2):
-                continue
-            # """
-            # TODO: alternative implementation consistent with angle output
-            """
-            if not has(i + 2):
-                continue
+                if not strands_parallel and not has(i - 2):
+                    continue
+            else:
+                # alternative implementation consistent with angle
+                # calculation
+                if not has(i + 2):
+                    continue
 
-            if strands_parallel and not has(j + 2):
-                continue
+                if strands_parallel and not has(j + 2):
+                    continue
 
-            if not strands_parallel and not has(j - 2):
-                continue
-            """
+                if not strands_parallel and not has(j - 2):
+                    continue
 
             if strands_parallel:
                 angle = dihedral_angle(
@@ -247,7 +257,8 @@ def _beta_dihedrals(coords, segments, max_strand_distance=7):
     return all_dihedrals
 
 
-def dihedral_ranking(structure, residues, sec_struct_column="sec_struct_3state"):
+def dihedral_ranking(structure, residues, sec_struct_column="sec_struct_3state",
+                     original=True):
     """
     Assess quality of structure model by correctness
     of dihedral angles in predicted alpha-helices and
@@ -267,6 +278,8 @@ def dihedral_ranking(structure, residues, sec_struct_column="sec_struct_3state")
     sec_struct_column : str, optional (default: sec_struct_3state)
         Column in residues dataframe that contains predicted
         secondary structure (H, E, C)
+    original : bool, optional (default: True):
+        Use exact implementation of 2011 ranking protocol
 
     Returns
     -------
@@ -311,7 +324,7 @@ def dihedral_ranking(structure, residues, sec_struct_column="sec_struct_3state")
 
     # compute alpha helix and beta sheet dihedrals
     d_alpha = _alpha_dihedrals(x_valid, segs_alpha)
-    d_beta = _beta_dihedrals(x_valid, segs_beta)
+    d_beta = _beta_dihedrals(x_valid, segs_beta, original=original)
 
     # Finally, merge results into score
 
