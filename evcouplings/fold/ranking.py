@@ -11,9 +11,13 @@ Authors:
 
 from collections import defaultdict
 from itertools import combinations, product
+
 import pandas as pd
 import numpy as np
+
+from evcouplings.compare.pdb import ClassicPDB
 from evcouplings.utils.calculations import dihedral_angle
+from evcouplings.utils.config import InvalidParameterError
 from evcouplings.visualize.pairs import find_secondary_structure_segments
 
 
@@ -262,12 +266,11 @@ def _beta_dihedrals(coords, segments, max_strand_distance=7,
     return all_dihedrals
 
 
-def dihedral_ranking(structure, residues, sec_struct_column="sec_struct_3state",
-                     original=True):
+def dihedral_ranking_score(structure, residues, sec_struct_column="sec_struct_3state",
+                           original=True):
     """
-    Assess quality of structure model by correctness
-    of dihedral angles in predicted alpha-helices and
-    beta-sheets.
+    Assess quality of structure model by twist of 
+    predicted alpha-helices and beta-sheets.
 
     This function reimplements the functionality of
     make_alpha_beta_score_table.m from the original
@@ -384,3 +387,104 @@ def dihedral_ranking(structure, residues, sec_struct_column="sec_struct_3state",
     ])
 
     return len(d_alpha), alpha_dihedral_score, len(d_beta), beta_dihedral_score
+
+
+def dihedral_ranking(structure_files, residues, chain=None,
+                     sec_struct_column="sec_struct_3state",
+                     model=0):
+    """
+    Assess quality of a set of structure models by
+    twist of predicted alpha-helices and beta-sheets.
+
+    This function reimplements the final score table
+    computed in make_alpha_beta_score_table.m from
+    the original pipeline. Some of the implementation
+    details where however modified, possibly leading
+    to differences in the final computed ranking scores.
+
+    Parameters
+    ----------
+    structure_files : list(str)
+        Paths to PDB files that will be ranked
+        (have to be in .pdb format)
+    residues : pandas.DataFrame
+        Residue table with secondary structure predictions
+        (columns i, A_i and secondary structure column)
+    chain : str, optional (default: None)
+        Use this chain in each structure for the calculation.
+        If None, will pick the only existing chain (if there
+        are multiple chains, an InvalidParameterError will be
+        raised).
+    sec_struct_column : str, optional (default: sec_struct_3state)
+        Column in residues dataframe that contains predicted
+        secondary structure (H, E, C)
+    model : int, optional (default: 0)
+        Use this model from each PDB structure
+        
+    Returns
+    -------
+    pandas.DataFrame
+        Table with final ranking scores (column ranking_score)
+        and alpha and beta dihedral scores, as well
+        as well as possible maximum score (equal to the number
+        of computed dihedrals).
+        
+    Raises
+    ------
+    InvalidParameterError
+        If chain is None but multiple chains exist in any
+        of the structures
+    """
+    res = []
+    for filename in structure_files:
+        # load structure
+        struc = ClassicPDB.from_file(filename)
+
+        # see if we can select the right chain
+        if chain is None:
+            chains = struc.model_to_chains[model]
+            if len(chains) != 1:
+                raise InvalidParameterError(
+                    "Model has more than one chain, need to "
+                    "specify chain parameter to disambiguate."
+                )
+            chain = chains[0]
+
+        # extract chain from structure
+        sel_chain = struc.get_chain(chain)
+
+        # compute dihedral ranking score
+        x = dihedral_ranking_score(
+            sel_chain, residues, sec_struct_column, original=False
+        )
+        res.append((filename, *x))
+
+    r = pd.DataFrame(
+        res, columns=[
+            "filename", "num_alpha_dihedrals", "alpha_dihedral_score",
+            "num_beta_dihedrals", "beta_dihedral_score"
+        ]
+    )
+
+    # maximum score we could have obtained for either set of dihedrals
+    max_alpha = r.num_alpha_dihedrals.max()
+
+    # note that, unlike for alpha dihedrals, beta dihedrals are dependent
+    # on what contacts between strands are made in 3D structure models
+    max_beta = r.num_beta_dihedrals.max()
+
+    # compute final ranking score
+    # this computation is somewhat diffeent from original implementation:
+    # - normalization for alpha helices is through number of possible dihedrals
+    #   not the number of residues with helix secondary structure
+    # - scores for helix and beta dihedrals are not adjusted to values < 0 in
+    #   borderline cases
+
+    # make sure we do not divide by 0 if we didn't count any dihedrals at all
+    max_val = max(1, max_alpha + max_beta)
+
+    r.loc[:, "ranking_score"] = (
+        (r.alpha_dihedral_score + r.beta_dihedral_score) / max_val
+    )
+
+    return r
