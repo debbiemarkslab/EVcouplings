@@ -359,12 +359,15 @@ def dihedral_ranking_score(structure, residues, sec_struct_column="sec_struct_3s
         (0.2, 1.22, 1.31),
     ]
 
-    alpha_dihedral_score = sum([
-        weight * len(d_alpha.query(
-            "@lower < dihedral and dihedral <= @upper")
-        )
-        for weight, lower, upper in alpha_weights
-    ])
+    if len(d_alpha) > 0:
+        alpha_dihedral_score = sum([
+            weight * len(d_alpha.query(
+                "@lower < dihedral and dihedral <= @upper")
+            )
+            for weight, lower, upper in alpha_weights
+        ])
+    else:
+        alpha_dihedral_score = 0
 
     # beta
     beta_weights = [
@@ -379,12 +382,15 @@ def dihedral_ranking_score(structure, residues, sec_struct_column="sec_struct_3s
         (0.2, -1.2, -1.1),
     ]
 
-    beta_dihedral_score = sum([
-        weight * len(d_beta.query(
-            "@lower <= dihedral and dihedral < @upper")
-        )
-        for weight, lower, upper in beta_weights
-    ])
+    if len(d_beta) > 0:
+        beta_dihedral_score = sum([
+            weight * len(d_beta.query(
+                "@lower <= dihedral and dihedral < @upper")
+            )
+            for weight, lower, upper in beta_weights
+        ])
+    else:
+        beta_dihedral_score = 0
 
     return len(d_alpha), alpha_dihedral_score, len(d_beta), beta_dihedral_score
 
