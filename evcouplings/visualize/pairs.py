@@ -549,12 +549,25 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         # turn into dictionary representation if
         # passed as a DataFrame
         if isinstance(secstruct, pd.DataFrame):
+            # do not store any undefined secondary
+            # structure in dictionary, or NaN
+            # values will lead to problems
+            secstruct = secstruct.dropna(
+                subset=["sec_struct_3state"]
+            )
+
             secstruct = dict(
                 zip(
                     secstruct.id.astype(int),
                     secstruct.sec_struct_3state
                 )
             )
+
+        # catch case where there is no secondary
+        # structure at all (e.g. because of dataframe
+        # full of NaNs)
+        if len(secstruct) == 0:
+            return None, None, None
 
         # make sure we only retain secondary structure
         # inside the range of the plot, otherwise
@@ -567,7 +580,6 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         }
 
         first_pos, last_pos = min(secstruct), max(secstruct) + 1
-
         secstruct_str = "".join(
             [secstruct.get(i, "-") for i in range(first_pos, last_pos)]
         )
@@ -592,38 +604,39 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
     x_range = ax.get_xlim()
     y_range = ax.get_ylim()
 
-    start_i, end_i, segments_i = _extract_secstruct(secstruct_i, x_range)
-    start_j, end_j, segments_j = _extract_secstruct(secstruct_j, y_range)
-
     # i corresponds to x-axis, j to y-axis
     if margin is None:
         margin = 3 * style.get("width", 1)
     else:
         margin += style.get("width", 1)
 
-    secondary_structure_cartoon(
-        segments_i,
-        **{
-            **style,
-            "center": max(y_range) + margin,
-            "ax": ax,
-            "sequence_start": start_i,
-            "sequence_end": end_i,
-            "horizontal": True,
-        }
-    )
+    start_i, end_i, segments_i = _extract_secstruct(secstruct_i, x_range)
+    if segments_i is not None:
+        secondary_structure_cartoon(
+            segments_i,
+            **{
+                **style,
+                "center": max(y_range) + margin,
+                "ax": ax,
+                "sequence_start": start_i,
+                "sequence_end": end_i,
+                "horizontal": True,
+            }
+        )
 
-    secondary_structure_cartoon(
-        segments_j,
-        **{
-            **style,
-            "center": max(x_range) + margin,
-            "ax": ax,
-            "sequence_start": start_j,
-            "sequence_end": end_j,
-            "horizontal": False,
-        }
-    )
+    start_j, end_j, segments_j = _extract_secstruct(secstruct_j, y_range)
+    if segments_j is not None:
+        secondary_structure_cartoon(
+            segments_j,
+            **{
+                **style,
+                "center": max(x_range) + margin,
+                "ax": ax,
+                "sequence_start": start_j,
+                "sequence_end": end_j,
+                "horizontal": False,
+            }
+        )
 
 
 def secondary_structure_cartoon(
