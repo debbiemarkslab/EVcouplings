@@ -607,8 +607,8 @@ def _prepare_chain(structures, pdb_id, pdb_chain,
 
 
 def intra_dists(sifts_result, structures=None, atom_filter=None,
-                intersect=False, agg_func=np.nanmin, output_prefix=None,
-                model=0, raise_missing=True):
+                intersect=False, output_prefix=None, model=0,
+                raise_missing=True):
     """
     Compute intra-chain distances in PDB files.
 
@@ -636,9 +636,6 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         If True, intersect indices of the given
         distance maps. Otherwise, union of indices
         will be used.
-    agg_func : function (default: numpy.nanmin)
-        Function that will be used to aggregate
-        distance matrices.
     output_prefix : str, optional (default: None)
         If given, save individual and final contact maps
         to files prefixed with this string. The appended
@@ -703,14 +700,16 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         if agg_distmap is None:
             agg_distmap = distmap
         else:
-            agg_distmap = DistanceMap.aggregate(agg_distmap, distmap)
+            agg_distmap = DistanceMap.aggregate(
+                agg_distmap, distmap, intersect=intersect
+            )
 
     return agg_distmap
 
 
 def multimer_dists(sifts_result, structures=None, atom_filter=None,
-                   intersect=False, agg_func=np.nanmin,
-                   output_prefix=None, model=0, raise_missing=True):
+                   intersect=False, output_prefix=None, model=0,
+                   raise_missing=True):
     """
     Compute homomultimer distances (between repeated copies of the
     same entity) in PDB file. Resulting distance matrix will be
@@ -741,9 +740,6 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
         If True, intersect indices of the given
         distance maps. Otherwise, union of indices
         will be used.
-    agg_func : function (default: numpy.nanmin)
-        Function that will be used to aggregate
-        distance matrices.
     output_prefix : str, optional (default: None)
         If given, save individual and final contact maps
         to files prefixed with this string. The appended
@@ -832,8 +828,8 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
 
 def inter_dists(sifts_result_i, sifts_result_j, structures=None,
-                atom_filter=None, intersect=False, agg_func=np.nanmin,
-                output_prefix=None, model=0, raise_missing=True):
+                atom_filter=None, intersect=False, output_prefix=None,
+                model=0, raise_missing=True):
     """
     Compute inter-chain distances (between different entities)
     in PDB file. Resulting distance map is typically not
@@ -868,9 +864,6 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         If True, intersect indices of the given
         distance maps. Otherwise, union of indices
         will be used.
-    agg_func : function (default: numpy.nanmin)
-        Function that will be used to aggregate
-        distance matrices.
     output_prefix : str, optional (default: None)
         If given, save individual and final contact maps
         to files prefixed with this string. The appended
