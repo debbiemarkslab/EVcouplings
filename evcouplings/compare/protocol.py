@@ -10,6 +10,9 @@ from math import ceil
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from evcouplings.align.alignment import (
+    read_fasta, parse_header
+)
 from evcouplings.utils.config import (
     check_required, InvalidParameterError
 )
@@ -19,7 +22,7 @@ from evcouplings.utils.system import (
 )
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
-    intra_dists, multimer_dists
+    intra_dists, multimer_dists, remap_chains
 )
 from evcouplings.compare.sifts import SIFTS, SIFTSResult
 from evcouplings.compare.ecs import coupling_scores_compared
@@ -253,13 +256,14 @@ def standard(**kwargs):
         distmap_monomer
         distmap_multimer
         contact_map_files
+        remapped_pdb_files
     """
     check_required(
         kwargs,
         [
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter", "compare_multimer",
-            "distance_cutoff", "compare_multimer",
+            "distance_cutoff", "target_sequence_file",
         ]
     )
 
@@ -336,6 +340,21 @@ def standard(**kwargs):
             d_multimer.to_file(outcfg["distmap_multimer"])
         else:
             outcfg["distmap_multimer"] = None
+
+        # at this point, also create remapped structures (e.g. for
+        # later comparison of folding results)
+        verify_resources(
+            "Target sequence file does not exist",
+            kwargs["target_sequence_file"]
+        )
+
+        # create target sequence map for remapping structure
+        with open(kwargs["target_sequence_file"]) as f:
+            header, seq = next(read_fasta(f))
+
+        seq_id, seq_start, seq_end = parse_header(header)
+        seqmap = dict(zip(range(seq_start, seq_end + 1), seq))
+        outcfg["remapped_pdb_files"] = remap_chains(sifts_map, insert_dir(prefix, "compare"), seqmap)
     else:
         # if no structures, can not compute distance maps
         d_intra = None
