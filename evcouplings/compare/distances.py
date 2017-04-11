@@ -1075,6 +1075,8 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
         with open(filename, "w") as f:
             chain.to_file(f)
 
-        remapped[idx] = filename
+        # typecast index so it is regular python type, not numpy
+        # (important for yaml dump)
+        remapped[int(idx)] = filename
 
     return remapped
