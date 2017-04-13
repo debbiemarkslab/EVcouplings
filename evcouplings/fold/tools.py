@@ -9,13 +9,13 @@ from copy import deepcopy
 import os
 from os import path
 from collections import defaultdict
+import re
 
 import pandas as pd
 
 from evcouplings.utils.config import InvalidParameterError
 from evcouplings.utils.system import (
-    run, valid_file, create_prefix_folders,
-    makedirs, verify_resources, ResourceError
+    run, makedirs, temp, verify_resources
 )
 
 
@@ -309,3 +309,208 @@ def read_psipred_prediction(filename, first_index=1):
     pred.loc[:, "i"] += (first_index - 1)
 
     return pred
+
+
+def parse_maxcluster_comparison(comparison_output):
+    """
+    Parse maxcluster output into a DataFrame
+    
+    Parameters
+    ----------
+    comparison_output : str
+        stdout output from maxcluster after comparison
+    
+    Returns
+    -------
+    pandas.DataFrame
+        Parsed result table (columns: filename, num_pairs,
+        rmsd, maxsub, tm, msi), refer to maxcluster documentation
+        for explanation of the score fields.
+    """
+    # compile regular expression to extract output fields
+    m = re.compile(
+        "vs. (.+?)\s+Pairs=\s*(\d+), RMSD=\s*(\d+\.\d+), "
+        "MaxSub=\s*(\d+\.\d+), TM=\s*(\d+\.\d+), MSI=\s*(\d+\.\d+)"
+    )
+
+    # extract scores for each structure (one per line)
+    res = []
+    for line in comparison_output.splitlines():
+        match = m.search(line)
+        if match:
+            res.append(match.groups())
+
+    # create dataframe of results
+    df = pd.DataFrame(
+        res, columns=[
+            "filename", "num_pairs", "rmsd",
+            "maxsub", "tm", "msi"
+        ]
+    )
+
+    # convert score columns to numerical values
+    for c in df.columns:
+        if c != "filename":
+            df.loc[:, c] = pd.to_numeric(df.loc[:, c])
+
+    df.loc[:, "num_pairs"] = df.loc[:, "num_pairs"].astype(int)
+
+    return df
+
+
+def run_maxcluster_compare(predictions, experiment, normalization_length=None,
+                           distance_cutoff=None, binary="maxcluster"):
+    """
+    Compare a set of predicted structures to an experimental structure
+    using maxcluster.
+    
+    For clustering functionality, use run_maxcluster_clustering() function.
+    
+    Parameters
+    ----------
+    predictions : list(str)
+        List of PDB files that should be compared against experiment
+    experiment : str
+        Path of experimental structure PDB file
+    normalization_length : int, optional (default: None)
+        Use this length to normalize the Template Modeling (TM)
+        score (-N option of maxcluster). If None, will normalize
+        by length of experiment.
+    distance_cutoff : float, optional (default: None)
+        Distance cutoff for MaxSub search (-d option of maxcluster).
+        If None, will use maxcluster auto-calibration.
+    binary : str, optional (default: "maxcluster")
+        Path to maxcluster binary
+
+    Returns
+    -------
+    pandas.DataFrame
+        Comparison result table (see parse_maxcluster_comparison
+        for more detailed explanation)
+    """
+    # create a list of files for input to maxcluster
+    list_file = temp()
+    with open(list_file, "w") as f:
+        for pred_file in predictions:
+            f.write(pred_file + "\n")
+
+    cmd = [binary, "-l", list_file, "-e", experiment]
+
+    # normalization length for TM score calculation
+    if normalization_length is not None:
+        cmd += ["-N", str(normalization_length)]
+
+    # distance cutoff for MaxSub search
+    if distance_cutoff is not None:
+        cmd += ["-d", str(distance_cutoff)]
+
+    return_code, stdout, stderr = run(cmd)
+
+    return parse_maxcluster_comparison(stdout)
+
+
+def parse_maxcluster_clustering(clustering_output):
+    """
+    Parse maxcluster clustering output into a DataFrame
+
+    Parameters
+    ----------
+    clustering_output : str
+        stdout output from maxcluster after clustering
+
+    Returns
+    -------
+    pandas.DataFrame
+        Parsed result table (columns: filename, cluster, cluster_size)
+    """
+    # compile regular expression to extract output fields
+    m = re.compile("INFO\s*:\s*(\d+)\s*:\s*(\d+)\s+(.+)")
+
+    # extract scores for each structure (one per line)
+    res = []
+    read = False
+    for line in clustering_output.splitlines():
+        # only parse section where cluster for each structure is output
+        if "Clusters @ Threshold" in line:
+            read = True
+
+        if "Centroids" in line:
+            read = False
+
+        match = m.search(line)
+        if read and match:
+            res.append(match.groups())
+
+    # turn results into table
+    df = pd.DataFrame(res, columns=["item", "cluster", "filename"])
+
+    # add column containing the size of each cluster
+    cluster_sizes = df.groupby(
+        "cluster"
+    ).size().to_frame("cluster_size").reset_index()
+
+    df = df.merge(cluster_sizes, on="cluster")
+
+    return df.loc[:, ["filename", "cluster", "cluster_size"]]
+
+
+def run_maxcluster_cluster(predictions, method="average", rmsd=True,
+                           clustering_threshold=None, binary="maxcluster"):
+    """
+    Compare a set of predicted structures to an experimental structure
+    using maxcluster.
+
+    For clustering functionality, use run_maxcluster_clustering() function.
+
+    Parameters
+    ----------
+    predictions : list(str)
+        List of PDB files that should be compared against experiment
+    method : {"single", "average", "maximum", "pairs_min", "pairs_abs"}, optional (default: "average")
+        Clustering method (single / average / maximum linkage,
+        or min / absolute size neighbour pairs
+    clustering_threshold : float (optional, default: None)
+        Initial clustering threshold (maxcluster -T option)
+    rmsd : bool, optional (default: True)
+        Use RMSD-based clustering (faster)
+    binary : str, optional (default: "maxcluster")
+        Path to maxcluster binary
+
+    Returns
+    -------
+    pandas.DataFrame
+        Clustering result table (see parse_maxcluster_clustering
+        for more detailed explanation)
+    """
+    # create a list of files for input to maxcluster
+    list_file = temp()
+    with open(list_file, "w") as f:
+        for pred_file in predictions:
+            f.write(pred_file + "\n")
+
+    method_map = {
+        "single": 1,
+        "average": 2,
+        "maximum": 3,
+        "pairs_min": 4,
+        "pairs_abs": 5,
+    }
+
+    if method not in method_map:
+        raise InvalidParameterError(
+            "Method must be one of the following: " +
+            ", ".join(method_map.keys())
+        )
+
+    cmd = [binary, "-l", list_file, "-C", str(method_map[method])]
+
+    if rmsd:
+        cmd += ["-rmsd"]
+
+    if clustering_threshold is not None:
+        cmd += ["-T", str(clustering_threshold)]
+
+    return_code, stdout, stderr = run(cmd)
+
+    return parse_maxcluster_clustering(stdout)
+
