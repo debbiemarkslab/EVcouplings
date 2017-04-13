@@ -50,7 +50,7 @@ align:
     compute_num_effective_seqs: False
     theta: 0.8
     
-    seqid_filter: 100
+    seqid_filter:
     minimum_sequence_coverage: 50
     minimum_column_coverage: 70
     
@@ -64,13 +64,17 @@ align:
 # alternative protocol: reuse existing alignment
 #    protocol: existing
 #    prefix: ./existing/existing_bpt1
-#    input_alignment: ./infer/PF00014_full.txt    
+#    # alignment needs to contain region in form SEQID/start-end, or first_index must be set
+#    input_alignment: ./infer/PF00014_full.txt
 #    sequence_id: BPT1_BOVIN
 #    first_index:
-#    seqid_filter: 95
-#    minimum_coverage: 90
-#    max_gaps_per_column: 30
+#    compute_num_effective_seqs: False
+#    theta: 0.8
+#    seqid_filter:
+#    minimum_sequence_coverage: 50
+#    minimum_column_coverage: 70
 #    extract_annotation: True
+
     
 couplings:
     protocol: standard
