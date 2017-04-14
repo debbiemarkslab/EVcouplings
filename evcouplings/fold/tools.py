@@ -513,4 +513,3 @@ def run_maxcluster_cluster(predictions, method="average", rmsd=True,
     return_code, stdout, stderr = run(cmd)
 
     return parse_maxcluster_clustering(stdout)
-
