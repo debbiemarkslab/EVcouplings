@@ -806,8 +806,9 @@ class ClassicPDB:
             res["hetatm"].append(het_flag != " ")
 
             # now iterate through all atoms for current residue
-            # and accumulate information
-            for a_idx, a in enumerate(r):
+            # and accumulate information; unpack atoms
+            # with multiple locations (altloc)
+            for a_idx, a in enumerate(r.get_unpacked_list()):
                 # this index links residues to coords
                 coords["residue_index"].append(r_idx)
                 # atom-specific information
