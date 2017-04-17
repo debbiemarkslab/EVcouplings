@@ -16,12 +16,15 @@ from evcouplings.align.alignment import (
 )
 from evcouplings.couplings.mapping import Segment
 from evcouplings.compare.pdb import ClassicPDB
+
 from evcouplings.fold.tools import (
     run_psipred, read_psipred_prediction,
     run_maxcluster_cluster, run_maxcluster_compare
 )
 from evcouplings.fold.cns import cns_dgsa_fold
 from evcouplings.fold.filter import secstruct_clashes
+from evcouplings.fold.ranking import dihedral_ranking
+
 from evcouplings.utils.config import (
     check_required, InvalidParameterError
 )
@@ -249,6 +252,47 @@ def compare_models_maxcluster(experiments, predictions, norm_by_intersection=Tru
     return full_result, single_results
 
 
+def maxcluster_clustering_table(structures, binary):
+    """
+    Create table of clustering results for all possible
+    maxcluster clustering modes
+
+    Parameters
+    ----------
+    structures : list(str)
+        List of structure files
+    binary : str, optional (default: "maxcluster")
+        Path to maxcluster binary
+            
+    Returns
+    -------
+    pandas.DataFrame
+        Table with clustering results for all structures
+    """
+    clust_all = None
+    for method in ["single", "average", "maximum", "pairs_min", "pairs_abs"]:
+        # run maxcluster with current clustering method
+        clust = run_maxcluster_cluster(
+            structures, method=method, binary=binary
+        )
+
+        # rename columns to contain current clustering method
+        clust = clust.rename(
+            columns={
+                "cluster": "cluster_" + method,
+                "cluster_size": "cluster_size_" + method
+            }
+        )
+
+        # join into one big table
+        if clust_all is None:
+            clust_all = clust
+        else:
+            clust_all = clust_all.merge(clust, on="filename")
+
+    return clust_all
+
+
 def standard(**kwargs):
     """
     Protocol:
@@ -278,7 +322,7 @@ def standard(**kwargs):
             "sec_struct_file", "filter_sec_struct_clashes",
             "min_sequence_distance", "fold_probability_cutoffs",
             "fold_lowest_count", "fold_highest_count", "fold_increase",
-            "num_models", "psipred", "cpu",
+            "num_models", "psipred", "cpu", "remapped_pdb_files",
         ]
     )
 
@@ -435,6 +479,56 @@ def standard(**kwargs):
     outcfg["folded_structure_files"] = {
         k: v for subres in results for k, v in subres.items()
     }
+
+    prediction_files = list(
+        outcfg["folded_structure_files"].values()
+    )
+
+    # apply ranking to predicted models
+    ranking = dihedral_ranking(prediction_files, residues)
+
+    # apply clustering (all available methods), but only
+    # if we have something to cluster
+    if len(prediction_files) > 1:
+        clustering = maxcluster_clustering_table(
+            prediction_files, binary=kwargs["maxcluster"]
+        )
+
+        # join ranking with clustering
+        ranking = ranking.merge(clustering, on="filename", how="left")
+
+    # store as file
+    outcfg["folding_ranking_file"] = prefix + "_ranking.csv"
+    ranking.to_csv(outcfg["folding_ranking_file"], index=False)
+
+    # apply comparison to existing structures
+    if kwargs["remapped_pdb_files"] is not None:
+        experimental_files = {
+            f: k for k, f in kwargs["remapped_pdb_files"].items()
+        }
+
+        comp_all, comp_singles = compare_models_maxcluster(
+            list(experimental_files), prediction_files,
+            norm_by_intersection=True, distance_cutoff=None,
+            binary=kwargs["maxcluster"]
+        )
+
+        # merge with ranking and save
+        comparison = ranking.merge(comp_all, on="filename", how="left")
+        outcfg["folding_comparison_file"] = prefix + "_comparison.csv"
+        comparison.to_csv(outcfg["folding_comparison_file"], index=False)
+
+        # also store comparison to structures in individual files
+        ind_comp_files = {}
+        for filename, comp_single in comp_singles.items():
+            comparison_s = ranking.merge(comp_single, on="filename", how="left")
+            basename = path.splitext(path.split(filename)[1])[0]
+            ind_file = "{}_{}.csv".format(job_path, basename)
+            # map back to original key from remapped_pdb_files as a key for this list
+            ind_comp_files[experimental_files[filename]] = ind_file
+            comparison_s.to_csv(ind_file, index=False)
+
+        outcfg["folding_individual_comparison_files"] = ind_comp_files
 
     return outcfg
 
