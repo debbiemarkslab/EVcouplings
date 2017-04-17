@@ -366,12 +366,19 @@ def run_maxcluster_compare(predictions, experiment, normalization_length=None,
     
     For clustering functionality, use run_maxcluster_clustering() function.
     
+    For a high-level wrapper around this function that removes
+    problematic atoms and compares multiple models, please look at 
+    evcouplings.fold.protocol.compare_models_maxcluster().
+    
     Parameters
     ----------
     predictions : list(str)
         List of PDB files that should be compared against experiment
     experiment : str
-        Path of experimental structure PDB file
+        Path of experimental structure PDB file. Note that the numbering
+        and residues in this file must agree with the predicted structure,
+        and that the structure may not contain duplicate atoms (multiple
+        models, or alternative locations for the same atom).
     normalization_length : int, optional (default: None)
         Use this length to normalize the Template Modeling (TM)
         score (-N option of maxcluster). If None, will normalize

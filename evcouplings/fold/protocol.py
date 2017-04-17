@@ -15,8 +15,10 @@ from evcouplings.align.alignment import (
     read_fasta, parse_header
 )
 from evcouplings.couplings.mapping import Segment
+from evcouplings.compare.pdb import ClassicPDB
 from evcouplings.fold.tools import (
-    run_psipred, read_psipred_prediction
+    run_psipred, read_psipred_prediction,
+    run_maxcluster_cluster, run_maxcluster_compare
 )
 from evcouplings.fold.cns import cns_dgsa_fold
 from evcouplings.fold.filter import secstruct_clashes
@@ -25,7 +27,7 @@ from evcouplings.utils.config import (
 )
 from evcouplings.utils.system import (
     create_prefix_folders, verify_resources,
-    valid_file, insert_dir
+    valid_file, insert_dir, temp
 )
 
 
@@ -119,6 +121,132 @@ def secondary_structure(**kwargs):
 
     # return predicted table
     return residues
+
+
+def compare_models_maxcluster(experiments, predictions, norm_by_intersection=True,
+                              distance_cutoff=None, binary="maxcluster"):
+    """
+    Compare predicted models to a set of experimental structures
+    using maxcluster
+    
+    Parameters
+    ----------
+    experiments : list(str)
+        Paths to files with experimental structures
+    predictions : list(str)
+        Paths to files with predicted structures
+    norm_by_intersection : bool, optional (default: True)
+        If True, use the number of positions that exist
+        in both experiment and predictions for normalizing
+        TM scores (assumes all predicted structures have the
+        same positions). If False, use length of experimental
+        structure.
+    distance_cutoff : float, optional (default: None)
+        Distance cutoff for MaxSub search (-d option of maxcluster).
+        If None, will use maxcluster auto-calibration.
+    binary : str, optional (default: "maxcluster")
+        Path to maxcluster binary
+
+    Returns
+    -------
+    full_result : pandas.DataFrame
+        Comparison results across all experimental structures
+    single_results : dict
+        Mapping from experimental structure filename to
+        a pandas.DataFrame containing the comparison
+        result for that particular structure.
+    """
+    # determine list of positions in a structure
+    # (maxcluster can only handle single model, single chain
+    # structures, so we check that here and fail otherwise)
+    def _determine_pos(filename):
+        structure = ClassicPDB.from_file(filename)
+        if len(structure.model_to_chains) != 1:
+            raise InvalidParameterError(
+                "Structure contains more than one model: " +
+                filename
+            )
+
+        model = list(structure.model_to_chains.keys())[0]
+        chains = structure.model_to_chains[model]
+        if len(chains) != 1:
+            raise InvalidParameterError(
+                "Structure must contain exactly one chain, but contains: " +
+                ",".join(chains)
+            )
+        chain_name = chains[0]
+        chain = structure.get_chain(chain_name, model)
+        return chain.residues.id.astype(str).values, chain
+
+    # remove alternative atom locations since maxcluster
+    # can only handle one unique atoms
+    def _eliminate_altloc(chain):
+        # if multiple locations, select the one with the
+        # highest occupancy
+        chain.coords = chain.coords.loc[
+            chain.coords.groupby(
+                ["residue_index", "atom_name"]
+            ).occupancy.idxmax()
+        ]
+
+        # save cut chain to temporary file
+        temp_filename = temp()
+        with open(temp_filename, "w") as f:
+            chain.to_file(f)
+        return temp_filename
+
+    # check we have at least one prediction
+    if len(predictions) == 0:
+        raise InvalidParameterError(
+            "Need at least one predicted structure."
+        )
+
+    # determine positions in predicted structure from first model
+    pred_pos, _ = _determine_pos(predictions[0])
+
+    # collect results of all comparisons here
+    full_result = pd.DataFrame()
+    single_results = {}
+
+    for exp_file in experiments:
+        # determine what number of position to normalize
+        # TM score over (either experiment, or only positions
+        # that were modelled and are also present in experiment)
+        exp_pos, exp_chain = _determine_pos(exp_file)
+
+        # remove alternative atom locations
+        exp_file_cleaned = _eliminate_altloc(exp_chain)
+
+        # compute set of positions both in prediction and expeirment
+        joint_pos = set(exp_pos).intersection(pred_pos)
+
+        if norm_by_intersection:
+            normalization_length = len(joint_pos)
+        else:
+            normalization_length = len(exp_pos)
+
+        # run comparison
+        comp = run_maxcluster_compare(
+            predictions, exp_file_cleaned,
+            normalization_length=normalization_length,
+            distance_cutoff=distance_cutoff, binary=binary
+        )
+
+        # store lengths of experiment, prediction,
+        # and what was used for computing TM scores
+        comp.loc[:, "filename_experimental"] = exp_file
+        comp.loc[:, "L_experiment"] = len(exp_pos)
+        comp.loc[:, "L_prediction"] = len(pred_pos)
+        comp.loc[:, "L_joint"] = len(joint_pos)
+        comp.loc[:, "L_normalization"] = normalization_length
+
+        single_results[exp_file] = comp
+
+        full_result = full_result.append(
+            comp.sort_values("tm", ascending=False)
+        )
+
+    return full_result, single_results
 
 
 def standard(**kwargs):
