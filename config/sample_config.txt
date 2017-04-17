@@ -97,7 +97,8 @@ couplings:
     save_model: True
     reuse_ecs: True
     cpu: 1
-    
+    min_sequence_distance: 6
+
 compare:
     protocol: standard
     prefix:

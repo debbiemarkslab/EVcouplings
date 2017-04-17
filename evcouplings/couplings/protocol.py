@@ -70,6 +70,7 @@ def standard(**kwargs):
             "lambda_h", "lambda_J", "lambda_group",
             "scale_clusters",
             "cpu", "plmc", "save_model", "reuse_ecs",
+            "min_sequence_distance",
         ]
     )
 
@@ -235,6 +236,14 @@ def standard(**kwargs):
 
     # write updated table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
+
+    # also store longrange ECs as convenience output
+    if kwargs["min_sequence_distance"] is not None:
+        outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
+        ecs_longrange = ecs.query(
+            "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
+        )
+        ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
 
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
