@@ -243,11 +243,10 @@ def compare_models_maxcluster(experiments, predictions, norm_by_intersection=Tru
         comp.loc[:, "L_joint"] = len(joint_pos)
         comp.loc[:, "L_normalization"] = normalization_length
 
+        comp = comp.sort_values("tm", ascending=False)
         single_results[exp_file] = comp
 
-        full_result = full_result.append(
-            comp.sort_values("tm", ascending=False)
-        )
+        full_result = full_result.append(comp)
 
     return full_result, single_results
 
@@ -497,6 +496,9 @@ def standard(**kwargs):
         # join ranking with clustering
         ranking = ranking.merge(clustering, on="filename", how="left")
 
+    # sort by score (best models first)
+    ranking = ranking.sort_values(by="ranking_score", ascending=False)
+
     # store as file
     outcfg["folding_ranking_file"] = prefix + "_ranking.csv"
     ranking.to_csv(outcfg["folding_ranking_file"], index=False)
@@ -514,14 +516,18 @@ def standard(**kwargs):
         )
 
         # merge with ranking and save
-        comparison = ranking.merge(comp_all, on="filename", how="left")
+        comparison = ranking.merge(
+            comp_all, on="filename", how="left"
+        ).sort_values(by="tm", ascending=False)
         outcfg["folding_comparison_file"] = prefix + "_comparison.csv"
         comparison.to_csv(outcfg["folding_comparison_file"], index=False)
 
         # also store comparison to structures in individual files
         ind_comp_files = {}
         for filename, comp_single in comp_singles.items():
-            comparison_s = ranking.merge(comp_single, on="filename", how="left")
+            comparison_s = ranking.merge(
+                comp_single, on="filename", how="left"
+            ).sort_values(by="tm", ascending=False)
             basename = path.splitext(path.split(filename)[1])[0]
             ind_file = "{}_{}.csv".format(job_path, basename)
             # map back to original key from remapped_pdb_files as a key for this list
