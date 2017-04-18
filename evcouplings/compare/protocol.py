@@ -10,22 +10,22 @@ from math import ceil
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from evcouplings.align.alignment import (
+    read_fasta, parse_header
+)
 from evcouplings.utils.config import (
-    check_required, InvalidParameterError,
-    read_config_file
+    check_required, InvalidParameterError
 )
 
 from evcouplings.utils.system import (
-    create_prefix_folders, valid_file, verify_resources
+    create_prefix_folders, insert_dir, verify_resources,
 )
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
-    intra_dists, multimer_dists, _prepare_chain
+    intra_dists, multimer_dists, remap_chains
 )
 from evcouplings.compare.sifts import SIFTS, SIFTSResult
-from evcouplings.compare.ecs import (
-    add_distances, coupling_scores_compared
-)
+from evcouplings.compare.ecs import coupling_scores_compared
 from evcouplings.visualize import pairs, misc
 
 
@@ -194,7 +194,7 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
     if kwargs["plot_probability_cutoffs"]:
         cutoffs = kwargs["plot_probability_cutoffs"]
         if not isinstance(cutoffs, list):
-            cutoffs = []
+            cutoffs = [cutoffs]
 
         for c in cutoffs:
             ec_set = ecs_longrange.query("probability >= @c")
@@ -256,13 +256,14 @@ def standard(**kwargs):
         distmap_monomer
         distmap_multimer
         contact_map_files
+        remapped_pdb_files
     """
     check_required(
         kwargs,
         [
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter", "compare_multimer",
-            "distance_cutoff", "compare_multimer",
+            "distance_cutoff", "target_sequence_file",
         ]
     )
 
@@ -293,7 +294,7 @@ def standard(**kwargs):
 
     sifts_map, sifts_map_full = _identify_structures(**{
         **kwargs,
-        "prefix": prefix + "/compare_find"
+        "prefix": insert_dir(prefix, "compare")
     })
 
     # save selected PDB hits
@@ -319,7 +320,7 @@ def standard(**kwargs):
     if len(sifts_map.hits) > 0:
         d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
-            output_prefix=prefix + "/compare_distmap_intra"
+            output_prefix=insert_dir(prefix, "compare") + "_distmap_intra"
         )
         d_intra.to_file(outcfg["distmap_monomer"])
 
@@ -329,7 +330,7 @@ def standard(**kwargs):
         if kwargs["compare_multimer"]:
             d_multimer = multimer_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
-                output_prefix=prefix + "/compare_distmap_multimer"
+                output_prefix=insert_dir(prefix, "compare") + "_distmap_multimer"
             )
         else:
             d_multimer = None
@@ -339,6 +340,21 @@ def standard(**kwargs):
             d_multimer.to_file(outcfg["distmap_multimer"])
         else:
             outcfg["distmap_multimer"] = None
+
+        # at this point, also create remapped structures (e.g. for
+        # later comparison of folding results)
+        verify_resources(
+            "Target sequence file does not exist",
+            kwargs["target_sequence_file"]
+        )
+
+        # create target sequence map for remapping structure
+        with open(kwargs["target_sequence_file"]) as f:
+            header, seq = next(read_fasta(f))
+
+        seq_id, seq_start, seq_end = parse_header(header)
+        seqmap = dict(zip(range(seq_start, seq_end + 1), seq))
+        outcfg["remapped_pdb_files"] = remap_chains(sifts_map, insert_dir(prefix, "compare"), seqmap)
     else:
         # if no structures, can not compute distance maps
         d_intra = None

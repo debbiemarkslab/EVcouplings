@@ -24,6 +24,7 @@ stages:
     - couplings
     - compare
     - mutate
+    - fold
 
 global:
     sequence_id:
@@ -49,7 +50,7 @@ align:
     compute_num_effective_seqs: False
     theta: 0.8
     
-    seqid_filter: 100
+    seqid_filter:
     minimum_sequence_coverage: 50
     minimum_column_coverage: 70
     
@@ -63,13 +64,17 @@ align:
 # alternative protocol: reuse existing alignment
 #    protocol: existing
 #    prefix: ./existing/existing_bpt1
-#    input_alignment: ./infer/PF00014_full.txt    
+#    # alignment needs to contain region in form SEQID/start-end, or first_index must be set
+#    input_alignment: ./infer/PF00014_full.txt
 #    sequence_id: BPT1_BOVIN
 #    first_index:
-#    seqid_filter: 95
-#    minimum_coverage: 90
-#    max_gaps_per_column: 30
+#    compute_num_effective_seqs: False
+#    theta: 0.8
+#    seqid_filter:
+#    minimum_sequence_coverage: 50
+#    minimum_column_coverage: 70
 #    extract_annotation: True
+
     
 couplings:
     protocol: standard
@@ -92,12 +97,14 @@ couplings:
     save_model: True
     reuse_ecs: True
     cpu: 1
-    
+    min_sequence_distance: 6
+
 compare:
     protocol: standard
     prefix:
     sequence_id:
     ec_file:
+    target_sequence_file:
 
     # if by_alignment is False, will use pdb_ids parameter below
     by_alignment: True
@@ -133,13 +140,40 @@ compare:
     plot_increase: 0.05
     boundaries: union
     draw_secondary_structure: True
+
 mutate:
     protocol: standard
     prefix:
     model_file:
     # predict the following file (mutants like A102V or A102V,K199W in column "mutant", comma-separated)
     mutation_dataset_file:
-    
+
+fold:
+    protocol: standard
+    engine: cns_dgsa
+    folding_config_file:
+    prefix:
+
+    ec_file:
+    target_sequence_file:
+    segments:
+    cut_to_alignment_region: True
+
+    sec_struct_method: psipred
+    reuse_sec_struct: True
+    sec_struct_file:
+    filter_sec_struct_clashes: True
+    remapped_pdb_files:
+
+    min_sequence_distance: 6
+    fold_probability_cutoffs: [0.90, 0.99]
+    # any of the following can also be floats (fraction of L)
+    fold_lowest_count: 0.5
+    fold_highest_count: 1.3
+    fold_increase: 0.05
+    num_models: 10
+    cpu:
+
 databases:
     uniprot: /groups/marks/databases/jackhmmer/uniprot/uniprot_2016_07.fasta
     uniref100: /groups/marks/databases/jackhmmer/uniref100/uniref100_2017_01.fasta
@@ -154,3 +188,6 @@ tools:
     jackhmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
     hhfilter: /groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
     plmc: /groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
+    psipred: /groups/marks/software/runpsipred
+    cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
+    maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit

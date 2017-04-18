@@ -630,7 +630,7 @@ def existing(**kwargs):
     # apply sequence identity and fragment filters,
     # and gap threshold
     mod_outcfg, ali = modify_alignment(
-        focus_ali, focus_index, region_start, **kwargs
+        focus_ali, focus_index, id_, region_start, **kwargs
     )
 
     # generate output configuration of protocol

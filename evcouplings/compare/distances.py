@@ -12,6 +12,7 @@ import pandas as pd
 from numba import jit
 
 from evcouplings.compare.pdb import load_structures
+from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.system import create_prefix_folders
 
 
@@ -607,8 +608,8 @@ def _prepare_chain(structures, pdb_id, pdb_chain,
 
 
 def intra_dists(sifts_result, structures=None, atom_filter=None,
-                intersect=False, agg_func=np.nanmin, output_prefix=None,
-                model=0, raise_missing=True):
+                intersect=False, output_prefix=None, model=0,
+                raise_missing=True):
     """
     Compute intra-chain distances in PDB files.
 
@@ -636,9 +637,6 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         If True, intersect indices of the given
         distance maps. Otherwise, union of indices
         will be used.
-    agg_func : function (default: numpy.nanmin)
-        Function that will be used to aggregate
-        distance matrices.
     output_prefix : str, optional (default: None)
         If given, save individual and final contact maps
         to files prefixed with this string. The appended
@@ -703,14 +701,16 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         if agg_distmap is None:
             agg_distmap = distmap
         else:
-            agg_distmap = DistanceMap.aggregate(agg_distmap, distmap)
+            agg_distmap = DistanceMap.aggregate(
+                agg_distmap, distmap, intersect=intersect
+            )
 
     return agg_distmap
 
 
 def multimer_dists(sifts_result, structures=None, atom_filter=None,
-                   intersect=False, agg_func=np.nanmin,
-                   output_prefix=None, model=0, raise_missing=True):
+                   intersect=False, output_prefix=None, model=0,
+                   raise_missing=True):
     """
     Compute homomultimer distances (between repeated copies of the
     same entity) in PDB file. Resulting distance matrix will be
@@ -741,9 +741,6 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
         If True, intersect indices of the given
         distance maps. Otherwise, union of indices
         will be used.
-    agg_func : function (default: numpy.nanmin)
-        Function that will be used to aggregate
-        distance matrices.
     output_prefix : str, optional (default: None)
         If given, save individual and final contact maps
         to files prefixed with this string. The appended
@@ -787,7 +784,7 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
     # go through each structure
     for pdb_id, grp in sifts_result.hits.reset_index().groupby("pdb_id"):
         # skip missing structures
-        if not raise_missing and r["pdb_id"] not in structures:
+        if not raise_missing and pdb_id not in structures:
             continue
 
         # extract all chains for this structure
@@ -832,8 +829,8 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
 
 def inter_dists(sifts_result_i, sifts_result_j, structures=None,
-                atom_filter=None, intersect=False, agg_func=np.nanmin,
-                output_prefix=None, model=0, raise_missing=True):
+                atom_filter=None, intersect=False, output_prefix=None,
+                model=0, raise_missing=True):
     """
     Compute inter-chain distances (between different entities)
     in PDB file. Resulting distance map is typically not
@@ -868,9 +865,6 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         If True, intersect indices of the given
         distance maps. Otherwise, union of indices
         will be used.
-    agg_func : function (default: numpy.nanmin)
-        Function that will be used to aggregate
-        distance matrices.
     output_prefix : str, optional (default: None)
         If given, save individual and final contact maps
         to files prefixed with this string. The appended
@@ -956,7 +950,7 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
 
         # save individual distance map
         if output_prefix is not None:
-            distmap_sym.to_file("{}_{}_{}".format(
+            distmap.to_file("{}_{}_{}".format(
                 output_prefix, index_i, index_j)
             )
 
@@ -969,3 +963,120 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
             )
 
     return agg_distmap
+
+
+def remap_chains(sifts_result, output_prefix, sequence=None,
+                 structures=None, atom_filter=("N", "CA", "C", "O"),
+                 model=0, raise_missing=True):
+    """
+    Remap a set of PDB chains into the numbering scheme (and
+    amino acid sequence) of a target sequence (a.k.a. the poorest
+    homology model possible).
+    
+    (This function is placed here because of close relationship
+    to intra_dists and reusing functionality for it).
+    
+    Parameters
+    ----------
+    sifts_result : SIFTSResult
+        Input structures and mapping to use
+        for remapping
+    output_prefix : str
+        Save remapped structures to files prefixed with this string
+    sequence : dict, optional (default: None)
+        Mapping from sequence position (int or str) to residue.
+        If this parameter is given, residues in the output 
+        structures will be renamed to the residues in this
+        mapping (Note that if side-chain residues are not taken
+        off using atom_filter, this will e.g. happily label an
+        actual glutamate as an alanine).
+    structures : str or dict, optional (default: None)
+        If str: Load structures from directory this string
+        points to. Missing structures will be fetched
+        from web.
+
+        If dict: dictionary with lower-case PDB ids as keys
+        and PDB objects as values. This dictionary has to
+        contain all necessary structures, missing ones will
+        not be fetched. This dictionary can be created using
+        pdb.load_structures.
+    atom_filter : str, optional (default: ("N", "CA", "C", "O"))
+        Filter coordinates to contain only these atoms. If None,
+        will retain all atoms; the default value will only keep
+        backbone atoms.
+    model : int, optional (default: 0)
+        Index of model in PDB structure that should be used
+    raise_missing : bool, optional (default: True)
+        Raise a ResourceError if any of the input structures can
+        not be loaded; otherwise, ignore missing entries.
+
+    Returns
+    ------
+    remapped : dict
+        Mapping from index of each structure hit in sifts_results.hits
+        to filename of stored remapped structure
+    """
+    # if no structures given, or path to files, load first
+    structures = _prepare_structures(
+        structures, sifts_result.hits.pdb_id, raise_missing
+    )
+
+    # create output folder if necessary
+    if output_prefix is not None:
+        create_prefix_folders(output_prefix)
+
+    # collect remapped chains
+    remapped = {}
+
+    # make sure keys in sequence map are strings,
+    # since indeces in structures are stored as strings
+    sequence = {
+        str(k): v for k, v in sequence.items()
+    }
+
+    # go through each structure
+    for idx, r in sifts_result.hits.iterrows():
+        # skip missing structures
+        if not raise_missing and r["pdb_id"] not in structures:
+            continue
+
+        # extract and remap PDB chain
+        chain = _prepare_chain(
+            structures, r["pdb_id"], r["pdb_chain"],
+            atom_filter, sifts_result.mapping[r["mapping_index"]],
+            model
+        )
+
+        # if a map from sequence index to residue is given,
+        # use it to rename the residues to the target sequence
+        if sequence is not None:
+            # change one letter code
+            chain.residues.loc[
+                :, "one_letter_code"
+            ] = chain.residues.id.map(sequence)
+
+            # and three letter code
+            chain.residues.loc[
+                :, "three_letter_code"
+            ] = chain.residues.one_letter_code.map(AA1_to_AA3)
+
+            # drop anything we could not map
+            chain.residues = chain.residues.dropna(
+                subset=["one_letter_code", "three_letter_code"]
+            )
+
+        # save model coordinates to .pdb file
+        filename = "{}_{}_{}_{}.pdb".format(
+            output_prefix,
+            r["pdb_id"], r["pdb_chain"], r["mapping_index"]
+        )
+
+        # save to file
+        with open(filename, "w") as f:
+            chain.to_file(f)
+
+        # typecast index so it is regular python type, not numpy
+        # (important for yaml dump)
+        remapped[int(idx)] = filename
+
+    return remapped

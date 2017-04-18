@@ -4,4 +4,4 @@ __pycache__
 .idea
 *.ipynb_checkpoints*
 notebooks_dev/*
-
+evcouplings.egg-info/*

@@ -88,14 +88,10 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
-    #include_package_data=True,
-    #package_data={
-    #    'Fred2.Data.examples': ['*.*'],
-    #    'Fred2.Data.svms.svmtap': ['*'],
-    #    'Fred2.Data.svms.svmhc': ['*'],
-    #    'Fred2.Data.svms.unitope': ['*'],
-    #    #'Fred2.Distance2Self': ['src/*'],  #does not get installed, because the src folder is no package folder - compiles ok
-    #},
+    include_package_data=True,
+    package_data={
+        'evcouplings.fold.cns_templates': ['*.*'],
+    },
 
     #package_data is a lie: http://stackoverflow.com/questions/7522250/how-to-include-package-data-with-setuptools-distribute
 
@@ -123,7 +119,7 @@ setup(
     install_requires=[
         'setuptools>=18.2', 'pandas', 'numpy', 'scipy', 'numba', 'ruamel.yaml',
         'matplotlib', 'requests', 'mmtf-python', 'click', 'filelock', 'psutil',
-        'bokeh',
+        'bokeh', 'jinja2', 'biopython',
     ],
 
 
