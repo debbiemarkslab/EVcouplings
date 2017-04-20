@@ -504,7 +504,7 @@ def standard(**kwargs):
     ranking.to_csv(outcfg["folding_ranking_file"], index=False)
 
     # apply comparison to existing structures
-    if kwargs["remapped_pdb_files"] is not None:
+    if kwargs["remapped_pdb_files"] is not None and len(kwargs["remapped_pdb_files"]) > 0:
         experimental_files = {
             f: k for k, f in kwargs["remapped_pdb_files"].items()
         }
