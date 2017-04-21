@@ -337,8 +337,8 @@ databases:
 
     # SIFTS mapping information. Point to valid directory, and if these files do not exist, they will be automatically generated
     # (this may take a while). Periodically delete these files to more recent versions of SIFTS are used.
-    sifts_mapping_table: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus.csv
-    sifts_sequence_db: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus.fa
+    sifts_mapping_table: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_04_18.csv
+    sifts_sequence_db: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_04_18.fa
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
