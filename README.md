@@ -9,11 +9,11 @@ Predict protein structure, function and mutations using evolutionary sequence co
 
 ### Installing the Python package
 
-If you are simply interested in using EVcouplings as a codebase, installing the Python package is all you need to do. If you want to run sequence searches, infer model parameters from alignments, etc. also need to follow the sections about installing external tools and databases.
+If you are simply interested in using EVcouplings as a library, installing the Python package is all you need to do (unless you use functions that depend on external tools). If you want to run the *evcouplings* application (alignment generation, model parameter inference, structure prediction, etc.) you will also need to follow the sections on installing external tools and databases.
 
 #### Requirements
 
-EVcouplings requires a Python >= 3.5 installation. Since it depends on many packages from the scientific Python stack, we recommend using the [Anaconda Python distribution](https://www.continuum.io/downloads).
+EVcouplings requires a Python >= 3.5 installation. Since it depends on some packages from the scientific Python stack that can be tricky to install using pip (numba, numpy), we recommend using the [Anaconda Python distribution](https://www.continuum.io/downloads).
 
 #### Installation
 
@@ -33,45 +33,65 @@ To update to the latest version after previously installing EVcouplings, run
 
 ### External software tools
 
-*After installation and before running jobs, the paths to the respective binaries have to be set in your EVcouplings job configuration file(s).*
+*After installation and before running compute jobs, the paths to the respective binaries of the following external tools have to be set in your EVcouplings job configuration file(s).*
 
-#### plmc
+#### plmc (required)
 
 Tool for inferring undirected statistical models from sequence variation. Download and install plmc to a directory of your choice from the [plmc github repository](https://github.com/debbiemarkslab/plmc) according to the included documentation.
 
-For compatibility with EVcouplings, please compile using
+For compatibility with evcouplings, please compile using
 
     make all-openmp32
 
 
-#### jackhmmer
+#### jackhmmer (required)
 
 Download and install HMMER from the [HMMER webpage](http://hmmer.org/download.html) to a directory of your choice.
 
 #### HHsuite (optional)
 
-EVcouplings uses the hhfilter tool to filter sequence alignments. Installation is only required if you need this functionality.
+evcouplings uses the hhfilter tool to filter sequence alignments. Installation is only required if you need this functionality.
 
 Download and install HHsuite from the [HHsuite github repository](https://github.com/soedinglab/hh-suite) to a directory of your choice.
 
+#### CNSsolve 1.21 (optional)
+
+evcouplings uses CNSsolve for computing 3D structure models from coupled residue pairs. Installation is only required if you want to run the *fold* stage of the computational pipeline.
+
+Download and unpack a compiled version of [CNSsolve 1.21](http://cns-online.org/v1.21/) to a directory of your choice. No further setup is necessary, since evcouplings takes care of setting the right environment variables internally without relying on the included shell script cns_solve_env
+(you will have to put the path to the cns binary in your job config file however, e.g. cns_solve_1.21/intel-x86_64bit-linux/bin/cns).
+
+#### PSIPRED (optional)
+
+evcouplings uses PSIPRED for secondary structure prediction, to generate secondary structure distance and dihedral angle restraints for 3D structure computation.
+Installation is only required if you want to run the *fold* stage of the computational pipeline, and do not supply your own secondary structure predictions.
+
+Download and install [PSIPRED](http://bioinfadmin.cs.ucl.ac.uk/downloads/psipred/) according to the instructions in the included README file.
+
+#### maxcluster (optional)
+
+evcouplings uses maxcluster to compare predicted 3D structure models to experimental protein structures, if there are any for the target protein or one
+of its homologs. Installation is only required if you want to run the *fold* stage of the computational pipeline.
+ 
+Download [maxcluster](http://www.sbg.bio.ic.ac.uk/~maxcluster/) and place it in a directory of your choice.
 
 ### Databases
 
-*After download and before running jobs, the paths to the respective databases have to be set in your EVcouplings job configuration file(s).*
+*After download and before running compute jobs, the paths to the respective databases have to be set in your EVcouplings job configuration file(s).*
 
 #### Sequence databases
 
-Download unzip at least one of the following sequence databases:
+Download and unzip at least one of the following sequence databases to any directory:
 * [Uniref100](ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz)
 * [Uniref90](ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz)
 
-You can however use any sequence database of your choice. The database for any particular job will be set in the job configuration file.
+You can however use any sequence database of your choice in FASTA format. The database for any particular job will be set in the job configuration file.
 
 #### Structure and mapping databases
 
-PDB entries will be automatically fetched from the web in the new MMTF format. You can however also pre-download these files and place them in a directory if you want to (and set pdb_mmtf_dir in your job configuration).
+PDB structures for comparison of ECs and 3D structure predictions will be automatically fetched from the web in the new compressed MMTF format. You can however also pre-download these files and place them in a directory if you want to (and set pdb_mmtf_dir in your job configuration).
 
-Uniprot to PDB index mapping files will be automatically generated by EVcouplings based on the SIFTS database. Point the sifts_mapping_table and sifts_sequence_db configuration parameters to file paths in a valid directory, and if the files do not exist, they will be created.
+Uniprot to PDB index mapping files will be automatically generated by EVcouplings based on the SIFTS database. Point the sifts_mapping_table and sifts_sequence_db configuration parameters to file paths in a valid directory, and if the files do not yet exist, they will be created by fetching and integrating data from the web (this may take a while).
 
 ## Usage and tutorials
 
