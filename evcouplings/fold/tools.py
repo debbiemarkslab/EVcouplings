@@ -297,7 +297,7 @@ def read_psipred_prediction(filename, first_index=1):
         pred = pd.DataFrame({
             "A_i": list(content["AA"]),
             "sec_struct_3state": list(content["Pred"]),
-            "sec_strut_conf": list(map(int, content["Conf"])),
+            "sec_struct_conf": list(map(int, content["Conf"])),
         })
         pred.loc[:, "i"] = list(range(1, len(pred) + 1))
     else:
