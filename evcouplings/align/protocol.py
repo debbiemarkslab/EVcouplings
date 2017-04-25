@@ -380,14 +380,14 @@ def describe_frequencies(alignment, first_index, target_seq_index=None):
 
     info = pd.DataFrame(
         {
-            "pos": range(first_index, first_index + alignment.L),
-            "target_seq": target_seq,
+            "i": range(first_index, first_index + alignment.L),
+            "A_i": target_seq,
             "conservation": conservation,
             **fi_cols
         }
     )
     # reorder columns
-    info = info.loc[:, ["pos", "target_seq", "conservation"] + list(alignment.alphabet)]
+    info = info.loc[:, ["i", "A_i", "conservation"] + list(alignment.alphabet)]
 
     return info
 
