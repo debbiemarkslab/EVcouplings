@@ -170,7 +170,7 @@ def _protein_monomer_plot(ali_table, data):
             freqs = pd.read_csv(subdata["frequencies"])
             # print(freqs.head())
             ax_gaps.plot(
-                freqs.pos, 1 - freqs.loc[:, "-"], "o", linewidth=3,
+                freqs.i, 1 - freqs.loc[:, "-"], "o", linewidth=3,
                 label=str(domain_threshold)
             )
             mincov = subdata["minimum_column_coverage"]
