@@ -7,6 +7,8 @@ Authors:
 
 from evcouplings.couplings import tools as ct
 from evcouplings.couplings import pairs, mapping
+from evcouplings.couplings.model import CouplingsModel
+from evcouplings.visualize.parameters import evzoom_json
 
 from evcouplings.align.alignment import (
     read_fasta, ALPHABET_PROTEIN, ALPHABET_DNA,
@@ -251,6 +253,18 @@ def standard(**kwargs):
         outcfg["enrichment_file"] = prefix + "_enrichment.csv"
         ecs_enriched = pairs.enrichment(ecs)
         ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
+
+    # output EVzoom JSON file if we have stored model file
+    if outcfg.get("model_file", None) is not None:
+        outcfg["evzoom_file"] = prefix + "_evzoom.json"
+        with open(outcfg["evzoom_file"], "w") as f:
+            # load parameters
+            c = CouplingsModel(outcfg["model_file"])
+
+            # create JSON output and write to file
+            f.write(
+                evzoom_json(c) + "\n"
+            )
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
