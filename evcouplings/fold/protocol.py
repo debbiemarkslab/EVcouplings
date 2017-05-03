@@ -107,7 +107,7 @@ def secondary_structure(**kwargs):
         # finally, run secondary structure prediction
         if kwargs["sec_struct_method"] == "psipred":
             # store psipred output in a separate directory
-            output_dir = path.join(prefix, "psipred")
+            output_dir = path.join(path.dirname(prefix), "psipred")
 
             # run psipred
             ss2_file, horiz_file = run_psipred(
