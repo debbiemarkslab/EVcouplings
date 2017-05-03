@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 
 from evcouplings.utils.system import valid_file
 from evcouplings.utils.config import read_config_file, InvalidParameterError
+from evcouplings.utils.pipeline import FINAL_CONFIG_SUFFIX
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -30,7 +31,6 @@ def protein_monomer(prefix, configs):
 
     # TODO
     """
-    MIN_SEQ_DIST = 6
     MIN_PROBABILITY = 0.9
 
     ali_table = pd.DataFrame()
@@ -48,7 +48,7 @@ def protein_monomer(prefix, configs):
             domain_threshold = C["align"]["domain_threshold"]
             sub_index = (domain_threshold, sub_prefix)
 
-            final_state_cfg = sub_prefix + "_final_global_state.outcfg"
+            final_state_cfg = sub_prefix + FINAL_CONFIG_SUFFIX
             if not valid_file(final_state_cfg):
                 continue
 
@@ -79,8 +79,9 @@ def protein_monomer(prefix, configs):
                 # try to get number of significant ECs in addition
                 if valid_file(ec_file):
                     ecs = pd.read_csv(ec_file)
+                    min_seq_dist = C["compare"]["min_sequence_distance"]
                     num_sig = len(ecs.query(
-                        "abs(i-j) >= @MIN_SEQ_DIST and probability >= @MIN_PROBABILITY"
+                        "abs(i-j) >= @min_seq_dist and probability >= @MIN_PROBABILITY"
                     ))
                     stat_df.loc[0, "num_significant"] = num_sig
 

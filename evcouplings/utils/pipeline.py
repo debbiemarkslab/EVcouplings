@@ -51,6 +51,7 @@ PIPELINES = {
     ]
 }
 
+FINAL_CONFIG_SUFFIX = "_final.outcfg"
 
 def execute(**kwargs):
     """
@@ -183,7 +184,7 @@ def execute(**kwargs):
 
     # write final global state of pipeline
     write_config_file(
-        prefix + "_final.outcfg", global_state
+        prefix + FINAL_CONFIG_SUFFIX, global_state
     )
 
     return global_state
