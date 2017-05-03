@@ -116,26 +116,8 @@ def execute(**kwargs):
         # check if config for stage is there
         check_required(kwargs, [stage])
 
+        # output files for stage into an individual folder
         stage_prefix = insert_dir(prefix, stage)
-
-        print(stage_prefix)  # TODO: remove
-        # TODO: this logic needs updating
-        # check if the outputs of the stage have to
-        # be prefixed. This is necessary when the same
-        # protocol is used twice, e.g. align in complexes,
-        # so that there are no overlaps between keys, and
-        # output files.
-        # define custom prefix for stage and create folder
-        # stage_prefix = path.join(prefix, stage, "")
-        # if key_prefix is None:
-        #     stage_prefix = prefix
-        # else:
-        #     # if we have a key_prefix for the current stage,
-        #     # we need to add this into the filename so there
-        #     # are no filename collisions
-        #     folder, file_prefix = path.split(prefix)
-        #    stage_prefix = path.join(folder, key_prefix + file_prefix)
-
         create_prefix_folders(stage_prefix)
 
         # config files for input and output of stage
