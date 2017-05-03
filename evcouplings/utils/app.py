@@ -341,6 +341,42 @@ def run_jobs(config_files, global_config):
     submitter.join()
 
 
+def run(**kwargs):
+    """
+    Exposes command line interface as a Python function.
+    
+    Parameters
+    ----------
+    kwargs
+        See click.option decorators for app() function 
+    """
+    # substitute commmand line options in config file
+    config = substitute_config(**kwargs)
+
+    # check minimal set of parameters is present in config
+    check_required(
+        config,
+        ["pipeline", "stages", "global"]
+    )
+
+    # make sure parameters make sense (minimally...)
+    if config["global"]["prefix"] is None or config["global"]["sequence_id"] is None:
+        raise InvalidParameterError(
+            "Prefix or sequence identifier not defined."
+        )
+
+    # for convenience, turn on N_eff computation if we run alignment,
+    # but not the couplings stage
+    if "align" in config["stages"] and "couplings" not in config["stages"]:
+        config["align"]["compute_num_effective_seqs"] = True
+
+    # unroll batch jobs into individual pipeline jobs
+    subjob_cfg_files = unroll_config(config, kwargs["yolo"])
+
+    # run pipeline computation for each individual (unrolled) config
+    run_jobs(subjob_cfg_files, config)
+
+
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
@@ -411,33 +447,7 @@ def app(**kwargs):
     of multiple jobs that only vary in this parameter, with all other parameters
     constant.
     """
-    print(kwargs) # TODO: remove again
-    # substitute commmand line options in config file
-    config = substitute_config(**kwargs)
-
-    # check minimal set of parameters is present in config
-    check_required(
-        config,
-        ["pipeline", "stages", "global"]
-    )
-
-    # make sure parameters make sense (minimally...)
-    if config["global"]["prefix"] is None or config["global"]["sequence_id"] is None:
-        raise InvalidParameterError(
-            "Prefix or sequence identifier not defined."
-        )
-
-    # for convenience, turn on N_eff computation if we run alignment,
-    # but not the couplings stage
-    if "align" in config["stages"] and "couplings" not in config["stages"]:
-        config["align"]["compute_num_effective_seqs"] = True
-
-    # unroll batch jobs into individual pipeline jobs
-    subjob_cfg_files = unroll_config(config, kwargs["yolo"])
-
-    # run pipeline computation for each individual (unrolled) config
-    run_jobs(subjob_cfg_files, config)
-
+    run(**kwargs)
 
 if __name__ == '__main__':
     app()
