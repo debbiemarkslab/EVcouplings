@@ -9,8 +9,6 @@ Authors:
 import matplotlib
 matplotlib.use("Agg")
 
-from os import path
-
 import click
 
 from evcouplings.utils.config import (
@@ -18,7 +16,7 @@ from evcouplings.utils.config import (
     InvalidParameterError
 )
 from evcouplings.utils.system import (
-    create_prefix_folders, verify_resources
+    create_prefix_folders, insert_dir, verify_resources
 )
 
 import evcouplings.align.protocol as ap
@@ -29,19 +27,27 @@ import evcouplings.fold.protocol as fd
 import evcouplings.complex.protocol as pp
 
 # supported pipelines
+#
+# stages are defined by:
+# 1) name of stage
+# 2) function to execute for stage
+# 3) key prefix (to avoid name collisions
+#    of output fields if same stage is run
+#    multiple times, e.g. 2 alignments for
+#    complexes)
 PIPELINES = {
     "protein_monomer": [
-        ("align", ap.run),
-        ("couplings", cp.run),
-        ("compare", cm.run),
-        ("mutate", mt.run),
-        ("fold", fd.run),
+        ("align", ap.run, None),
+        ("couplings", cp.run, None),
+        ("compare", cm.run, None),
+        ("mutate", mt.run, None),
+        ("fold", fd.run, None),
     ],
     "protein_complex": [
-        ("align_1", ap.run),
-        ("align_2", ap.run),
-        ("concatenate", pp.run),
-        ("couplings", cp.run),
+        ("align_1", ap.run, "first_"),
+        ("align_2", ap.run, "second_"),
+        ("concatenate", pp.run, None),
+        ("couplings", cp.run, None),
     ]
 }
 
@@ -101,7 +107,7 @@ def execute(**kwargs):
     num_stages_to_run = len(stages)
 
     # iterate through individual stages
-    for (stage, runner) in pipeline:
+    for (stage, runner, key_prefix) in pipeline:
         # check if anything else is left to
         # run, otherwise skip
         if num_stages_to_run == 0:
@@ -110,23 +116,25 @@ def execute(**kwargs):
         # check if config for stage is there
         check_required(kwargs, [stage])
 
+        stage_prefix = insert_dir(prefix, stage)
+
+        print(stage_prefix)  # TODO: remove
+        # TODO: this logic needs updating
         # check if the outputs of the stage have to
         # be prefixed. This is necessary when the same
         # protocol is used twice, e.g. align in complexes,
         # so that there are no overlaps between keys, and
-        # output files
-        key_prefix = kwargs[stage].get("key_prefix", None)
-
+        # output files.
         # define custom prefix for stage and create folder
         # stage_prefix = path.join(prefix, stage, "")
-        if key_prefix is None:
-            stage_prefix = prefix
-        else:
-            # if we have a key_prefix for the current stage,
-            # we need to add this into the filename so there
-            # are no filename collisions
-            folder, file_prefix = path.split(prefix)
-            stage_prefix = path.join(folder, key_prefix + file_prefix)
+        # if key_prefix is None:
+        #     stage_prefix = prefix
+        # else:
+        #     # if we have a key_prefix for the current stage,
+        #     # we need to add this into the filename so there
+        #     # are no filename collisions
+        #     folder, file_prefix = path.split(prefix)
+        #    stage_prefix = path.join(folder, key_prefix + file_prefix)
 
         create_prefix_folders(stage_prefix)
 
@@ -193,7 +201,7 @@ def execute(**kwargs):
 
     # write final global state of pipeline
     write_config_file(
-        prefix + "_final_global_state.outcfg", global_state
+        prefix + "_final.outcfg", global_state
     )
 
     return global_state

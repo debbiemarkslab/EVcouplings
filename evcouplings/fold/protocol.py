@@ -445,13 +445,8 @@ def standard(**kwargs):
     # set up method to drive the folding of each job
     method = kwargs["engine"]
 
-    # put folding output in a subdirectory
-    # update paths in folding jobs accordingly
-    job_path = insert_dir(prefix, "fold")
-    create_prefix_folders(job_path)
-
     folding_runs = [
-        (job_ecs, job_path + job_suffix)
+        (job_ecs, prefix + job_suffix)
         for (job_ecs, job_suffix) in folding_runs
     ]
 
@@ -529,7 +524,7 @@ def standard(**kwargs):
                 comp_single, on="filename", how="left"
             ).sort_values(by="tm", ascending=False)
             basename = path.splitext(path.split(filename)[1])[0]
-            ind_file = "{}_{}.csv".format(job_path, basename)
+            ind_file = "{}_{}.csv".format(prefix, basename)
             # map back to original key from remapped_pdb_files as a key for this list
             ind_comp_files[experimental_files[filename]] = ind_file
             comparison_s.to_csv(ind_file, index=False)

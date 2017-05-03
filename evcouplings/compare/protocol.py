@@ -290,11 +290,14 @@ def standard(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    # Step 1: Identify 3D structures for comparison
+    # store auxiliary files here (too much for average user)
+    aux_prefix = insert_dir(prefix, "aux", rootname_subdir=False)
+    create_prefix_folders(aux_prefix)
 
+    # Step 1: Identify 3D structures for comparison
     sifts_map, sifts_map_full = _identify_structures(**{
         **kwargs,
-        "prefix": insert_dir(prefix, "compare")
+        "prefix": aux_prefix,
     })
 
     # save selected PDB hits
@@ -320,7 +323,7 @@ def standard(**kwargs):
     if len(sifts_map.hits) > 0:
         d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
-            output_prefix=insert_dir(prefix, "compare") + "_distmap_intra"
+            output_prefix=aux_prefix + "_distmap_intra"
         )
         d_intra.to_file(outcfg["distmap_monomer"])
 
@@ -330,7 +333,7 @@ def standard(**kwargs):
         if kwargs["compare_multimer"]:
             d_multimer = multimer_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
-                output_prefix=insert_dir(prefix, "compare") + "_distmap_multimer"
+                output_prefix=aux_prefix + "_distmap_multimer"
             )
         else:
             d_multimer = None
@@ -354,7 +357,7 @@ def standard(**kwargs):
 
         seq_id, seq_start, seq_end = parse_header(header)
         seqmap = dict(zip(range(seq_start, seq_end + 1), seq))
-        outcfg["remapped_pdb_files"] = remap_chains(sifts_map, insert_dir(prefix, "compare"), seqmap)
+        outcfg["remapped_pdb_files"] = remap_chains(sifts_map, aux_prefix, seqmap)
     else:
         # if no structures, can not compute distance maps
         d_intra = None
