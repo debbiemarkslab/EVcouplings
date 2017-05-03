@@ -327,6 +327,14 @@ def standard(**kwargs):
         )
         d_intra.to_file(outcfg["distmap_monomer"])
 
+        # save contacts to separate file
+        outcfg["monomer_contacts_file"] = prefix + "_contacts_monomer.csv"
+        d_intra.contacts(
+            kwargs["distance_cutoff"]
+        ).to_csv(
+            outcfg["monomer_contacts_file"], index=False
+        )
+
         # compute multimer distances, if requested;
         # note that d_multimer can be None if there
         # are no structures with multiple chains
@@ -341,6 +349,14 @@ def standard(**kwargs):
         # if we have a multimer contact mapin the end, save it
         if d_multimer is not None:
             d_multimer.to_file(outcfg["distmap_multimer"])
+            outcfg["multimer_contacts_file"] = prefix + "_contacts_multimer.csv"
+
+            # save contacts to separate file
+            d_multimer.contacts(
+                kwargs["distance_cutoff"]
+            ).to_csv(
+                outcfg["multimer_contacts_file"], index=False
+            )
         else:
             outcfg["distmap_multimer"] = None
 
