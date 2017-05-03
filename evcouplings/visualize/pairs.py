@@ -201,7 +201,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         (if not given, will try to extract from monomer
         distance map). For format of dict or DataFrame,
         see documentation of plot_secondary_structure().
-        If symmetric == True, this has to be a two-element
+        If symmetric is False, this has to be a two-element
         tuple containing the secondary structures for the
         x-axis and the y-axis, respectively.
     show_secstruct : bool, optional (default: True)
@@ -304,7 +304,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                 if (not isinstance(secondary_structure, tuple) or
                         len(secondary_structure) != 2):
                     raise ValueError(
-                        "When symmetric is True, secondary structure must "
+                        "When symmetric is False, secondary structure must "
                         "be a tuple (secstruct_i, secstruct_j)."
                     )
                 secstruct_i, secstruct_j = secondary_structure
@@ -549,9 +549,15 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         # turn into dictionary representation if
         # passed as a DataFrame
         if isinstance(secstruct, pd.DataFrame):
+            # first check we actually have a secondary
+            # structure column
+            if "sec_struct_3state" not in secstruct.columns:
+                return None, None, None
+
             # do not store any undefined secondary
             # structure in dictionary, or NaN
             # values will lead to problems
+
             secstruct = secstruct.dropna(
                 subset=["sec_struct_3state"]
             )
