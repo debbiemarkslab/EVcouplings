@@ -177,7 +177,7 @@ def substitute_config(**kwargs):
     return config
 
 
-def unroll_config(config):
+def unroll_config(config, overwrite=False):
     """
     Create individual job configs from master config file
     (e.g. containing batch section)
@@ -202,6 +202,19 @@ def unroll_config(config):
     # if no batch job, this will be the only
     # config file
     cfg_filename = CONFIG_NAME.format(prefix)
+
+    # but check overwrite protection first...
+    # (but only if it is a valid configuration file with contents)
+    if not overwrite and valid_file(cfg_filename):
+        raise InvalidParameterError(
+            "Existing configuration file {} ".format(cfg_filename) +
+            "indicates current prefix {} ".format(prefix) +
+            "would overwrite existing results. Use --yolo " +
+            "flag to deactivate overwrite protection (e.g. for "
+            "restarting a job or running a different stage)."
+        )
+
+    # ... and then write
     write_config_file(cfg_filename, config)
 
     # check if we have a single job or need to unroll
@@ -384,6 +397,9 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option(
     "-M", "--memory", default=None, help="Memory requirement for batch jobs (MB or 'auto')"
 )
+@click.option(
+    "-y", "--yolo", default=False, is_flag=True, help="Disable overwrite protection"
+)
 def app(**kwargs):
     """
     EVcouplings command line interface
@@ -395,6 +411,7 @@ def app(**kwargs):
     of multiple jobs that only vary in this parameter, with all other parameters
     constant.
     """
+    print(kwargs) # TODO: remove again
     # substitute commmand line options in config file
     config = substitute_config(**kwargs)
 
@@ -416,7 +433,7 @@ def app(**kwargs):
         config["align"]["compute_num_effective_seqs"] = True
 
     # unroll batch jobs into individual pipeline jobs
-    subjob_cfg_files = unroll_config(config)
+    subjob_cfg_files = unroll_config(config, kwargs["yolo"])
 
     # run pipeline computation for each individual (unrolled) config
     run_jobs(subjob_cfg_files, config)
