@@ -9,6 +9,8 @@ from os import path
 from math import ceil
 import multiprocessing as mp
 from functools import partial
+import shutil
+
 import pandas as pd
 
 from evcouplings.align.alignment import (
@@ -322,6 +324,7 @@ def standard(**kwargs):
             "min_sequence_distance", "fold_probability_cutoffs",
             "fold_lowest_count", "fold_highest_count", "fold_increase",
             "num_models", "psipred", "cpu", "remapped_pdb_files",
+            "cleanup",
         ]
     )
 
@@ -445,8 +448,14 @@ def standard(**kwargs):
     # set up method to drive the folding of each job
     method = kwargs["engine"]
 
+    # store structures in an auxiliary subdirectory, after folding
+    # final models will be moved to main folding dir. Depending
+    # on cleanup setting, the aux directory will be removed
+    aux_prefix = insert_dir(prefix, "aux", rootname_subdir=False)
+    aux_dir = path.dirname(aux_prefix)
+
     folding_runs = [
-        (job_ecs, prefix + job_suffix)
+        (job_ecs, aux_prefix + job_suffix)
         for (job_ecs, job_suffix) in folding_runs
     ]
 
@@ -470,13 +479,28 @@ def standard(**kwargs):
     results = pool.starmap(folder, folding_runs)
 
     # merge result dictionaries into one dict
-    outcfg["folded_structure_files"] = {
+    folded_files = {
         k: v for subres in results for k, v in subres.items()
     }
 
-    prediction_files = list(
-        outcfg["folded_structure_files"].values()
-    )
+    # move structures from aux into main folding dir
+    fold_dir = path.dirname(prefix)
+    prediction_files = []
+    for name, file_path in folded_files.items():
+        # move file
+        shutil.move(file_path, fold_dir)
+
+        # update file path to main folding dir,
+        # and put in a flat list of result files
+        prediction_files.append(
+            file_path.replace(aux_prefix, prefix)
+        )
+
+    outcfg["folded_structure_files"] = prediction_files
+
+    # remove aux dir if cleanup is requested
+    if kwargs["cleanup"]:
+        shutil.rmtree(aux_dir)
 
     # apply ranking to predicted models
     ranking = dihedral_ranking(prediction_files, residues)
@@ -524,7 +548,7 @@ def standard(**kwargs):
                 comp_single, on="filename", how="left"
             ).sort_values(by="tm", ascending=False)
             basename = path.splitext(path.split(filename)[1])[0]
-            ind_file = "{}_{}.csv".format(prefix, basename)
+            ind_file = path.join(fold_dir, basename + ".csv")
             # map back to original key from remapped_pdb_files as a key for this list
             ind_comp_files[experimental_files[filename]] = ind_file
             comparison_s.to_csv(ind_file, index=False)
@@ -543,7 +567,7 @@ PROTOCOLS = {
 
 def run(**kwargs):
     """
-    Run mutation protocol
+    Run folding protocol
 
     Parameters
     ----------

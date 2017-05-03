@@ -302,6 +302,9 @@ fold:
     # number of trial structure to generate for each EC set
     num_models: 10
 
+    # remove intermediate files created during folding and keep only final models
+    cleanup: True
+
     # Inputs defined by "global" or previous stages
     # prefix:
     # ec_file:
