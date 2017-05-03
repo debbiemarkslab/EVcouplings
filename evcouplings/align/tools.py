@@ -8,7 +8,7 @@ Authors:
 from collections import namedtuple
 import pandas as pd
 from evcouplings.utils.system import (
-    run, create_prefix_folders, verify_resources
+    run, create_prefix_folders, verify_resources, temp
 )
 
 # output fields for storing results of a jackhmmer run
@@ -322,7 +322,17 @@ def _read_hmmer_table(filename, column_names):
             fields = line.rstrip().split(maxsplit=num_splits)
             res.append(fields)
 
-    return pd.DataFrame(res, columns=column_names)
+    # at the moment, all fields in dataframe are strings, even
+    # if numeric. To convert to numbers, cheap trick is to store
+    # to csv file and let pandas guess the types, rather than
+    # going through convert_objects (deprecated) or to_numeric
+    # (more effort)
+    tempfile = temp()
+    pd.DataFrame(
+        res, columns=column_names
+    ).to_csv(tempfile, index=False)
+
+    return pd.read_csv(tempfile)
 
 
 def read_hmmer_tbl(filename):
