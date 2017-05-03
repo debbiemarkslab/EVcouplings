@@ -189,14 +189,16 @@ def execute(**kwargs):
     return global_state
 
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
-
-@click.command(context_settings=CONTEXT_SETTINGS)
-@click.argument('config')
 def run(**kwargs):
     """
-    EVcouplings pipeline execution
+    EVcouplings pipeline execution from a
+    configuration file (single thread, no
+    batch or environment configuration)
+    
+    Parameters
+    ----------
+    kwargs
+        See click.option decorators for app()
     """
     config_file = kwargs["config"]
     verify_resources(
@@ -212,5 +214,16 @@ def run(**kwargs):
     print(outcfg)
 
 
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument('config')
+def app(**kwargs):
+    """
+    Command line app entry point
+    """
+    run(**kwargs)
+
 if __name__ == '__main__':
-    run()
+    app()

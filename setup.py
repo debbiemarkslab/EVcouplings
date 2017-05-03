@@ -107,7 +107,7 @@ setup(
     entry_points={
         'console_scripts': [
             'evcouplings=evcouplings.utils.app:app',
-            'evcouplings_runcfg=evcouplings.utils.pipeline:run',
+            'evcouplings_runcfg=evcouplings.utils.pipeline:app',
         ],
     },
 
