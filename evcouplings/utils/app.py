@@ -359,10 +359,13 @@ def run(**kwargs):
         ["pipeline", "stages", "global"]
     )
 
+    # verify that global prefix makes sense
+    pipeline.verify_prefix(**config)
+
     # make sure parameters make sense (minimally...)
-    if config["global"]["prefix"] is None or config["global"]["sequence_id"] is None:
+    if config["global"].get("sequence_id", None) is None:
         raise InvalidParameterError(
-            "Prefix or sequence identifier not defined."
+            "Sequence identifier not defined (sequence_id)."
         )
 
     # for convenience, turn on N_eff computation if we run alignment,
