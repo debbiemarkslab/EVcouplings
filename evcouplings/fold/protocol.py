@@ -478,6 +478,12 @@ def standard(**kwargs):
     pool = mp.Pool(processes=num_procs)
     results = pool.starmap(folder, folding_runs)
 
+    # make double sure that the pool is cleaned up,
+    # or SIGTERM upon exit will interfere with
+    # interrupt signal interception
+    pool.close()
+    pool.join()
+
     # merge result dictionaries into one dict
     folded_files = {
         k: v for subres in results for k, v in subres.items()
