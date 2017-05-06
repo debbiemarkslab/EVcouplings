@@ -525,7 +525,6 @@ def existing(**kwargs):
     prefix = kwargs["prefix"]
 
     # make sure output directory exists
-    # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
 
     # this file is starting point of pipeline;
@@ -696,7 +695,6 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
 
     prefix = kwargs["prefix"]
 
-    # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
 
     focus_fasta_file = prefix + "_raw_focus.fasta"
@@ -879,7 +877,6 @@ def jackhmmer_search(**kwargs):
     prefix = kwargs["prefix"]
 
     # make sure output directory exists
-    # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
 
     # store search sequence file here
@@ -1032,7 +1029,6 @@ def standard(**kwargs):
     prefix = kwargs["prefix"]
 
     # make sure output directory exists
-    # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
 
     # first step of protocol is to get alignment using

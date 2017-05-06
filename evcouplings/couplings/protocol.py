@@ -101,7 +101,6 @@ def standard(**kwargs):
     )
 
     # make sure output directory exists
-    # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
 
     # regularization strength on couplings J_ij
