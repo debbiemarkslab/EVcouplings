@@ -27,6 +27,16 @@ stages:
     - mutate
     - fold
 
+# These settings allow job status tracking using a database, and result collection in an archive
+management:
+    # URI of database
+    database_uri:
+
+    # unique job identifier
+    job_name:
+
+    archive: []
+
 # Global job settings (which protein, region). These will override settings of the same name in each of the stages.
 # These are typically the settings you want to modify for each of your jobs, together with some settings in the align stage.
 global:

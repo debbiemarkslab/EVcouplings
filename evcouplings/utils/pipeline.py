@@ -9,6 +9,12 @@ Authors:
 import matplotlib
 matplotlib.use("Agg")
 
+import signal
+import os
+from os import path
+import sys
+import traceback
+
 import click
 
 from evcouplings.utils.config import (
@@ -17,6 +23,9 @@ from evcouplings.utils.config import (
 )
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources
+)
+from evcouplings.utils.database import (
+    update_job_status, EStatus
 )
 
 import evcouplings.align.protocol as ap
@@ -51,15 +60,29 @@ PIPELINES = {
     ]
 }
 
+# suffix of file containing final output configuration of pipeline
 FINAL_CONFIG_SUFFIX = "_final.outcfg"
 
-def execute(**kwargs):
+# suffix of file that will be generated if execution
+# is terminated externally (SIGINT, SIGTERM, ...)
+EXTENSION_TERMINATED = ".terminated"
+
+# suffix of file that will be generated if execution
+# fails internally (i.e. exception is raised)
+EXTENSION_FAILED = ".failed"
+
+# suffix of file that will be generated if execution
+# runs through sucessfully
+EXTENSION_DONE = ".done"
+
+
+def execute(**config):
     """
     Execute a pipeline configuration
 
     Parameters
     ----------
-    **kwargs
+    **config
         Input configuration for pipeline
         (see pipeline config files for
         example of how this should look like)
@@ -70,12 +93,12 @@ def execute(**kwargs):
         Global output state of pipeline
     """
     check_required(
-        kwargs,
+        config,
         ["pipeline", "stages", "global"]
     )
 
     # check if valid pipeline was selected
-    if kwargs["pipeline"] not in PIPELINES:
+    if config["pipeline"] not in PIPELINES:
         raise InvalidParameterError(
             "Not a valid pipeline selection. "
             "Valid choices are:\n{}".format(
@@ -83,29 +106,31 @@ def execute(**kwargs):
             )
         )
 
-    stages = kwargs["stages"]
+    stages = config["stages"]
     if stages is None:
         raise InvalidParameterError(
             "No stages defined, need at least one."
         )
 
     # get definition of selected pipeline
-    pipeline = PIPELINES[kwargs["pipeline"]]
-    prefix = kwargs["global"]["prefix"]
+    pipeline = PIPELINES[config["pipeline"]]
+    prefix = config["global"]["prefix"]
 
     # make sure output directory exists
-    # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
 
     # this is the global state of results as
     # we move through different stages of
     # the pipeline
-    global_state = kwargs["global"]
+    global_state = config["global"]
 
     # keep track of how many stages are still
     # to be run, so we can leave out stages at
     # the end of workflow below
     num_stages_to_run = len(stages)
+
+    # set job status to running
+    update_job_status(config, status=EStatus.RUN)
 
     # iterate through individual stages
     for (stage, runner, key_prefix) in pipeline:
@@ -115,7 +140,7 @@ def execute(**kwargs):
             break
 
         # check if config for stage is there
-        check_required(kwargs, [stage])
+        check_required(config, [stage])
 
         # output files for stage into an individual folder
         stage_prefix = insert_dir(prefix, stage)
@@ -125,14 +150,17 @@ def execute(**kwargs):
         stage_incfg = "{}_{}.incfg".format(stage_prefix, stage)
         stage_outcfg = "{}_{}.outcfg".format(stage_prefix, stage)
 
+        # update current stage of job
+        update_job_status(config, stage=stage)
+
         # check if stage should be executed
         if stage in stages:
             # global state inserted at end, overrides any
             # stage-specific settings (except for custom prefix)
             incfg = {
-                **kwargs["tools"],
-                **kwargs["databases"],
-                **kwargs[stage],
+                **config["tools"],
+                **config["databases"],
+                **config[stage],
                 **global_state,
                 "prefix": stage_prefix
             }
@@ -187,7 +215,163 @@ def execute(**kwargs):
         prefix + FINAL_CONFIG_SUFFIX, global_state
     )
 
+    # set job status to done
+    update_job_status(config, status=EStatus.DONE)
+
     return global_state
+
+
+def verify_prefix(**config):
+    """
+    Check if configuration contains a prefix,
+    and that prefix is a valid directory we
+    can write to on the filesystem
+    
+    Parameters
+    ----------
+    **config
+        Input configuration for pipeline
+        
+    Returns
+    -------
+    prefix : str
+        Verified prefix
+    """
+    # check we have a prefix entry, otherwise all hope is lost...
+    try:
+        prefix = config["global"]["prefix"]
+    except KeyError:
+        raise InvalidParameterError(
+            "Configuration does not include 'prefix' setting in "
+            "'global' section"
+        )
+
+    # make sure prefix is also specified
+    if prefix is None:
+        raise InvalidParameterError(
+            "'prefix' must be specified and cannot be None"
+        )
+
+    # verify that prefix is workable in terms
+    # of filesystem
+    try:
+        # make prefix folder
+        create_prefix_folders(prefix)
+
+        # try if we can write in the folder
+        with open(prefix + ".test__", "w") as f:
+            pass
+
+        # get rid of the file again
+        os.remove(prefix + ".test__")
+
+        # make sure we can create a subdirectory
+        sub_prefix = insert_dir(prefix, "test__")
+        create_prefix_folders(sub_prefix)
+
+        # remove again
+        os.rmdir(path.dirname(sub_prefix))
+
+    except OSError as e:
+        raise InvalidParameterError(
+            "Not a valid prefix: {}".format(prefix)
+        ) from e
+
+    return prefix
+
+
+def execute_wrapped(**config):
+    """
+    Execute a pipeline configuration in "wrapped"
+    mode that handles external interruptions and
+    exceptions and documents these using files
+    (.finished, .terminated, .failed), as well
+    as documenting failure in a job database
+
+    Parameters
+    ----------
+    **config
+        Input configuration for pipeline
+        (see pipeline config files for
+        example of how this should look like)
+
+    Returns
+    -------
+    outcfg : dict
+        Global output state of pipeline
+    """
+    # make sure the prefix in configuration is valid
+    try:
+        prefix = verify_prefix(**config)
+    except Exception:
+        update_job_status(config, status=EStatus.TERM)
+        raise
+
+    # delete terminated/failed flags from previous
+    # executions of pipeline
+    for ext in [
+        EXTENSION_FAILED, EXTENSION_TERMINATED, EXTENSION_DONE,
+    ]:
+        try:
+            os.remove(prefix + ext)
+        except OSError:
+            pass
+
+    # handler for external interruptions
+    # (needs config for database access)
+    def _handler(signal_, frame):
+        # set job status to terminated in database
+        update_job_status(config, status=EStatus.TERM)
+
+        # create file flag that job was terminated
+        with open(prefix + ".terminated", "w") as f:
+            f.write("SIGNAL: {}\n".format(signal_))
+
+        # TODO: remove eventually
+        """
+        import inspect
+        
+        args, _, _, value_dict = inspect.getargvalues(frame)
+        print("------")
+        print(args)
+        print(value_dict)
+        instance = value_dict.get('self', None)
+        if instance:
+            # return its class
+            print(getattr(instance, '__class__', None))
+        """
+        # TODO: remove eventually
+
+        # terminate program
+        sys.exit(1)
+
+    # set up handlers for job termination
+    # (note that this list may not be complete and may
+    # need extension for other computing environments)
+    for sig in [signal.SIGINT, signal.SIGTERM, signal.SIGUSR1, signal.SIGUSR2]:
+        signal.signal(sig, _handler)
+
+    try:
+        # execute configuration
+        outcfg = execute(**config)
+
+        # if we made it here, job was sucessfully run to completing
+        # create file flag that job was terminated
+        with open(prefix + ".finished", "w") as f:
+            f.write(repr(outcfg))
+
+        return outcfg
+
+    except Exception as e:
+        # set status in database to failed
+        update_job_status(config, status=EStatus.FAIL)
+
+        # create failed file flag
+        with open(prefix + ".failed", "w") as f:
+            f.write(traceback.format_exc())
+
+        # raise exception again after we updated status
+        raise
 
 
 def run(**kwargs):
@@ -209,10 +393,10 @@ def run(**kwargs):
 
     # read configuration and execute
     config = read_config_file(config_file)
-    outcfg = execute(**config)
 
-    # print final configuration (end result)
-    print(outcfg)
+    # execute configuration in "wrapped" mode
+    # that handles exceptions and internal interrupts
+    return execute_wrapped(**config)
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -224,7 +408,11 @@ def app(**kwargs):
     """
     Command line app entry point
     """
-    run(**kwargs)
+    # execute configuration file
+    outcfg = run(**kwargs)
+
+    # print final result configuration to stdout
+    print(outcfg)
 
 if __name__ == '__main__':
     app()
