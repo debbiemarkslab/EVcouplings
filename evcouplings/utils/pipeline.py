@@ -376,21 +376,6 @@ def execute_wrapped(**config):
         with open(prefix + ".terminated", "w") as f:
             f.write("SIGNAL: {}\n".format(signal_))
 
-        # TODO: remove eventually
-        """
-        import inspect
-        
-        args, _, _, value_dict = inspect.getargvalues(frame)
-        print("------")
-        print(args)
-        print(value_dict)
-        instance = value_dict.get('self', None)
-        if instance:
-            # return its class
-            print(getattr(instance, '__class__', None))
-        """
-        # TODO: remove eventually
-
         # terminate program
         sys.exit(1)
 
