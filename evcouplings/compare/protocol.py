@@ -148,7 +148,6 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
             pairs.plot_contact_map(
                 ecs, d_intra, d_multimer,
                 distance_cutoff=kwargs["distance_cutoff"],
-                secondary_structure=secstruct,
                 show_secstruct=kwargs["draw_secondary_structure"],
                 margin=5,
                 boundaries=kwargs["boundaries"]
@@ -178,17 +177,6 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
     ecs_longrange = ec_table.query(
         "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
     )
-
-    # get secondary structure (for now from first hit)
-    if len(sifts_map.hits) > 0:
-        hit = sifts_map.hits.iloc[0]
-        secstruct = structures[hit.pdb_id].get_chain(
-            hit.pdb_chain, model=0
-        ).remap(
-            sifts_map.mapping[hit.mapping_index]
-        ).residues
-    else:
-        secstruct = None
 
     # based on significance cutoff
     if kwargs["plot_probability_cutoffs"]:

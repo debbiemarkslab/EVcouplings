@@ -5,7 +5,9 @@ Authors:
   Thomas A. Hopf
 """
 
+from collections import Counter
 from itertools import combinations
+from operator import itemgetter
 
 import numpy as np
 import pandas as pd
@@ -421,9 +423,10 @@ class DistanceMap:
     @classmethod
     def aggregate(cls, *matrices, intersect=False, agg_func=np.nanmin):
         """
-        Aggregate with other distance map(s)
-
-        # TODO: make classmethod?
+        Aggregate with other distance map(s). Secondary structure will
+        be aggregated by assigning the most frequent state across
+        all distance matrices; if there are equal counts, H (helix) will
+        be chosen over E (strand) over C (coil).
 
         Parameters
         ----------
@@ -453,16 +456,68 @@ class DistanceMap:
         ValueError
             If residue identifiers are not numeric
         """
+        def _sse_count(secstruct_elements):
+            # obtain counts for each secondary structure element;
+            # do not count nan entries
+            counts = Counter(secstruct_elements.dropna())
+
+            # sort items by count (first) and secondary structure (second);
+            # this way, most frequent element at the end of list, and
+            # prioritizing H over E over C
+            sorted_sse = sorted(counts.items(), key=itemgetter(1, 0))
+
+            # if no elements, make nan entry
+            if len(sorted_sse) == 0:
+                return np.nan
+            else:
+                return sorted_sse[-1][0]
+
+        def _merge_sse(new_axis, distance_maps):
+            new_axis = new_axis.copy()
+            # merge secondary structure assignments over
+            # axis tables in multiple distance maps
+            merger_df = new_axis
+
+            # first join all into big table for easier counting
+            for i, m in enumerate(distance_maps):
+                if "sec_struct_3state" in m.columns:
+                    merger_df = merger_df.merge(
+                        m.loc[:, ["id", "sec_struct_3state"]],
+                        on="id", how="left", suffixes=("", str(i))
+                    )
+
+            # then identify all the columns we ended up with
+            sse_cols = [
+                c for c in merger_df.columns
+                if c.startswith("sec_struct_3state")
+            ]
+
+            # if we have any columns, identify most frequent
+            # secondary structure character
+            if len(sse_cols) > 0:
+                new_sse = merger_df.loc[
+                    :, sse_cols
+                ].apply(_sse_count, axis=1)
+
+                # assign to dataframe
+                new_axis.loc[:, "sec_struct_3state"] = new_sse
+
+            return new_axis
+
         def _merge_axis(axis):
+            # extract residue dataframes along axis
+            # for all given distance maps
+            dm = [
+                getattr(m, axis) for m in matrices
+            ]
+
             # create set of residue identifiers along axis
             # for each distance map. Note that identifiers
             # have to be numeric for easy sorting, so
             # cast to int first
             ids = [
-                pd.to_numeric(
-                    getattr(m, axis).id, errors="raise"
-                ).astype(int)
-                for m in matrices
+                pd.to_numeric(m.id).astype(int)
+                for m in dm
             ]
 
             # turn series into sets
@@ -479,7 +534,7 @@ class DistanceMap:
             new_axis_df = pd.DataFrame(sorted(new_ids), columns=["id"])
 
             # create mapping from one distance matrix into the other
-            # by aligning indeces from 0 in either matrix through
+            # by aligning indices from 0 in either matrix through
             # join on their residue id
             new_axis_map = new_axis_df.reset_index()
             mappings = [
@@ -492,6 +547,11 @@ class DistanceMap:
 
             # turn residue ids back into strings
             new_axis_df.loc[:, "id"] = new_axis_df.loc[:, "id"].astype(str)
+
+            # merge secondary structure assignments by identifying
+            # most frequent assignment. If there are equal counts,
+            # prefer H over E over C.
+            new_axis_df = _merge_sse(new_axis_df, dm)
 
             return new_axis_df, mappings
 
