@@ -188,7 +188,9 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     ----------
     ecs : pandas.DataFrame
         Table of evolutionary couplings to plot (using columns
-        "i" and "j")
+        "i" and "j"). Can contain additional columns "color"
+        and "size" to assign these individual properties in the
+        plot for each plotted pair (i, j).
     monomer : evcouplings.compare.distances.DistanceMap
         Monomer distance map (intra-chain distances)
     multimer : evcouplings.compare.distances.DistanceMap
@@ -335,6 +337,10 @@ def plot_pairs(pairs, symmetric=False, ax=None, style=None):
     ----------
     pairs : pandas.DataFrame
         DataFrame with coordinates to plot
+        (taken from columns i and j). If there
+        are columns "color" and "size", these
+        will be used to assign individual colors
+        and sizes to the dots in the scatter plot.
     symmetric : bool, optional (default: False)
         If true, for each pair (i, j) also plot
         pair (j, i). This is for cases where
@@ -358,6 +364,12 @@ def plot_pairs(pairs, symmetric=False, ax=None, style=None):
 
     if style is None:
         style = {}
+
+    if "color" in pairs.columns:
+        style["c"] = pairs.loc[:, "color"].values
+
+    if "size" in pairs.columns:
+        style["s"] = pairs.loc[:, "size"].values
 
     path1 = ax.scatter(
         pairs.i.astype(int),
