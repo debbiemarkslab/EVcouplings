@@ -243,6 +243,9 @@ compare:
     # Options: union, intersection, ecs, structure, [start, end] (e.g. [100, 200])
     boundaries: union
 
+    # scale sizes of EC dots in scatter plot based on strength of EC score
+    scale_sizes: True
+
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
 

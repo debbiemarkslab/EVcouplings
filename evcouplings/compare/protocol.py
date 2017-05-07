@@ -112,7 +112,7 @@ def _identify_structures(**kwargs):
     return sifts_map, sifts_map_full
 
 
-def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs):
+def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
     """
     Plot contact maps with all ECs above a certain probability threshold,
     or a given count of ECs
@@ -121,10 +121,6 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
     ----------
     ec_table : pandas.DataFrame
         Full set of evolutionary couplings (all pairs)
-    sifts_map : SIFTSResult
-        Table of identified PDB structures with index mappings
-    structures : dict(str: PDB)
-        Dictionary of loaded PDB structures
     d_intra : DistanceMap
         Computed residue-residue distances inside chain
     d_multimer : DistanceMap
@@ -145,6 +141,10 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
         """
         with misc.plot_context("Arial"):
             fig = plt.figure(figsize=(8, 8))
+            if kwargs["scale_sizes"]:
+                ecs = ecs.copy()
+                ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
+
             pairs.plot_contact_map(
                 ecs, d_intra, d_multimer,
                 distance_cutoff=kwargs["distance_cutoff"],
@@ -252,6 +252,7 @@ def standard(**kwargs):
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter", "compare_multimer",
             "distance_cutoff", "target_sequence_file",
+            "scale_sizes",
         ]
     )
 
@@ -393,7 +394,7 @@ def standard(**kwargs):
     # if no structures available, defaults to EC-only plot
 
     outcfg["contact_map_files"] = _make_contact_maps(
-        ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs
+        ec_table, d_intra, d_multimer, **kwargs
     )
 
     return outcfg

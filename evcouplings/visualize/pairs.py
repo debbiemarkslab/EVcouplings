@@ -190,7 +190,10 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         Table of evolutionary couplings to plot (using columns
         "i" and "j"). Can contain additional columns "color"
         and "size" to assign these individual properties in the
-        plot for each plotted pair (i, j).
+        plot for each plotted pair (i, j). If all values of
+        "size" are <= 1, they will be treated as a fraction
+        of the point size defined in ec_style, and rescaled
+        if scale_sizes is True.
     monomer : evcouplings.compare.distances.DistanceMap
         Monomer distance map (intra-chain distances)
     multimer : evcouplings.compare.distances.DistanceMap
@@ -341,6 +344,9 @@ def plot_pairs(pairs, symmetric=False, ax=None, style=None):
         are columns "color" and "size", these
         will be used to assign individual colors
         and sizes to the dots in the scatter plot.
+        If sizes are all <= 1 and "s" is present as a
+        key in style, values will be treated as fraction
+        of "s".
     symmetric : bool, optional (default: False)
         If true, for each pair (i, j) also plot
         pair (j, i). This is for cases where
@@ -369,7 +375,12 @@ def plot_pairs(pairs, symmetric=False, ax=None, style=None):
         style["c"] = pairs.loc[:, "color"].values
 
     if "size" in pairs.columns:
-        style["s"] = pairs.loc[:, "size"].values
+        # if all sizes <= 1, treat as fraction
+        if len(pairs.query("size > 1")) == 0 and "s" in style:
+            style["s"] *= pairs.loc[:, "size"].values
+        # otherwise take as actual value
+        else:
+            style["s"] = pairs.loc[:, "size"].values
 
     path1 = ax.scatter(
         pairs.i.astype(int),
@@ -538,7 +549,7 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
     secstruct_i : dict or pd.DataFrame
         Secondary structure for x-axis of plot.
         Can be a dictionary of position (int) to
-        secondary structure character ("H", "E", "-"/"C"),
+        secondary structure character ("H", "E", "C", "-"),
         or a DataFrame with columns "id" and "sec_struct_3state"
         (as returned by Chain.residues, and DistanceMap.residues_i
         and DistanceMap.residues_j).
