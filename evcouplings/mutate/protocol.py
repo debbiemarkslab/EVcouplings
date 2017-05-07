@@ -55,6 +55,7 @@ def standard(**kwargs):
 
     outcfg = {
         "mutation_matrix_file": prefix + "_single_mutant_matrix.csv",
+        "mutation_matrix_plot_files": [],
     }
 
     # make sure model file exists
@@ -78,10 +79,12 @@ def standard(**kwargs):
         )
         fig = evcouplings.visualize.mutations.plot_mutation_matrix(model, engine="bokeh")
         save(fig)
+        outcfg["mutation_matrix_plot_files"].append(filename + ".html")
 
         # static matplotlib plot
         evcouplings.visualize.mutations.plot_mutation_matrix(model)
         plt.savefig(filename + ".pdf", bbox_inches="tight")
+        outcfg["mutation_matrix_plot_files"].append(filename + ".pdf")
 
     # create single mutation matrix table,
     # add prediction by independent model and

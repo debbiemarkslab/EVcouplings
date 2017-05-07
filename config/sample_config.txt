@@ -324,8 +324,8 @@ management:
     # add the following output files to results archive
     archive: [target_sequence_file, statistics_file, alignment_file, frequencies_file, ec_file, ec_longrange_file,
               model_file, enrichment_file, evzoom_file, contact_map_files, ec_compared_all_file, ec_compared_longrange_file,
-              mutation_matrix_file, folding_ec_file, folded_structure_files, folding_ranking_file, folding_comparison_file,
-              pdb_structure_hits_file, sec_struct_file]
+              mutation_matrix_file, mutation_matrix_plot_files, folding_ec_file, folded_structure_files, folding_ranking_file,
+              folding_comparison_file, pdb_structure_hits_file, sec_struct_file]
 
 # Computational environment for batch jobs (using evcouplings command line application)
 environment:
