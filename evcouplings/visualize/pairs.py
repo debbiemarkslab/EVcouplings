@@ -797,6 +797,10 @@ def secondary_structure_cartoon(
             no_ss_segments.append(start)
             no_ss_segments.append(end)
 
+        elif ss_type == "-":  # skip drawing (no data)
+            no_ss_segments.append(start)
+            no_ss_segments.append(end)
+
     # draw coil until given endpoint
     if sequence_end is not None:
         no_ss_segments.append(sequence_end + 1)
