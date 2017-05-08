@@ -270,7 +270,7 @@ def create_archive(config, outcfg, output_file):
                     tar.add(outcfg[k])
 
 
-def verify_prefix(**config):
+def verify_prefix(verify_subdir=True, **config):
     """
     Check if configuration contains a prefix,
     and that prefix is a valid directory we
@@ -278,6 +278,10 @@ def verify_prefix(**config):
     
     Parameters
     ----------
+    verify_subdir : bool, optional (default: True)
+        Check if we can create subdirectory containing
+        full prefix. Set this to False for outer evcouplings
+        app loop.
     **config
         Input configuration for pipeline
         
@@ -314,12 +318,13 @@ def verify_prefix(**config):
         # get rid of the file again
         os.remove(prefix + ".test__")
 
-        # make sure we can create a subdirectory
-        sub_prefix = insert_dir(prefix, "test__")
-        create_prefix_folders(sub_prefix)
+        if verify_subdir:
+            # make sure we can create a subdirectory
+            sub_prefix = insert_dir(prefix, "test__")
+            create_prefix_folders(sub_prefix)
 
-        # remove again
-        os.rmdir(path.dirname(sub_prefix))
+            # remove again
+            os.rmdir(path.dirname(sub_prefix))
 
     except OSError as e:
         raise InvalidParameterError(

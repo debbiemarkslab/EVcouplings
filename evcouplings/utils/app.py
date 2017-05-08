@@ -360,7 +360,7 @@ def run(**kwargs):
     )
 
     # verify that global prefix makes sense
-    pipeline.verify_prefix(**config)
+    pipeline.verify_prefix(verify_subdir=False, **config)
 
     # make sure parameters make sense (minimally...)
     if config["global"].get("sequence_id", None) is None:
