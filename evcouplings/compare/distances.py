@@ -1089,7 +1089,7 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
     remapped = {}
 
     # make sure keys in sequence map are strings,
-    # since indeces in structures are stored as strings
+    # since indices in structures are stored as strings
     sequence = {
         str(k): v for k, v in sequence.items()
     }

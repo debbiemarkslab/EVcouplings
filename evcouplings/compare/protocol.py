@@ -362,7 +362,13 @@ def standard(**kwargs):
 
         seq_id, seq_start, seq_end = parse_header(header)
         seqmap = dict(zip(range(seq_start, seq_end + 1), seq))
-        outcfg["remapped_pdb_files"] = remap_chains(sifts_map, aux_prefix, seqmap)
+
+        # remap structures, swap mapping index and filename in
+        # dictionary so we have a list of files in the dict keys
+        outcfg["remapped_pdb_files"] = {
+            filename: mapping_index for mapping_index, filename in
+            remap_chains(sifts_map, aux_prefix, seqmap).items()
+        }
     else:
         # if no structures, can not compute distance maps
         d_intra = None

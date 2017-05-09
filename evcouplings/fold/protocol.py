@@ -530,12 +530,10 @@ def standard(**kwargs):
 
     # apply comparison to existing structures
     if kwargs["remapped_pdb_files"] is not None and len(kwargs["remapped_pdb_files"]) > 0:
-        experimental_files = {
-            f: k for k, f in kwargs["remapped_pdb_files"].items()
-        }
+        experimental_files = kwargs["remapped_pdb_files"]
 
         comp_all, comp_singles = compare_models_maxcluster(
-            list(experimental_files), prediction_files,
+            list(experimental_files.keys()), prediction_files,
             norm_by_intersection=True, distance_cutoff=None,
             binary=kwargs["maxcluster"]
         )
@@ -555,8 +553,9 @@ def standard(**kwargs):
             ).sort_values(by="tm", ascending=False)
             basename = path.splitext(path.split(filename)[1])[0]
             ind_file = path.join(fold_dir, basename + ".csv")
+
             # map back to original key from remapped_pdb_files as a key for this list
-            ind_comp_files[experimental_files[filename]] = ind_file
+            ind_comp_files[ind_file] = experimental_files[filename]
             comparison_s.to_csv(ind_file, index=False)
 
         outcfg["folding_individual_comparison_files"] = ind_comp_files
