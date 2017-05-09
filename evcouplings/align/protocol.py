@@ -639,6 +639,7 @@ def existing(**kwargs):
         "first_index": region_start,
         "target_sequence_file": target_sequence_file,
         "focus_sequence": header,
+        "focus_mode": True,
     }
 
     if annotation_file is not None:
