@@ -392,7 +392,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option("-s", "--seqfile", default=None, help="FASTA file with query sequence")
 @click.option(
     "-a", "--alignment", default=None,
-    help="Existing sequence alignment to start from (aligned FASTA/Stockholm)"
+    help="Existing sequence alignment to start from (aligned FASTA/Stockholm). Use -p to select target sequence."
 )
 @click.option("-r", "--region", default=None, help="Region of query sequence(e.g 25-341)")
 @click.option(
