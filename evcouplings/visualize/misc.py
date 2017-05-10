@@ -5,6 +5,7 @@ Authors:
   Thomas A. Hopf
 """
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
@@ -132,3 +133,39 @@ def rgb2hex(r, g, b, a=None):
     return "#{:02x}{:02x}{:02x}".format(
         int(255 * r), int(255 * g), int(255 * b)
     )
+
+
+def colormap(min_value, max_value, colormap=plt.cm.RdBu_r, to_hex=True):
+    """
+    Helper function to create a color mapper
+
+    Parameters
+    ----------
+    min_value : float
+        Minimum value of mapping range
+        (corresponding to one end of colormap)
+    max_value : float
+        Maximum value of mapping range
+        (corresponding to other end of colormap)
+    colormap : matplotlib.colors.LinearSegmentedColormap
+        Colormap used to map numbers
+    to_hex : bool, optional (default: True)
+        If True, mapper returns hexadecimal color codes, otherwise
+        RGBA tuples
+
+    Returns
+    -------
+    function
+        Function that can be used to map values to colors
+        (takes single value argument, returns color)
+    """
+    norm = mpl.colors.Normalize(vmin=min_value, vmax=max_value)
+    mapper = plt.cm.ScalarMappable(norm=norm, cmap=colormap)
+
+    def _colmap(value):
+        if to_hex:
+            return rgb2hex(*mapper.to_rgba(value))
+        else:
+            return mapper.to_rgba(value)
+
+    return _colmap
