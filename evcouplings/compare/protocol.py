@@ -304,7 +304,8 @@ def standard(**kwargs):
     # load all structures at once
     structures = load_structures(
         sifts_map.hits.pdb_id,
-        kwargs["pdb_mmtf_dir"]
+        kwargs["pdb_mmtf_dir"],
+        raise_missing=False
     )
 
     # compute distance maps and save
