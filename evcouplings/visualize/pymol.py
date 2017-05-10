@@ -22,7 +22,7 @@ def _write_pymol_commands(commands, output_file):
         Path to output file (str), or writeable
         file handle, in which commands will be stored
     """
-    cmd_str = "\n".join(commands)
+    cmd_str = "\n".join(commands) + "\n"
 
     try:
         output_file.write(cmd_str)
