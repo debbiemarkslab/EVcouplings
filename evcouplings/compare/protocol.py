@@ -381,6 +381,11 @@ def standard(**kwargs):
 
     ec_table = pd.read_csv(kwargs["ec_file"])
 
+    # identify number of sites in EC model
+    num_sites = len(
+        set.union(set(ec_table.i.unique()), set(ec_table.j.unique()))
+    )
+
     for out_file, min_seq_dist in [
         ("ec_compared_longrange_file", kwargs["min_sequence_distance"]),
         ("ec_compared_all_file", 0),
@@ -396,6 +401,17 @@ def standard(**kwargs):
             )
         else:
             outcfg[out_file] = None
+
+    # also create line-drawing script if we made the csv
+    if outcfg["ec_compared_longrange_file"] is not None:
+        ecs_longrange = pd.read_csv(outcfg["ec_compared_longrange_file"])
+
+        outcfg["ec_lines_compared_pml_file"] = prefix + "_draw_ec_lines_compared.pml"
+        pairs.ec_lines_pymol_script(
+            ecs_longrange.iloc[:num_sites, :],
+            outcfg["ec_lines_compared_pml_file"],
+            distance_cutoff=kwargs["distance_cutoff"]
+        )
 
     # Step 4: Make contact map plots
     # if no structures available, defaults to EC-only plot

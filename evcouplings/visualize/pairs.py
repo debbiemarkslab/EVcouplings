@@ -895,8 +895,8 @@ def find_secondary_structure_segments(sse_string, offset=0):
     return offset, end + offset, segments
 
 
-def ec_lines_pymol(ec_table, output_file, distance_cutoff=5,
-                  score_column="cn", chain=None):
+def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
+                          score_column="cn", chain=None):
     """
     Create a Pymol .pml script to visualize ECs on a 3D
     structure

@@ -9,6 +9,9 @@ from evcouplings.couplings import tools as ct
 from evcouplings.couplings import pairs, mapping
 from evcouplings.couplings.model import CouplingsModel
 from evcouplings.visualize.parameters import evzoom_json
+from evcouplings.visualize.pairs import (
+    ec_lines_pymol_script, enrichment_pymol_script
+)
 
 from evcouplings.align.alignment import (
     read_fasta, ALPHABET_PROTEIN, ALPHABET_DNA,
@@ -246,12 +249,30 @@ def standard(**kwargs):
         )
         ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
 
+        # also create line-drawing script (for now, only for single segments)
+        if segments is None or len(segments) == 1:
+            outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
+            L = outcfg["num_sites"]
+            ec_lines_pymol_script(
+                ecs_longrange.iloc[:L, :],
+                outcfg["ec_lines_pml_file"]
+            )
+
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
     if segments is None or len(segments) == 1:
         outcfg["enrichment_file"] = prefix + "_enrichment.csv"
         ecs_enriched = pairs.enrichment(ecs)
         ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
+
+        # create corresponding enrichment pymol scripts
+        outcfg["enrichment_pml_files"] = []
+        for sphere_view, pml_suffix in [
+            (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
+        ]:
+            pml_file = prefix + pml_suffix
+            enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
+            outcfg["enrichment_pml_files"].append(pml_file)
 
     # output EVzoom JSON file if we have stored model file
     if outcfg.get("model_file", None) is not None:

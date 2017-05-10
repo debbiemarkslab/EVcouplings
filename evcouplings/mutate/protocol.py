@@ -99,6 +99,15 @@ def standard(**kwargs):
 
     singles.to_csv(outcfg["mutation_matrix_file"], index=False)
 
+    # Pymol scripts
+    outcfg["mutations_epistatic_pml_files"] = []
+    for model in ["epistatic", "independent"]:
+        pml_filename = prefix + "_{}_model.pml".format(model)
+        evcouplings.visualize.mutations.mutation_pymol_script(
+            singles, pml_filename, effect_column="prediction_" + model
+        )
+        outcfg["mutations_epistatic_pml_files"].append(pml_filename)
+
     # predict experimental dataset if given
     dataset_file = kwargs["mutation_dataset_file"]
     if dataset_file is not None:

@@ -34,6 +34,7 @@ from evcouplings.utils.system import (
     create_prefix_folders, verify_resources,
     valid_file, insert_dir, temp
 )
+from evcouplings.visualize.pymol import pymol_secondary_structure
 
 
 def secondary_structure(**kwargs):
@@ -344,6 +345,12 @@ def standard(**kwargs):
         residues = pd.read_csv(outcfg["sec_struct_file"])
     else:
         residues = secondary_structure(**kwargs)
+
+    # make pymol secondary structure assignment script
+    outcfg["secondary_structure_pml_file"] = prefix + "_ss_draw.pml"
+    pymol_secondary_structure(
+        residues, outcfg["secondary_structure_pml_file"]
+    )
 
     # load ECs and filter for long-range pairs
     verify_resources(
