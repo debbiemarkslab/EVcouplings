@@ -10,6 +10,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from evcouplings.visualize.pymol import (
+    pymol_pair_lines, pymol_mapping
+)
+
 # default plotting styles
 STYLE_EC = {
     "edgecolor": "none",
@@ -889,3 +893,122 @@ def find_secondary_structure_segments(sse_string, offset=0):
     segments.append((s2, offset + last_start, offset + end + 1))
 
     return offset, end + offset, segments
+
+
+def ec_lines_pymol(ec_table, output_file, distance_cutoff=5,
+                  score_column="cn", chain=None):
+    """
+    Create a Pymol .pml script to visualize ECs on a 3D
+    structure
+    
+    Parameters
+    ----------
+    ec_table : pandas.DataFrame
+        Visualize all EC pairs (columns i, j) in this
+        table. If a column "dist" exists and distance_cutoff
+        is defined, will assign different colors based on
+        the 3D distance of the EC.
+    output_file : str
+        File path where to store pml script
+    distance_cutoff : float, optional (default: 5)
+        Color ECs with distance above this threshold
+        as false positives (only possible if a column
+        "dist" exists in ec_table). If None, will
+        use one color for all ECs.
+    score_column : str, optional (default: "cn")
+        Use this column in ec_table to adjust radius
+        of lines. If None, all lines will be drawn
+        at equal radius.
+    chain : str, optional (default: None)
+        Use this PDB chain in residue selection
+    """
+    t = ec_table.copy()
+
+    # assign line styles
+    for prop, val in [
+        ("dash_radius", 0.345), ("dash_gap", 0.075), ("dash_length", 0.925)
+    ]:
+        t.loc[:, prop] = val
+
+    # adjust line width/radius based on score, if selected
+    if score_column is not None:
+        scaling_factor = 0.5 / ec_table.loc[:, score_column].max()
+        t.loc[:, "dash_radius"] = ec_table.loc[:, score_column] * scaling_factor
+
+    if "dist" in ec_table and distance_cutoff is not None:
+        t.loc[t.dist <= distance_cutoff, "color"] = "green"
+        t.loc[t.dist > distance_cutoff, "color"] = "red"
+    else:
+        t.loc[:, "color"] = "green"
+
+    if chain is not None:
+        chain_sel = ", chain '{}'".format(chain)
+    else:
+        chain_sel = ""
+
+    with open(output_file, "w") as f:
+        f.write("as cartoon{}\n".format(chain_sel))
+        f.write("color grey80{}\n".format(chain_sel))
+        pymol_pair_lines(t, f, chain)
+
+
+def enrichment_pymol_script(enrichment_table, output_file,
+                            sphere_view=True, chain=None):
+    """
+    Create a Pymol .pml script to visualize EC "enrichment"
+
+    Parameters
+    ----------
+    enrichment_table : pandas.DataFrame
+        Mapping of position (column i) to EC enrichment
+        (column enrichemnt), as returned by 
+        evcouplings.couplings.pairs.enrichment()
+    output_file : str
+        File path where to store pml script
+    sphere_view : bool, optional (default: True)
+        If True, create pml that highlights enriched positions
+        with spheres and color; if False, create pml
+        that highlights enrichment using b-factor and
+        "cartoon putty"
+    chain : str, optional (default: None)
+        Use this PDB chain in residue selection
+    """
+    t = enrichment_table.query("enrichment > 1")
+
+    # compute boundaries for highly coupled residues
+    # that will be specially highlighted
+    boundary1 = int(0.05 * len(t))  # top 5%
+    boundary2 = int(0.15 * len(t))  # top 15%
+
+    t.loc[:, "b_factor"] = t.enrichment
+
+    # set color for "low" enrichment (anything > 1)
+    t.loc[:, "color"] = "yelloworange"
+
+    # high
+    t.loc[t.iloc[0:boundary1].index, "color"] = "red"
+
+    # medium
+    t.loc[t.iloc[boundary1:boundary2].index, "color"] = "orange"
+
+    if sphere_view:
+        t.loc[t.iloc[0:boundary2].index, "show"] = "spheres"
+
+    if chain is not None:
+        chain_sel = ", chain '{}'".format(chain)
+    else:
+        chain_sel = ""
+
+    with open(output_file, "w") as f:
+        f.write("as cartoon{}\n".format(chain_sel))
+        f.write("color grey80{}\n".format(chain_sel))
+
+        if chain is None:
+            f.write("alter all, b=0.0\n")
+        else:
+            f.write("alter chain '{}', b=0.0\n".format(chain))
+
+        pymol_mapping(t, f, chain)
+
+        if not sphere_view:
+            f.write("cartoon putty{}\n".format(chain_sel))
