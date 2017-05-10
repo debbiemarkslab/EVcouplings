@@ -454,7 +454,9 @@ class DistanceMap:
         Raises
         ------
         ValueError
-            If residue identifiers are not numeric
+            If residue identifiers are not numeric, or
+            if intersect is True, but positions on
+            axis do not overlap.
         """
         def _sse_count(secstruct_elements):
             # obtain counts for each secondary structure element;
@@ -527,6 +529,12 @@ class DistanceMap:
             # either as union or intersection
             if intersect:
                 new_ids = set.intersection(*id_sets)
+                if len(new_ids) == 0:
+                    raise ValueError(
+                        "Intersection of positions on axis "
+                        "is empty, try intersect=False instead "
+                        "or remove non-overlapping DistanceMap(s)."
+                    )
             else:
                 new_ids = set.union(*id_sets)
 
