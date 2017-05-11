@@ -891,7 +891,9 @@ def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
             else:
                 # otherwise fetch from web
                 structures[pdb_id] = PDB.from_id(pdb_id)
-        except ResourceError as e:
+        except (ResourceError, UnicodeDecodeError):
+            # ResourceError: invalid PDB ID
+            # UnicodeDecodeError: some random problem with mmtf library
             if raise_missing:
                 raise
 

@@ -10,6 +10,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from evcouplings.visualize.pymol import (
+    pymol_pair_lines, pymol_mapping
+)
+
 # default plotting styles
 STYLE_EC = {
     "edgecolor": "none",
@@ -188,7 +192,12 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     ----------
     ecs : pandas.DataFrame
         Table of evolutionary couplings to plot (using columns
-        "i" and "j")
+        "i" and "j"). Can contain additional columns "color"
+        and "size" to assign these individual properties in the
+        plot for each plotted pair (i, j). If all values of
+        "size" are <= 1, they will be treated as a fraction
+        of the point size defined in ec_style, and rescaled
+        if scale_sizes is True.
     monomer : evcouplings.compare.distances.DistanceMap
         Monomer distance map (intra-chain distances)
     multimer : evcouplings.compare.distances.DistanceMap
@@ -201,7 +210,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         (if not given, will try to extract from monomer
         distance map). For format of dict or DataFrame,
         see documentation of plot_secondary_structure().
-        If symmetric == True, this has to be a two-element
+        If symmetric is False, this has to be a two-element
         tuple containing the secondary structures for the
         x-axis and the y-axis, respectively.
     show_secstruct : bool, optional (default: True)
@@ -304,7 +313,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                 if (not isinstance(secondary_structure, tuple) or
                         len(secondary_structure) != 2):
                     raise ValueError(
-                        "When symmetric is True, secondary structure must "
+                        "When symmetric is False, secondary structure must "
                         "be a tuple (secstruct_i, secstruct_j)."
                     )
                 secstruct_i, secstruct_j = secondary_structure
@@ -335,6 +344,13 @@ def plot_pairs(pairs, symmetric=False, ax=None, style=None):
     ----------
     pairs : pandas.DataFrame
         DataFrame with coordinates to plot
+        (taken from columns i and j). If there
+        are columns "color" and "size", these
+        will be used to assign individual colors
+        and sizes to the dots in the scatter plot.
+        If sizes are all <= 1 and "s" is present as a
+        key in style, values will be treated as fraction
+        of "s".
     symmetric : bool, optional (default: False)
         If true, for each pair (i, j) also plot
         pair (j, i). This is for cases where
@@ -358,6 +374,17 @@ def plot_pairs(pairs, symmetric=False, ax=None, style=None):
 
     if style is None:
         style = {}
+
+    if "color" in pairs.columns:
+        style["c"] = pairs.loc[:, "color"].values
+
+    if "size" in pairs.columns:
+        # if all sizes <= 1, treat as fraction
+        if len(pairs.query("size > 1")) == 0 and "s" in style:
+            style["s"] *= pairs.loc[:, "size"].values
+        # otherwise take as actual value
+        else:
+            style["s"] = pairs.loc[:, "size"].values
 
     path1 = ax.scatter(
         pairs.i.astype(int),
@@ -526,7 +553,7 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
     secstruct_i : dict or pd.DataFrame
         Secondary structure for x-axis of plot.
         Can be a dictionary of position (int) to
-        secondary structure character ("H", "E", "-"/"C"),
+        secondary structure character ("H", "E", "C", "-"),
         or a DataFrame with columns "id" and "sec_struct_3state"
         (as returned by Chain.residues, and DistanceMap.residues_i
         and DistanceMap.residues_j).
@@ -549,9 +576,15 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         # turn into dictionary representation if
         # passed as a DataFrame
         if isinstance(secstruct, pd.DataFrame):
+            # first check we actually have a secondary
+            # structure column
+            if "sec_struct_3state" not in secstruct.columns:
+                return None, None, None
+
             # do not store any undefined secondary
             # structure in dictionary, or NaN
             # values will lead to problems
+
             secstruct = secstruct.dropna(
                 subset=["sec_struct_3state"]
             )
@@ -791,6 +824,10 @@ def secondary_structure_cartoon(
             no_ss_segments.append(start)
             no_ss_segments.append(end)
 
+        elif ss_type == "-":  # skip drawing (no data)
+            no_ss_segments.append(start)
+            no_ss_segments.append(end)
+
     # draw coil until given endpoint
     if sequence_end is not None:
         no_ss_segments.append(sequence_end + 1)
@@ -856,3 +893,122 @@ def find_secondary_structure_segments(sse_string, offset=0):
     segments.append((s2, offset + last_start, offset + end + 1))
 
     return offset, end + offset, segments
+
+
+def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
+                          score_column="cn", chain=None):
+    """
+    Create a Pymol .pml script to visualize ECs on a 3D
+    structure
+    
+    Parameters
+    ----------
+    ec_table : pandas.DataFrame
+        Visualize all EC pairs (columns i, j) in this
+        table. If a column "dist" exists and distance_cutoff
+        is defined, will assign different colors based on
+        the 3D distance of the EC.
+    output_file : str
+        File path where to store pml script
+    distance_cutoff : float, optional (default: 5)
+        Color ECs with distance above this threshold
+        as false positives (only possible if a column
+        "dist" exists in ec_table). If None, will
+        use one color for all ECs.
+    score_column : str, optional (default: "cn")
+        Use this column in ec_table to adjust radius
+        of lines. If None, all lines will be drawn
+        at equal radius.
+    chain : str, optional (default: None)
+        Use this PDB chain in residue selection
+    """
+    t = ec_table.copy()
+
+    # assign line styles
+    for prop, val in [
+        ("dash_radius", 0.345), ("dash_gap", 0.075), ("dash_length", 0.925)
+    ]:
+        t.loc[:, prop] = val
+
+    # adjust line width/radius based on score, if selected
+    if score_column is not None:
+        scaling_factor = 0.5 / ec_table.loc[:, score_column].max()
+        t.loc[:, "dash_radius"] = ec_table.loc[:, score_column] * scaling_factor
+
+    if "dist" in ec_table and distance_cutoff is not None:
+        t.loc[t.dist <= distance_cutoff, "color"] = "green"
+        t.loc[t.dist > distance_cutoff, "color"] = "red"
+    else:
+        t.loc[:, "color"] = "green"
+
+    if chain is not None:
+        chain_sel = ", chain '{}'".format(chain)
+    else:
+        chain_sel = ""
+
+    with open(output_file, "w") as f:
+        f.write("as cartoon{}\n".format(chain_sel))
+        f.write("color grey80{}\n".format(chain_sel))
+        pymol_pair_lines(t, f, chain)
+
+
+def enrichment_pymol_script(enrichment_table, output_file,
+                            sphere_view=True, chain=None):
+    """
+    Create a Pymol .pml script to visualize EC "enrichment"
+
+    Parameters
+    ----------
+    enrichment_table : pandas.DataFrame
+        Mapping of position (column i) to EC enrichment
+        (column enrichemnt), as returned by 
+        evcouplings.couplings.pairs.enrichment()
+    output_file : str
+        File path where to store pml script
+    sphere_view : bool, optional (default: True)
+        If True, create pml that highlights enriched positions
+        with spheres and color; if False, create pml
+        that highlights enrichment using b-factor and
+        "cartoon putty"
+    chain : str, optional (default: None)
+        Use this PDB chain in residue selection
+    """
+    t = enrichment_table.query("enrichment > 1")
+
+    # compute boundaries for highly coupled residues
+    # that will be specially highlighted
+    boundary1 = int(0.05 * len(t))  # top 5%
+    boundary2 = int(0.15 * len(t))  # top 15%
+
+    t.loc[:, "b_factor"] = t.enrichment
+
+    # set color for "low" enrichment (anything > 1)
+    t.loc[:, "color"] = "yelloworange"
+
+    # high
+    t.loc[t.iloc[0:boundary1].index, "color"] = "red"
+
+    # medium
+    t.loc[t.iloc[boundary1:boundary2].index, "color"] = "orange"
+
+    if sphere_view:
+        t.loc[t.iloc[0:boundary2].index, "show"] = "spheres"
+
+    if chain is not None:
+        chain_sel = ", chain '{}'".format(chain)
+    else:
+        chain_sel = ""
+
+    with open(output_file, "w") as f:
+        f.write("as cartoon{}\n".format(chain_sel))
+        f.write("color grey80{}\n".format(chain_sel))
+
+        if chain is None:
+            f.write("alter all, b=0.0\n")
+        else:
+            f.write("alter chain '{}', b=0.0\n".format(chain))
+
+        pymol_mapping(t, f, chain)
+
+        if not sphere_view:
+            f.write("cartoon putty{}\n".format(chain_sel))

@@ -107,7 +107,7 @@ setup(
     entry_points={
         'console_scripts': [
             'evcouplings=evcouplings.utils.app:app',
-            'evcouplings_runcfg=evcouplings.utils.pipeline:run',
+            'evcouplings_runcfg=evcouplings.utils.pipeline:app',
         ],
     },
 
@@ -119,7 +119,7 @@ setup(
     install_requires=[
         'setuptools>=18.2', 'pandas', 'numpy', 'scipy', 'numba', 'ruamel.yaml',
         'matplotlib', 'requests', 'mmtf-python', 'click', 'filelock', 'psutil',
-        'bokeh', 'jinja2', 'biopython',
+        'bokeh', 'jinja2', 'biopython', 'sqlalchemy',
     ],
 
 

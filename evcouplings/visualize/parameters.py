@@ -91,7 +91,7 @@ def evzoom_data(model, ec_threshold=0.9, freq_threshold=0.01,
 
     for idx, r in ecs_sel.iterrows():
         i, j, score_ij = r["i"], r["j"], r[score]
-        Jij = model.Jij(i, j)[alphabet_order][alphabet_order]
+        Jij = model.Jij(i, j)[alphabet_order, :][:, alphabet_order]
         ai_set = np.where(
             np.max(np.abs(Jij), axis=1) > Jij_threshold
         )[0]

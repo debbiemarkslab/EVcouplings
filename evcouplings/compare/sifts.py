@@ -35,6 +35,9 @@ UNIPROT_MAPPING_URL = "http://www.uniprot.org/mapping/"
 SIFTS_URL = "ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz"
 SIFTS_REST_API = "http://www.ebi.ac.uk/pdbe/api/mappings/uniprot_segments/{}"
 
+# TODO: make this default parametrization more explicit (e.g. a config file in repository)
+# these parameters are fed as a default into SIFTS.by_alignment so that the method can be
+# easily used without a configuration file/any further setup
 JACKHMMER_CONFIG = """
 prefix:
 sequence_id:
@@ -139,6 +142,11 @@ def find_homologs_jackhmmer(**kwargs):
 
     with open(ar["raw_alignment_file"]) as a:
         ali = Alignment.from_file(a, "stockholm")
+
+    # write alignment as FASTA file for easier checking by hand,
+    # if necessary
+    with open(config["prefix"] + "_raw.fasta", "w") as f:
+        ali.write(f)
 
     # read hmmer hittable and simplify
     hits = read_hmmer_domtbl(ar["hittable_file"])
@@ -595,11 +603,11 @@ class SIFTS:
             query sequence by alignment. See by_pdb_id()
             for detailed explanation of fields.
         """
-        def _create_mapping(i, r):
+        def _create_mapping(r):
             _, query_start, query_end = parse_header(ali.ids[0])
 
             # create mapping from query into PDB Uniprot sequence
-            # A_i will be query sequence indeces, A_j Uniprot sequence indeces
+            # A_i will be query sequence indices, A_j Uniprot sequence indices
             m = map_indices(
                 ali[0], query_start, query_end,
                 ali[r["alignment_id"]], r["alignment_start"], r["alignment_end"]
@@ -614,25 +622,20 @@ class SIFTS:
                 }
             )
 
-            # need to convert to strings since other mapping has indeces as strings
+            # need to convert to strings since other mapping has indices as strings
             n.loc[:, "j"] = n.j.astype(str)
             n.loc[:, "k"] = n.k.astype(str)
 
-            # join over Uniprot indeces (i.e. j);
+            # join over Uniprot indices (i.e. j);
             # get rid of any position that is not aligned
             mn = m.merge(n, on="j", how="inner").dropna()
 
-            # store index mappings if filename prefix is given
-            prefix = kwargs.get("prefix", None)
-            if prefix is not None:
-                mn.to_csv("{}_{}.csv".format(prefix, i), index=False)
-
-            # extract final mapping from query (k) to seqres (i)
+            # extract final mapping from seqres (k) to query (i)
             map_ = dict(
                 zip(mn.k, mn.i)
             )
 
-            return map_
+            return map_, mn
 
         if self.sequence_file is None:
             raise ValueError(
@@ -670,18 +673,38 @@ class SIFTS:
         for i, (hit, grp) in enumerate(
             hits.groupby(hit_columns)
         ):
-            cur_seg_mapping = {}
+            agg_mapping = {}
+            agg_df = pd.DataFrame()
+            # go through each segment
             for j, r in grp.iterrows():
-                cur_seg_mapping.update(
-                    _create_mapping(j, r)
-                )
+                # compute mapping for that particular segment
+                map_j, map_j_df = _create_mapping(r)
+
+                # add to overall mapping dictionary for this hit
+                agg_mapping.update(map_j)
+                agg_df = agg_df.append(map_j_df)
 
             # store assignment of group to mapping index
             mapping_rows.append(
                 list(hit) + [i, len(grp) > 1]
             )
 
-            mappings[i] = cur_seg_mapping
+            mappings[i] = agg_mapping
+
+            # store index mappings if filename prefix is given
+            prefix = kwargs.get("prefix", None)
+            if prefix is not None:
+                agg_df = agg_df.rename(
+                    columns={
+                        "j": "uniprot_of_pdb_index",
+                        "A_j": "uniprot_of_pdb_residue",
+                        "k": "pdb_seqres_index",
+                    }
+                )
+
+                agg_df.to_csv(
+                    "{}_mapping{}.csv".format(prefix, i), index=False
+                )
 
         # create dataframe from mapping rows
         mapping_df = pd.DataFrame(
@@ -690,7 +713,7 @@ class SIFTS:
             ]
         )
 
-        # now group again, to aggregate dataframe
+        # now group again, to aggregate full hit dataframe
         def _agg_type(x):
             if x == "overlap":
                 return "sum"

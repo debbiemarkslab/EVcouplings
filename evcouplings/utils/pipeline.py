@@ -9,7 +9,12 @@ Authors:
 import matplotlib
 matplotlib.use("Agg")
 
+import signal
+import os
 from os import path
+import sys
+import traceback
+import tarfile
 
 import click
 
@@ -18,7 +23,11 @@ from evcouplings.utils.config import (
     InvalidParameterError
 )
 from evcouplings.utils.system import (
-    create_prefix_folders, verify_resources
+    create_prefix_folders, insert_dir, verify_resources,
+    valid_file
+)
+from evcouplings.utils.database import (
+    update_job_status, EStatus
 )
 
 import evcouplings.align.protocol as ap
@@ -29,30 +38,53 @@ import evcouplings.fold.protocol as fd
 import evcouplings.complex.protocol as pp
 
 # supported pipelines
+#
+# stages are defined by:
+# 1) name of stage
+# 2) function to execute for stage
+# 3) key prefix (to avoid name collisions
+#    of output fields if same stage is run
+#    multiple times, e.g. 2 alignments for
+#    complexes)
 PIPELINES = {
     "protein_monomer": [
-        ("align", ap.run),
-        ("couplings", cp.run),
-        ("compare", cm.run),
-        ("mutate", mt.run),
-        ("fold", fd.run),
+        ("align", ap.run, None),
+        ("couplings", cp.run, None),
+        ("compare", cm.run, None),
+        ("mutate", mt.run, None),
+        ("fold", fd.run, None),
     ],
     "protein_complex": [
-        ("align_1", ap.run),
-        ("align_2", ap.run),
-        ("concatenate", pp.run),
-        ("couplings", cp.run),
+        ("align_1", ap.run, "first_"),
+        ("align_2", ap.run, "second_"),
+        ("concatenate", pp.run, None),
+        ("couplings", cp.run, None),
     ]
 }
 
+# suffix of file containing final output configuration of pipeline
+FINAL_CONFIG_SUFFIX = "_final.outcfg"
 
-def execute(**kwargs):
+# suffix of file that will be generated if execution
+# is terminated externally (SIGINT, SIGTERM, ...)
+EXTENSION_TERMINATED = ".terminated"
+
+# suffix of file that will be generated if execution
+# fails internally (i.e. exception is raised)
+EXTENSION_FAILED = ".failed"
+
+# suffix of file that will be generated if execution
+# runs through sucessfully
+EXTENSION_DONE = ".done"
+
+
+def execute(**config):
     """
     Execute a pipeline configuration
 
     Parameters
     ----------
-    **kwargs
+    **config
         Input configuration for pipeline
         (see pipeline config files for
         example of how this should look like)
@@ -63,12 +95,12 @@ def execute(**kwargs):
         Global output state of pipeline
     """
     check_required(
-        kwargs,
+        config,
         ["pipeline", "stages", "global"]
     )
 
     # check if valid pipeline was selected
-    if kwargs["pipeline"] not in PIPELINES:
+    if config["pipeline"] not in PIPELINES:
         raise InvalidParameterError(
             "Not a valid pipeline selection. "
             "Valid choices are:\n{}".format(
@@ -76,72 +108,61 @@ def execute(**kwargs):
             )
         )
 
-    stages = kwargs["stages"]
+    stages = config["stages"]
     if stages is None:
         raise InvalidParameterError(
             "No stages defined, need at least one."
         )
 
     # get definition of selected pipeline
-    pipeline = PIPELINES[kwargs["pipeline"]]
-    prefix = kwargs["global"]["prefix"]
+    pipeline = PIPELINES[config["pipeline"]]
+    prefix = config["global"]["prefix"]
 
     # make sure output directory exists
-    # TODO: Exception handling here if this fails
     create_prefix_folders(prefix)
 
     # this is the global state of results as
     # we move through different stages of
     # the pipeline
-    global_state = kwargs["global"]
+    global_state = config["global"]
 
     # keep track of how many stages are still
     # to be run, so we can leave out stages at
     # the end of workflow below
     num_stages_to_run = len(stages)
 
+    # set job status to running
+    update_job_status(config, status=EStatus.RUN)
+
     # iterate through individual stages
-    for (stage, runner) in pipeline:
+    for (stage, runner, key_prefix) in pipeline:
         # check if anything else is left to
         # run, otherwise skip
         if num_stages_to_run == 0:
             break
 
         # check if config for stage is there
-        check_required(kwargs, [stage])
+        check_required(config, [stage])
 
-        # check if the outputs of the stage have to
-        # be prefixed. This is necessary when the same
-        # protocol is used twice, e.g. align in complexes,
-        # so that there are no overlaps between keys, and
-        # output files
-        key_prefix = kwargs[stage].get("key_prefix", None)
-
-        # define custom prefix for stage and create folder
-        # stage_prefix = path.join(prefix, stage, "")
-        if key_prefix is None:
-            stage_prefix = prefix
-        else:
-            # if we have a key_prefix for the current stage,
-            # we need to add this into the filename so there
-            # are no filename collisions
-            folder, file_prefix = path.split(prefix)
-            stage_prefix = path.join(folder, key_prefix + file_prefix)
-
+        # output files for stage into an individual folder
+        stage_prefix = insert_dir(prefix, stage)
         create_prefix_folders(stage_prefix)
 
         # config files for input and output of stage
         stage_incfg = "{}_{}.incfg".format(stage_prefix, stage)
         stage_outcfg = "{}_{}.outcfg".format(stage_prefix, stage)
 
+        # update current stage of job
+        update_job_status(config, stage=stage)
+
         # check if stage should be executed
         if stage in stages:
             # global state inserted at end, overrides any
             # stage-specific settings (except for custom prefix)
             incfg = {
-                **kwargs["tools"],
-                **kwargs["databases"],
-                **kwargs[stage],
+                **config["tools"],
+                **config["databases"],
+                **config[stage],
                 **global_state,
                 "prefix": stage_prefix
             }
@@ -191,22 +212,217 @@ def execute(**kwargs):
         # update global state with outputs of stage
         global_state = {**global_state, **outcfg}
 
+    # create results archive
+    archive_file = prefix + ".tar.gz"
+    create_archive(config, global_state, archive_file)
+    global_state["archive_file"] = archive_file
+
     # write final global state of pipeline
     write_config_file(
-        prefix + "_final_global_state.outcfg", global_state
+        prefix + FINAL_CONFIG_SUFFIX, global_state
     )
+
+    # set job status to done
+    update_job_status(config, status=EStatus.DONE)
 
     return global_state
 
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+def create_archive(config, outcfg, output_file):
+    """
+    Create archive of files generated by pipeline
+
+    Parameters
+    ----------
+    config : dict-like
+        Input configuration of job. Uses 
+        config["management"]["archive"] (list of key 
+        used to index outcfg) to determine
+        which files should be added to archive
+    outcfg : dict-llike
+        Output configuration of job
+    output_file : str
+        Store archive file to this path
+    """
+    # determine keys (corresponding to files) in
+    # outcfg that should be stored
+    outkeys = config.get("management").get("archive")
+
+    # if no output keys are requested, nothing to do
+    if outkeys is None or len(outkeys) == 0:
+        return
+
+    # create archive
+    with tarfile.open(output_file, "w:gz") as tar:
+        # add files based on keys one by one
+        for k in outkeys:
+            # skip missing keys or ones not defined
+            if k not in outcfg or outcfg[k] is None:
+                continue
+
+            # distinguish between files and lists of files
+            if k.endswith("files"):
+                for f in outcfg[k]:
+                    if valid_file(f):
+                        tar.add(f)
+            else:
+                if valid_file(outcfg[k]):
+                    tar.add(outcfg[k])
 
 
-@click.command(context_settings=CONTEXT_SETTINGS)
-@click.argument('config')
+def verify_prefix(verify_subdir=True, **config):
+    """
+    Check if configuration contains a prefix,
+    and that prefix is a valid directory we
+    can write to on the filesystem
+    
+    Parameters
+    ----------
+    verify_subdir : bool, optional (default: True)
+        Check if we can create subdirectory containing
+        full prefix. Set this to False for outer evcouplings
+        app loop.
+    **config
+        Input configuration for pipeline
+        
+    Returns
+    -------
+    prefix : str
+        Verified prefix
+    """
+    # check we have a prefix entry, otherwise all hope is lost...
+    try:
+        prefix = config["global"]["prefix"]
+    except KeyError:
+        raise InvalidParameterError(
+            "Configuration does not include 'prefix' setting in "
+            "'global' section"
+        )
+
+    # make sure prefix is also specified
+    if prefix is None:
+        raise InvalidParameterError(
+            "'prefix' must be specified and cannot be None"
+        )
+
+    # verify that prefix is workable in terms
+    # of filesystem
+    try:
+        # make prefix folder
+        create_prefix_folders(prefix)
+
+        # try if we can write in the folder
+        with open(prefix + ".test__", "w") as f:
+            pass
+
+        # get rid of the file again
+        os.remove(prefix + ".test__")
+
+        if verify_subdir:
+            # make sure we can create a subdirectory
+            sub_prefix = insert_dir(prefix, "test__")
+            create_prefix_folders(sub_prefix)
+
+            # remove again
+            os.rmdir(path.dirname(sub_prefix))
+
+    except OSError as e:
+        raise InvalidParameterError(
+            "Not a valid prefix: {}".format(prefix)
+        ) from e
+
+    return prefix
+
+
+def execute_wrapped(**config):
+    """
+    Execute a pipeline configuration in "wrapped"
+    mode that handles external interruptions and
+    exceptions and documents these using files
+    (.finished, .terminated, .failed), as well
+    as documenting failure in a job database
+
+    Parameters
+    ----------
+    **config
+        Input configuration for pipeline
+        (see pipeline config files for
+        example of how this should look like)
+
+    Returns
+    -------
+    outcfg : dict
+        Global output state of pipeline
+    """
+    # make sure the prefix in configuration is valid
+    try:
+        prefix = verify_prefix(**config)
+    except Exception:
+        update_job_status(config, status=EStatus.TERM)
+        raise
+
+    # delete terminated/failed flags from previous
+    # executions of pipeline
+    for ext in [
+        EXTENSION_FAILED, EXTENSION_TERMINATED, EXTENSION_DONE,
+    ]:
+        try:
+            os.remove(prefix + ext)
+        except OSError:
+            pass
+
+    # handler for external interruptions
+    # (needs config for database access)
+    def _handler(signal_, frame):
+        # set job status to terminated in database
+        update_job_status(config, status=EStatus.TERM)
+
+        # create file flag that job was terminated
+        with open(prefix + ".terminated", "w") as f:
+            f.write("SIGNAL: {}\n".format(signal_))
+
+        # terminate program
+        sys.exit(1)
+
+    # set up handlers for job termination
+    # (note that this list may not be complete and may
+    # need extension for other computing environments)
+    for sig in [signal.SIGINT, signal.SIGTERM, signal.SIGUSR1, signal.SIGUSR2]:
+        signal.signal(sig, _handler)
+
+    try:
+        # execute configuration
+        outcfg = execute(**config)
+
+        # if we made it here, job was sucessfully run to completing
+        # create file flag that job was terminated
+        with open(prefix + ".finished", "w") as f:
+            f.write(repr(outcfg))
+
+        return outcfg
+
+    except Exception as e:
+        # set status in database to failed
+        update_job_status(config, status=EStatus.FAIL)
+
+        # create failed file flag
+        with open(prefix + ".failed", "w") as f:
+            f.write(traceback.format_exc())
+
+        # raise exception again after we updated status
+        raise
+
+
 def run(**kwargs):
     """
-    EVcouplings pipeline execution
+    EVcouplings pipeline execution from a
+    configuration file (single thread, no
+    batch or environment configuration)
+    
+    Parameters
+    ----------
+    kwargs
+        See click.option decorators for app()
     """
     config_file = kwargs["config"]
     verify_resources(
@@ -216,11 +432,26 @@ def run(**kwargs):
 
     # read configuration and execute
     config = read_config_file(config_file)
-    outcfg = execute(**config)
 
-    # print final configuration (end result)
+    # execute configuration in "wrapped" mode
+    # that handles exceptions and internal interrupts
+    return execute_wrapped(**config)
+
+
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument('config')
+def app(**kwargs):
+    """
+    Command line app entry point
+    """
+    # execute configuration file
+    outcfg = run(**kwargs)
+
+    # print final result configuration to stdout
     print(outcfg)
 
-
 if __name__ == '__main__':
-    run()
+    app()

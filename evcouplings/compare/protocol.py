@@ -112,7 +112,7 @@ def _identify_structures(**kwargs):
     return sifts_map, sifts_map_full
 
 
-def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs):
+def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
     """
     Plot contact maps with all ECs above a certain probability threshold,
     or a given count of ECs
@@ -121,10 +121,6 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
     ----------
     ec_table : pandas.DataFrame
         Full set of evolutionary couplings (all pairs)
-    sifts_map : SIFTSResult
-        Table of identified PDB structures with index mappings
-    structures : dict(str: PDB)
-        Dictionary of loaded PDB structures
     d_intra : DistanceMap
         Computed residue-residue distances inside chain
     d_multimer : DistanceMap
@@ -145,10 +141,13 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
         """
         with misc.plot_context("Arial"):
             fig = plt.figure(figsize=(8, 8))
+            if kwargs["scale_sizes"]:
+                ecs = ecs.copy()
+                ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
+
             pairs.plot_contact_map(
                 ecs, d_intra, d_multimer,
                 distance_cutoff=kwargs["distance_cutoff"],
-                secondary_structure=secstruct,
                 show_secstruct=kwargs["draw_secondary_structure"],
                 margin=5,
                 boundaries=kwargs["boundaries"]
@@ -178,17 +177,6 @@ def _make_contact_maps(ec_table, sifts_map, structures, d_intra, d_multimer, **k
     ecs_longrange = ec_table.query(
         "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
     )
-
-    # get secondary structure (for now from first hit)
-    if len(sifts_map.hits) > 0:
-        hit = sifts_map.hits.iloc[0]
-        secstruct = structures[hit.pdb_id].get_chain(
-            hit.pdb_chain, model=0
-        ).remap(
-            sifts_map.mapping[hit.mapping_index]
-        ).residues
-    else:
-        secstruct = None
 
     # based on significance cutoff
     if kwargs["plot_probability_cutoffs"]:
@@ -264,6 +252,7 @@ def standard(**kwargs):
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter", "compare_multimer",
             "distance_cutoff", "target_sequence_file",
+            "scale_sizes",
         ]
     )
 
@@ -290,11 +279,14 @@ def standard(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    # Step 1: Identify 3D structures for comparison
+    # store auxiliary files here (too much for average user)
+    aux_prefix = insert_dir(prefix, "aux", rootname_subdir=False)
+    create_prefix_folders(aux_prefix)
 
+    # Step 1: Identify 3D structures for comparison
     sifts_map, sifts_map_full = _identify_structures(**{
         **kwargs,
-        "prefix": insert_dir(prefix, "compare")
+        "prefix": aux_prefix,
     })
 
     # save selected PDB hits
@@ -312,7 +304,8 @@ def standard(**kwargs):
     # load all structures at once
     structures = load_structures(
         sifts_map.hits.pdb_id,
-        kwargs["pdb_mmtf_dir"]
+        kwargs["pdb_mmtf_dir"],
+        raise_missing=False
     )
 
     # compute distance maps and save
@@ -320,9 +313,17 @@ def standard(**kwargs):
     if len(sifts_map.hits) > 0:
         d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
-            output_prefix=insert_dir(prefix, "compare") + "_distmap_intra"
+            output_prefix=aux_prefix + "_distmap_intra"
         )
         d_intra.to_file(outcfg["distmap_monomer"])
+
+        # save contacts to separate file
+        outcfg["monomer_contacts_file"] = prefix + "_contacts_monomer.csv"
+        d_intra.contacts(
+            kwargs["distance_cutoff"]
+        ).to_csv(
+            outcfg["monomer_contacts_file"], index=False
+        )
 
         # compute multimer distances, if requested;
         # note that d_multimer can be None if there
@@ -330,7 +331,7 @@ def standard(**kwargs):
         if kwargs["compare_multimer"]:
             d_multimer = multimer_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
-                output_prefix=insert_dir(prefix, "compare") + "_distmap_multimer"
+                output_prefix=aux_prefix + "_distmap_multimer"
             )
         else:
             d_multimer = None
@@ -338,6 +339,14 @@ def standard(**kwargs):
         # if we have a multimer contact mapin the end, save it
         if d_multimer is not None:
             d_multimer.to_file(outcfg["distmap_multimer"])
+            outcfg["multimer_contacts_file"] = prefix + "_contacts_multimer.csv"
+
+            # save contacts to separate file
+            d_multimer.contacts(
+                kwargs["distance_cutoff"]
+            ).to_csv(
+                outcfg["multimer_contacts_file"], index=False
+            )
         else:
             outcfg["distmap_multimer"] = None
 
@@ -354,7 +363,13 @@ def standard(**kwargs):
 
         seq_id, seq_start, seq_end = parse_header(header)
         seqmap = dict(zip(range(seq_start, seq_end + 1), seq))
-        outcfg["remapped_pdb_files"] = remap_chains(sifts_map, insert_dir(prefix, "compare"), seqmap)
+
+        # remap structures, swap mapping index and filename in
+        # dictionary so we have a list of files in the dict keys
+        outcfg["remapped_pdb_files"] = {
+            filename: mapping_index for mapping_index, filename in
+            remap_chains(sifts_map, aux_prefix, seqmap).items()
+        }
     else:
         # if no structures, can not compute distance maps
         d_intra = None
@@ -365,6 +380,11 @@ def standard(**kwargs):
     # Step 3: Compare ECs to distance maps
 
     ec_table = pd.read_csv(kwargs["ec_file"])
+
+    # identify number of sites in EC model
+    num_sites = len(
+        set.union(set(ec_table.i.unique()), set(ec_table.j.unique()))
+    )
 
     for out_file, min_seq_dist in [
         ("ec_compared_longrange_file", kwargs["min_sequence_distance"]),
@@ -382,11 +402,22 @@ def standard(**kwargs):
         else:
             outcfg[out_file] = None
 
+    # also create line-drawing script if we made the csv
+    if outcfg["ec_compared_longrange_file"] is not None:
+        ecs_longrange = pd.read_csv(outcfg["ec_compared_longrange_file"])
+
+        outcfg["ec_lines_compared_pml_file"] = prefix + "_draw_ec_lines_compared.pml"
+        pairs.ec_lines_pymol_script(
+            ecs_longrange.iloc[:num_sites, :],
+            outcfg["ec_lines_compared_pml_file"],
+            distance_cutoff=kwargs["distance_cutoff"]
+        )
+
     # Step 4: Make contact map plots
     # if no structures available, defaults to EC-only plot
 
     outcfg["contact_map_files"] = _make_contact_maps(
-        ec_table, sifts_map, structures, d_intra, d_multimer, **kwargs
+        ec_table, d_intra, d_multimer, **kwargs
     )
 
     return outcfg

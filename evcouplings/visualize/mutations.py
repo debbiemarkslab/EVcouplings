@@ -20,8 +20,9 @@ from evcouplings.couplings.model import CouplingsModel
 from evcouplings.visualize.pairs import (
     secondary_structure_cartoon, find_secondary_structure_segments
 )
+from evcouplings.visualize.pymol import pymol_mapping
 from evcouplings.mutate.calculations import split_mutants
-from evcouplings.visualize.misc import rgb2hex
+from evcouplings.visualize.misc import rgb2hex, colormap
 from evcouplings.utils.calculations import entropy_vector
 
 AA_LIST_PROPERTY = "WFYPMILVAGCSTQNDEHRK"
@@ -664,3 +665,78 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
         ax.set_title(title)
 
     return ax
+
+
+def mutation_pymol_script(mutation_table, output_file,
+                          effect_column="prediction_epistatic",
+                          mutant_column="mutant", agg_func="mean",
+                          cmap=plt.cm.RdBu_r, chain=None):
+    """
+    Create a Pymol .pml script to visualize single mutation
+    effects
+
+    Parameters
+    ----------
+    mutation_table : pandas.DataFrame
+        Table with mutation effects (will be filtered
+        for single mutants)
+    output_file : str
+        File path where to store pml script
+    effect_column : str, optional (default: "prediction_epistatic")
+        Column in mutation_table that contains mutation effects
+    mutant_column : str, optional (default: "mutant")
+        Column in mutation_table that contains mutations
+        (in format "A123G")
+    agg_func : str, optional (default: "mean")
+        Function used to aggregate single mutations into one
+        aggregated effect per position (any pandas aggregation
+        operation, including "mean", "min, "max")
+    cmap : matplotlib.colors.LinearSegmentedColormap, optional
+            (default: plt.cm.RdBu_r)
+        Colormap used to map mutation effects to colors
+    chain : str, optional (default: None)
+        Use this PDB chain in residue selection
+
+    Raises
+    ------
+    ValueError
+        If no single mutants contained in mutation_table
+    """
+    # split mutation strings
+    t = split_mutants(mutation_table, mutant_column)
+
+    # only pick single mutants
+    t = t.query("num_mutations == 1")
+
+    if len(t) == 0:
+        raise ValueError(
+            "mutation_table does not contain any single "
+            "amino acid substitutions."
+        )
+
+    # aggregate into positional information
+    t = t.loc[:, ["pos", effect_column]].rename(
+        columns={"pos": "i", effect_column: "effect"}
+    )
+
+    t_agg = t.groupby("i").agg(agg_func).reset_index()
+    t_agg.loc[:, "i"] = pd.to_numeric(t_agg.i).astype(int)
+
+    # map aggregated effects to colors
+    max_val = t_agg.effect.abs().max()
+    mapper = colormap(-max_val, max_val, cmap)
+    t_agg.loc[:, "color"] = t_agg.effect.map(
+        lambda x: mapper(x).replace("#", "0x")
+    )
+    t_agg.loc[:, "show"] = "spheres"
+
+    if chain is not None:
+        chain_sel = ", chain '{}'".format(chain)
+    else:
+        chain_sel = ""
+
+    with open(output_file, "w") as f:
+        f.write("as cartoon{}\n".format(chain_sel))
+        f.write("color grey80{}\n".format(chain_sel))
+
+        pymol_mapping(t_agg, f, chain, atom="CA")
