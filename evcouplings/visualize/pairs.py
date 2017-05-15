@@ -524,7 +524,7 @@ def scale(style, ax=None):
     x_range = ax.get_xlim()
     y_range = ax.get_ylim()
 
-    L = min(
+    L = max(
         abs(x_range[1] - x_range[0]),
         abs(y_range[1] - y_range[0])
     )
