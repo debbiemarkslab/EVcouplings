@@ -10,36 +10,57 @@ Authors:
         precomputed results can be reused in
         focus mode
 """
+import gzip
 import pandas as pd
 from evcouplings.align.tools import run_hmmscan, read_hmmer_domtbl
 from evcouplings.utils.helpers import range_overlap
 
 
-def create_family_size_table(full_pfam_file):
+def create_family_size_table(full_pfam_file, outfile=None):
     """
     Parse family size table from Pfam flat file
     (ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.full.gz)
 
     Parameters
     ----------
-    full_pfam_file : file-like object
-
-    # TODO: implement this. Output format should be a csv file
-            with two columns, pfam_id and num_seqs
-
-            A similar file can be currently generated using
-            /groups/marks/databases/pfam/create_pfam_size_table.pl
-
-            and converted using:
-
-            sizes = pd.read_csv(
-                "size_table.txt",
-                sep="\t",
-                names=["pfam_id", "num_seqs"]
-            )
-            sizes.to_csv("size_table.csv", index=False)
+    full_pfam_file : str
+        Path to the pfam file (gzip).
+    outfile : str, optional (default: None)
+        Save the parsed table to this file as a csv file.
+    
+    Returns
+    -------
+    pd.DataFrame
+        Parsed Pfam table.     
     """
-    raise NotImplementedError()
+    data = []
+
+    with gzip.open(full_pfam_file, "rt", encoding='latin-1') as gz_ref:
+        pfam_id = None
+        num_seqs = None
+
+        for line in gz_ref:
+            # identifier at the beginning of the family entry
+            if line.startswith("#=GF AC"):
+                pfam_id = line[10:17]
+
+            # the number of sequences in the family, follows after the identifier
+            elif line.startswith("#=GF SQ"):
+                num_seqs = int(line[10:])
+
+            # stores the result at the end of an entry
+            elif (line.startswith("//") and
+                    pfam_id is not None and num_seqs is not None):
+                data.append({"pfam_id": pfam_id, "num_seqs": num_seqs})
+                pfam_id = None
+                num_seqs = None
+
+    df = pd.DataFrame(data, columns=["pfam_id", "num_seqs"])
+
+    if outfile is not None:
+        df.to_csv(outfile, index=False)
+
+    return df
 
 
 def remove_clan_overlaps(pfam_table):
