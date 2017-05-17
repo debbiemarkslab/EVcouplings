@@ -164,9 +164,6 @@ couplings:
     lambda_group:
     scale_clusters:
 
-    # save model parameters in binary file (requires a lot of space for longer sequences)
-    save_model: True
-
     # reuse ECs and model parameters, if this stage has been run before
     reuse_ecs: True
 
