@@ -249,7 +249,7 @@ def create_archive(config, outcfg, output_file):
     """
     # determine keys (corresponding to files) in
     # outcfg that should be stored
-    outkeys = config.get("management").get("archive")
+    outkeys = config.get("management", {}).get("archive", None)
 
     # if no output keys are requested, nothing to do
     if outkeys is None or len(outkeys) == 0:
@@ -296,10 +296,10 @@ def delete_outputs(config, outcfg):
     """
     # determine keys (corresponding to files) in
     # outcfg that should be stored
-    outkeys = config.get("management").get("delete")
+    outkeys = config.get("management", {}).get("delete", None)
 
     # if no output keys are requested, nothing to do
-    if outkeys is None or len(outkeys) == 0:
+    if outkeys is None:
         return outcfg
 
     # go through all flagged files and delete if existing
