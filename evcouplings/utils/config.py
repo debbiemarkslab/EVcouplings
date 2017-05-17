@@ -41,10 +41,17 @@ def parse_config(config_str, preserve_order=False):
     dict
         Configuration dictionary
     """
-    if preserve_order:
-        return yaml.load(config_str, Loader=yaml.RoundTripLoader)
-    else:
-        return yaml.safe_load(config_str)
+    try:
+        if preserve_order:
+            return yaml.load(config_str, Loader=yaml.RoundTripLoader)
+        else:
+            return yaml.safe_load(config_str)
+    except yaml.parser.ParserError as e:
+        raise InvalidParameterError(
+            "Could not parse input configuration. "
+            "Formatting mistake in config file? "
+            "See ParserError above for details."
+        ) from e
 
 
 def read_config_file(filename, preserve_order=False):
