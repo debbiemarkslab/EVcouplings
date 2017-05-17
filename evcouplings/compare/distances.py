@@ -1098,9 +1098,10 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
 
     # make sure keys in sequence map are strings,
     # since indices in structures are stored as strings
-    sequence = {
-        str(k): v for k, v in sequence.items()
-    }
+    if sequence is not None:
+        sequence = {
+            str(k): v for k, v in sequence.items()
+        }
 
     # go through each structure
     for idx, r in sifts_result.hits.iterrows():
