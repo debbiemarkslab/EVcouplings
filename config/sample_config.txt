@@ -329,6 +329,11 @@ management:
               folded_structure_files, folding_ranking_file, folding_comparison_file, folding_individual_comparison_files,
               ec_lines_compared_pml_file, pdb_structure_hits_file, sec_struct_file]
 
+    # Delete the following output files after running the job if you don't need them, to save disk space.
+    # Note that this may jeopardize your ability to rerun parts of the job if intermediate files are missing.
+    # The following, deactivated default deletes the biggest output files.
+    # delete: [raw_alignment_file, model_file]
+
 # Computational environment for batch jobs (using evcouplings command line application)
 environment:
     # current options for engine: lsf, local (for local, only set cores and leave all other fields blank)
