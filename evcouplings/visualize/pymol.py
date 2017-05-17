@@ -187,9 +187,10 @@ def pymol_mapping(mapping, output_file, chain=None, atom=None):
     mapping : pandas.DataFrame
         Table of properties to map on residues.
         * positions in column "i"
-        * color in column "color" (string with
-        Pymol color name or hexadecimal code prefixed by 0x
-        instead of #)
+        * color in column "color" (hexadecimal
+        color codes have to start with a "#",
+        and will be converted to Pymol format
+        starting with 0x automatically)
         * display type in column "show"
         * b factor in column "b_factor"
     output_file : str or file-like
@@ -232,7 +233,10 @@ def pymol_mapping(mapping, output_file, chain=None, atom=None):
         # the respective value is given (i.e., not nan)
         if "color" in r and pd.notnull(r["color"]):
             cmds.append(
-                "color {}, {}".format(r["color"], sel)
+                "color {}, {}".format(
+                    r["color"].replace("#", "0x"),
+                    sel
+                )
             )
 
         if "show" in r and pd.notnull(r["show"]):
