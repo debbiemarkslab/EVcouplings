@@ -200,7 +200,7 @@ def execute(**config):
             # verify all the output files are there
             outfiles = [
                 filepath for f, filepath in outcfg.items()
-                if f.endswith("_file")
+                if f.endswith("_file") and filepath is not None
             ]
 
             verify_resources(
