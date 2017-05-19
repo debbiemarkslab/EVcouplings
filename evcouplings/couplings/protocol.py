@@ -74,17 +74,23 @@ def standard(**kwargs):
             "alphabet", "segments", "ignore_gaps", "iterations",
             "lambda_h", "lambda_J", "lambda_group",
             "scale_clusters",
-            "cpu", "plmc", "save_model", "reuse_ecs",
-            "min_sequence_distance",
+            "cpu", "plmc", "reuse_ecs",
+            "min_sequence_distance", # "save_model",
         ]
     )
 
     prefix = kwargs["prefix"]
 
+    # for now disable option to not save model, since
+    # otherwise mutate stage will crash. To remove model
+    # file at end, use delete option in management section.
+    """
     if kwargs["save_model"]:
         model = prefix + ".model"
     else:
         model = None
+    """
+    model = prefix + ".model"
 
     outcfg = {
         "model_file": model,

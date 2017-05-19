@@ -8,6 +8,7 @@ Authors:
 from collections import OrderedDict, Iterable
 import re
 from shutil import copy
+import os
 
 import numpy as np
 import pandas as pd
@@ -942,6 +943,15 @@ def jackhmmer_search(**kwargs):
             checkpoints_ali=kwargs["checkpoints_ali"],
             binary=kwargs["jackhmmer"],
         )
+
+        # get rid of huge stdout log file immediately
+        # (do not use /dev/null option of jackhmmer function
+        # to make no assumption about operating system)
+        try:
+            os.remove(ali.output)
+        except OSError:
+            pass
+
         # turn namedtuple into dictionary to make
         # restarting code nicer
         ali = dict(ali._asdict())
@@ -1047,10 +1057,14 @@ def standard(**kwargs):
     with open(stockholm_file) as a:
         ali_raw = Alignment.from_file(a, "stockholm")
 
-    # and store as FASTA file first
+    # and store as FASTA file first (disabled for now
+    # since equivalent information easily be obtained
+    # from Stockholm file
+    """
     ali_raw_fasta_file = prefix + "_raw.fasta"
     with open(ali_raw_fasta_file, "w") as f:
         ali_raw.write(f, "fasta")
+    """
 
     # save annotation in sequence headers (species etc.)
     if kwargs["extract_annotation"]:

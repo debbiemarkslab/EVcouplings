@@ -654,10 +654,12 @@ class SIFTS:
             self.table, on="uniprot_ac", suffixes=("", "_")
         )
 
+        # add 1 to end of range since overlap function treats
+        # ends as exclusive, while ends here are inclusive
         hits.loc[:, "overlap"] = [
             range_overlap(
-                (r["uniprot_start"], r["uniprot_end"]),
-                (r["alignment_start"], r["alignment_end"])
+                (r["uniprot_start"], r["uniprot_end"] + 1),
+                (r["alignment_start"], r["alignment_end"] + 1)
             ) for i, r in hits.iterrows()
         ]
 
@@ -752,5 +754,11 @@ class SIFTS:
             hits_grouped = hits_grouped.groupby("pdb_id").first().reset_index()
             # sort again, just to be sure...
             hits_grouped = hits_grouped.sort_values(by="bitscore", ascending=False)
+
+        # remove any zombie mappings we did not keep in table
+        mappings = {
+            idx: map_ for idx, map_ in mappings.items()
+            if idx in hits_grouped.mapping_index.values
+        }
 
         return SIFTSResult(hits_grouped, mappings)

@@ -725,9 +725,7 @@ def mutation_pymol_script(mutation_table, output_file,
     # map aggregated effects to colors
     max_val = t_agg.effect.abs().max()
     mapper = colormap(-max_val, max_val, cmap)
-    t_agg.loc[:, "color"] = t_agg.effect.map(
-        lambda x: mapper(x).replace("#", "0x")
-    )
+    t_agg.loc[:, "color"] = t_agg.effect.map(mapper)
     t_agg.loc[:, "show"] = "spheres"
 
     if chain is not None:
