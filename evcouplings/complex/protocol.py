@@ -9,6 +9,8 @@ Authors:
 """
 
 from evcouplings.couplings.mapping import Segment
+from evcouplings.align.alignment import read_fasta
+
 from evcouplings.utils.config import (
     check_required, InvalidParameterError,
     read_config_file, write_config_file
@@ -17,7 +19,20 @@ from evcouplings.utils.system import (
     create_prefix_folders, valid_file,
     verify_resources,
 )
+from evcouplings.complex.alignment import (
+    write_concatenated_alignment
+    )
+from evcouplings.complex.ena import (
+    load_uniprot_to_embl,
+    load_embl_to_annotation
+    )
+from evcouplings.complex.distance import (
+    retrieve_sequence_ids,
+    find_possible_partners,
+    best_reciprocal_matching
+    )
 
+import re
 
 def genome_distance(**kwargs):
     """
@@ -59,7 +74,7 @@ def genome_distance(**kwargs):
         kwargs,
         [
             "prefix",
-            "first_raw_focus_alignment_file", "second_raw_focus_alignment_file",
+            "first_alignment_file", "second_alignment_file",
             "first_focus_sequence", "second_focus_sequence",
             "first_focus_mode", "second_focus_mode",
             "first_segments", "second_segments",
@@ -81,6 +96,59 @@ def genome_distance(**kwargs):
     # TODO: implement concatenation functionality and
     # postprocessing functionality here
     # -------------------------------------------------
+    def _load_monomer_information(alignment,prefix):
+        seq_ids_ali,id_to_header = retrieve_sequence_ids(open(alignment))
+        
+        #uniprot to embl mapping
+        uniprot_to_embl_file = prefix + '_uniprot_to_embl_mapping.txt'
+        if valid_file(uniprot_to_embl_file): #If already there
+            uniprot_to_embl = load_uniprot_to_embl(seq_ids_ali,uniprot_to_embl_file)
+        else:
+            uniprot_to_embl = load_uniprot_to_embl(seq_ids_ali,kwargs['uniprot_to_embl_mapping'])
+
+        embl_annotation_file = prefix + '_embl_annotation.txt'
+        if valid_file(embl_annotation_file):#if already there:
+            embl_to_annotation = load_embl_to_annotation(uniprot_to_embl,embl_annotation_file)
+        else:
+            embl_to_annotation = load_embl_to_annotation(uniprot_to_embl,kwargs['embl_cds'])
+
+        return seq_ids_ali,id_to_header,uniprot_to_embl,embl_to_annotation
+
+    #load the information for each monomer alignment
+    alignment_1 = kwargs["first_alignment_file"]
+    alignment_2 = kwargs["second_alignment_file"]
+
+    seq_ids_ali_1,id_to_header_1,uniprot_to_embl_1,embl_to_annotation_1 = \
+        _load_monomer_information(alignment_1,prefix+'_first')
+
+    seq_ids_ali_2,id_to_header_2,uniprot_to_embl_2,embl_to_annotation_2 = \
+        _load_monomer_information(alignment_2,second_prefix+'_second')
+
+    uniprot_to_embl = {**uniprot_to_embl_1,**uniprot_to_embl_2}
+    embl_to_annotation = {**embl_to_annotation_1,**embl_to_annotation_2}
+
+    #find all possible matches
+    possible_partners = find_possible_partners(seq_ids_ali_1, 
+                                            seq_ids_ali_2, 
+                                            uniprot_to_embl, 
+                                            embl_to_annotation) 
+
+    #find the best reciprocal matches
+    id_pairing,id_pair_to_distance = best_reciprocal_matching(possible_partners)
+    
+    #filter best reciprocal matches by genome distance threshold
+
+    #write concatenated alignment
+    write_concatenated_alignment(id_pairing,
+                             id_to_header_1,
+                             id_to_header_2,
+                             alignment_1,
+                             alignment_2,
+                             target_sequence_1,
+                             target_sequence_2,
+                             concatenated_alignment_file)
+
+
 
     def _modify_segments(seg_list, seg_prefix):
         # extract segments from list representation into objects
