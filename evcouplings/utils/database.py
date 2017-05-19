@@ -31,7 +31,7 @@ class ComputeJob(Base):
     (these are stored in config file to keep table schema
     stable).
     """
-    __tablename__ = "jobs"
+    __tablename__ = "runs"
 
     # unique ID of this single compute job
     id = Column(Integer, primary_key=True)
