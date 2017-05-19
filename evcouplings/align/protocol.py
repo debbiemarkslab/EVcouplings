@@ -486,14 +486,6 @@ def existing(**kwargs):
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-        (TODO: explain meaning of parameters in detail).
-
-    If skip is given and True, the workflow will only return
-    the output configuration (outcfg) and ali will be None.
-
-    If callback is given, the function will be called at the
-    end of the workflow with the kwargs arguments updated with
-    the outcfg results.
 
     Returns
     -------
@@ -997,14 +989,6 @@ def standard(**kwargs):
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-        (TODO: explain meaning of parameters in detail).
-
-    If skip is given and True, the workflow will only return
-    the output configuration (outcfg) and ali will be None.
-
-    If callback is given, the function will be called at the
-    end of the workflow with the kwargs arguments updated with
-    the outcfg results.
 
     Returns
     -------
@@ -1025,10 +1009,6 @@ def standard(**kwargs):
         focus_mode
         focus_sequence
         segments
-
-    ali : Alignment
-        Final sequence alignment
-
     """
     check_required(
         kwargs,
@@ -1095,6 +1075,59 @@ def standard(**kwargs):
     return outcfg
 
 
+def complex(**kwargs):
+    """
+    Protocol:
+
+    Run alignment protocol and postprocess it for EVcomplex
+    calculations
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the alignemnt protocol, and
+        the following additional fields:
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "alignment_protocol",
+            "uniprot_to_embl_table",
+            "ena_genome_location_table",
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    # run the regular alignment protocol
+    # (standard, existing, ...)
+    alignment_protocol = kwargs["alignment_protocol"]
+
+    if alignment_protocol not in PROTOCOLS:
+        raise InvalidParameterError(
+            "Invalid choice for alignment protocol: {}".format(
+                alignment_protocol
+            )
+        )
+
+    outcfg = PROTOCOLS[kwargs["alignment_protocol"]](**kwargs)
+
+    # TODO: add additional processing functionality here
+    # TODO: add list of created output keys to function documentation
+    # filename should be prefix + "_genome_locations.csv"
+    # outcfg["genome_location_file"] = ...
+
+    return outcfg
+
+
 # list of available alignment protocols
 PROTOCOLS = {
     # standard buildali protocol (iterative hmmer search)
@@ -1105,6 +1138,10 @@ PROTOCOLS = {
 
     # start from an existing (external) alignment
     "existing": existing,
+
+    # run alignment protocol and postprocess output for
+    # complex pipeline
+    "complex": complex,
 }
 
 
