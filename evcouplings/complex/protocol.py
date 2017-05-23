@@ -107,6 +107,7 @@ def genome_distance(**kwargs):
     # TODO: implement concatenation functionality and
     # postprocessing functionality here
     # -------------------------------------------------
+
     def _load_monomer_information(alignment,uniprot_to_embl_filename,genome_location_filename):
 
         seq_ids_ali,id_to_header = retrieve_sequence_ids(open(alignment))
@@ -137,6 +138,7 @@ def genome_distance(**kwargs):
                                   uniprot_to_embl_filename_2,
                                   genome_location_filename_2)
 
+
     uniprot_to_embl = {**uniprot_to_embl_1,**uniprot_to_embl_2}
     embl_to_annotation = {**embl_to_annotation_1,**embl_to_annotation_2}
 
@@ -147,6 +149,7 @@ def genome_distance(**kwargs):
                                             embl_to_annotation) 
 
     #find the best reciprocal matches
+
     id_pairing_unfiltered,id_pair_to_distance = best_reciprocal_matching(possible_partners)
     
     #filter best reciprocal matches by genome distance threshold
@@ -159,11 +162,13 @@ def genome_distance(**kwargs):
     #write concatenated alignment
     print(id_to_header_1)
     print(kwargs['first_focus_sequence'])
+
     write_concatenated_alignment(id_pairing,
                              id_to_header_1,
                              id_to_header_2,
                              alignment_1,
                              alignment_2,
+
                              kwargs['first_focus_sequence'],
                              kwargs['second_focus_sequence'],
                              raw_alignment_file
@@ -171,7 +176,6 @@ def genome_distance(**kwargs):
 
     #filter the alignment
     outcfg['alignment_file'] = prefix + '.a2m'
-
 
     def _modify_segments(seg_list, seg_prefix):
         # extract segments from list representation into objects

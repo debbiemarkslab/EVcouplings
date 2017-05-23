@@ -16,7 +16,6 @@ def extract_uniprot_to_embl(alignment_file,
     """
     
     extracts the uniprot:embl mapping data from the database table
-    and writes the mapping to a new file
     
     Parameters
     ----------
@@ -51,23 +50,29 @@ def extract_uniprot_to_embl(alignment_file,
 
 
 def load_uniprot_to_embl(uniprot_to_embl_filename):
-    
-    """
+    '''
+    Parameters
+    ----------
+
     reads the uniprot:embl mapping from a file and cleans up the 
     data
     
     Parameters
     ----------
+
     uniprot_to_embl_filename: str
         path to unxiprot_embl mapping file
-        
+
+    sequence_id_list: list of str
+        uniprot ACs 
+    mapping_filename: str
+        path to uniprot_embl mapping file      
     Returns
     -------
     uniprot_to_embl: dict of tuple
         {uniprot_ac:[(ena_genome,ena_cds)]}
     
-
-    """  
+    ''' 
 
     def _read_uniprot_to_embl(uniprot_to_embl_filename) :
         #reads the csv file uniprot_to_embl_filename
@@ -81,6 +86,7 @@ def load_uniprot_to_embl(uniprot_to_embl_filename):
     uniprot_to_embl_str = _read_uniprot_to_embl(uniprot_to_embl_filename)
 
     # Clean up uniprot to embl dictionary
+
     uniprot_to_embl = {}
     
     for uniprot_ac, embl_mapping in uniprot_to_embl_str.items():
@@ -162,11 +168,9 @@ def extract_embl_annotation(uniprot_to_embl_filename,
 
 def load_embl_to_annotation(embl_cds_filename):
     """
-    
-    
+
     Parameters
     ----------
-    
     embl_cds_filename: str
         path to file containing cds information in tab-separated format
         cds_id,genome_id,uniprot_ac,genome_start,genome_end
@@ -178,9 +182,11 @@ def load_embl_to_annotation(embl_cds_filename):
     
             
     """
+
     embl_cds_to_annotation = {}
     for line in open(embl_cds_filename,'r'):
         cds_id, read_id, uniprot_id, start, end = line.rstrip().split('\t')
         embl_cds_to_annotation[cds_id] = (read_id, uniprot_id, int(start), int(end))
             
     return embl_cds_to_annotation
+

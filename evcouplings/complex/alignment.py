@@ -10,8 +10,6 @@ from evcouplings.align import Alignment
 from collections import defaultdict
 from operator import itemgetter
 
-
-
 def write_concatenated_alignment(id_pairing,
                                  id_to_full_header_1,
                                  id_to_full_header_2,
