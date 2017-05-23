@@ -31,6 +31,11 @@ from evcouplings.utils.system import (
     verify_resources, ResourceError
 )
 
+from evcouplings.complex.ena import (
+    extract_embl_annotation,
+    extract_uniprot_to_embl
+    )
+
 
 def fetch_sequence(sequence_id, sequence_file,
                    sequence_download_url, out_file):
@@ -1122,8 +1127,28 @@ def complex(**kwargs):
 
     # TODO: add additional processing functionality here
     # TODO: add list of created output keys to function documentation
-    # filename should be prefix + "_genome_locations.csv"
-    # outcfg["genome_location_file"] = ...
+
+    #Extract the uniprot to embl mapping
+    uniprot_to_embl_filename = prefix + '_uniprot_embl.csv'
+
+    extract_uniprot_to_embl(outcfg['alignment_file'],
+                            kwargs['uniprot_to_embl_table'],
+                            uniprot_to_embl_filename
+                            )
+
+    outcfg["embl_mapping_file"] = uniprot_to_embl_filename
+
+    #extract the EMBL to genome location information
+    genome_location_filename = prefix + '_genome_location.csv'
+
+    extract_embl_annotation(uniprot_to_embl_filename,
+                            kwargs['ena_genome_location_table'],
+                            genome_location_filename)
+
+    outcfg["genome_location_file"] = genome_location_filename
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".align_complex.outcfg", outcfg)
 
     return outcfg
 
