@@ -19,20 +19,25 @@ from evcouplings.utils.system import (
     create_prefix_folders, valid_file,
     verify_resources,
 )
-from evcouplings.complex.alignment import (
-    write_concatenated_alignment
-    )
-from evcouplings.complex.ena import (
+from evcouplings.align.protocol import (
+    modify_alignment
+)
+from evcouplings.align.alignment import (
+    retrieve_sequence_ids,
+    Alignment
+)
+from evcouplings.align.ena import (
     load_uniprot_to_embl,
     load_embl_to_annotation
-    )
+)
+from evcouplings.complex.alignment import (
+    write_concatenated_alignment,
+)
 from evcouplings.complex.distance import (
-    retrieve_sequence_ids,
     find_possible_partners,
     best_reciprocal_matching,
     filter_ids_by_distance
-    )
-
+)
 import re
 
 def genome_distance(**kwargs):
@@ -96,17 +101,6 @@ def genome_distance(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    #create outcfg
-
-    outcfg = {
-        **kwargs,
-        'focus_mode' : True
-    }
-
-    # -------------------------------------------------
-    # TODO: implement concatenation functionality and
-    # postprocessing functionality here
-    # -------------------------------------------------
     def _load_monomer_information(alignment,uniprot_to_embl_filename,genome_location_filename):
 
         seq_ids_ali,id_to_header = retrieve_sequence_ids(open(alignment))
@@ -128,14 +122,18 @@ def genome_distance(**kwargs):
     genome_location_filename_2=kwargs["second_genome_location_file"]
 
     seq_ids_ali_1,id_to_header_1,uniprot_to_embl_1,embl_to_annotation_1 = \
-        _load_monomer_information(alignment_1,
-                                  uniprot_to_embl_filename_1,
-                                  genome_location_filename_1)
+        _load_monomer_information(
+            alignment_1,
+            uniprot_to_embl_filename_1,
+            genome_location_filename_1
+        )
 
     seq_ids_ali_2,id_to_header_2,uniprot_to_embl_2,embl_to_annotation_2 = \
-        _load_monomer_information(alignment_2,
-                                  uniprot_to_embl_filename_2,
-                                  genome_location_filename_2)
+        _load_monomer_information(
+            alignment_2,
+            uniprot_to_embl_filename_2,
+            genome_location_filename_2
+        )
 
     uniprot_to_embl = {**uniprot_to_embl_1,**uniprot_to_embl_2}
     embl_to_annotation = {**embl_to_annotation_1,**embl_to_annotation_2}
@@ -150,15 +148,132 @@ def genome_distance(**kwargs):
     id_pairing_unfiltered,id_pair_to_distance = best_reciprocal_matching(possible_partners)
     
     #filter best reciprocal matches by genome distance threshold
-    id_pairing = filter_ids_by_distance(id_pairing_unfiltered,
-                                        id_pair_to_distance,
-                                        kwargs['genome_distance_threshold'])
+    id_pairing = filter_ids_by_distance(
+        id_pairing_unfiltered,
+        id_pair_to_distance,
+        kwargs['genome_distance_threshold']
+    )
 
-    raw_alignment_file = prefix + '_raw.a2m'
+    raw_alignment_file = prefix + '_raw.fasta'
 
-    #write concatenated alignment
+    #write concatenated alignment with distance filtering
+    target_seq_id, target_seq_index = write_concatenated_alignment(
+        id_pairing,
+        id_to_header_1,
+        id_to_header_2,
+        alignment_1,
+        alignment_2,
+        kwargs['first_focus_sequence'],
+        kwargs['second_focus_sequence'],
+        raw_alignment_file
+    )
 
-    write_concatenated_alignment(id_pairing,
+    #filter the alignment
+    raw_ali = Alignment.from_file(open(raw_alignment_file))
+    aln_outcfg,_ = modify_alignment(
+        raw_ali,
+        target_seq_index,
+        target_seq_id,
+        kwargs['first_region_start'],
+        **kwargs
+    )
+
+    def _modify_segments(seg_list, seg_prefix):
+        # extract segments from list representation into objects
+        segs = [
+            Segment.from_list(s) for s in seg_list
+        ]
+        # update segment IDs
+        for i, s in enumerate(segs, start=1):
+            s.segment_id = "{}_{}".format(seg_prefix, i)
+
+        return segs
+
+    # merge segments - this allows to have more than one segment per
+    # "monomer" alignment
+    segments_1 = _modify_segments(kwargs["first_segments"], "A")
+    segments_2 = _modify_segments(kwargs["second_segments"], "B")
+    segments_complex = segments_1 + segments_2
+
+    # make sure we return all the necessary information:
+    # * alignment_file: final concatenated alignment that will go into plmc
+    # * focus_sequence: this is the identifier of the concatenated target
+    #   sequence which will be passed into plmc with -f
+    outcfg=aln_outcfg
+    outcfg["segments"] = [s.to_list() for s in segments_complex]
+    outcfg["focus_sequence"] = target_seq_id
+    return outcfg
+
+def best_hit(**kwargs):
+    """
+    Protocol:
+
+    Concatenate alignments based on the best hit 
+    to the focus sequence in each species
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+        (TODO: explain meaning of parameters in detail).
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        # TODO: this is the full list normally returned
+        # by alignment protocol, decide which ones
+        # to keep. Mandatory:
+        # alignment_file, focus_sequence, focus_mode, segments
+
+        alignment_file
+        raw_alignment_file
+        statistics_file
+        target_sequence_file
+        sequence_file
+        [annotation_file]
+        frequencies_file
+        identities_file
+        [hittable_file]
+        focus_mode
+        focus_sequence
+        segments
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix",
+            "first_alignment_file", "second_alignment_file",
+            "first_focus_sequence", "second_focus_sequence",
+            "first_focus_mode", "second_focus_mode",
+            "first_segments", "second_segments",
+            "first_identities_file","second_identities_file"
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    # make sure input alignments
+    verify_resources(
+        "Input alignment does not exist",
+        kwargs["first_alignment_file"], kwargs["second_alignment_file"]
+    )
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+
+    #load the information for each monomer alignment
+
+    #find all possible matches
+
+    #find the best matches
+
+    #write concatenated alignment with distance filtering
+    raw_alignment_file = prefix + '_raw.fasta'
+    target_seq_id, target_seq_index = write_concatenated_alignment(id_pairing,
                              id_to_header_1,
                              id_to_header_2,
                              alignment_1,
@@ -169,7 +284,14 @@ def genome_distance(**kwargs):
                              )
 
     #filter the alignment
-    outcfg['alignment_file'] = prefix + '.a2m'
+    raw_ali = Alignment.from_file(open(raw_alignment_file))
+    aln_outcfg,_ = modify_alignment(raw_ali,
+                                target_seq_index,
+                                target_seq_id,
+                                kwargs['first_region_start'],
+                                **kwargs
+
+        )
 
 
     def _modify_segments(seg_list, seg_prefix):
@@ -193,20 +315,9 @@ def genome_distance(**kwargs):
     # * alignment_file: final concatenated alignment that will go into plmc
     # * focus_sequence: this is the identifier of the concatenated target
     #   sequence which will be passed into plmc with -f
-
-    outcfg = {
-        "alignment_file": None,  # TODO: specify
-        "focus_mode": True,
-        "focus_sequence": None,  # TODO: specify
-        "segments": [s.to_list() for s in segments_complex],
-        # optional but good to have:
-        "num_sites": None,
-        "num_sequences": None,
-        # "effective_sequences": n_eff # TODO: could compute this like in align stage
-        # TODO: there are more outputs that we could add here (not mandatory),
-        # e.g. single column frequencies in concatenated alignment
-    }
-
+    outcfg=aln_outcfg
+    outcfg["segments"] = [s.to_list() for s in segments_complex]
+    outcfg["focus_sequence"] = target_seq_id
     return outcfg
 
 
@@ -214,6 +325,10 @@ def genome_distance(**kwargs):
 PROTOCOLS = {
     # concatenate based on genomic distance ("operon-based")
     "genome_distance": genome_distance,
+
+    # concatenate based on best hit per genome ("species")
+    "best_hit": best_hit
+
 }
 
 

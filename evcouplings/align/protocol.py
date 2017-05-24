@@ -31,7 +31,7 @@ from evcouplings.utils.system import (
     verify_resources, ResourceError
 )
 
-from evcouplings.complex.ena import (
+from evcouplings.align.ena import (
     extract_embl_annotation,
     extract_uniprot_to_embl
     )
