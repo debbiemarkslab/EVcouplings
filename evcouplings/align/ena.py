@@ -10,7 +10,7 @@ Authors:
 import os
 from operator import itemgetter
 from collections import defaultdict
-from evcouplings.complex.distance import retrieve_sequence_ids
+from evcouplings.align.alignment import retrieve_sequence_ids
 
 def extract_uniprot_to_embl(alignment_file, 
                             uniprot_to_embl_table,
@@ -190,4 +190,3 @@ def load_embl_to_annotation(embl_cds_filename):
         embl_cds_to_annotation[cds_id] = (read_id, uniprot_id, int(start), int(end))
             
     return embl_cds_to_annotation
-
