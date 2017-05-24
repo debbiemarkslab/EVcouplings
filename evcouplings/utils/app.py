@@ -92,13 +92,13 @@ def substitute_config(**kwargs):
     # handle the more complicated parameters
 
     # If alignment is given, run "existing" protocol
-    if kwargs["alignment"] is not None:
+    if kwargs.get("alignment", None) is not None:
         # TODO: think about what to do if sequence_file is given
         # (will not be used)
         config["align"]["protocol"] = "existing"
 
     # subregion of protein
-    if kwargs["region"] is not None:
+    if kwargs.get("region", None) is not None:
         region = kwargs["region"]
         m = re.search("(\d+)-(\d+)", region)
         if m:
@@ -113,13 +113,13 @@ def substitute_config(**kwargs):
             )
 
     # pipeline stages to run
-    if kwargs["stages"] is not None:
+    if kwargs.get("stages", None) is not None:
         config["stages"] = kwargs["stages"].replace(
             " ", ""
         ).split(",")
 
     # sequence alignment input database
-    if kwargs["database"] is not None:
+    if kwargs.get("database", None) is not None:
         db = kwargs["database"]
         # check if we have a predefined sequence database
         # if so, use it; otherwise, interpret as file path
@@ -130,15 +130,15 @@ def substitute_config(**kwargs):
             config["databases"]["custom"] = db
 
     # make sure bitscore and E-value thresholds are exclusively set
-    if kwargs["bitscores"] is not None and kwargs["evalues"] is not None:
+    if kwargs.get("bitscores", None) is not None and kwargs.get("evalues", None) is not None:
         raise InvalidParameterError(
             "Can not specify bitscore and E-value threshold at the same time."
         )
 
-    if kwargs["bitscores"] is not None:
+    if kwargs.get("bitscores", None) is not None:
         thresholds = kwargs["bitscores"]
         bitscore = True
-    elif kwargs["evalues"] is not None:
+    elif kwargs.get("evalues", None) is not None:
         thresholds = kwargs["evalues"]
         bitscore = False
     else:
@@ -219,7 +219,7 @@ def unroll_config(config, overwrite=False):
 
     # check if we have a single job or need to unroll
     # into multiple jobs
-    if config["batch"] is None:
+    if config.get("batch", None) is None:
         jobs = [cfg_filename]
     else:
         jobs = []
@@ -281,7 +281,6 @@ def run_jobs(config_files, global_config):
         global_config["environment"]["engine"],
         db_path=global_config["global"]["prefix"] + "_job_database.txt"
     )
-
     # load all configs for jobs
     # do this before submitting, so that each job
     # can potentially have information about all
@@ -330,10 +329,9 @@ def run_jobs(config_files, global_config):
 
         # store job for later dependency creation
         commands.append(cmd)
-
         # finally, submit job
         submitter.submit(cmd)
-
+        #time.sleep(5)
     # submit final summarizer
     # TODO - hold for now
 
@@ -374,7 +372,7 @@ def run(**kwargs):
         config["align"]["compute_num_effective_seqs"] = True
 
     # unroll batch jobs into individual pipeline jobs
-    subjob_cfg_files = unroll_config(config, kwargs["yolo"])
+    subjob_cfg_files = unroll_config(config, kwargs.get("yolo", False))
 
     # run pipeline computation for each individual (unrolled) config
     run_jobs(subjob_cfg_files, config)

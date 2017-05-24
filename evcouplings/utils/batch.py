@@ -462,7 +462,7 @@ class LSFSubmitter(ASubmitter):
                 if not unfinished:
                     break
                 else:
-                    time.sleep(2)
+                    time.sleep(1)
 
 
 ########################################################################################################################
@@ -487,14 +487,18 @@ class _Worker(mp.Process):
 
     def run(self):
         for job in iter(self.__input_queue.get, EJob.CANCEL):
-
+            # send RUN status to broker for received command
             self.__broker_queue.put((EJob.UPDATE, (job.command_id, EStatus.RUN)))
             try:
+                # run command and send DONE status to broker one success
                 self.__submit(job)
                 self.__broker_queue.put((EJob.UPDATE, (job.command_id, EStatus.DONE)))
             except Exception as e:
+                # else send EXIT status
                 self.__broker_queue.put((EJob.UPDATE, (job.command_id, EStatus.EXIT)))
-            self.__input_queue.task_done()
+            finally:
+                # finally update semaphore counter of queue
+                self.__input_queue.task_done()
 
     def __submit(self, command):
         """
@@ -554,25 +558,30 @@ class _Broker(mp.Process):
     def run(self):
         while True:
             try:
-                args = self.__input_queue.get(True, 1)
+                args = self.__input_queue.get(True, 0.1)
                 ejob, args = args
                 if ejob == EJob.STOP:
+                    # terminate broker
                     self.terminate()
 
                 elif ejob == EJob.MONITOR:
+                    # monitor request
                     self.__results_queue_master.put(self.__monitor(args))
 
                 elif ejob == EJob.CANCEL:
+                    # cancel job
                     status = self.__cancel(args)
                     self.__results_queue_master.put(True)
                     self.__update_status(args.command_id, status)
 
                 elif ejob == EJob.UPDATE:
+                    # updating command status (e.g, RUN, EXIT, DONE)
                     # some command has started message is coming from worker process
                     c_id, status = args
                     self.__update_status(c_id, status)
 
                 elif ejob == EJob.PID:
+                    # updating process ID of submitted command
                     job_id, p_id = args
                     entry = yaml.load(self.__db[job_id], yaml.RoundTripLoader)
                     entry["job_id"] = p_id
@@ -580,6 +589,7 @@ class _Broker(mp.Process):
                     self.__db.sync()
 
                 else:
+                    # submitting job to worker
                     job, dependent = args
                     self.__add_command(job)
                     if dependent is not None:
@@ -592,13 +602,19 @@ class _Broker(mp.Process):
                 # if one of the dependent jobs terminated with an error pending job is also terminated with error
                 for job, dependent in list(self.__pending_dict.items()):
                     status = self.__condition_fulfilled(dependent)
-                    if status == EStatus.EXIT:
-                        # job cannot be called due to termination of dependent jobs
-                        self.__update_status(job.command_id, EStatus.EXIT)
-                        del self.__pending_dict[job]
-                    elif status == EStatus.RUN:
-                        self.__worker_queue.put(job)
-                        del self.__pending_dict[job]
+                    if job is not None:
+                        if status == EStatus.EXIT:
+                            # job cannot be called due to termination of dependent jobs
+                            self.__update_status(job.command_id, EStatus.EXIT)
+                            del self.__pending_dict[job]
+                        elif status == EStatus.RUN:
+                            self.__worker_queue.put(job)
+                            del self.__pending_dict[job]
+                    else:
+                        # makes sure that a submitted job is properly registered and join works as intended
+                        if status == EStatus.RUN:
+                            del self.__pending_dict[job]
+
             except Exception as e:
                 tb = traceback.format_exc()
                 self.__results_queue_master.put((e, tb))
@@ -733,7 +749,7 @@ class _Broker(mp.Process):
 class LocalSubmitter(ASubmitter):
     __name = "local"
 
-    def __init__(self, blocking=False, db_path=None, ncpu=1):
+    def __init__(self, blocking=True, db_path=None, ncpu=1):
         """
         Init function
 
@@ -761,13 +777,13 @@ class LocalSubmitter(ASubmitter):
 
         self.__broker = _Broker(self.__broker_queue, self.__job_queue, self.__results_queue, self.__results_queue_worker,
                                 self.__pending_dict, db_path=self.__db_path)
-        self.__broker.daemon = True
+        self.__broker.daemon = False
         self.__broker.start()
 
         self.__worker = []
         for i in range(ncpu):
             p = _Worker(self.__broker_queue, self.__job_queue, self.__results_queue_worker)
-            p.daemon = True
+            p.daemon = False
             self.__worker.append(p)
             p.start()
 
@@ -803,6 +819,7 @@ class LocalSubmitter(ASubmitter):
     def submit(self, command, dependent=None):
         if isinstance(dependent, Command) and dependent is not None:
             dependent = [dependent]
+        self.__pending_dict.setdefault(None, []).append(command)
         self.__broker_queue.put((EJob.SUBMIT, (command, dependent)))
         return command.command_id
 
@@ -817,7 +834,7 @@ class LocalSubmitter(ASubmitter):
     def join(self):
         if self.isBlocking:
             while self.__pending_dict:
-                time.sleep(2)
+                time.sleep(1)
             self.__job_queue.join()
         else:
             pass

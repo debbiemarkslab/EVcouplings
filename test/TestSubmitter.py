@@ -2,17 +2,18 @@ import os
 import unittest
 from unittest import TestCase
 from evcouplings.utils import SubmitterFactory, Command
+from evcouplings.utils.app import app
 
 
 class TestSubmitter(TestCase):
 
-    # def test_submitter_factory_available(self):
-    #     print(SubmitterFactory.available_methods())
-    #
-    # def test_submitter_factory_init(self):
-    #     lsf = SubmitterFactory("lsf",blocking=True, db_path="test.db")
-    #     assert lsf.isBlocking == True
-    #
+    def test_submitter_factory_available(self):
+        print(SubmitterFactory.available_methods())
+
+    def test_submitter_factory_init(self):
+        lsf = SubmitterFactory("lsf", blocking=True, db_path="test.db")
+        assert lsf.isBlocking == True
+
     # def minimal_LSF_example(self):
     #     lsf = SubmitterFactory("lsf")
     #     c = Command("sleep 1h",
