@@ -74,6 +74,7 @@ def write_concatenated_alignment(id_pairing,
 
     def _prepare_header(id1,id2,full_header_1,full_header_2):
         header_format = '{}_{} {} {}' # id1_id2 full_header_1 full_header_2
+        #header_format = '{}_{}'
         concatenated_header = header_format.format(id1,id2,
                                          full_header_1,
                                          full_header_2)
@@ -107,8 +108,7 @@ def write_concatenated_alignment(id_pairing,
     target_full_header_2 = target_sequence_2
     
     target_header = _prepare_header(target_sequence_1,target_sequence_2,
-                                         target_full_header_1,
-                                         target_full_header_2)
+        target_full_header_1,target_full_header_2)
 
     target_sequences = (_prepare_sequence(ali_1,target_full_header_1),
                         _prepare_sequence(ali_2,target_full_header_2))
@@ -116,7 +116,8 @@ def write_concatenated_alignment(id_pairing,
     sequences_to_write.append((target_header,
                                target_sequences[0],
                                target_sequences[1]))
-    
+    target_seq_idx = 0 #the target sequence is the first in the output file
+
     #create other headers and sequences
     for id1,id2 in id_pairing:
         full_header_1 = _get_full_header(id1,id_to_full_header_1,ali_1,target_full_header_1)
@@ -143,3 +144,6 @@ def write_concatenated_alignment(id_pairing,
     if monomer_alignment_file_2:
         sequences = [(a,c) for a,b,c in sequences_to_write]
         write_fasta(sequences,open(monomer_alignment_file_2,'w'))
+
+
+    return target_header,target_seq_idx

@@ -4,6 +4,7 @@ multiple sequence alignments.
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green
 """
 
 from collections import namedtuple, OrderedDict, defaultdict
