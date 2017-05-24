@@ -462,7 +462,7 @@ class LSFSubmitter(ASubmitter):
                 if not unfinished:
                     break
                 else:
-                    time.sleep(2)
+                    time.sleep(1)
 
 
 ########################################################################################################################
@@ -819,7 +819,7 @@ class LocalSubmitter(ASubmitter):
     def submit(self, command, dependent=None):
         if isinstance(dependent, Command) and dependent is not None:
             dependent = [dependent]
-        self.__pending_dict[None] = [command]
+        self.__pending_dict.setdefault(None, []).append(command)
         self.__broker_queue.put((EJob.SUBMIT, (command, dependent)))
         return command.command_id
 
