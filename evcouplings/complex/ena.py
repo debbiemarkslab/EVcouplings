@@ -9,6 +9,8 @@ Authors:
 """
 import os
 from operator import itemgetter
+from collections import defaultdict
+from evcouplings.complex.distance import retrieve_sequence_ids
 
 def extract_uniprot_to_embl(alignment_file, 
                             uniprot_to_embl_table,
@@ -44,7 +46,11 @@ def extract_uniprot_to_embl(alignment_file,
     of = open(uniprot_to_embl_filename,'w')
 
     for key,value in uniprot_to_embl.items():
-        of.write('{},{}\n'.format(key,value))
+        #if no mapping, delete entry
+        if value == "" or len(value)==0: 
+            continue
+        value_to_write = value.replace(',',';')
+        of.write('{},{}\n'.format(key,value_to_write))
 
     of.close() 
 
@@ -91,30 +97,25 @@ def load_uniprot_to_embl(uniprot_to_embl_filename):
     
     for uniprot_ac, embl_mapping in uniprot_to_embl_str.items():
 
-        #if no mapping, delete entry
-        if embl_mapping == "" or len(embl_mapping)==0: 
-            continue
+        #reformat the ena string as a list of tuples
+        full_annotation = [x.split(':') for x in uniprot_to_embl_str[uniprot_ac].split(";")]
+        
+        count_reads = defaultdict(list)
+        
+        for read, cds in full_annotation:
+            count_reads[cds].append(read)
 
-        #else, reformat the ena string as a list of tuples
-        else:
-            full_annotation = [x.split(':') for x in uniprot_to_embl_str[uniprot_ac].split(",")]
-            
-            count_reads = defaultdict(list)
-            
-            for read, cds in full_annotation:
-                count_reads[cds].append(read)
+        uniprot_to_embl[uniprot_ac] = []
 
-            uniprot_to_embl[uniprot_ac] = []
+        # check how many reads are associated with a particular CDS, 
+        # only keep CDS's that can be matched to *one* read
+        for cds, reads in count_reads.items():
+            if len(reads) == 1:
+                uniprot_to_embl[uniprot_ac].append((reads[0], cds))
 
-            # check how many reads are associated with a particular CDS, 
-            # only keep CDS's that can be matched to *one* read
-            for cds, reads in count_reads.items():
-                if len(reads) == 1:
-                    uniprot_to_embl[uniprot_ac].append((reads[0], cds))
-
-            #if none of the ena hits passed quality control, delete the entry
-            if len(uniprot_to_embl[uniprot_ac]) == 0:
-                del uniprot_to_embl[uniprot_ac]
+        #if none of the ena hits passed quality control, delete the entry
+        if len(uniprot_to_embl[uniprot_ac]) == 0:
+            del uniprot_to_embl[uniprot_ac]
 
     return uniprot_to_embl
 
@@ -158,7 +159,7 @@ def extract_embl_annotation(uniprot_to_embl_filename,
     for line in open(ena_genome_location_table,'r'):
         cds_id, read_id, uniprot_id, start, end = line.rstrip().split('\t')
         if cds_id in cds_id_hash: 
-            embl_cds_to_annotation[cds_id] = (read_id, uniprot_id, int(start), int(end))
+            embl_cds_to_annotation[cds_id] = (read_id, uniprot_id, start, end)
 
     #swrite the annotation
     of = open(genome_location_filename,'w')
@@ -185,7 +186,7 @@ def load_embl_to_annotation(embl_cds_filename):
 
     embl_cds_to_annotation = {}
     for line in open(embl_cds_filename,'r'):
-        cds_id, read_id, uniprot_id, start, end = line.rstrip().split('\t')
+        cds_id, read_id, uniprot_id, start, end = line.rstrip().split(',')
         embl_cds_to_annotation[cds_id] = (read_id, uniprot_id, int(start), int(end))
             
     return embl_cds_to_annotation
