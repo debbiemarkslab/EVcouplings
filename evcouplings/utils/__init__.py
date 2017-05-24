@@ -17,8 +17,7 @@ class ASubmitterFactory(abc.ABCMeta):
         '''
 
         try:
-            return ASubmitter[str(_name).lower()](blocking=kwargs.get("blocking", False),
-                                                  db_path=kwargs.get("db_path", None))
+            return ASubmitter[str(_name).lower()](**kwargs)
         except KeyError as e:
             raise ValueError("This submitter is currently not supported")
 
