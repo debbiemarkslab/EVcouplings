@@ -6,10 +6,18 @@ Authors:
 """
 
 
-from evcouplings.align import Alignment
+from evcouplings.align import Alignment,write_fasta
 from collections import defaultdict
 from operator import itemgetter
 
+def unfilter(string):
+    '''
+    uppercases all of the letters in string
+    converts all '.' to '-'
+    '''
+    unf_string = string.upper()
+    unf_string = unf_string.replace('.','-')
+    return unf_string
 
 
 def write_concatenated_alignment(id_pairing,
@@ -64,47 +72,65 @@ def write_concatenated_alignment(id_pairing,
             
             sequence_to_identity = sorted(sequence_to_identity,key=itemgetter(1),ascending=False)
         return sequence_to_identity[0][0]
+
+    def _prepare_header(id1,id2,full_header_1,full_header_2):
+        header_format = '{}_{} {} {}' # id1_id2 full_header_1 full_header_2
+        concatenated_header = header_format.format(id1,id2,
+                                         full_header_1,
+                                         full_header_2)
+        return concatenated_header
+
+    def _prepare_sequence(ali,full_header):
+        '''
+        extracts the sequence from the alignment
+        converts to string
+        uppercases
+        '''
+        sequence = ali[ali.id_to_index[full_header]]
+        sequence = ''.join(sequence)
+        sequence = unfilter(sequence)
+        return sequence
     
     sequences_to_write = [] #list of (header,seq1,seq2) tuples
     
-    header_format = '{}_{} {} {}' # id1_id2 full_header_1 full_header_2
+
     
     #load the alignments
     ali_1 = Alignment.from_file(open(alignment_1,'r'))
     ali_2 = Alignment.from_file(open(alignment_2,'r'))
+
+    #UPPERCASE BOTH ALIGNMENTS
     
     #create target header and target sequence
     #Format id1_id2 full_header_1 full_header_2
-    target_full_header_1 = id_to_full_header_1[target_sequence_1][0]
-    target_full_header_2 = id_to_full_header_2[target_sequence_2][0]
+    #target full header is equivalent to target sequence
+    target_full_header_1 = target_sequence_1
+    target_full_header_2 = target_sequence_2
     
-    target_header = header_format.format(target_sequence_1,target_sequence_2,
+    target_header = _prepare_header(target_sequence_1,target_sequence_2,
                                          target_full_header_1,
                                          target_full_header_2)
-    
-    print(target_full_header_1)
-    target_sequence = (''.join(ali_1[ali_1.id_to_index[target_full_header_1]]),
-                       ''.join(ali_2[ali_2.id_to_index[target_full_header_2]]))
+
+    target_sequences = (_prepare_sequence(ali_1,target_full_header_1),
+                        _prepare_sequence(ali_2,target_full_header_2))
         
     sequences_to_write.append((target_header,
-                               target_sequence[0].upper(),
-                               target_sequence[1].upper()))
+                               target_sequences[0],
+                               target_sequences[1]))
     
     #create other headers and sequences
     for id1,id2 in id_pairing:
-        full_header_1 = _get_full_header(id1,id_to_header_1,ali_1,target_full_header_1)
-        full_header_2 = _get_full_header(id2,id_to_header_2,ali_2,target_full_header_2)
+        full_header_1 = _get_full_header(id1,id_to_full_header_1,ali_1,target_full_header_1)
+        full_header_2 = _get_full_header(id2,id_to_full_header_2,ali_2,target_full_header_2)
         
-        concatenated_header = header_format.format(id1,id2,
-                                         full_header_1,
-                                         full_header_2)
+        concatenated_header = _prepare_header(id1,id2,full_header_1,full_header_2)
         
-        concatenated_sequence = (''.join(ali_1[ali_1.id_to_index[full_header_1]]), +\
-                                 ''.join(ali_2[ali_2.id_to_index[full_header_2]]))
+        concatenated_sequences = (_prepare_sequence(ali_1,full_header_1),
+                                  _prepare_sequence(ali_2,full_header_2))
         
         sequences_to_write.append((concatenated_header,
-                                   concatenated_sequence[0].upper(),
-                                   concatenated_sequence[1].upper()))
+                                   concatenated_sequences[0],
+                                   concatenated_sequences[1]))
     
     sequences = [(a,b+c) for a,b,c in sequences_to_write]
     write_fasta(sequences,open(concatenated_alignment_file,'w'))

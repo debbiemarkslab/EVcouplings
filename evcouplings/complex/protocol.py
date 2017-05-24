@@ -157,8 +157,7 @@ def genome_distance(**kwargs):
     raw_alignment_file = prefix + '_raw.a2m'
 
     #write concatenated alignment
-    print(id_to_header_1)
-    print(kwargs['first_focus_sequence'])
+
     write_concatenated_alignment(id_pairing,
                              id_to_header_1,
                              id_to_header_2,
