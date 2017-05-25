@@ -139,10 +139,12 @@ def genome_distance(**kwargs):
     embl_to_annotation = {**embl_to_annotation_1,**embl_to_annotation_2}
 
     #find all possible matches
-    possible_partners = find_possible_partners(seq_ids_ali_1, 
-                                            seq_ids_ali_2, 
-                                            uniprot_to_embl, 
-                                            embl_to_annotation) 
+    possible_partners = find_possible_partners(
+        seq_ids_ali_1, 
+        seq_ids_ali_2, 
+        uniprot_to_embl, 
+        embl_to_annotation
+    ) 
 
     #find the best reciprocal matches
     id_pairing_unfiltered,id_pair_to_distance = best_reciprocal_matching(possible_partners)

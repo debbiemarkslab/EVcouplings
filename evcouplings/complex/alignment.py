@@ -108,11 +108,17 @@ def write_concatenated_alignment(id_pairing,
     target_full_header_1 = target_sequence_1
     target_full_header_2 = target_sequence_2
     
-    target_header = _prepare_header(target_sequence_1,target_sequence_2,
-        target_full_header_1,target_full_header_2)
-
     target_sequences = (_prepare_sequence(ali_1,target_full_header_1),
                         _prepare_sequence(ali_2,target_full_header_2))
+
+    #Target header must end with /1-range for correct focus mode
+    length = len(target_sequences[0])+len(target_sequences[1])
+
+    target_header = '{}_{}/1-{}'.format(
+        target_sequence_1.split('/')[0],
+        target_sequence_2.split('/')[0],
+        length
+    )
         
     sequences_to_write.append((target_header,
                                target_sequences[0],
