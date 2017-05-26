@@ -121,7 +121,7 @@ def update_job_status(config, status=None, stage=None):
         session.commit()
     else:
         # can only be one row due to unique constraint
-        r = q.first()
+        r = q.one()
 
     # if status is given, update
     if status is not None:
