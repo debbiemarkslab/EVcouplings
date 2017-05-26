@@ -3,12 +3,14 @@ Visualization of evolutionary couplings (contact maps etc.)
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green
 """
 
 from copy import deepcopy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 from evcouplings.visualize.pymol import (
     pymol_pair_lines, pymol_mapping
@@ -334,6 +336,123 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                 # DataFrame has no secondary structure, cannot do anything here
                 # (this happens when merging across multiple distance maps)
                 pass
+
+
+def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
+                        d_intra_i,d_multimer_i,
+                        d_intra_j,d_multimer_j,
+                        d_inter, **kwargs):
+    '''
+    intra1_ecs: pandas.DataFrame
+        Table of intra-molecular evolutionary couplings to plot
+        (using columns "i" and "j") from monomer 1
+    intra2_ecs: pandas.DataFrame
+        Table of intra-molecular evolutionary couplings to plot
+        (using columns "i" and "j") from monomer 2
+    inter_ecs: pandas.DataFrame
+        Table of inter-molecular evolutionary couplings to plot
+        (using columns "i" and "j")
+    d_intra_i:evcouplings.compare.distances.DistanceMap
+        Monomer 1 distance map (intra-chain distances)
+    d_multimer_i:evcouplings.compare.distances.DistanceMap
+        Monomer 1 multimer distance map (inter-chain distances for monomer 1)
+    d_inter:evcouplings.compare.distances.DistanceMap
+        Inter-molecular distance map (inter-chain distances)
+    boundaries: {"union", "intersection", "ecs", "structure"} or tuple
+                 or list(tuple, tuple), optional (default: "union")
+        Set axis range (min/max) of contact map as follows:
+        - "union": Positions either in ECs or 3D structure
+        - "intersection": Positions both in ECs and 3D structure
+        - "ecs": Positions in ECs
+        - "structure": Positions in 3D structure
+        - tuple(float, float): Specify upper/lower bound manually
+        - [(float, float), (float, float)]: Specify upper/lower bounds
+          for both x-axis (first tuple) and y-axis (second tuple)
+    '''
+    #check that boundaries is supplied
+
+    boundaries = kwargs['boundaries']
+
+    # Find the appropriate boundaries for each subset
+    intra1_boundaries = list(find_boundaries(boundaries,
+                                             ecs=intra1_ecs,
+                                             monomer=d_intra_i,
+                                             multimer=d_multimer_i,
+                                             symmetric=True))
+
+    intra2_boundaries = list(find_boundaries(boundaries,
+                                             ecs=intra2_ecs,
+                                             monomer=d_intra_j,
+                                             multimer=d_multimer_j,
+                                             symmetric=True))
+
+    inter_boundaries = [intra1_boundaries[0], intra2_boundaries[0]]
+
+    # Calculate the length ratios of the monomers
+    mon1_len = intra1_boundaries[0][1] - intra1_boundaries[0][0]
+    mon2_len = intra2_boundaries[0][1] - intra2_boundaries[0][0]
+
+    ratio1 = mon1_len / (mon1_len + mon2_len)
+    ratio2 = mon2_len / (mon1_len + mon2_len)
+
+    # Initiate the axes using the above ratios
+    fig = plt.figure(figsize=(8, 8))
+    gs = gridspec.GridSpec(2, 2,
+                           width_ratios=[ratio1, ratio2],
+                           height_ratios=[ratio1, ratio2]
+                           )
+    ax1 = plt.subplot(gs[0])  # intra 1, upper left
+    ax2 = plt.subplot(gs[1])  # inter, upper right
+    ax3 = plt.subplot(gs[2])  # inter, lower left
+    ax4 = plt.subplot(gs[3])  # intra 2, lower right
+
+    # intra 1, upper left
+    new_kwargs = deepcopy(kwargs)
+    new_kwargs['boundaries']=intra1_boundaries
+    plot_contact_map(ax=ax1,
+                     symmetric=True,
+                     ecs=intra1_ecs,
+                     monomer=d_intra_i,
+                     multimer=d_multimer_i,
+                     **new_kwargs)
+
+    # intra 2, lower right
+    new_kwargs = deepcopy(kwargs)
+    new_kwargs['boundaries']=intra2_boundaries
+    plot_contact_map(ax=ax4,
+                     symmetric=True,
+                     ecs=intra2_ecs,
+                     monomer=d_intra_j,
+                     multimer=d_multimer_j,
+                     **new_kwargs)
+
+    # inter, lower left
+    new_kwargs = deepcopy(kwargs)
+    new_kwargs['boundaries']=inter_boundaries
+    plot_contact_map(ax=ax3,
+                     symmetric=False,
+                     ecs=inter_ecs,
+                     multimer=d_inter,
+                     distance_cutoff=8,
+                     **new_kwargs)
+
+    # inter, upper right
+    inter_ecs_transposed = pd.DataFrame({'i': inter_ecs.j, 'j': inter_ecs.i})
+
+    if d_inter is None:
+        d_inter_T = None
+    else:
+        d_inter_T = d_inter.transpose()
+
+    new_kwargs = deepcopy(kwargs)
+    new_kwargs['boundaries']=list(reversed(inter_boundaries))
+
+    plot_contact_map(ax=ax2,
+                     symmetric=False,
+                     ecs=inter_ecs_transposed,
+                     multimer=d_inter_T,
+                     distance_cutoff=8,
+                     **new_kwargs)
 
 
 def plot_pairs(pairs, symmetric=False, ax=None, style=None):
