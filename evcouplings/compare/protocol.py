@@ -27,7 +27,9 @@ from evcouplings.compare.distances import (
     inter_dists
 )
 from evcouplings.compare.sifts import SIFTS, SIFTSResult
-from evcouplings.compare.ecs import coupling_scores_compared
+from evcouplings.compare.ecs import (
+    coupling_scores_compared, add_precision
+)
 from evcouplings.visualize import pairs, misc
 
 
@@ -255,7 +257,13 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
         with misc.plot_context("Arial"):
             fig = plt.figure(figsize=(8, 8))
 
-            #TODO: implement scale sizing
+            if kwargs["scale_sizes"]:
+                ecs = pd.concat([ecs_i,ecs_j,ecs_inter])
+                ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
+
+                ecs_i = ecs.query("segment_i == segment_j == 'A_i'")
+                ecs_j = ecs.query("segment_i == segment_j == 'B_i'")
+                ecs_inter = ecs.query("segment_i != segment_j")
 
             pairs.complex_contact_map(
                 ecs_i, ecs_j, ecs_inter,
@@ -300,12 +308,27 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             ec_set = ecs_longrange.query("probability >= @c")
             # only can plot if we have any significant ECs above threshold
             if len(ec_set) > 0:
+                ec_set_i = ecs.query("segment_i == segment_j == 'A_1'")
+                ec_set_j = ecs.query("segment_i == segment_j == 'B_1'")
+                ec_set_inter = ecs.query("segment_i != segment_j")
+
                 output_file = prefix + "_significant_ECs_{}.pdf".format(c)
-                plot_cm(ec_set, output_file=output_file)
+                plot_complex_cm(ec_set_i, ec_set_j, ec_set_inter, output_file=output_file)
                 cm_files.append(output_file)
 
-    #TODO: add parameter for number of inter ECs to plot
-    for c in [5, 10, 15, 20]:
+    # transform fraction of number of sites into discrete number of ECs
+    def _discrete_count(x):
+        if isinstance(x, float):
+            x = ceil(x * num_sites)
+        return int(x)
+
+    # range of plots to make
+    lowest = _discrete_count(kwargs["plot_lowest_count"])
+    highest = _discrete_count(kwargs["plot_highest_count"])
+    step = _discrete_count(kwargs["plot_increase"])
+
+    # create individual plots
+    for c in range(lowest, highest + 1, step):
         ec_set_inter = ecs_longrange.query("segment_i != segment_j")[0:c]
         last_inter_index = ec_set_inter.index[-1]
         ec_set_i = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == 'A_1' ")
@@ -737,46 +760,87 @@ def complex_compare(**kwargs):
 
         else: #no overlapping pdbs
             outcfg["inter_contacts_file"]=None
+    else:
+        d_inter=None
 
     # # Step 3: Compare ECs to distance maps
     #
     ec_table = pd.read_csv(kwargs["ec_file"])
-    #
-    # # identify number of sites in EC model
-    # num_sites = len(
-    #     set.union(set(ec_table.i.unique()), set(ec_table.j.unique()))
-    # )
-    #
-    # for out_file, min_seq_dist in [
-    #     ("ec_compared_longrange_file", kwargs["min_sequence_distance"]),
-    #     ("ec_compared_all_file", 0),
-    # ]:
-    #     # compare ECs only if we minimally have intra distance map
-    #     if d_intra is not None:
-    #         coupling_scores_compared(
-    #             ec_table, d_intra, d_multimer,
-    #             dist_cutoff=kwargs["distance_cutoff"],
-    #             output_file=outcfg[out_file],
-    #             score="cn",
-    #             min_sequence_dist=min_seq_dist
-    #         )
-    #     else:
-    #         outcfg[out_file] = None
-    #
-    # # also create line-drawing script if we made the csv
-    # if outcfg["ec_compared_longrange_file"] is not None:
-    #     ecs_longrange = pd.read_csv(outcfg["ec_compared_longrange_file"])
-    #
-    #     outcfg["ec_lines_compared_pml_file"] = prefix + "_draw_ec_lines_compared.pml"
-    #     pairs.ec_lines_pymol_script(
-    #         ecs_longrange.iloc[:num_sites, :],
-    #         outcfg["ec_lines_compared_pml_file"],
-    #         distance_cutoff=kwargs["distance_cutoff"]
-    #     )
-    #
-    # # Step 4: Make contact map plots
-    # # if no structures available, defaults to EC-only plot
-    #
+
+    for out_file, min_seq_dist in [
+        ("ec_compared_longrange_file", kwargs["min_sequence_distance"]),
+        ("ec_compared_all_file", 0),
+    ]:
+
+        # compare ECs only if we minimally have an intra distance map
+        # for one monomer
+        if (d_intra_i is not None) or (d_intra_j is not None):
+            # compare distances individually for each segment pair
+            ecs_intra_i = ec_table.query("segment_i == segment_j == 'A_1' ")
+            ecs_intra_i_compared = coupling_scores_compared(
+                ecs_intra_i, d_intra_i, d_multimer_i,
+                dist_cutoff=kwargs["distance_cutoff_intra"],
+                output_file=None,
+                score="cn",
+                min_sequence_dist=min_seq_dist
+            )
+
+            ecs_intra_j = ec_table.query("segment_i == segment_j == 'B_1' ")
+            ecs_intra_j_compared = coupling_scores_compared(
+                ecs_intra_j, d_intra_j, d_multimer_j,
+                dist_cutoff=kwargs["distance_cutoff_intra"],
+                output_file=None,
+                score="cn",
+                min_sequence_dist=min_seq_dist
+            )
+
+            ecs_inter = ec_table.query("segment_i != segment_j")
+            ecs_inter_compared = coupling_scores_compared(
+                ecs_inter, d_inter, dist_map_multimer=None,
+                dist_cutoff=kwargs["distance_cutoff_intra"],
+                output_file=None,
+                score="cn",
+                min_sequence_dist=min_seq_dist
+            )
+
+            # combine the tables
+            ec_table_compared = pd.concat([
+                ecs_inter_compared,
+                ecs_intra_i_compared,
+                ecs_intra_j_compared
+            ])
+
+            # rename the precision column to 'segmentwise_precision'
+            ec_table_compared = ec_table_compared.rename(columns={'precision': 'segmentwise_precision'})
+            ec_table_compared = ec_table_compared.sort_values('cn', ascending=False)
+            print(ec_table_compared.head())
+
+            # add the total precision
+            # TODO: implement different cutoffs for intra vs inter contacts
+            ec_table_compared = add_precision(
+                ec_table_compared,
+                dist_cutoff=kwargs['distance_cutoff_intra']
+            )
+
+            # save to file
+            ec_table_compared.to_csv(outcfg[out_file])
+
+        else:
+            outcfg[out_file] = None
+
+    if outcfg["ec_compared_longrange_file"] is not None and kwargs['plot_highest_count'] is not None:
+        ecs_longrange = pd.read_csv(outcfg["ec_compared_longrange_file"])
+
+        outcfg["ec_lines_compared_pml_file"] = prefix + "_draw_ec_lines_compared.pml"
+        pairs.ec_lines_pymol_script(
+            ecs_longrange.iloc[:kwargs['plot_highest_count'], :],
+            outcfg["ec_lines_compared_pml_file"],
+            distance_cutoff=kwargs["distance_cutoff_inter"]
+        )
+
+    # Step 4: Make contact map plots
+    # if no structures available, defaults to EC-only plot
+
     outcfg["contact_map_files"] = _make_complex_contact_maps(
         ec_table, d_intra_i, d_multimer_i,
         d_intra_j,d_multimer_j,
