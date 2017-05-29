@@ -376,6 +376,7 @@ def standard(**kwargs):
         d_multimer = None
         outcfg["distmap_monomer"] = None
         outcfg["distmap_multimer"] = None
+        outcfg["remapped_pdb_files"] = None
 
     # Step 3: Compare ECs to distance maps
 
