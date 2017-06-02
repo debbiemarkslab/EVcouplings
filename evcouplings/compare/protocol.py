@@ -311,24 +311,18 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             ec_set = ecs_longrange.query("probability >= @c")
             # only can plot if we have any significant ECs above threshold
             if len(ec_set) > 0:
-                ec_set_i = ecs.query("segment_i == segment_j == 'A_1'")
-                ec_set_j = ecs.query("segment_i == segment_j == 'B_1'")
-                ec_set_inter = ecs.query("segment_i != segment_j")
+                ec_set_i = ec_set.query("segment_i == segment_j == 'A_1'")
+                ec_set_j = ec_set.query("segment_i == segment_j == 'B_1'")
+                ec_set_inter = ec_set.query("segment_i != segment_j")
 
                 output_file = prefix + "_significant_ECs_{}.pdf".format(c)
                 plot_complex_cm(ec_set_i, ec_set_j, ec_set_inter, output_file=output_file)
                 cm_files.append(output_file)
 
-    # transform fraction of number of sites into discrete number of ECs
-    def _discrete_count(x):
-        if isinstance(x, float):
-            x = ceil(x * num_sites)
-        return int(x)
-
     # range of plots to make
-    lowest = _discrete_count(kwargs["plot_lowest_count"])
-    highest = _discrete_count(kwargs["plot_highest_count"])
-    step = _discrete_count(kwargs["plot_increase"])
+    lowest = int(kwargs["plot_lowest_count"])
+    highest = int(kwargs["plot_highest_count"])
+    step = int(kwargs["plot_increase"])
 
     # create individual plots
     for c in range(lowest, highest + 1, step):
