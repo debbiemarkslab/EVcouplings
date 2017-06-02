@@ -39,6 +39,7 @@ SCORING_MODELS = (
     'evcomplex'
 )
 
+
 def complex_probability(ecs, scoring_model, use_all_ecs=False):
     '''
     Adds mixture probability for protein complex ecs
@@ -70,6 +71,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False):
             'cn', ascending=False
         )
     return ecs
+
 
 def standard(**kwargs):
     """
@@ -111,7 +113,7 @@ def standard(**kwargs):
             "lambda_h", "lambda_J", "lambda_group",
             "scale_clusters",
             "cpu", "plmc", "reuse_ecs",
-            "min_sequence_distance", # "save_model",
+            "min_sequence_distance",  # "save_model",
         ]
     )
 
@@ -155,7 +157,7 @@ def standard(**kwargs):
     if segments is not None:
         segments = [
             mapping.Segment.from_list(s) for s in segments
-        ]
+            ]
 
     # first determine size of alphabet;
     # default is amino acid alphabet
@@ -195,7 +197,7 @@ def standard(**kwargs):
         gap = alphabet[0]
         uppercase = [
             c for c in seq if c == c.upper() or c == gap
-        ]
+            ]
         L = len(uppercase)
 
         # finally, scale lambda_J
@@ -375,7 +377,7 @@ def complex(**kwargs):
             "lambda_h", "lambda_J", "lambda_group",
             "scale_clusters",
             "cpu", "plmc", "reuse_ecs",
-            "min_sequence_distance", # "save_model",
+            "min_sequence_distance",  # "save_model",
         ]
     )
 
@@ -419,7 +421,7 @@ def complex(**kwargs):
     if segments is not None:
         segments = [
             mapping.Segment.from_list(s) for s in segments
-        ]
+            ]
 
     # first determine size of alphabet;
     # default is amino acid alphabet
@@ -459,7 +461,7 @@ def complex(**kwargs):
         gap = alphabet[0]
         uppercase = [
             c for c in seq if c == c.upper() or c == gap
-        ]
+            ]
         L = len(uppercase)
 
         # finally, scale lambda_J
@@ -549,7 +551,7 @@ def complex(**kwargs):
             use_all_ecs = False
 
         ecs = complex_probability(
-            ecs,kwargs['scoring_model'],use_all_ecs
+            ecs, kwargs['scoring_model'], use_all_ecs
         )
 
     else:
@@ -559,58 +561,59 @@ def complex(**kwargs):
                 kwargs["protocol"], ", ".join(SCORING_MODELS)
             )
 
-    # write updated table to csv file
-    ecs.to_csv(outcfg["ec_file"], index=False)
+        # write updated table to csv file
+        ecs.to_csv(outcfg["ec_file"], index=False)
 
-    # also store longrange ECs as convenience output
-    if kwargs["min_sequence_distance"] is not None:
-        outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
-    ecs_longrange = ecs.query(
-        "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
-    )
-    ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
+        # also store longrange ECs as convenience output
+        if kwargs["min_sequence_distance"] is not None:
+            outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
+        ecs_longrange = ecs.query(
+            "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
+        )
+        ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
 
-    # also create line-drawing script (for now, only for single segments)
-    if segments is None or len(segments) == 1:
-        outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
-    L = outcfg["num_sites"]
-    ec_lines_pymol_script(
-        ecs_longrange.iloc[:L, :],
-        outcfg["ec_lines_pml_file"]
-    )
+        # also create line-drawing script (for now, only for single segments)
+        if segments is None or len(segments) == 1:
+            outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
+        L = outcfg["num_sites"]
+        ec_lines_pymol_script(
+            ecs_longrange.iloc[:L, :],
+            outcfg["ec_lines_pml_file"]
+        )
 
-    # compute EC enrichment (for now, for single segments
-    # only since enrichment code cannot handle multiple segments)
-    if segments is None or len(segments) == 1:
-        outcfg["enrichment_file"] = prefix + "_enrichment.csv"
-    ecs_enriched = pairs.enrichment(ecs)
-    ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
+        # compute EC enrichment (for now, for single segments
+        # only since enrichment code cannot handle multiple segments)
+        if segments is None or len(segments) == 1:
+            outcfg["enrichment_file"] = prefix + "_enrichment.csv"
+        ecs_enriched = pairs.enrichment(ecs)
+        ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
 
-    # create corresponding enrichment pymol scripts
-    outcfg["enrichment_pml_files"] = []
-    for sphere_view, pml_suffix in [
-        (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
-    ]:
-        pml_file = prefix + pml_suffix
-    enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
-    outcfg["enrichment_pml_files"].append(pml_file)
+        # create corresponding enrichment pymol scripts
+        outcfg["enrichment_pml_files"] = []
+        for sphere_view, pml_suffix in [
+            (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
+        ]:
+            pml_file = prefix + pml_suffix
+        enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
+        outcfg["enrichment_pml_files"].append(pml_file)
 
         # output EVzoom JSON file if we have stored model file
-    if outcfg.get("model_file", None) is not None:
-        outcfg["evzoom_file"] = prefix + "_evzoom.json"
+        if outcfg.get("model_file", None) is not None:
+            outcfg["evzoom_file"] = prefix + "_evzoom.json"
         with open(outcfg["evzoom_file"], "w") as f:
-            # load parameters
+        # load parameters
             c = CouplingsModel(outcfg["model_file"])
 
-            # create JSON output and write to file
-            f.write(
-                evzoom_json(c) + "\n"
-            )
+        # create JSON output and write to file
+        f.write(
+            evzoom_json(c) + "\n"
+        )
 
-    # dump output config to YAML file for debugging/logging
-    write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
+        # dump output config to YAML file for debugging/logging
+        write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
 
     return outcfg
+
 
 PROTOCOLS = {
     # standard plmc inference protocol

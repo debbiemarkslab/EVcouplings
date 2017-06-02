@@ -47,6 +47,7 @@ def _identify_structures(**kwargs):
     SIFTSResult
         Identified structures and residue index mappings
     """
+
     def _filter_by_id(x, id_list):
         x = deepcopy(x)
         x.hits = x.hits.loc[
@@ -62,7 +63,7 @@ def _identify_structures(**kwargs):
             "pdb_mmtf_dir",
             "sifts_mapping_table", "sifts_sequence_db",
             "by_alignment", "alignment_min_overlap",
-            "sequence_id","sequence_file","region",
+            "sequence_id", "sequence_file", "region",
             "use_bitscores", "domain_threshold",
             "sequence_threshold", "jackhmmer",
         ]
@@ -139,6 +140,7 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
     cm_files : list(str)
         Paths of generated contact map files
     """
+
     def plot_cm(ecs, output_file=None):
         """
         Simple wrapper for contact map plotting
@@ -224,6 +226,7 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
     # give back list of all contact map file names
     return cm_files
 
+
 def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                                d_intra_j, d_multimer_j,
                                d_inter, **kwargs):
@@ -258,7 +261,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             fig = plt.figure(figsize=(8, 8))
 
             if kwargs["scale_sizes"]:
-                ecs = pd.concat([ecs_i,ecs_j,ecs_inter])
+                ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
                 ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
 
                 ecs_i = ecs.query("segment_i == segment_j == 'A_i'")
@@ -340,6 +343,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
 
     # give back list of all contact map file names
     return cm_files
+
 
 def standard(**kwargs):
     """
@@ -489,7 +493,7 @@ def standard(**kwargs):
         outcfg["remapped_pdb_files"] = {
             filename: mapping_index for mapping_index, filename in
             remap_chains(sifts_map, aux_prefix, seqmap).items()
-        }
+            }
     else:
         # if no structures, can not compute distance maps
         d_intra = None
@@ -542,6 +546,7 @@ def standard(**kwargs):
 
     return outcfg
 
+
 def complex_compare(**kwargs):
     """
     Protocol:
@@ -572,13 +577,13 @@ def complex_compare(**kwargs):
         [
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter",
-            "first_compare_multimer","second_compare_multimer",
+            "first_compare_multimer", "second_compare_multimer",
             "distance_cutoff_intra",
             "distance_cutoff_inter",
             "first_sequence_id", "second_sequence_id",
             "first_sequence_file", "second_sequence_file",
             "first_segments", "second_segments",
-            "first_target_sequence_file","second_target_sequence_file",
+            "first_target_sequence_file", "second_target_sequence_file",
             "scale_sizes",
         ]
     )
@@ -604,7 +609,7 @@ def complex_compare(**kwargs):
         "second_distmap_monomer": prefix + "_second_distance_map_monomer",
         "second_distmap_multimer": prefix + "_second_distance_map_multimer",
 
-        #inter distance map
+        # inter distance map
         "distmap_inter": prefix + "_distmap_inter",
         "inter_contacts_file": prefix + "_inter_contacts_file"
 
@@ -624,43 +629,44 @@ def complex_compare(**kwargs):
     create_prefix_folders(aux_prefix)
 
     # Step 1: Identify 3D structures for comparison
-    def _identify_monomer_structures(name_prefix,outcfg):
+    def _identify_monomer_structures(name_prefix, outcfg):
         sifts_map, sifts_map_full = _identify_structures(**{
-            "prefix":kwargs['prefix'],
-            "pdb_ids":kwargs['pdb_ids'],
+            "prefix": kwargs['prefix'],
+            "pdb_ids": kwargs['pdb_ids'],
             "pdb_mmtf_dir": kwargs['pdb_mmtf_dir'],
             "jackhmmer": kwargs['jackhmmer'],
             "sifts_mapping_table": kwargs['sifts_mapping_table'],
             "sifts_sequence_db": kwargs['sifts_sequence_db'],
-            "compare_multimer":kwargs[name_prefix+'_compare_multimer'],
-            "max_num_hits":kwargs[name_prefix+'_max_num_hits'],
-            "max_num_structures":kwargs[name_prefix+'_max_num_structures'],
-            "by_alignment":kwargs[name_prefix+'_by_alignment'],
-            "alignment_min_overlap":kwargs[name_prefix+'_alignment_min_overlap'],
-            "sequence_id":kwargs[name_prefix+'_sequence_id'],
-            "sequence_file":kwargs[name_prefix+'_sequence_file'],
-            "region":kwargs[name_prefix+'_region'],
-            "use_bitscores":kwargs[name_prefix+'_use_bitscores'],
-            "domain_threshold":kwargs[name_prefix+'_domain_threshold'],
-            "sequence_threshold":kwargs[name_prefix+'_sequence_threshold']
+            "compare_multimer": kwargs[name_prefix + '_compare_multimer'],
+            "max_num_hits": kwargs[name_prefix + '_max_num_hits'],
+            "max_num_structures": kwargs[name_prefix + '_max_num_structures'],
+            "by_alignment": kwargs[name_prefix + '_by_alignment'],
+            "alignment_min_overlap": kwargs[name_prefix + '_alignment_min_overlap'],
+            "sequence_id": kwargs[name_prefix + '_sequence_id'],
+            "sequence_file": kwargs[name_prefix + '_sequence_file'],
+            "region": kwargs[name_prefix + '_region'],
+            "use_bitscores": kwargs[name_prefix + '_use_bitscores'],
+            "domain_threshold": kwargs[name_prefix + '_domain_threshold'],
+            "sequence_threshold": kwargs[name_prefix + '_sequence_threshold']
         })
 
         # save selected PDB hits
         sifts_map.hits.to_csv(
-            outcfg[name_prefix+"_pdb_structure_hits_file"], index=False
+            outcfg[name_prefix + "_pdb_structure_hits_file"], index=False
         )
 
         # also save full list of hits
         sifts_map_full.hits.to_csv(
-            outcfg[name_prefix+"_pdb_structure_hits_unfiltered_file"], index=False
+            outcfg[name_prefix + "_pdb_structure_hits_unfiltered_file"], index=False
         )
-        return outcfg,sifts_map
+        return outcfg, sifts_map
 
-    outcfg,first_sifts_map = _identify_monomer_structures('first',outcfg)
-    outcfg,second_sifts_map = _identify_monomer_structures('second',outcfg)
+    outcfg, first_sifts_map = _identify_monomer_structures('first', outcfg)
+    outcfg, second_sifts_map = _identify_monomer_structures('second', outcfg)
+
     # Step 2: Compute distance maps
 
-    def _compute_monomer_distance_maps(sifts_map,name_prefix):
+    def _compute_monomer_distance_maps(sifts_map, name_prefix):
         # load all structures at once
         structures = load_structures(
             sifts_map.hits.pdb_id,
@@ -675,50 +681,50 @@ def complex_compare(**kwargs):
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
                 output_prefix=aux_prefix + name_prefix + "_distmap_intra"
             )
-            d_intra.to_file(outcfg[name_prefix+"_distmap_monomer"])
+            d_intra.to_file(outcfg[name_prefix + "_distmap_monomer"])
 
             # save contacts to separate file
-            outcfg[name_prefix+"_monomer_contacts_file"] = prefix + '_'+name_prefix+ "_contacts_monomer.csv"
+            outcfg[name_prefix + "_monomer_contacts_file"] = prefix + '_' + name_prefix + "_contacts_monomer.csv"
             d_intra.contacts(
                 kwargs["distance_cutoff_intra"]
             ).to_csv(
-                outcfg[name_prefix+"_monomer_contacts_file"], index=False
+                outcfg[name_prefix + "_monomer_contacts_file"], index=False
             )
 
             # compute multimer distances, if requested;
             # note that d_multimer can be None if there
             # are no structures with multiple chains
-            if kwargs[name_prefix+"_compare_multimer"]:
+            if kwargs[name_prefix + "_compare_multimer"]:
                 d_multimer = multimer_dists(
                     sifts_map, structures, atom_filter=kwargs["atom_filter"],
-                    output_prefix=aux_prefix + '_' + name_prefix+ "_distmap_multimer"
+                    output_prefix=aux_prefix + '_' + name_prefix + "_distmap_multimer"
                 )
             else:
                 d_multimer = None
 
             # if we have a multimer contact mapin the end, save it
             if d_multimer is not None:
-                d_multimer.to_file(outcfg[name_prefix+"_distmap_multimer"])
-                outcfg[name_prefix+"_multimer_contacts_file"] = prefix + name_prefix+"_contacts_multimer.csv"
+                d_multimer.to_file(outcfg[name_prefix + "_distmap_multimer"])
+                outcfg[name_prefix + "_multimer_contacts_file"] = prefix + name_prefix + "_contacts_multimer.csv"
 
                 # save contacts to separate file
                 d_multimer.contacts(
                     kwargs["distance_cutoff_inter"]
                 ).to_csv(
-                    outcfg[name_prefix+"_multimer_contacts_file"], index=False
+                    outcfg[name_prefix + "_multimer_contacts_file"], index=False
                 )
             else:
-                outcfg[name_prefix+"_distmap_multimer"] = None
+                outcfg[name_prefix + "_distmap_multimer"] = None
 
             # at this point, also create remapped structures (e.g. for
             # later comparison of folding results)
             verify_resources(
                 "Target sequence file does not exist",
-                kwargs[name_prefix+"_target_sequence_file"]
+                kwargs[name_prefix + "_target_sequence_file"]
             )
 
             # create target sequence map for remapping structure
-            with open(kwargs[name_prefix+"_target_sequence_file"]) as f:
+            with open(kwargs[name_prefix + "_target_sequence_file"]) as f:
                 header, seq = next(read_fasta(f))
 
             seq_id, seq_start, seq_end = parse_header(header)
@@ -726,28 +732,27 @@ def complex_compare(**kwargs):
 
             # remap structures, swap mapping index and filename in
             # dictionary so we have a list of files in the dict keys
-            outcfg[name_prefix+"_remapped_pdb_files"] = {
+            outcfg[name_prefix + "_remapped_pdb_files"] = {
                 filename: mapping_index for mapping_index, filename in
                 remap_chains(sifts_map, aux_prefix, seqmap).items()
-            }
+                }
         else:
             # if no structures, can not compute distance maps
             d_intra = None
             d_multimer = None
-            outcfg[name_prefix+"_distmap_monomer"] = None
-            outcfg[name_prefix+"_distmap_multimer"] = None
+            outcfg[name_prefix + "_distmap_monomer"] = None
+            outcfg[name_prefix + "_distmap_multimer"] = None
 
-        return d_intra,d_multimer
+        return d_intra, d_multimer
 
-    d_intra_i, d_multimer_i = _compute_monomer_distance_maps(first_sifts_map,'first')
-    d_intra_j, d_multimer_j = _compute_monomer_distance_maps(second_sifts_map,'second')
-
+    d_intra_i, d_multimer_i = _compute_monomer_distance_maps(first_sifts_map, 'first')
+    d_intra_j, d_multimer_j = _compute_monomer_distance_maps(second_sifts_map, 'second')
 
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
-        d_inter = inter_dists(first_sifts_map,second_sifts_map,
-                                    raise_missing = kwargs['raise_missing'])
+        d_inter = inter_dists(first_sifts_map, second_sifts_map,
+                              raise_missing=kwargs['raise_missing'])
 
-        if d_inter is not None: #save results
+        if d_inter is not None:  # save results
             d_inter.to_file(outcfg["distmap_inter"])
 
             # save contacts to separate file
@@ -757,10 +762,10 @@ def complex_compare(**kwargs):
                 outcfg["inter_contacts_file"], index=False
             )
 
-        else: #no overlapping pdbs
-            outcfg["inter_contacts_file"]=None
+        else:  # no overlapping pdbs
+            outcfg["inter_contacts_file"] = None
     else:
-        d_inter=None
+        d_inter = None
 
     # # Step 3: Compare ECs to distance maps
     #
@@ -842,11 +847,12 @@ def complex_compare(**kwargs):
 
     outcfg["contact_map_files"] = _make_complex_contact_maps(
         ec_table, d_intra_i, d_multimer_i,
-        d_intra_j,d_multimer_j,
-        d_inter,**kwargs
+        d_intra_j, d_multimer_j,
+        d_inter, **kwargs
     )
 
     return outcfg
+
 
 # list of available EC comparison protocols
 PROTOCOLS = {
