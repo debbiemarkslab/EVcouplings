@@ -3,8 +3,11 @@ Evolutionary couplings calculation protocols/workflows.
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (complex couplings)
 """
 
+import numpy as np
+import pandas as pd
 from evcouplings.couplings import tools as ct
 from evcouplings.couplings import pairs, mapping
 from evcouplings.couplings.model import CouplingsModel
@@ -54,7 +57,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False):
         if false, fits the model to only the inter ECs
     '''
     if use_all_ecs is True:
-        ecs = ecs.add_mixture_proability(
+        ecs = pairs.add_mixture_proability(
             ecs, model=scoring_model
         )
 
@@ -62,7 +65,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False):
         inter_ecs = ecs.query('segment_i != segment_j')
         intra_ecs = ecs.query('segment_i == segment_j')
         intra_ecs['probability'] = np.nan
-        inter_ecs = inter_ecs.add_mixture_probability(
+        inter_ecs = pairs.add_mixture_probability(
             inter_ecs, model=scoring_model
         )
 
@@ -376,6 +379,7 @@ def complex(**kwargs):
             "scale_clusters",
             "cpu", "plmc", "reuse_ecs",
             "min_sequence_distance", # "save_model",
+            "scoring_model"
         ]
     )
 
@@ -558,6 +562,7 @@ def complex(**kwargs):
             "{}. Valid options are: {}".format(
                 kwargs["protocol"], ", ".join(SCORING_MODELS)
             )
+        )
 
     # write updated table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
@@ -565,37 +570,38 @@ def complex(**kwargs):
     # also store longrange ECs as convenience output
     if kwargs["min_sequence_distance"] is not None:
         outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
-    ecs_longrange = ecs.query(
-        "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
-    )
-    ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
+        ecs_longrange = ecs.query(
+            "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
+        )
+        ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
 
     # also create line-drawing script (for now, only for single segments)
     if segments is None or len(segments) == 1:
         outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
-    L = outcfg["num_sites"]
-    ec_lines_pymol_script(
-        ecs_longrange.iloc[:L, :],
-        outcfg["ec_lines_pml_file"]
-    )
+        L = outcfg["num_sites"]
+        ec_lines_pymol_script(
+            ecs_longrange.iloc[:L, :],
+            outcfg["ec_lines_pml_file"]
+        )
 
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
     if segments is None or len(segments) == 1:
         outcfg["enrichment_file"] = prefix + "_enrichment.csv"
-    ecs_enriched = pairs.enrichment(ecs)
-    ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
+        
+        ecs_enriched = pairs.enrichment(ecs)
+        ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
 
-    # create corresponding enrichment pymol scripts
-    outcfg["enrichment_pml_files"] = []
-    for sphere_view, pml_suffix in [
-        (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
-    ]:
-        pml_file = prefix + pml_suffix
-    enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
-    outcfg["enrichment_pml_files"].append(pml_file)
+        # create corresponding enrichment pymol scripts
+        outcfg["enrichment_pml_files"] = []
+        for sphere_view, pml_suffix in [
+            (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
+        ]:
+            pml_file = prefix + pml_suffix
+            enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
+            outcfg["enrichment_pml_files"].append(pml_file)
 
-        # output EVzoom JSON file if we have stored model file
+    # output EVzoom JSON file if we have stored model file
     if outcfg.get("model_file", None) is not None:
         outcfg["evzoom_file"] = prefix + "_evzoom.json"
         with open(outcfg["evzoom_file"], "w") as f:
