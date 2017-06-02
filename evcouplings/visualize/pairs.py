@@ -88,6 +88,7 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
     (min_y, max_y) : (float, float)
         First and last position on y-axis
     """
+
     def _find_pos(axis):
         """
         Find first and last index along a single contact map axis
@@ -274,7 +275,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     # enable rescaling of points and secondary structure if necessary
     if scale_sizes:
         scale_func = lambda x: scale(x, ax=ax)
-    else:        
+    else:
         scale_func = lambda x: x
 
     # plot monomer contacts
@@ -313,7 +314,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                 secstruct_j = secondary_structure
             else:
                 if (not isinstance(secondary_structure, tuple) or
-                        len(secondary_structure) != 2):
+                            len(secondary_structure) != 2):
                     raise ValueError(
                         "When symmetric is False, secondary structure must "
                         "be a tuple (secstruct_i, secstruct_j)."
@@ -339,8 +340,8 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
 
 
 def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
-                        d_intra_i,d_multimer_i,
-                        d_intra_j,d_multimer_j,
+                        d_intra_i, d_multimer_i,
+                        d_intra_j, d_multimer_j,
                         d_inter, **kwargs):
     '''
     intra1_ecs: pandas.DataFrame
@@ -369,7 +370,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         - [(float, float), (float, float)]: Specify upper/lower bounds
           for both x-axis (first tuple) and y-axis (second tuple)
     '''
-    #check that boundaries is supplied
+    # check that boundaries is supplied
 
     boundaries = kwargs['boundaries']
 
@@ -408,7 +409,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
 
     # intra 1, upper left
     new_kwargs = deepcopy(kwargs)
-    new_kwargs['boundaries']=intra1_boundaries
+    new_kwargs['boundaries'] = intra1_boundaries
     plot_contact_map(ax=ax1,
                      symmetric=True,
                      ecs=intra1_ecs,
@@ -418,7 +419,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
 
     # intra 2, lower right
     new_kwargs = deepcopy(kwargs)
-    new_kwargs['boundaries']=intra2_boundaries
+    new_kwargs['boundaries'] = intra2_boundaries
     plot_contact_map(ax=ax4,
                      symmetric=True,
                      ecs=intra2_ecs,
@@ -428,7 +429,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
 
     # inter, lower left
     new_kwargs = deepcopy(kwargs)
-    new_kwargs['boundaries']=inter_boundaries
+    new_kwargs['boundaries'] = inter_boundaries
     plot_contact_map(ax=ax3,
                      symmetric=False,
                      ecs=inter_ecs,
@@ -445,7 +446,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         d_inter_T = d_inter.transpose()
 
     new_kwargs = deepcopy(kwargs)
-    new_kwargs['boundaries']=list(reversed(inter_boundaries))
+    new_kwargs['boundaries'] = list(reversed(inter_boundaries))
 
     plot_contact_map(ax=ax2,
                      symmetric=False,
@@ -651,7 +652,7 @@ def scale(style, ax=None):
 
     # dot size
     if "s" in style.keys():
-        style["s"] = style["s"]**2 / L
+        style["s"] = style["s"] ** 2 / L
 
     # secondary structure width
     if "width" in style.keys():
@@ -691,6 +692,7 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         and secondary structure. If None, defaults
         to the width of secondary structure * 3.
     """
+
     def _extract_secstruct(secstruct, axis_range):
         # turn into dictionary representation if
         # passed as a DataFrame
@@ -729,7 +731,7 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         secstruct = {
             i: sstr for (i, sstr) in secstruct.items()
             if range_min <= i < range_max
-        }
+            }
 
         first_pos, last_pos = min(secstruct), max(secstruct) + 1
         secstruct_str = "".join(
@@ -851,6 +853,7 @@ def secondary_structure_cartoon(
     draw_coils : bool, optional (Default: True)
         If true, draw line for coil segments.
     """
+
     def _transform(x, y):
         """
         Transform raw drawing coordinates if
@@ -954,8 +957,8 @@ def secondary_structure_cartoon(
     # finally, draw all coil segments
     if draw_coils:
         for (start, end) in zip(
-            no_ss_segments[::2],
-            no_ss_segments[1::2]
+                no_ss_segments[::2],
+                no_ss_segments[1::2]
         ):
             if start > end:
                 continue
@@ -1000,7 +1003,7 @@ def find_secondary_structure_segments(sse_string, offset=0):
         (i, (c1, c2)) for (i, (c1, c2)) in
         enumerate(zip(sse_list[:-1], sse_list[1:]))
         if c1 != c2
-    ]
+        ]
 
     segments = []
     last_start = 0
