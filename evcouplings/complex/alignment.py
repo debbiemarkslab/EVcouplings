@@ -68,7 +68,7 @@ def write_concatenated_alignment(id_pairing,
             
             for full_id in id_to_header[id]:
                 seq = ali[ali.id_to_index[full_id]]
-                sequence_to_identity.append(full_id,_identity(target_seq,seq))
+                sequence_to_identity.append((full_id,_identity(target_seq,seq)))
             
             sequence_to_identity = sorted(sequence_to_identity,key=itemgetter(1),ascending=False)
         return sequence_to_identity[0][0]
