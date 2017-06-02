@@ -260,13 +260,16 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
         with misc.plot_context("Arial"):
             fig = plt.figure(figsize=(8, 8))
 
-            if kwargs["scale_sizes"]:
-                ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
-                ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
+            # if kwargs["scale_sizes"]:
+            #     ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
+            #     print(ecs)
+            #     ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
 
-                ecs_i = ecs.query("segment_i == segment_j == 'A_i'")
-                ecs_j = ecs.query("segment_i == segment_j == 'B_i'")
-                ecs_inter = ecs.query("segment_i != segment_j")
+            #     ecs_i = ecs.query("segment_i == segment_j == 'A_1'")
+            #     ecs_j = ecs.query("segment_i == segment_j == 'B_1'")
+            #     ecs_inter = ecs.query("segment_i != segment_j")
+
+            #     print(ecs_i)
 
             pairs.complex_contact_map(
                 ecs_i, ecs_j, ecs_inter,
@@ -328,9 +331,8 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
     for c in range(lowest, highest + 1, step):
         ec_set_inter = ecs_longrange.query("segment_i != segment_j")[0:c]
         last_inter_index = ec_set_inter.index[-1]
-        ec_set_i = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == 'A_1' ")
-        ec_set_j = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == 'B_1' ")
-
+        ec_set_i = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == 'A_1'")
+        ec_set_j = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == 'B_1'")
         output_file = prefix + "_{}_ECs.pdf".format(c)
         plot_complex_cm(ec_set_i, ec_set_j, ec_set_inter, output_file=output_file)
         cm_files.append(output_file)
@@ -812,7 +814,6 @@ def complex_compare(**kwargs):
             # rename the precision column to 'segmentwise_precision'
             ec_table_compared = ec_table_compared.rename(columns={'precision': 'segmentwise_precision'})
             ec_table_compared = ec_table_compared.sort_values('cn', ascending=False)
-            print(ec_table_compared.head())
 
             # add the total precision
             # TODO: implement different cutoffs for intra vs inter contacts
