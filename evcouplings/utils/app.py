@@ -4,8 +4,9 @@ evcouplings command-line app
 Authors:
   Thomas A. Hopf
 
-# TODO: Once there are different pipelines to run, will
-        need to use subcommands to differentiate
+# TODO: Once there are different pipelines to run, there should
+be individual commands for these, so will need to define additional
+entry points for applications (e.g. evcomplex in addition to evcouplings).
 """
 
 import re
@@ -16,7 +17,7 @@ from os import path
 import click
 
 from evcouplings import utils
-from evcouplings.utils import pipeline
+from evcouplings.utils import pipeline, database
 from evcouplings.utils import summarize
 
 from evcouplings.utils.system import (
@@ -177,7 +178,7 @@ def substitute_config(**kwargs):
     return config
 
 
-def unroll_config(config, overwrite=False):
+def unroll_config(config):
     """
     Create individual job configs from master config file
     (e.g. containing batch section)
@@ -190,39 +191,24 @@ def unroll_config(config, overwrite=False):
 
     Returns
     -------
-    jobs : list
-        List of paths to individual config files
-        that can be fed into pipeline one by one
+    configs : dict
+        Dictionary of prefix to individual configurations
+        created by substitution from input configuration.
+        If no batch section is present, there will be only
+        one entry in the dictionary that corresponds to
+        the master run specified by the input configuration.
     """
-    # get global prefix of run and create folder
+    # get global prefix of run
     prefix = config["global"]["prefix"]
-    create_prefix_folders(prefix)
 
-    # write master config file (pre-unroll);
-    # if no batch job, this will be the only
-    # config file
-    cfg_filename = CONFIG_NAME.format(prefix)
-
-    # but check overwrite protection first...
-    # (but only if it is a valid configuration file with contents)
-    if not overwrite and valid_file(cfg_filename):
-        raise InvalidParameterError(
-            "Existing configuration file {} ".format(cfg_filename) +
-            "indicates current prefix {} ".format(prefix) +
-            "would overwrite existing results. Use --yolo " +
-            "flag to deactivate overwrite protection (e.g. for "
-            "restarting a job or running a different stage)."
-        )
-
-    # ... and then write
-    write_config_file(cfg_filename, config)
+    # store unrolled configurations here
+    configs = {}
 
     # check if we have a single job or need to unroll
     # into multiple jobs
     if config.get("batch", None) is None:
-        jobs = [cfg_filename]
+        configs[prefix] = config
     else:
-        jobs = []
         # go through all specified runs
         for sub_id, delta_config in config["batch"].items():
             # create copy of config and update for current subjob
@@ -238,32 +224,25 @@ def unroll_config(config, overwrite=False):
             # create full prefix for subjob
             sub_config["global"]["prefix"] = sub_prefix
 
-            # in case subprefices might be folder, create it
-            create_prefix_folders(sub_prefix)
-
             # apply subconfig delta
             # (assuming parameters are nested in two layers)
             for section in delta_config:
                 for param, value in delta_config[section].items():
                     sub_config[section][param] = value
 
-            # save config for individual job
-            subcfg_filename = CONFIG_NAME.format(sub_prefix)
-            write_config_file(subcfg_filename, sub_config)
+            configs[sub_prefix] = sub_config
 
-            jobs.append(subcfg_filename)
-
-    return jobs
+    return configs
 
 
-def run_jobs(config_files, global_config):
+def run_jobs(configs, global_config, overwrite=False, workdir=None):
     """
     Submit config to pipeline
 
     Parameters
     ----------
-    config_files : list of str
-        Paths to config files of subjobs
+    configs : dict
+        Configurations for individual subjobs
     global_config : dict
         Master configuration (if only one job,
         the contents of this dictionary will be
@@ -276,23 +255,64 @@ def run_jobs(config_files, global_config):
     cmd_base = "{} {}".format(python, pipeline_path)
     summ_base = "{} {}".format(python, summarize_path)
 
-    # create submitter from global (pre-unrolling) configuration
-    submitter = utils.SubmitterFactory(
-        global_config["environment"]["engine"],
-        db_path=global_config["global"]["prefix"] + "_job_database.txt"
-    )
-    # load all configs for jobs
-    # do this before submitting, so that each job
-    # can potentially have information about all
-    # other jobs (e.g. for summarizing runs)
-    job_to_cfg = {
-        job: utils.read_config_file(job) for job in config_files
-    }
+    # determine output directory for config files
+    prefix = global_config["global"]["prefix"]
 
-    # job_to_prefix = {
-    #     job: job_to_cfg[job]["global"]["prefix"] for job in job_to_cfg
-    # }
+    # integrate working directory into output prefix
+    # if it is given; if prefix contains an absolute path,
+    # this will override the workdir according to
+    # implementation of path.join()
+    if workdir is not None:
+        out_prefix = path.join(workdir, prefix)
+    else:
+        out_prefix = prefix
 
+    # save configuration file, make sure we do not overwrite previous run
+    # if overwrite protection is activated
+    # (but only if it is a valid configuration file with contents)
+    cfg_filename = CONFIG_NAME.format(out_prefix)
+
+    if not overwrite and valid_file(cfg_filename):
+        raise InvalidParameterError(
+            "Existing configuration file {} ".format(cfg_filename) +
+            "indicates current prefix {} ".format(prefix) +
+            "would overwrite existing results. Use --yolo " +
+            "flag to deactivate overwrite protection (e.g. for "
+            "restarting a job or running a different stage)."
+        )
+
+    # make sure working directory exists
+    create_prefix_folders(cfg_filename)
+
+    # write global config file
+    write_config_file(cfg_filename, global_config)
+
+    # also write individual subjob configuration files
+    # (we have to write these before submitting, since
+    # the job summarizer needs the paths to all files)
+    for subjob_prefix, subjob_cfg in configs.items():
+        # determine working dir for each subjob, since subjob
+        # prefix may contain slashes leading to subfolder creation
+        if workdir is not None:
+            subjob_out_prefix = path.join(workdir, subjob_prefix)
+        else:
+            subjob_out_prefix = subjob_prefix
+
+        subcfg_filename = CONFIG_NAME.format(subjob_out_prefix)
+
+        # make sure output subfolder exists
+        create_prefix_folders(subcfg_filename)
+
+        # write subjob configuration file
+        write_config_file(subcfg_filename, subjob_cfg)
+
+    # now create list of subjob config files relative to working
+    # directory (above, we allow to run submitted in arbitrary directory)
+    config_files = [
+        CONFIG_NAME.format(subjob_prefix) for subjob_prefix in configs
+    ]
+
+    # create command for summarizer (needs to know all subjob config files)
     summ_cmd = "{} {} {} {}".format(
         summ_base,
         global_config["pipeline"],
@@ -300,23 +320,33 @@ def run_jobs(config_files, global_config):
         " ".join(config_files)
     )
 
+    # create submitter from global (pre-unrolling) configuration
+    submitter = utils.SubmitterFactory(
+        global_config["environment"]["engine"],
+        db_path=global_config["global"]["prefix"] + "_job_database.txt"
+    )
+
     # collect individual submitted jobs here
     commands = []
 
     # prepare individual jobs for submission
-    for job, job_cfg in job_to_cfg.items():
+    for job, job_cfg in configs.items():
         job_prefix = job_cfg["global"]["prefix"]
+        job_cfg_file = CONFIG_NAME.format(job)
+
+        # set job status in database to pending
+        pipeline.update_job_status(job_cfg, status=database.EStatus.PEND)
 
         # create submission command
         env = job_cfg["environment"]
         cmd = utils.Command(
             [
-                "{} {}".format(cmd_base, job),
+                "{} {}".format(cmd_base, job_cfg_file),
                 summ_cmd
             ],
             name=job_prefix,
             environment=env["configuration"],
-            workdir=None,
+            workdir=workdir,
             resources={
                 utils.EResource.queue: env["queue"],
                 utils.EResource.time: env["time"],
@@ -329,13 +359,14 @@ def run_jobs(config_files, global_config):
 
         # store job for later dependency creation
         commands.append(cmd)
+
         # finally, submit job
         submitter.submit(cmd)
-        #time.sleep(5)
-    # submit final summarizer
-    # TODO - hold for now
 
-    # wait for all runs to finish (but only if necessary)
+    # submit final summarizer
+    # (hold for now - summarizer is run after each subjob finishes)
+
+    # wait for all runs to finish (but only if blocking)
     submitter.join()
 
 
@@ -372,10 +403,13 @@ def run(**kwargs):
         config["align"]["compute_num_effective_seqs"] = True
 
     # unroll batch jobs into individual pipeline jobs
-    subjob_cfg_files = unroll_config(config, kwargs.get("yolo", False))
+    sub_configs = unroll_config(config)
 
     # run pipeline computation for each individual (unrolled) config
-    run_jobs(subjob_cfg_files, config)
+    run_jobs(
+        sub_configs, config, kwargs.get("yolo", False),
+        kwargs.get("workdir", None)
+    )
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
