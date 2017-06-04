@@ -56,7 +56,7 @@ setup(
     author_email='thomas_hopf@hms.harvard.edu, benjamin_schubert@hms.harvard.edu',
 
     # Choose your license
-    license='BSD',
+    license='MIT',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[

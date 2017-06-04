@@ -102,7 +102,7 @@ Please refer to the Jupyter notebooks in the [notebooks subdirectory](https://gi
 
 ## License
 
-(TODO)
+EVcouplings is available under the MIT license.
 
 ## References
 
@@ -126,3 +126,4 @@ EVcouplings is developed in the labs of [Debora Marks](http://marks.hms.harvard.
 * Agnes Toth-Petroczy
 * John Ingraham
 * Anna Green
+* Rob Sheridan
