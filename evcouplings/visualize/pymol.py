@@ -107,7 +107,10 @@ def pymol_pair_lines(pairs, output_file, chain=None, atom="CA", pair_prefix="ec"
         be used to adjust the corresponding Pymol property of each
         drawn line. Dash parameters should be floats, colors can
         be any of the Pymol color names or a hexademical color code
-        (prefixed with 0x instead of #).
+        (# will be converted to Pymol 0x convention automatically).
+        If columns "chain_i" or "chain_j" are present, these will
+        define the respective chains for each end of the line, and
+        override the chain parameter.
     output_file : str or file-like
         Write Pymol script to this file (filename as string,
         or writeable file handle)
@@ -131,15 +134,22 @@ def pymol_pair_lines(pairs, output_file, chain=None, atom="CA", pair_prefix="ec"
     cmds = []
 
     def _selector(row, column):
-        if chain is not None:
-            # if we have a dictionary, map chain based on selector column
+        # if there is a chain specified, take it
+        if "chain_" + column in row:
+            c = row["chain_" + column]
+        elif chain is not None:
+            # if we have a dictionary and a segment column,
+            # use that
             if isinstance(chain, dict):
                 c = chain[row["segment_" + column]]
             else:
                 # otherwise just take the name of the chain as it is
                 c = chain
+        else:
+            c = None
 
-            # create selector for chain
+        # create selector for chain
+        if c is not None:
             chain_sel = "chain '{}' and ".format(c)
         else:
             # otherwise, if no chain info given, do not put selector on chain
@@ -162,13 +172,18 @@ def pymol_pair_lines(pairs, output_file, chain=None, atom="CA", pair_prefix="ec"
         cmds.append(cmd)
 
         # check if we need to set color
-        if "color" in r:
-            cmds.append("color {}, {}".format(r["color"], id_))
+        if "color" in r and pd.notnull(r["color"]):
+            cmds.append(
+                "color {}, {}".format(
+                    r["color"].replace("#", "0x"),
+                    id_
+                )
+            )
 
         # check all other properties we can set using
         # set <parameter>, <value>, <object>
         for param in ["dash_radius", "dash_gap", "dash_length"]:
-            if param in r:
+            if param in r and pd.notnull(r[param]):
                 cmds.append(
                     "set {}, {}, {}".format(param, r[param], id_)
                 )
