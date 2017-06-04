@@ -14,6 +14,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 # enumeration of possible job status values
 EStatus = (lambda **enums: type('Enum', (), enums))(
+    INIT="initialized",
     PEND="pending",
     RUN="running",
     DONE="done",
