@@ -323,7 +323,7 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
     # create submitter from global (pre-unrolling) configuration
     submitter = utils.SubmitterFactory(
         global_config["environment"]["engine"],
-        db_path=global_config["global"]["prefix"] + "_job_database.txt"
+        db_path=out_prefix + "_job_database.txt"
     )
 
     # collect individual submitted jobs here
