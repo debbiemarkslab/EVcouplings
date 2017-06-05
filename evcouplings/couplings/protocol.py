@@ -566,8 +566,8 @@ def complex(**kwargs):
             )
         )
 
-        # write updated table to csv file
-        ecs.to_csv(outcfg["ec_file"], index=False)
+    # write updated table to csv file
+    ecs.to_csv(outcfg["ec_file"], index=False)
 
 
     # also store longrange ECs as convenience output
