@@ -638,13 +638,13 @@ def complex(**kwargs):
         # load parameters
             c = CouplingsModel(outcfg["model_file"])
 
-        # create JSON output and write to file
-        f.write(
-            evzoom_json(c) + "\n"
-        )
+            # create JSON output and write to file
+            f.write(
+                evzoom_json(c) + "\n"
+            )
 
-        # dump output config to YAML file for debugging/logging
-        write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
 
     return outcfg
 
