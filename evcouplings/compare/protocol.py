@@ -10,6 +10,7 @@ from copy import deepcopy
 from math import ceil
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 from evcouplings.align.alignment import (
     read_fasta, parse_header
@@ -778,31 +779,43 @@ def complex_compare(**kwargs):
         if (d_intra_i is not None) or (d_intra_j is not None):
             # compare distances individually for each segment pair
             ecs_intra_i = ec_table.query("segment_i == segment_j == 'A_1' ")
-            ecs_intra_i_compared = coupling_scores_compared(
-                ecs_intra_i, d_intra_i, d_multimer_i,
-                dist_cutoff=kwargs["distance_cutoff_intra"],
-                output_file=None,
-                score="cn",
-                min_sequence_dist=min_seq_dist
-            )
+            if d_intra_i is not None:
+                ecs_intra_i_compared = coupling_scores_compared(
+                    ecs_intra_i, d_intra_i, d_multimer_i,
+                    dist_cutoff=kwargs["distance_cutoff_intra"],
+                    output_file=None,
+                    score="cn",
+                    min_sequence_dist=min_seq_dist
+                )
+            else:
+                ecs_intra_i_compared = deepcopy(ecs_intra_i)
+                ecs_intra_i_compared['dist']=np.nan
 
             ecs_intra_j = ec_table.query("segment_i == segment_j == 'B_1' ")
-            ecs_intra_j_compared = coupling_scores_compared(
-                ecs_intra_j, d_intra_j, d_multimer_j,
-                dist_cutoff=kwargs["distance_cutoff_intra"],
-                output_file=None,
-                score="cn",
-                min_sequence_dist=min_seq_dist
-            )
+            if d_intra_j is not None:
+                ecs_intra_j_compared = coupling_scores_compared(
+                    ecs_intra_j, d_intra_j, d_multimer_j,
+                    dist_cutoff=kwargs["distance_cutoff_intra"],
+                    output_file=None,
+                    score="cn",
+                    min_sequence_dist=min_seq_dist
+                )
+            else:
+                ecs_intra_j_compared = deepcopy(ecs_intra_j)
+                ecs_intra_j_compared['dist']=np.nan
 
             ecs_inter = ec_table.query("segment_i != segment_j")
-            ecs_inter_compared = coupling_scores_compared(
-                ecs_inter, d_inter, dist_map_multimer=None,
-                dist_cutoff=kwargs["distance_cutoff_intra"],
-                output_file=None,
-                score="cn",
-                min_sequence_dist=min_seq_dist
-            )
+            if d_inter is not None:
+                ecs_inter_compared = coupling_scores_compared(
+                    ecs_inter, d_inter, dist_map_multimer=None,
+                    dist_cutoff=kwargs["distance_cutoff_inter"],
+                    output_file=None,
+                    score="cn",
+                    min_sequence_dist=min_seq_dist
+                )
+            else:
+                ecs_inter_compared = deepcopy(ecs_inter)
+                ecs_inter_compared['dist']=np.nan
 
             # combine the tables
             ec_table_compared = pd.concat([
