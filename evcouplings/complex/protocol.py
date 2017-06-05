@@ -38,6 +38,11 @@ from evcouplings.complex.distance import (
     best_reciprocal_matching,
     filter_ids_by_distance
 )
+from evcouplings.complex.similarity import (
+    read_identity_file,
+    read_annotation_file,
+    most_similar_by_organism
+)
 import re
 
 def genome_distance(**kwargs):
@@ -135,6 +140,8 @@ def genome_distance(**kwargs):
             genome_location_filename_2
         )
 
+    id_to_header_1[kwargs['first_focus_sequence']] = [kwargs['first_focus_sequence']]
+    id_to_header_2[kwargs['second_focus_sequence']] = [kwargs['second_focus_sequence']]
     uniprot_to_embl = {**uniprot_to_embl_1,**uniprot_to_embl_2}
     embl_to_annotation = {**embl_to_annotation_1,**embl_to_annotation_2}
 
@@ -271,13 +278,13 @@ def best_hit(**kwargs):
     def _load_monomer_info(annotations_file,
                            identites_file,
                            target_sequence,
-                           alignment_file)
+                           alignment_file):
 
         id_to_organism = read_annotation(annotations_file)
         id_to_header = {x: [x] for x in id_to_organism.keys()}
 
         #TODO: fix this so that we don't assume target sequence is the first sequence
-        id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file).ids[0]]
+        id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file).ids[0])]
 
         similarities = read_identity_file(identities_file)
         species_to_most_similar = most_similar_by_organism(similarities, id_to_organism)
@@ -312,7 +319,7 @@ def best_hit(**kwargs):
         sequence_pairing,
         id_to_header_1, id_to_header_2,
         kwargs['first_alignment_file'],
-        kwargs['second_alignment_file',
+        kwargs['second_alignment_file'],
         kwargs['first_focus_sequence'],
         kwargs['second_focus_sequence'],
         raw_alignment_file

@@ -261,6 +261,11 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
         with misc.plot_context("Arial"):
             fig = plt.figure(figsize=(8, 8))
 
+            ecs_i = ecs.query("segment_i == segment_j == 'A_1'")
+            ecs_j = ecs.query("segment_i == segment_j == 'B_1'")
+            ecs_inter = ecs.query("segment_i != segment_j")
+
+            #TODO: fix scale sizing
             # if kwargs["scale_sizes"]:
             #     ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
             #     print(ecs)
@@ -269,14 +274,6 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             #     ecs_i = ecs.query("segment_i == segment_j == 'A_1'")
             #     ecs_j = ecs.query("segment_i == segment_j == 'B_1'")
             #     ecs_inter = ecs.query("segment_i != segment_j")
-
-<<<<<<< Updated upstream
-            #     print(ecs_i)
-=======
-                ecs_i = ecs.query("segment_i == segment_j == 'A_1'")
-                ecs_j = ecs.query("segment_i == segment_j == 'B_1'")
-                ecs_inter = ecs.query("segment_i != segment_j")
->>>>>>> Stashed changes
 
             pairs.complex_contact_map(
                 ecs_i, ecs_j, ecs_inter,
@@ -582,13 +579,13 @@ def complex_compare(**kwargs):
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter",
             "first_compare_multimer", "second_compare_multimer",
-            "distance_cutoff_intra",0
+            "distance_cutoff_intra",
             "distance_cutoff_inter",
             "first_sequence_id", "second_sequence_id",
             "first_sequence_file", "second_sequence_file",
             "first_segments", "second_segments",
             "first_target_sequence_file", "second_target_sequence_file",
-            "scale_sizes",
+            "scale_sizes"
         ]
     )
 
