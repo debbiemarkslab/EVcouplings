@@ -265,7 +265,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             ecs_j = ecs.query("segment_i == segment_j == 'B_1'")
             ecs_inter = ecs.query("segment_i != segment_j")
 
-            #TODO: fix scale sizing
+            # TODO: fix scale sizing
             # if kwargs["scale_sizes"]:
             #     ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
             #     print(ecs)
@@ -791,7 +791,7 @@ def complex_compare(**kwargs):
                 )
             else:
                 ecs_intra_i_compared = deepcopy(ecs_intra_i)
-                ecs_intra_i_compared['dist']=np.nan
+                ecs_intra_i_compared['dist'] = np.nan
 
             ecs_intra_j = ec_table.query("segment_i == segment_j == 'B_1' ")
             if d_intra_j is not None:
@@ -804,7 +804,7 @@ def complex_compare(**kwargs):
                 )
             else:
                 ecs_intra_j_compared = deepcopy(ecs_intra_j)
-                ecs_intra_j_compared['dist']=np.nan
+                ecs_intra_j_compared['dist'] = np.nan
 
             ecs_inter = ec_table.query("segment_i != segment_j")
             if d_inter is not None:
@@ -817,7 +817,7 @@ def complex_compare(**kwargs):
                 )
             else:
                 ecs_inter_compared = deepcopy(ecs_inter)
-                ecs_inter_compared['dist']=np.nan
+                ecs_inter_compared['dist'] = np.nan
 
             # combine the tables
             ec_table_compared = pd.concat([
