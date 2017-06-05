@@ -104,8 +104,8 @@ def write_concatenated_alignment(id_pairing,
     # create target header and target sequence
     # Format id1_id2 full_header_1 full_header_2
     # target full header is equivalent to target sequence
-    target_full_header_1 = target_sequence_1
-    target_full_header_2 = target_sequence_2
+    target_full_header_1 = id_to_full_header_1[target_sequence_1][0]
+    target_full_header_2 = id_to_full_header_2[target_sequence_2][0]
 
     target_sequences = (_prepare_sequence(ali_1, target_full_header_1),
                         _prepare_sequence(ali_2, target_full_header_2))

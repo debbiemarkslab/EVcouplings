@@ -253,7 +253,8 @@ def best_hit(**kwargs):
             "first_focus_sequence", "second_focus_sequence",
             "first_focus_mode", "second_focus_mode",
             "first_segments", "second_segments",
-            "first_identities_file","second_identities_file"
+            "first_identities_file","second_identities_file",
+            "first_annotation_file","second_annotation_file"
         ]
     )
 
@@ -269,33 +270,65 @@ def best_hit(**kwargs):
     create_prefix_folders(prefix)
 
 
-    #load the information for each monomer alignment
+    def _load_monomer_info(annotations_file,
+                           identites_file,
+                           target_sequence,
+                           alignment_file)
 
-    #find all possible matches
+        id_to_organism = read_annotation(annotations_file)
+        id_to_header = {x: [x] for x in id_to_organism.keys()}
 
-    #find the best matches
+        #TODO: fix this so that we don't assume target sequence is the first sequence
+        id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file).ids[0]]
 
-    #write concatenated alignment with distance filtering
+        similarities = read_identity_file(identities_file)
+        species_to_most_similar = most_similar_by_organism(similarities, id_to_organism)
+
+        return species_to_most_similar,id_to_header
+
+    # load the information about each monomer alignment
+    species_to_most_similar_1,id_to_header_1 = _load_monomer_info(
+        kwargs['first_annotation_file'],
+        kwargs['first_identities_file'],
+        kwargs['first_focus_sequence'],
+        kwargs['first_alignment_file']
+    )
+
+    species_to_most_similar_2,id_to_header_2 = _load_monomer_info(
+        kwargs['second_annotation_file'],
+        kwargs['second_identities_file'],
+        kwargs['second_focus_sequence'],
+        kwargs['second_alignment_file']
+    )
+
+    #determine the species intersection
+    species_intersection = [x for x in species_to_most_similar_1.keys() if x in species_to_most_similar_2.keys()]
+
+    #pair the sequence identifiers
+    sequence_pairing = [(species_to_most_similar_1[x][1], species_to_most_similar_2[x][1]) for x in
+                        species_intersection]
+
     raw_alignment_file = prefix + '_raw.fasta'
-    target_seq_id, target_seq_index = write_concatenated_alignment(id_pairing,
-                             id_to_header_1,
-                             id_to_header_2,
-                             alignment_1,
-                             alignment_2,
-                             kwargs['first_focus_sequence'],
-                             kwargs['second_focus_sequence'],
-                             raw_alignment_file
-                             )
+
+    target_seq_id,target_seq_index = write_concatenated_alignment(
+        sequence_pairing,
+        id_to_header_1, id_to_header_2,
+        kwargs['first_alignment_file'],
+        kwargs['second_alignment_file',
+        kwargs['first_focus_sequence'],
+        kwargs['second_focus_sequence'],
+        raw_alignment_file
+    )
 
     #filter the alignment
     raw_ali = Alignment.from_file(open(raw_alignment_file))
-    aln_outcfg,_ = modify_alignment(raw_ali,
-                                target_seq_index,
-                                target_seq_id,
-                                kwargs['first_region_start'],
-                                **kwargs
-
-        )
+    aln_outcfg,_ = modify_alignment(
+        raw_ali,
+        target_seq_index,
+        target_seq_id,
+        kwargs['first_region_start'],
+        **kwargs
+    )
 
     def _modify_segments(seg_list, seg_prefix):
         # extract segments from list representation into objects
