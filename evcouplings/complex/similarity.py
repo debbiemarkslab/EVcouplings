@@ -18,7 +18,7 @@ def read_identity_file(identity_file):
         id_to_identity[id]=ident
     return id_to_identity
 
-def read_annotation(annotation_file,column='OS'):
+def read_annotation_file(annotation_file,column='OS'):
     '''
     returns: dict of str:str
         sequence identifier to species annotation
