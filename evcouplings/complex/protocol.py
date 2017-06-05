@@ -276,15 +276,15 @@ def best_hit(**kwargs):
 
 
     def _load_monomer_info(annotations_file,
-                           identites_file,
+                           identities_file,
                            target_sequence,
                            alignment_file):
 
-        id_to_organism = read_annotation(annotations_file)
+        id_to_organism = read_annotation_file(annotations_file)
         id_to_header = {x: [x] for x in id_to_organism.keys()}
 
         #TODO: fix this so that we don't assume target sequence is the first sequence
-        id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file).ids[0])]
+        id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file)).ids[0]]
 
         similarities = read_identity_file(identities_file)
         species_to_most_similar = most_similar_by_organism(similarities, id_to_organism)
