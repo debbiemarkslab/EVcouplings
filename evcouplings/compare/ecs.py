@@ -35,7 +35,7 @@ def add_distances(ec_table, dist_map, target_column="dist"):
     ec_table.loc[:, target_column] = [
         dist_map.dist(i, j, raise_na=False)
         for i, j in zip(ec_table.i, ec_table.j)
-    ]
+        ]
 
     return ec_table
 
