@@ -179,7 +179,7 @@ def find_possible_partners(seq_ids_ali_1,
 def filter_ids_by_distance(id_pairing,
                            id_pair_to_distance,
                            genome_distance_threshold=999999999):
-    '''
+    """
     Filters the list of paired ids to include only those
     below the genome distance threshold
     Parameters
@@ -199,7 +199,7 @@ def filter_ids_by_distance(id_pairing,
         matched pairs of ids that are closer than 
         the threshold
         
-    '''
+    """
     filtered_id_pairing = []
 
     for id_pair in id_pairing:

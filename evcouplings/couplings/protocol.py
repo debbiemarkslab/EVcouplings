@@ -37,14 +37,14 @@ ALPHABET_MAP = {
     "rna": ALPHABET_RNA,
 }
 SCORING_MODELS = (
-    'skewnormal',
-    'normal',
-    'evcomplex'
+    "skewnormal",
+    "normal",
+    "evcomplex"
 )
 
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False):
-    '''
+    """
     Adds mixture probability for protein complex ecs
 
     parameters:
@@ -56,22 +56,22 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False):
     use_all_ecs: Boolean
         if true, fits the scoring model to all ECs
         if false, fits the model to only the inter ECs
-    '''
+    """
     if use_all_ecs is True:
         ecs = pairs.add_mixture_proability(
             ecs, model=scoring_model
         )
 
     else:
-        inter_ecs = ecs.query('segment_i != segment_j')
-        intra_ecs = ecs.query('segment_i == segment_j')
-        intra_ecs['probability'] = np.nan
+        inter_ecs = ecs.query("segment_i != segment_j")
+        intra_ecs = ecs.query("segment_i == segment_j")
+        intra_ecs["probability"] = np.nan
         inter_ecs = pairs.add_mixture_probability(
             inter_ecs, model=scoring_model
         )
 
         ecs = pd.concat([intra_ecs, inter_ecs]).sort_values(
-            'cn', ascending=False
+            "cn", ascending=False
         )
     return ecs
 
@@ -549,13 +549,13 @@ def complex(**kwargs):
 
     # add mixture model probability
     if kwargs["scoring_model"] in SCORING_MODELS:
-        if kwargs['use_all_ecs_for_scoring'] is not None:
-            use_all_ecs = kwargs['use_all_ecs_for_scoring']
+        if kwargs["use_all_ecs_for_scoring"] is not None:
+            use_all_ecs = kwargs["use_all_ecs_for_scoring"]
         else:
             use_all_ecs = False
 
         ecs = complex_probability(
-            ecs, kwargs['scoring_model'], use_all_ecs
+            ecs, kwargs["scoring_model"], use_all_ecs
         )
 
     else:

@@ -120,8 +120,8 @@ def genome_distance(**kwargs):
     alignment_1 = kwargs["first_alignment_file"]
     alignment_2 = kwargs["second_alignment_file"]
 
-    uniprot_to_embl_filename_1 = kwargs['first_embl_mapping_file']
-    uniprot_to_embl_filename_2 = kwargs['second_embl_mapping_file']
+    uniprot_to_embl_filename_1 = kwargs["first_embl_mapping_file"]
+    uniprot_to_embl_filename_2 = kwargs["second_embl_mapping_file"]
 
     genome_location_filename_1 = kwargs["first_genome_location_file"]
     genome_location_filename_2 = kwargs["second_genome_location_file"]
@@ -140,8 +140,8 @@ def genome_distance(**kwargs):
             genome_location_filename_2
         )
 
-    id_to_header_1[kwargs['first_focus_sequence']] = [kwargs['first_focus_sequence']]
-    id_to_header_2[kwargs['second_focus_sequence']] = [kwargs['second_focus_sequence']]
+    id_to_header_1[kwargs["first_focus_sequence"]] = [kwargs["first_focus_sequence"]]
+    id_to_header_2[kwargs["second_focus_sequence"]] = [kwargs["second_focus_sequence"]]
 
     uniprot_to_embl = {**uniprot_to_embl_1, **uniprot_to_embl_2}
     embl_to_annotation = {**embl_to_annotation_1, **embl_to_annotation_2}
@@ -162,10 +162,10 @@ def genome_distance(**kwargs):
     id_pairing = filter_ids_by_distance(
         id_pairing_unfiltered,
         id_pair_to_distance,
-        kwargs['genome_distance_threshold']
+        kwargs["genome_distance_threshold"]
     )
 
-    raw_alignment_file = prefix + '_raw.fasta'
+    raw_alignment_file = prefix + "_raw.fasta"
 
     # write concatenated alignment with distance filtering
     target_seq_id, target_seq_index = write_concatenated_alignment(
@@ -174,8 +174,8 @@ def genome_distance(**kwargs):
         id_to_header_2,
         alignment_1,
         alignment_2,
-        kwargs['first_focus_sequence'],
-        kwargs['second_focus_sequence'],
+        kwargs["first_focus_sequence"],
+        kwargs["second_focus_sequence"],
         raw_alignment_file
     )
 
@@ -185,7 +185,7 @@ def genome_distance(**kwargs):
         raw_ali,
         target_seq_index,
         target_seq_id,
-        kwargs['first_region_start'],
+        kwargs["first_region_start"],
         **kwargs
     )
 
@@ -284,7 +284,7 @@ def best_hit(**kwargs):
         id_to_organism = read_annotation_file(annotations_file)
         id_to_header = {x: [x] for x in id_to_organism.keys()}
 
-        # TODO: fix this so that we don't assume target sequence is the first sequence
+        # TODO: fix this so that we don"t assume target sequence is the first sequence
         id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file)).ids[0]]
 
         similarities = read_identity_file(identities_file)
@@ -294,17 +294,17 @@ def best_hit(**kwargs):
 
     # load the information about each monomer alignment
     species_to_most_similar_1, id_to_header_1 = _load_monomer_info(
-        kwargs['first_annotation_file'],
-        kwargs['first_identities_file'],
-        kwargs['first_focus_sequence'],
-        kwargs['first_alignment_file']
+        kwargs["first_annotation_file"],
+        kwargs["first_identities_file"],
+        kwargs["first_focus_sequence"],
+        kwargs["first_alignment_file"]
     )
 
     species_to_most_similar_2, id_to_header_2 = _load_monomer_info(
-        kwargs['second_annotation_file'],
-        kwargs['second_identities_file'],
-        kwargs['second_focus_sequence'],
-        kwargs['second_alignment_file']
+        kwargs["second_annotation_file"],
+        kwargs["second_identities_file"],
+        kwargs["second_focus_sequence"],
+        kwargs["second_alignment_file"]
     )
 
     # determine the species intersection
@@ -314,15 +314,15 @@ def best_hit(**kwargs):
     sequence_pairing = [(species_to_most_similar_1[x][1], species_to_most_similar_2[x][1]) for x in
                         species_intersection]
 
-    raw_alignment_file = prefix + '_raw.fasta'
+    raw_alignment_file = prefix + "_raw.fasta"
 
     target_seq_id, target_seq_index = write_concatenated_alignment(
         sequence_pairing,
         id_to_header_1, id_to_header_2,
-        kwargs['first_alignment_file'],
-        kwargs['second_alignment_file'],
-        kwargs['first_focus_sequence'],
-        kwargs['second_focus_sequence'],
+        kwargs["first_alignment_file"],
+        kwargs["second_alignment_file"],
+        kwargs["first_focus_sequence"],
+        kwargs["second_focus_sequence"],
         raw_alignment_file
     )
 
@@ -332,7 +332,7 @@ def best_hit(**kwargs):
         raw_ali,
         target_seq_index,
         target_seq_id,
-        kwargs['first_region_start'],
+        kwargs["first_region_start"],
         **kwargs
     )
 
