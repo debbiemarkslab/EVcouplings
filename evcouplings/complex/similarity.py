@@ -8,11 +8,11 @@ import pandas as pd
 
 
 def read_identity_file(identity_file):
-    '''
+    """
     returns: dict of str:float
         sequence identifier to identity
         
-    '''
+    """
     data = pd.read_csv(identity_file)
     id_to_identity = {}
     for id, ident in zip(data.id, data.identity_to_query):
@@ -20,12 +20,12 @@ def read_identity_file(identity_file):
     return id_to_identity
 
 
-def read_annotation_file(annotation_file, column='OS'):
-    '''
+def read_annotation_file(annotation_file, column="OS"):
+    """
     returns: dict of str:str
         sequence identifier to species annotation
         
-    '''
+    """
     data = pd.read_csv(annotation_file)
     id_to_species = {}
     for id, species in zip(data.id, data[column]):
@@ -34,7 +34,7 @@ def read_annotation_file(annotation_file, column='OS'):
 
 
 def most_similar_by_organism(similarities, id_to_organism):
-    '''
+    """
     Parameters:
     similarities: dict of str:int
         sequence identifier to identity
@@ -47,7 +47,7 @@ def most_similar_by_organism(similarities, id_to_organism):
         species identifier to tuple of (percent_identity,
         sequence identifier)
     
-    '''
+    """
     species_to_most_similar = {}
     for full_id, value in similarities.items():
         organism = id_to_organism[full_id]

@@ -343,7 +343,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
                         d_intra_i, d_multimer_i,
                         d_intra_j, d_multimer_j,
                         d_inter, **kwargs):
-    '''
+    """
     intra1_ecs: pandas.DataFrame
         Table of intra-molecular evolutionary couplings to plot
         (using columns "i" and "j") from monomer 1
@@ -369,10 +369,10 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         - tuple(float, float): Specify upper/lower bound manually
         - [(float, float), (float, float)]: Specify upper/lower bounds
           for both x-axis (first tuple) and y-axis (second tuple)
-    '''
+    """
     # check that boundaries is supplied
 
-    boundaries = kwargs['boundaries']
+    boundaries = kwargs["boundaries"]
 
     # Find the appropriate boundaries for each subset
     intra1_boundaries = list(find_boundaries(boundaries,
@@ -409,7 +409,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
 
     # intra 1, upper left
     new_kwargs = deepcopy(kwargs)
-    new_kwargs['boundaries'] = intra1_boundaries
+    new_kwargs["boundaries"] = intra1_boundaries
     plot_contact_map(ax=ax1,
                      symmetric=True,
                      ecs=intra1_ecs,
@@ -419,7 +419,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
 
     # intra 2, lower right
     new_kwargs = deepcopy(kwargs)
-    new_kwargs['boundaries'] = intra2_boundaries
+    new_kwargs["boundaries"] = intra2_boundaries
     plot_contact_map(ax=ax4,
                      symmetric=True,
                      ecs=intra2_ecs,
@@ -429,7 +429,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
 
     # inter, lower left
     new_kwargs = deepcopy(kwargs)
-    new_kwargs['boundaries'] = inter_boundaries
+    new_kwargs["boundaries"] = inter_boundaries
     plot_contact_map(ax=ax3,
                      symmetric=False,
                      ecs=inter_ecs,
@@ -438,7 +438,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
                      **new_kwargs)
 
     # inter, upper right
-    inter_ecs_transposed = pd.DataFrame({'i': inter_ecs.j, 'j': inter_ecs.i})
+    inter_ecs_transposed = pd.DataFrame({"i": inter_ecs.j, "j": inter_ecs.i})
 
     if d_inter is None:
         d_inter_T = None
@@ -446,7 +446,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         d_inter_T = d_inter.transpose()
 
     new_kwargs = deepcopy(kwargs)
-    new_kwargs['boundaries'] = list(reversed(inter_boundaries))
+    new_kwargs["boundaries"] = list(reversed(inter_boundaries))
 
     plot_contact_map(ax=ax2,
                      symmetric=False,
