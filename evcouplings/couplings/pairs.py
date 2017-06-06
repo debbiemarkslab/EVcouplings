@@ -629,6 +629,41 @@ class ScoreMixtureModel:
 
         return posterior
 
+class EVComplexScoreModel:
+    """
+       Assign to each EC score an EVComplex score as calculated
+       in Hopf & Scharfe 2014.
+       """
+
+    def __init__(self, x):
+        """
+        Parameters
+        ----------
+        x : np.array (or list-like)
+            EC scores from which to infer the mixture model
+        """
+        x = np.array(x)
+
+    def probability(self, x, plot=False):
+        """
+        Calculates evcomplex score as cn_score / min_cn_score
+
+        Parameters
+        ----------
+        x : np.array (or list-like)
+            List of scores
+        plot: Boolean
+            TODO: add plotting functionality
+        Returns
+        -------
+        probability: np.array(float)
+            EVcomplex score
+
+        """
+        # Calculate the minimum score
+        min_score = abs(np.min(x))
+        return np.divide(x,min_score)
+
 
 def add_mixture_probability(ecs, model="skewnormal", score="cn",
                             clamp_mu=False, plot=False):
@@ -665,11 +700,15 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
         mm = ScoreMixtureModel(ecs.loc[:, score].values)
     elif model == "normal":
         mm = LegacyScoreMixtureModel(ecs.loc[:, score].values, clamp_mu)
+    elif model == "evcomplex":
+        mm = EVComplexScoreModel(ecs.loc[:, score].values)
     else:
         raise ValueError(
             "Invalid model selection, valid options are: "
             "skewnormal, normal"
         )
+
+    print(mm)
 
     # assign probability
     ec_prob.loc[:, "probability"] = mm.probability(
