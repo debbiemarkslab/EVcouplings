@@ -474,7 +474,7 @@ class SlurmSubmitter(LSFSubmitter):
     Implements an LSF submitter
     """
     __name = "slurm"
-    __submit = "sbach --job-name={name} {dependent} {resources} '{cmd}'"
+    __submit = "sbatch --job-name={name} {dependent} {resources} --wrap '{cmd}'"
     __monitor = "squeue -j {job_id}"
     __cancel = "scancel {job_id}"
     __resources = ""
@@ -484,7 +484,7 @@ class SlurmSubmitter(LSFSubmitter):
                         EResource.nodes: "-n",
                         EResource.error: "-e",
                         EResource.out: "-o"}
-    __job_id_pattern = re.compile(r"^([0-9]*)")
+    __job_id_pattern = re.compile(r"Submitted batch job ([0-9]*)")
 
     def __init__(self, blocking=False, db_path=None):
         """
@@ -496,7 +496,28 @@ class SlurmSubmitter(LSFSubmitter):
         db_path: str
             the string to a LevelDB for command persistence
         """
-        super().__init__(blocking, db_path)
+        self.__blocking = blocking
+        if db_path is None:
+            tmp_db = NamedTemporaryFile(delete=False, dir=os.getcwd(), suffix=".db")
+            tmp_db.close()
+            self.__is_temp_db = True
+            self.__db_path = tmp_db.name
+        else:
+            self.__is_temp_db = False
+            self.__db_path = db_path
+
+        self.__db = PersistentDict(self.__db_path)
+
+    @property
+    def isBlocking(self):
+        return self.__blocking
+
+    @property
+    def name(self):
+        return self.__name
+
+    def __get_job_id(self, stdo):
+        return self.__job_id_pattern.match(stdo).group(1)
 
     def submit(self, command, dependent=None):
         dep = ""
