@@ -464,6 +464,129 @@ class LSFSubmitter(ASubmitter):
                 else:
                     time.sleep(1)
 
+########################################################################################################################
+#
+#  Slurm submitter
+#
+########################################################################################################################
+class SlurmSubmitter(LSFSubmitter):
+    """
+    Implements an LSF submitter
+    """
+    __name = "slurm"
+    __submit = "sbach --job-name={name} {dependent} {resources} '{cmd}'"
+    __monitor = "squeue -j {job_id}"
+    __cancel = "scancel {job_id}"
+    __resources = ""
+    __resources_flag = {EResource.queue: "-p",
+                        EResource.time: "-t",
+                        EResource.mem: "--mem-per-cpu",
+                        EResource.nodes: "-n",
+                        EResource.error: "-e",
+                        EResource.out: "-o"}
+    __job_id_pattern = re.compile(r"^([0-9]*)")
+
+    def __init__(self, blocking=False, db_path=None):
+        """
+        Init function
+
+        Parameters:
+        blocking: bool
+            determines whether join() blocks or not
+        db_path: str
+            the string to a LevelDB for command persistence
+        """
+        super().__init__(blocking, db_path)
+
+    def submit(self, command, dependent=None):
+        dep = ""
+        if dependent is not None:
+            try:
+                if isinstance(dependent, Command):
+                    d_info = yaml.load(self.__db[dependent.command_id], yaml.RoundTripLoader)
+                    dep = "--kill-on-invalid-dep=yes --dependency=afterok:{}".format(d_info["job_id"])
+                else:
+                    dep_jobs = []
+                    for d in dependent:
+                        d_info = yaml.load(self.__db[d.command_id], yaml.RoundTripLoader)
+                        dep_jobs.append(d_info["job_id"])
+                    # not sure if comma-separated is correct
+                    dep = "--kill-on-invalid-dep=yes --dependency=afterok:{}".format(":".join("ended({})".format(d)
+                                                                                              for d in dep_jobs))
+            except KeyError:
+                raise ValueError("Specified depended jobs have not been submitted yet.")
+
+        combine = " && " if command.environment else ""
+        cmd = " && ".join(command.environment) + combine + " && ".join(command.command)
+        resources = " ".join("{} {}".format(self.__resources_flag[k], v)
+                             for k, v in command.resources.items())
+        submit = self.__submit.format(
+            cmd=cmd,
+            resources=resources,
+            dependent=dep,
+            name=command.command_id
+        )
+
+        try:
+            p = subprocess.Popen(
+                submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, universal_newlines=True, cwd=command.workdir
+            )
+            stdo, stde = p.communicate()
+            stdr = p.returncode
+
+            if stdr > 0:
+                raise RuntimeError(
+                    "Unsuccessful execution of " + repr(command) + " (EXIT!=0) with error: " + stde
+                )
+        except Exception as e:
+            raise RuntimeError(e)
+
+        # get job id and submit to db
+        job_id = self.__get_job_id(stdo)
+        try:
+            # update entry if existing:
+            entry = yaml.load(self.__db[command.command_id], yaml.RoundTripLoader)
+            entry["name"] = command.name
+            entry["tries"] += 1
+            entry["job_id"] = job_id
+            entry["status"] = EStatus.PEND
+            entry["command"] = command.command
+            entry["resources"] = command.resources
+            entry["workdir"] = command.workdir
+            entry["environment"] = command.environment
+            self.__db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+        except KeyError:
+            # add new entry
+            entry = {
+                "name": command.name,
+                "job_id": job_id,
+                "tries": 1,
+                "status": EStatus.PEND,
+                "command": command.command,
+                "resources": command.resources,
+                "workdir": command.workdir,
+                "environment": command.environment
+            }
+            self.__db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+            self.__db.sync()
+
+        return job_id
+
+    def __get_status(self, stdo):
+        def status_map(st):
+            if st in ["PD","CF"]:
+                return EStatus.PEND
+            elif st in ["R","CG"]:
+                return EStatus.RUN
+            elif st == "CD":
+                return EStatus.DONE
+            elif st in ["BF","PR","TO","NF","F","CA"]:
+                return EStatus.EXIT
+            else:
+                return EStatus.SUSP
+        return status_map(stdo.split("\n")[1].split()[4])
+
 
 ########################################################################################################################
 #
