@@ -606,6 +606,14 @@ class SlurmSubmitter(AClusterSubmitter):
 
         self.__db = PersistentDict(self.__db_path)
 
+    def __del__(self):
+        try:
+            self.__db.close()
+            if self.__is_temp_db:
+                os.remove(self.__db_path)
+        except AttributeError:
+            pass
+          
     @property
     def isBlocking(self):
         return self.__blocking
