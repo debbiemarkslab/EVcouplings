@@ -64,25 +64,18 @@ def genome_distance(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        # TODO: this is the full list normally returned
-        # by alignment protocol, decide which ones
-        # to keep. Mandatory:
-        # alignment_file, focus_sequence, focus_mode, segments
-
         alignment_file
         raw_alignment_file
-
-
-        statistics_file
-        target_sequence_file
-        sequence_file
-        [annotation_file]
-        frequencies_file
-        identities_file
-        [hittable_file]
         focus_mode
         focus_sequence
         segments
+        frequencies_file
+        identities_file
+        num_sequences
+        num_sites
+        raw_focus_alignment_file
+        statistics_file
+]
     """
     check_required(
         kwargs,
@@ -236,23 +229,17 @@ def best_hit(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        # TODO: this is the full list normally returned
-        # by alignment protocol, decide which ones
-        # to keep. Mandatory:
-        # alignment_file, focus_sequence, focus_mode, segments
-
         alignment_file
         raw_alignment_file
-        statistics_file
-        target_sequence_file
-        sequence_file
-        [annotation_file]
-        frequencies_file
-        identities_file
-        [hittable_file]
         focus_mode
         focus_sequence
         segments
+        frequencies_file
+        identities_file
+        num_sequences
+        num_sites
+        raw_focus_alignment_file
+        statistics_file
     """
     check_required(
         kwargs,
@@ -395,11 +382,16 @@ def run(**kwargs):
 
         # TODO: to be finalized after implementing protocols
         alignment_file
+        raw_alignment_file
         focus_mode
         focus_sequence
         segments
-        num_sites
+        frequencies_file
+        identities_file
         num_sequences
+        num_sites
+        raw_focus_alignment_file
+        statistics_file
     """
     check_required(kwargs, ["protocol"])
 

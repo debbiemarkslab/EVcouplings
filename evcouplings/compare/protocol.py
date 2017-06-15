@@ -69,7 +69,6 @@ def _identify_structures(**kwargs):
             "sequence_threshold", "jackhmmer",
         ]
     )
-    print(kwargs["sequence_file"])
     # get SIFTS mapping object/sequence DB
     s = SIFTS(
         kwargs["sifts_mapping_table"],
@@ -174,7 +173,6 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
             "boundaries", "plot_lowest_count",
             "plot_highest_count", "plot_increase",
             "draw_secondary_structure",
-
         ]
     )
     prefix = kwargs["prefix"]
@@ -239,11 +237,15 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
        ----------
        ec_table : pandas.DataFrame
            Full set of evolutionary couplings (all pairs)
-       d_intra : DistanceMap
-           Computed residue-residue distances inside chain
-       d_multimer : DistanceMap
+       d_intra_i, d_intra_j: DistanceMap
+           Computed residue-residue distances within chains for
+           monomers i and j
+       d_multimer_i, d_multimer_j : DistanceMap
            Computed residue-residue distances between homomultimeric
-           chains
+           chains for monomers i and j
+        d_inter: DistanceMap
+            Computer residue-residue distances between heteromultimeric
+            chains
        **kwargs
            Further plotting parameters, see check_required in code
            for necessary values.
@@ -304,7 +306,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
         "abs(i - j) >= {} or segment_i != segment_j".format(kwargs["min_sequence_distance"])
     )
 
-    # based on significance cutoff
+    # create plots based on significance cutoff
     if kwargs["plot_probability_cutoffs"]:
         cutoffs = kwargs["plot_probability_cutoffs"]
         if not isinstance(cutoffs, list):
@@ -326,12 +328,14 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 )
                 cm_files.append(output_file)
 
+
+    # create plots based on user input number to plot
+
     # range of plots to make
     lowest = int(kwargs["plot_lowest_count"])
     highest = int(kwargs["plot_highest_count"])
     step = int(kwargs["plot_increase"])
 
-    # create individual plots
     for c in range(lowest, highest + 1, step):
         ec_set_inter = ecs_longrange.query("segment_i != segment_j")[0:c]
         last_inter_index = ec_set_inter.index[-1]
@@ -497,7 +501,7 @@ def standard(**kwargs):
         outcfg["remapped_pdb_files"] = {
             filename: mapping_index for mapping_index, filename in
             remap_chains(sifts_map, aux_prefix, seqmap).items()
-            }
+        }
     else:
         # if no structures, can not compute distance maps
         d_intra = None
@@ -744,7 +748,7 @@ def complex_compare(**kwargs):
             outcfg[name_prefix + "_remapped_pdb_files"] = {
                 filename: mapping_index for mapping_index, filename in
                 remap_chains(sifts_map, aux_prefix, seqmap).items()
-                }
+            }
         else:
             # if no structures, can not compute distance maps
             d_intra = None

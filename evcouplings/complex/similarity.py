@@ -9,8 +9,15 @@ import pandas as pd
 
 def read_identity_file(identity_file):
     """
-    returns: dict of str:float
-        sequence identifier to identity
+    Parameters
+    ----------
+    identity_file:str
+        path to identity file
+
+    Returns
+    -------
+    dict of str:str
+        sequence identifier to species annotation
         
     """
     data = pd.read_csv(identity_file)
@@ -22,7 +29,16 @@ def read_identity_file(identity_file):
 
 def read_annotation_file(annotation_file, column="OS"):
     """
-    returns: dict of str:str
+    Parameters
+    ----------
+    annotation_file: str
+        path to annotation file
+    column: str, optional (default="OS")
+        the column to use for species information
+
+    Returns
+    -------
+    dict of str:str
         sequence identifier to species annotation
         
     """
@@ -35,6 +51,9 @@ def read_annotation_file(annotation_file, column="OS"):
 
 def most_similar_by_organism(similarities, id_to_organism):
     """
+    for each species in the alignment, finds the sequence identifier
+    from that species that is most similar to the target sequence
+
     Parameters:
     similarities: dict of str:int
         sequence identifier to identity

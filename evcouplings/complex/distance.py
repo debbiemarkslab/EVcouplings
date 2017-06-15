@@ -20,8 +20,7 @@ def get_genome_to_cds_list(sequence_id_list,
     Parameters
     ----------
     sequence_id_list: list of str
-        uniprot ACs 
-        
+        uniprot ACs
     uniprot_to_embl: dict of tuple
         {uniprot_ac:[(ena_genome,ena_cds)]} 
         
@@ -86,7 +85,6 @@ def best_reciprocal_matching(possible_partners):
     -------
     id_pairing: list of tuple
         matched pairs of ids
-    
     id_pair_to_distance: dict of tuple:int
         genome distance between pairs
     
@@ -128,13 +126,10 @@ def find_possible_partners(seq_ids_ali_1,
     ----------
     seq_ids_ali_1: list of str
         uniprot ac for each entry in alignment 1
-        
     seq_ids_ali_2: list of str
         uniprot ac for each entry in alignment 2
-        
     uniprot_to_embl: dict of tuple
         {uniprot_ac:[(ena_genome,ena_cds)]}
-    
     embl_cds_to_annotation: dict of tuple (str,str,int,int)
         {cds_id:(genome_id,uniprot_ac,genome_start,genome_end)}
     
@@ -186,13 +181,10 @@ def filter_ids_by_distance(id_pairing,
     ----------
     id_pairing: list of tuple
         matched pairs of ids
-    
     id_pair_to_distance: dict of tuple:int
         genome distance between pairs
-        
     genome_distance_threshold: int
         maximum distance on genome allowed
-        
     Returns
     -------
     filtered_id_pairing: list of tuple

@@ -34,7 +34,7 @@ from evcouplings.utils.system import (
 from evcouplings.align.ena import (
     extract_embl_annotation,
     extract_uniprot_to_embl
-    )
+)
 
 
 def fetch_sequence(sequence_id, sequence_file,
@@ -1125,25 +1125,25 @@ def complex(**kwargs):
 
     outcfg = PROTOCOLS[kwargs["alignment_protocol"]](**kwargs)
 
-    # TODO: add additional processing functionality here
-    # TODO: add list of created output keys to function documentation
-
     #Extract the uniprot to embl mapping
     uniprot_to_embl_filename = prefix + '_uniprot_embl.csv'
 
-    extract_uniprot_to_embl(outcfg['alignment_file'],
-                            kwargs['uniprot_to_embl_table'],
-                            uniprot_to_embl_filename
-                            )
+    extract_uniprot_to_embl(
+        outcfg['alignment_file'],
+        kwargs['uniprot_to_embl_table'],
+        uniprot_to_embl_filename
+    )
 
     outcfg["embl_mapping_file"] = uniprot_to_embl_filename
 
     #extract the EMBL to genome location information
     genome_location_filename = prefix + '_genome_location.csv'
 
-    extract_embl_annotation(uniprot_to_embl_filename,
-                            kwargs['ena_genome_location_table'],
-                            genome_location_filename)
+    extract_embl_annotation(
+        uniprot_to_embl_filename,
+        kwargs['ena_genome_location_table'],
+        genome_location_filename
+    )
 
     outcfg["genome_location_file"] = genome_location_filename
 

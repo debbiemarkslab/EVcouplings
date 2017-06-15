@@ -731,7 +731,7 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         secstruct = {
             i: sstr for (i, sstr) in secstruct.items()
             if range_min <= i < range_max
-            }
+        }
 
         first_pos, last_pos = min(secstruct), max(secstruct) + 1
         secstruct_str = "".join(
@@ -957,8 +957,8 @@ def secondary_structure_cartoon(
     # finally, draw all coil segments
     if draw_coils:
         for (start, end) in zip(
-                no_ss_segments[::2],
-                no_ss_segments[1::2]
+            no_ss_segments[::2],
+            no_ss_segments[1::2]
         ):
             if start > end:
                 continue
@@ -1003,7 +1003,7 @@ def find_secondary_structure_segments(sse_string, offset=0):
         (i, (c1, c2)) for (i, (c1, c2)) in
         enumerate(zip(sse_list[:-1], sse_list[1:]))
         if c1 != c2
-        ]
+    ]
 
     segments = []
     last_start = 0
