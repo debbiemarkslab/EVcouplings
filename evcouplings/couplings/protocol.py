@@ -57,7 +57,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False):
         if true, fits the scoring model to all ECs
         if false, fits the model to only the inter ECs
     """
-    if use_all_ecs is True:
+    if use_all_ecs:
         ecs = pairs.add_mixture_proability(
             ecs, model=scoring_model
         )
@@ -160,7 +160,7 @@ def standard(**kwargs):
     if segments is not None:
         segments = [
             mapping.Segment.from_list(s) for s in segments
-            ]
+        ]
 
     # first determine size of alphabet;
     # default is amino acid alphabet
@@ -200,7 +200,7 @@ def standard(**kwargs):
         gap = alphabet[0]
         uppercase = [
             c for c in seq if c == c.upper() or c == gap
-            ]
+        ]
         L = len(uppercase)
 
         # finally, scale lambda_J

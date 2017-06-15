@@ -10,16 +10,6 @@ from collections import defaultdict
 from operator import itemgetter
 
 
-def unfilter(string):
-    """
-    uppercases all of the letters in string
-    converts all "." to "-"
-    """
-    unf_string = string.upper()
-    unf_string = unf_string.replace(".", "-")
-    return unf_string
-
-
 def write_concatenated_alignment(id_pairing,
                                  id_to_full_header_1,
                                  id_to_full_header_2,
@@ -33,15 +23,39 @@ def write_concatenated_alignment(id_pairing,
     """
     Parameters
     ----------
-    id_pairing
-    alignment_1
-    alignment_2
-    target_sequence_1
-    target_sequence_2
-    uniprot_to_id
-    concatenated_alignment_file
+    id_pairing: list of tuple
+        list of tuples of paired sequence identifiers
+    id_to_full_header_1,id_to_full_header_2: dict (str:list of str)
+        sequence identifiers pointing to list of full headers in
+        the alignment corresponding to that sequence identifier
+    alignment_1, alignment_2: str
+        path to alignment file
+    target_sequence_1, target_sequence_2: str
+        target sequence identifier
+    concatenated_alignment_file: str
+        path to concatenated alignment file
+    monomer_alignment_file_1,monomer_alignment_file_2: str, optional
+        default=None
+        path to write monomer alignments including only the
+        sequences written in the concatenated aln
+
+    Returns
+    -------
+    str
+        header of the concatenated target sequence
+    int
+        index of the target sequence in the alignment
 
     """
+
+    def _unfilter(string):
+        """
+        uppercases all of the letters in string
+        converts all "." to "-"
+        """
+        unf_string = string.upper()
+        unf_string = unf_string.replace(".", "-")
+        return unf_string
 
     def _identity(seq1, seq2):
         id = 0
@@ -58,7 +72,7 @@ def write_concatenated_alignment(id_pairing,
         if id points to unique header, return that header
         if id points to multiple headers, get the header
         that has closest id to target sequence
-        TODO: is this the best way to select the real hit? 
+        #TODO: is this the best way to select the real hit?
         """
         if len(id_to_header[id]) == 1:
             return id_to_header[id][0]
@@ -90,7 +104,7 @@ def write_concatenated_alignment(id_pairing,
         """
         sequence = ali[ali.id_to_index[full_header]]
         sequence = "".join(sequence)
-        sequence = unfilter(sequence)
+        sequence = _unfilter(sequence)
         return sequence
 
     sequences_to_write = []  # list of (header,seq1,seq2) tuples
