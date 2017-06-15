@@ -3,12 +3,14 @@ EC to 3D structure comparison protocols/workflows.
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green
 """
 
 from copy import deepcopy
 from math import ceil
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 from evcouplings.align.alignment import (
     read_fasta, parse_header
@@ -22,10 +24,13 @@ from evcouplings.utils.system import (
 )
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
-    intra_dists, multimer_dists, remap_chains
+    intra_dists, multimer_dists, remap_chains,
+    inter_dists
 )
 from evcouplings.compare.sifts import SIFTS, SIFTSResult
-from evcouplings.compare.ecs import coupling_scores_compared
+from evcouplings.compare.ecs import (
+    coupling_scores_compared, add_precision
+)
 from evcouplings.visualize import pairs, misc
 
 
@@ -43,6 +48,7 @@ def _identify_structures(**kwargs):
     SIFTSResult
         Identified structures and residue index mappings
     """
+
     def _filter_by_id(x, id_list):
         x = deepcopy(x)
         x.hits = x.hits.loc[
@@ -63,7 +69,7 @@ def _identify_structures(**kwargs):
             "sequence_threshold", "jackhmmer",
         ]
     )
-
+    print(kwargs['sequence_file'])
     # get SIFTS mapping object/sequence DB
     s = SIFTS(
         kwargs["sifts_mapping_table"],
@@ -135,6 +141,7 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
     cm_files : list(str)
         Paths of generated contact map files
     """
+
     def plot_cm(ecs, output_file=None):
         """
         Simple wrapper for contact map plotting
@@ -167,9 +174,9 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
             "boundaries", "plot_lowest_count",
             "plot_highest_count", "plot_increase",
             "draw_secondary_structure",
+
         ]
     )
-
     prefix = kwargs["prefix"]
 
     cm_files = []
@@ -215,6 +222,123 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
         ec_set = ecs_longrange.iloc[:c]
         output_file = prefix + "_{}_ECs.pdf".format(c)
         plot_cm(ec_set, output_file=output_file)
+        cm_files.append(output_file)
+
+    # give back list of all contact map file names
+    return cm_files
+
+
+def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
+                               d_intra_j, d_multimer_j,
+                               d_inter, **kwargs):
+    """
+       Plot contact maps with all ECs above a certain probability threshold,
+       or a given count of ECs
+
+       Parameters
+       ----------
+       ec_table : pandas.DataFrame
+           Full set of evolutionary couplings (all pairs)
+       d_intra : DistanceMap
+           Computed residue-residue distances inside chain
+       d_multimer : DistanceMap
+           Computed residue-residue distances between homomultimeric
+           chains
+       **kwargs
+           Further plotting parameters, see check_required in code
+           for necessary values.
+
+       Returns
+       -------
+       cm_files : list(str)
+           Paths of generated contact map files
+       """
+
+    def plot_complex_cm(ecs_i, ecs_j, ecs_inter, output_file=None):
+        """
+        Simple wrapper for contact map plotting
+        """
+        with misc.plot_context("Arial"):
+            fig = plt.figure(figsize=(8, 8))
+
+            ecs_i = ecs.query("segment_i == segment_j == 'A_1'")
+            ecs_j = ecs.query("segment_i == segment_j == 'B_1'")
+            ecs_inter = ecs.query("segment_i != segment_j")
+
+            # TODO: fix scale sizing
+            # if kwargs["scale_sizes"]:
+            #     ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
+            #     print(ecs)
+            #     ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
+
+            #     ecs_i = ecs.query("segment_i == segment_j == 'A_1'")
+            #     ecs_j = ecs.query("segment_i == segment_j == 'B_1'")
+            #     ecs_inter = ecs.query("segment_i != segment_j")
+
+            pairs.complex_contact_map(
+                ecs_i, ecs_j, ecs_inter,
+                d_intra_i, d_multimer_i,
+                d_intra_j, d_multimer_j,
+                d_inter,
+                margin=5,
+                boundaries=kwargs["boundaries"]
+            )
+
+            plt.suptitle("{} inter-molecule evolutionary couplings".format(len(ecs_inter)), fontsize=14)
+
+            if output_file is not None:
+                plt.savefig(output_file, bbox_inches="tight")
+                plt.close(fig)
+
+    check_required(
+        kwargs,
+        [
+            "prefix", "min_sequence_distance",
+            "plot_probability_cutoffs",
+            "boundaries",
+            "draw_secondary_structure",
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    cm_files = []
+
+    ecs_longrange = ec_table.query(
+        "abs(i - j) >= {} or segment_i != segment_j".format(kwargs["min_sequence_distance"])
+    )
+
+    # based on significance cutoff
+    if kwargs["plot_probability_cutoffs"]:
+        cutoffs = kwargs["plot_probability_cutoffs"]
+        if not isinstance(cutoffs, list):
+            cutoffs = [cutoffs]
+
+        for c in cutoffs:
+            ec_set = ecs_longrange.query("probability >= @c")
+            # only can plot if we have any significant ECs above threshold
+            if len(ec_set) > 0:
+                ec_set_i = ec_set.query("segment_i == segment_j == 'A_1'")
+                ec_set_j = ec_set.query("segment_i == segment_j == 'B_1'")
+                ec_set_inter = ec_set.query("segment_i != segment_j")
+
+                output_file = prefix + "_significant_ECs_{}.pdf".format(c)
+                plot_complex_cm(ec_set_i, ec_set_j, ec_set_inter, output_file=output_file)
+                cm_files.append(output_file)
+
+    # range of plots to make
+    lowest = int(kwargs["plot_lowest_count"])
+    highest = int(kwargs["plot_highest_count"])
+    step = int(kwargs["plot_increase"])
+
+    # create individual plots
+    for c in range(lowest, highest + 1, step):
+        ec_set_inter = ecs_longrange.query("segment_i != segment_j")[0:c]
+        last_inter_index = ec_set_inter.index[-1]
+        ec_set_i = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == 'A_1'")
+        ec_set_j = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == 'B_1'")
+        output_file = prefix + "_{}_ECs.pdf".format(c)
+        plot_complex_cm(ec_set_i, ec_set_j, ec_set_inter, output_file=output_file)
         cm_files.append(output_file)
 
     # give back list of all contact map file names
@@ -369,7 +493,7 @@ def standard(**kwargs):
         outcfg["remapped_pdb_files"] = {
             filename: mapping_index for mapping_index, filename in
             remap_chains(sifts_map, aux_prefix, seqmap).items()
-        }
+            }
     else:
         # if no structures, can not compute distance maps
         d_intra = None
@@ -424,10 +548,329 @@ def standard(**kwargs):
     return outcfg
 
 
+def complex_compare(**kwargs):
+    """
+    Protocol:
+    Compare ECs for a complex to
+    3D structure
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        ec_file_compared_all
+        ec_file_compared_all_longrange
+        pdb_structure_hits
+        distmap_monomer
+        distmap_multimer
+        contact_map_files
+        remapped_pdb_files
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "ec_file", "min_sequence_distance",
+            "pdb_mmtf_dir", "atom_filter",
+            "first_compare_multimer", "second_compare_multimer",
+            "distance_cutoff_intra",
+            "distance_cutoff_inter",
+            "first_sequence_id", "second_sequence_id",
+            "first_sequence_file", "second_sequence_file",
+            "first_segments", "second_segments",
+            "first_target_sequence_file", "second_target_sequence_file",
+            "scale_sizes"
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    outcfg = {
+        "ec_compared_all_file": prefix + "_CouplingScoresCompared_all.csv",
+        "ec_compared_longrange_file": prefix + "_CouplingScoresCompared_longrange.csv",
+
+        # pdb comparison for first monomer
+        # cannot have the distmap files end with "_file" because there are
+        # two files (.npy and .csv), which would cause problems with automatic
+        # checking if those files exist
+        "first_pdb_structure_hits_file": prefix + "_first_structure_hits.csv",
+        "first_pdb_structure_hits_unfiltered_file": prefix + "_first_structure_hits_unfiltered.csv",
+        "first_distmap_monomer": prefix + "_first_distance_map_monomer",
+        "first_distmap_multimer": prefix + "_first_distance_map_multimer",
+
+        # pdb comparison for second monomer
+        "second_pdb_structure_hits_file": prefix + "_second_structure_hits.csv",
+        "second_pdb_structure_hits_unfiltered_file": prefix + "_second_structure_hits_unfiltered.csv",
+        "second_distmap_monomer": prefix + "_second_distance_map_monomer",
+        "second_distmap_multimer": prefix + "_second_distance_map_multimer",
+
+        # inter distance map
+        "distmap_inter": prefix + "_distmap_inter",
+        "inter_contacts_file": prefix + "_inter_contacts_file"
+
+    }
+
+    # make sure EC file exists
+    verify_resources(
+        "EC file does not exist",
+        kwargs["ec_file"]
+    )
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    # store auxiliary files here (too much for average user)
+    aux_prefix = insert_dir(prefix, "aux", rootname_subdir=False)
+    create_prefix_folders(aux_prefix)
+
+    # Step 1: Identify 3D structures for comparison
+    def _identify_monomer_structures(name_prefix, outcfg):
+        sifts_map, sifts_map_full = _identify_structures(**{
+            "prefix": kwargs['prefix'],
+            "pdb_ids": kwargs['pdb_ids'],
+            "pdb_mmtf_dir": kwargs['pdb_mmtf_dir'],
+            "jackhmmer": kwargs['jackhmmer'],
+            "sifts_mapping_table": kwargs['sifts_mapping_table'],
+            "sifts_sequence_db": kwargs['sifts_sequence_db'],
+            "compare_multimer": kwargs[name_prefix + '_compare_multimer'],
+            "max_num_hits": kwargs[name_prefix + '_max_num_hits'],
+            "max_num_structures": kwargs[name_prefix + '_max_num_structures'],
+            "by_alignment": kwargs[name_prefix + '_by_alignment'],
+            "alignment_min_overlap": kwargs[name_prefix + '_alignment_min_overlap'],
+            "sequence_id": kwargs[name_prefix + '_sequence_id'],
+            "sequence_file": kwargs[name_prefix + '_sequence_file'],
+            "region": kwargs[name_prefix + '_region'],
+            "use_bitscores": kwargs[name_prefix + '_use_bitscores'],
+            "domain_threshold": kwargs[name_prefix + '_domain_threshold'],
+            "sequence_threshold": kwargs[name_prefix + '_sequence_threshold']
+        })
+
+        # save selected PDB hits
+        sifts_map.hits.to_csv(
+            outcfg[name_prefix + "_pdb_structure_hits_file"], index=False
+        )
+
+        # also save full list of hits
+        sifts_map_full.hits.to_csv(
+            outcfg[name_prefix + "_pdb_structure_hits_unfiltered_file"], index=False
+        )
+        return outcfg, sifts_map
+
+    outcfg, first_sifts_map = _identify_monomer_structures('first', outcfg)
+    outcfg, second_sifts_map = _identify_monomer_structures('second', outcfg)
+
+    # Step 2: Compute distance maps
+
+    def _compute_monomer_distance_maps(sifts_map, name_prefix):
+        # load all structures at once
+        structures = load_structures(
+            sifts_map.hits.pdb_id,
+            kwargs["pdb_mmtf_dir"],
+            raise_missing=False
+        )
+
+        # compute distance maps and save
+        # (but only if we found some structure)
+        if len(sifts_map.hits) > 0:
+            d_intra = intra_dists(
+                sifts_map, structures, atom_filter=kwargs["atom_filter"],
+                output_prefix=aux_prefix + name_prefix + "_distmap_intra"
+            )
+            d_intra.to_file(outcfg[name_prefix + "_distmap_monomer"])
+
+            # save contacts to separate file
+            outcfg[name_prefix + "_monomer_contacts_file"] = prefix + '_' + name_prefix + "_contacts_monomer.csv"
+            d_intra.contacts(
+                kwargs["distance_cutoff_intra"]
+            ).to_csv(
+                outcfg[name_prefix + "_monomer_contacts_file"], index=False
+            )
+
+            # compute multimer distances, if requested;
+            # note that d_multimer can be None if there
+            # are no structures with multiple chains
+            if kwargs[name_prefix + "_compare_multimer"]:
+                d_multimer = multimer_dists(
+                    sifts_map, structures, atom_filter=kwargs["atom_filter"],
+                    output_prefix=aux_prefix + '_' + name_prefix + "_distmap_multimer"
+                )
+            else:
+                d_multimer = None
+
+            # if we have a multimer contact mapin the end, save it
+            if d_multimer is not None:
+                d_multimer.to_file(outcfg[name_prefix + "_distmap_multimer"])
+                outcfg[name_prefix + "_multimer_contacts_file"] = prefix + name_prefix + "_contacts_multimer.csv"
+
+                # save contacts to separate file
+                d_multimer.contacts(
+                    kwargs["distance_cutoff_inter"]
+                ).to_csv(
+                    outcfg[name_prefix + "_multimer_contacts_file"], index=False
+                )
+            else:
+                outcfg[name_prefix + "_distmap_multimer"] = None
+
+            # at this point, also create remapped structures (e.g. for
+            # later comparison of folding results)
+            verify_resources(
+                "Target sequence file does not exist",
+                kwargs[name_prefix + "_target_sequence_file"]
+            )
+
+            # create target sequence map for remapping structure
+            with open(kwargs[name_prefix + "_target_sequence_file"]) as f:
+                header, seq = next(read_fasta(f))
+
+            seq_id, seq_start, seq_end = parse_header(header)
+            seqmap = dict(zip(range(seq_start, seq_end + 1), seq))
+
+            # remap structures, swap mapping index and filename in
+            # dictionary so we have a list of files in the dict keys
+            outcfg[name_prefix + "_remapped_pdb_files"] = {
+                filename: mapping_index for mapping_index, filename in
+                remap_chains(sifts_map, aux_prefix, seqmap).items()
+                }
+        else:
+            # if no structures, can not compute distance maps
+            d_intra = None
+            d_multimer = None
+            outcfg[name_prefix + "_distmap_monomer"] = None
+            outcfg[name_prefix + "_distmap_multimer"] = None
+
+        return d_intra, d_multimer
+
+    d_intra_i, d_multimer_i = _compute_monomer_distance_maps(first_sifts_map, 'first')
+    d_intra_j, d_multimer_j = _compute_monomer_distance_maps(second_sifts_map, 'second')
+
+    if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
+        d_inter = inter_dists(first_sifts_map, second_sifts_map,
+                              raise_missing=kwargs['raise_missing'])
+
+        if d_inter is not None:  # save results
+            d_inter.to_file(outcfg["distmap_inter"])
+
+            # save contacts to separate file
+            d_inter.contacts(
+                kwargs["distance_cutoff_inter"]
+            ).to_csv(
+                outcfg["inter_contacts_file"], index=False
+            )
+
+        else:  # no overlapping pdbs
+            outcfg["inter_contacts_file"] = None
+    else:
+        d_inter = None
+
+    # # Step 3: Compare ECs to distance maps
+    #
+    ec_table = pd.read_csv(kwargs["ec_file"])
+
+    for out_file, min_seq_dist in [
+        ("ec_compared_longrange_file", kwargs["min_sequence_distance"]),
+        ("ec_compared_all_file", 0),
+    ]:
+
+        # compare ECs only if we minimally have an intra distance map
+        # for one monomer
+        if (d_intra_i is not None) or (d_intra_j is not None):
+            # compare distances individually for each segment pair
+            ecs_intra_i = ec_table.query("segment_i == segment_j == 'A_1' ")
+            if d_intra_i is not None:
+                ecs_intra_i_compared = coupling_scores_compared(
+                    ecs_intra_i, d_intra_i, d_multimer_i,
+                    dist_cutoff=kwargs["distance_cutoff_intra"],
+                    output_file=None,
+                    score="cn",
+                    min_sequence_dist=min_seq_dist
+                )
+            else:
+                ecs_intra_i_compared = deepcopy(ecs_intra_i)
+                ecs_intra_i_compared['dist'] = np.nan
+
+            ecs_intra_j = ec_table.query("segment_i == segment_j == 'B_1' ")
+            if d_intra_j is not None:
+                ecs_intra_j_compared = coupling_scores_compared(
+                    ecs_intra_j, d_intra_j, d_multimer_j,
+                    dist_cutoff=kwargs["distance_cutoff_intra"],
+                    output_file=None,
+                    score="cn",
+                    min_sequence_dist=min_seq_dist
+                )
+            else:
+                ecs_intra_j_compared = deepcopy(ecs_intra_j)
+                ecs_intra_j_compared['dist'] = np.nan
+
+            ecs_inter = ec_table.query("segment_i != segment_j")
+            if d_inter is not None:
+                ecs_inter_compared = coupling_scores_compared(
+                    ecs_inter, d_inter, dist_map_multimer=None,
+                    dist_cutoff=kwargs["distance_cutoff_inter"],
+                    output_file=None,
+                    score="cn",
+                    min_sequence_dist=min_seq_dist
+                )
+            else:
+                ecs_inter_compared = deepcopy(ecs_inter)
+                ecs_inter_compared['dist'] = np.nan
+
+            # combine the tables
+            ec_table_compared = pd.concat([
+                ecs_inter_compared,
+                ecs_intra_i_compared,
+                ecs_intra_j_compared
+            ])
+
+            # rename the precision column to 'segmentwise_precision'
+            ec_table_compared = ec_table_compared.rename(columns={'precision': 'segmentwise_precision'})
+            ec_table_compared = ec_table_compared.sort_values('cn', ascending=False)
+
+            # add the total precision
+            # TODO: implement different cutoffs for intra vs inter contacts
+            ec_table_compared = add_precision(
+                ec_table_compared,
+                dist_cutoff=kwargs['distance_cutoff_intra']
+            )
+
+            # save to file
+            ec_table_compared.to_csv(outcfg[out_file])
+
+        else:
+            outcfg[out_file] = None
+
+    if outcfg["ec_compared_longrange_file"] is not None and kwargs['plot_highest_count'] is not None:
+        ecs_longrange = pd.read_csv(outcfg["ec_compared_longrange_file"])
+
+        outcfg["ec_lines_compared_pml_file"] = prefix + "_draw_ec_lines_compared.pml"
+        pairs.ec_lines_pymol_script(
+            ecs_longrange.iloc[:kwargs['plot_highest_count'], :],
+            outcfg["ec_lines_compared_pml_file"],
+            distance_cutoff=kwargs["distance_cutoff_inter"]
+        )
+
+    # Step 4: Make contact map plots
+    # if no structures available, defaults to EC-only plot
+
+    outcfg["contact_map_files"] = _make_complex_contact_maps(
+        ec_table, d_intra_i, d_multimer_i,
+        d_intra_j, d_multimer_j,
+        d_inter, **kwargs
+    )
+
+    return outcfg
+
+
 # list of available EC comparison protocols
 PROTOCOLS = {
     # standard monomer comparison protocol
     "standard": standard,
+    "complex_compare": complex_compare
 }
 
 
