@@ -228,33 +228,36 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
 
 def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                                d_intra_j, d_multimer_j,
-                               d_inter, **kwargs):
+                               d_inter, first_segment_name,
+                               second_segment_name,**kwargs):
     """
        Plot contact maps with all ECs above a certain probability threshold,
        or a given count of ECs
 
-       Parameters
-       ----------
-       ec_table : pandas.DataFrame
-           Full set of evolutionary couplings (all pairs)
-       d_intra_i, d_intra_j: DistanceMap
-           Computed residue-residue distances within chains for
-           monomers i and j
-       d_multimer_i, d_multimer_j : DistanceMap
-           Computed residue-residue distances between homomultimeric
-           chains for monomers i and j
+        Parameters
+        ----------
+        ec_table : pandas.DataFrame
+            Full set of evolutionary couplings (all pairs)
+        d_intra_i, d_intra_j: DistanceMap
+            Computed residue-residue distances within chains for
+            monomers i and j
+        d_multimer_i, d_multimer_j : DistanceMap
+            Computed residue-residue distances between homomultimeric
+            chains for monomers i and j
         d_inter: DistanceMap
             Computer residue-residue distances between heteromultimeric
             chains
-       **kwargs
-           Further plotting parameters, see check_required in code
-           for necessary values.
+        first_segment_name,second_segment_name: str
+            Name of segment i and segment j in the ec_table
+        **kwargs
+            Further plotting parameters, see check_required in code
+            for necessary values.
 
-       Returns
-       -------
-       cm_files : list(str)
-           Paths of generated contact map files
-       """
+        Returns
+        -------
+        cm_files : list(str)
+            Paths of generated contact map files
+        """
 
     def plot_complex_cm(ecs_i, ecs_j, ecs_inter, first_segment_name,
                         second_segment_name,output_file=None):
@@ -872,7 +875,8 @@ def complex_compare(**kwargs):
     outcfg["contact_map_files"] = _make_complex_contact_maps(
         ec_table, d_intra_i, d_multimer_i,
         d_intra_j, d_multimer_j,
-        d_inter, **kwargs
+        d_inter, first_segment_name,
+        second_segment_name,**kwargs
     )
 
     return outcfg
