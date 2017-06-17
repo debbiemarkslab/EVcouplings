@@ -269,7 +269,6 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
 
             if kwargs["scale_sizes"]:
                 ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
-                print(ecs)
                 ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
 
                 ecs_i = ecs.query("segment_i == segment_j == @first_segment_name")

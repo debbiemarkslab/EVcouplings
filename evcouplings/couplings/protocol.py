@@ -65,7 +65,9 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False):
     else:
         inter_ecs = ecs.query("segment_i != segment_j")
         intra_ecs = ecs.query("segment_i == segment_j")
-        intra_ecs["probability"] = np.nan
+        intra_ecs = pairs.add_mixture_probability(
+            intra_ecs, model=scoring_model
+        )
         inter_ecs = pairs.add_mixture_probability(
             inter_ecs, model=scoring_model
         )
