@@ -40,7 +40,7 @@ def extract_uniprot_to_embl(alignment_file,
             uniprot_to_embl[uniprot_ac] = ena_data
    
     #write the information
-    with open(uniprot_to_embl_filename,"w" as of:
+    with open(uniprot_to_embl_filename,"w") as of:
 
         for key,value in uniprot_to_embl.items():
             #if no mapping, delete entry

@@ -125,12 +125,25 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
         if len(ec_pos) > 0:
             min_ec, max_ec = min(ec_pos), max(ec_pos)
         else:
-            min_ec, max_ec = min(structure_pos), max(structure_pos)
+            if len(structure_pos) > 0:
+                min_ec, max_ec = min(structure_pos), max(structure_pos)
+            else:
+                raise ValueError(
+                    "must provide at least one EC or structural contact for" + \
+                    "each subplot of complex contact map"
+                )
 
         if len(structure_pos) > 0:
             min_struct, max_struct = min(structure_pos), max(structure_pos)
         else:
-            min_struct, max_struct = min(ec_pos), max(ec_pos)
+            if len(ec_pos) > 0:
+                min_struct, max_struct = min(ec_pos), max(ec_pos)
+            else:
+                raise ValueError(
+                    "must provide at least one EC or structural contact for"+ \
+                    "each subplot of complex contact map"
+                )
+
 
         # determine and set plot boundaries
         if boundaries == "union":
