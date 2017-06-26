@@ -571,47 +571,29 @@ def complex(**kwargs):
     # write updated table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
 
-<<<<<<< HEAD
     # also store longrange ECs as convenience output
     if kwargs["min_sequence_distance"] is not None:
         outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
-=======
-        # also store longrange ECs as convenience output
-        if kwargs["min_sequence_distance"] is not None:
-            outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
->>>>>>> reformatted for pep8 compliance
+
         ecs_longrange = ecs.query(
             "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
         )
         ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
 
-<<<<<<< HEAD
+
     # also create line-drawing script (for now, only for single segments)
     if segments is None or len(segments) == 1:
         outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
-=======
-        # also create line-drawing script (for now, only for single segments)
-        if segments is None or len(segments) == 1:
-            outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
->>>>>>> reformatted for pep8 compliance
         L = outcfg["num_sites"]
         ec_lines_pymol_script(
             ecs_longrange.iloc[:L, :],
             outcfg["ec_lines_pml_file"]
         )
 
-<<<<<<< HEAD
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
     if segments is None or len(segments) == 1:
         outcfg["enrichment_file"] = prefix + "_enrichment.csv"
-        
-=======
-        # compute EC enrichment (for now, for single segments
-        # only since enrichment code cannot handle multiple segments)
-        if segments is None or len(segments) == 1:
-            outcfg["enrichment_file"] = prefix + "_enrichment.csv"
->>>>>>> reformatted for pep8 compliance
         ecs_enriched = pairs.enrichment(ecs)
         ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
 
@@ -621,21 +603,12 @@ def complex(**kwargs):
             (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
         ]:
             pml_file = prefix + pml_suffix
-<<<<<<< HEAD
             enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
             outcfg["enrichment_pml_files"].append(pml_file)
 
     # output EVzoom JSON file if we have stored model file
     if outcfg.get("model_file", None) is not None:
         outcfg["evzoom_file"] = prefix + "_evzoom.json"
-=======
-        enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
-        outcfg["enrichment_pml_files"].append(pml_file)
-
-        # output EVzoom JSON file if we have stored model file
-        if outcfg.get("model_file", None) is not None:
-            outcfg["evzoom_file"] = prefix + "_evzoom.json"
->>>>>>> reformatted for pep8 compliance
         with open(outcfg["evzoom_file"], "w") as f:
         # load parameters
             c = CouplingsModel(outcfg["model_file"])
