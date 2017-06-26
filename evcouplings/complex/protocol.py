@@ -324,10 +324,6 @@ def best_hit(**kwargs):
         **kwargs
     )
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 9adc396ed9a97457f99f181cb2d3e40e57cb1870
     def _modify_segments(seg_list, seg_prefix):
         # extract segments from list representation into objects
         segs = [
