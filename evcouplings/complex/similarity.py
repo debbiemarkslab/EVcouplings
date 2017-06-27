@@ -27,7 +27,7 @@ def read_identity_file(identity_file):
     return id_to_identity
 
 
-def read_annotation_file(annotation_file, column="OS"):
+def read_annotation_file(annotation_file, column_1="OS", column_2 = "Tax"):
     """
     Parameters
     ----------
@@ -42,10 +42,13 @@ def read_annotation_file(annotation_file, column="OS"):
         sequence identifier to species annotation
         
     """
-    data = pd.read_csv(annotation_file)
+    data = pd.read_csv(annotation_file,na_values=None)
     id_to_species = {}
-    for id, species in zip(data.id, data[column]):
-        id_to_species[id] = species
+    for id, species1, species2 in zip(data.id, data[column_1],data[column_2]):
+        if species1 is None:
+            id_to_species[id] = species1
+        else:
+            id_to_species[id] = species2
     return id_to_species
 
 

@@ -1131,15 +1131,19 @@ def complex(**kwargs):
 
     if alignment_protocol == "existing":
 
-        check_required(kwargs,["input_annotation_file"])
-        verify_resources(
-            "Input annotation file does not exist",
-            kwargs["input_annotation_file"]
-        )
-        annotation_data = pd.read_csv(kwargs["input_annotation_file"])
-        annotation_file = prefix+"_annotations.csv"
-        annotation_data.to_csv(annotation_file)
-        outcfg["annotation_file"] = annotation_file
+        check_required(kwargs,["override_annotation_file"])
+        
+
+        if kwargs["override_annotation_file"] is not None:
+            print(type(kwargs["override_annotation_file"]))
+            verify_resources(
+                "Override annotation file does not exist",
+                kwargs["override_annotation_file"]
+            )
+            annotation_data = pd.read_csv(kwargs["override_annotation_file"])
+            annotation_file = prefix+"_annotations.csv"
+            annotation_data.to_csv(annotation_file)
+            outcfg["annotation_file"] = annotation_file
 
 
     #Extract the uniprot to embl mapping
