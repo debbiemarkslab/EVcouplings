@@ -16,7 +16,7 @@
 # 3) All settings are explicitly specified here. No hidden defaults in code.
 # 4) Each stage is also passed the parameters in the "databases" and "tools" sections
 
-pipeline: protein_monomer
+pipeline: protein_complex
 
 # which stages of workflow to run. Uncomment downstream stages using # (however, no stage can be run before the previous
 # stage has been run)
@@ -44,9 +44,15 @@ global:
 align_1:
     # use complex protocol to properly prepare inputs for concatenation
     protocol: complex
+    
+    # monomer alignment creation protocol to nest within the complex alignment protocol
+    # choose either existing (below) to use a previously created alignment
+    # or standard to construct an alignment 
+    alignment_protocol: standard
 
-	# Mandatory: specify the sequence identifier and region
-	# Sequence file can be left blank
+
+    # Mandatory: specify the sequence identifier and region
+    # Sequence file can be left blank
     sequence_id:
     region:
     sequence_file:
@@ -121,14 +127,18 @@ align_1:
 #    minimum_sequence_coverage: 50
 #    minimum_column_coverage: 70
 #    extract_annotation: True
+
+#      if using existing alignment protocol, provide a path to the annotations.csv file 
+#      from the previous run to correctly find the species identifiers for best hit concatenation
+#      override_annotation_file: 
 
 # Sequence alignment generation/processing for the second monomer.
 align_2:
     # use complex protocol to properly prepare inputs for concatenation
     protocol: complex
 
-	# Mandatory: specify the sequence identifier and region
-	# Sequence file can be left blank
+    # Mandatory: specify the sequence identifier and region
+    # Sequence file can be left blank
     sequence_id:
     region:
     sequence_file:
@@ -203,20 +213,23 @@ align_2:
 #    minimum_sequence_coverage: 50
 #    minimum_column_coverage: 70
 #    extract_annotation: True
+#      if using existing alignment protocol, provide a path to the annotations.csv file 
+#      from the previous run to correctly find the species identifiers for best hit concatenation
+#      override_annotation_file: 
 
 #Generation of concatenated sequence alignment for evolutionary couplings calculation
 concatenate:
 
-	# Alignment files to use in concatenation
-	# Will be usually overriden by global settings / output of previous stage
+    # Alignment files to use in concatenation
+    # Will be usually overriden by global settings / output of previous stage
     first_alignment_file:
     second_alignment_file:
 
-	# Select protocol for concatenation of sequence alignments
-	# Available protocols:
-	# genome_distance: pair sequences that are closest neighbors on the genome
-	# best_hit: for each genome, pair the sequences that have the highest % identity to the target sequence
-	
+    # Select protocol for concatenation of sequence alignments
+    # Available protocols: 
+    # genome_distance: pair sequences that are closest neighbors on the genome
+    # best_hit: for each genome, pair the sequences that have the highest % identity to the target sequence
+    
     protocol: genome_distance
     
     # Maximum genome distance in bases allowed between pairs
@@ -277,8 +290,8 @@ couplings:
     min_sequence_distance: 6
     
     # Parameters specific to complex pipeline scoring
-	# Scoring model to assess confidence in computed ECs
-	# available options: skewnormal, normal, evcomplex
+    # Scoring model to assess confidence in computed ECs
+    # available options: skewnormal, normal, evcomplex
     scoring_model: skewnormal
     
     # Specify whether to use all ECs or only inter-molecular ECs for scoring
@@ -309,8 +322,8 @@ compare:
     # If True, find structures by sequence alignment against the PDB, otherwise identify structures using
     # sequence_id and SIFTS database (sequence_id must be UniProt AC/ID in this case)
     first_by_alignment: True
-	second_by_alignment: True
-	
+    second_by_alignment: True
+    
     # Leave this parameter empty to use all PDB structures for given sequence_id, otherwise
     # will be limited to the given IDs (single value or list). Important: note that this acts only as a filter on the
     # structures found by alignment or in the SIFTS table (!)
@@ -328,7 +341,7 @@ compare:
 
     # compare to multimer contacts (if multiple chains of the same sequence or its homologs are present in a structure)
     first_compare_multimer: True
-	second_compare_multimer:
+    second_compare_multimer:
 
     # settings for sequence alignment against PDB sequences using jackhmmer
     # (additional settings like iterations possible, compare to align stage)
@@ -351,7 +364,7 @@ compare:
     # Comparison and plotting settings
     
     # Return an error if we fail to automatically retrieve information about a given pdb id
-	raise_missing: False
+    raise_missing: False
     
     # Set atom_filter to "CA" to compute C_alpha distances instead of minimum atom distances. If blank, will compute minimum atom distance
     atom_filter:
@@ -447,3 +460,5 @@ tools:
     psipred: /groups/marks/software/runpsipred
     cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
     maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    uniprot_to_embl_table : /groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
+    ena_genome_location_table : /groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
