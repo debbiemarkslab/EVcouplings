@@ -423,6 +423,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
     # intra 1, upper left
     new_kwargs = deepcopy(kwargs)
     new_kwargs["boundaries"] = intra1_boundaries
+    print(d_intra_i)
     plot_contact_map(ax=ax1,
                      symmetric=True,
                      ecs=intra1_ecs,
@@ -451,7 +452,10 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
                      **new_kwargs)
 
     # inter, upper right
-    inter_ecs_transposed = pd.DataFrame({"i": inter_ecs.j, "j": inter_ecs.i})
+    if inter_ecs is None:
+        inter_ecs_transposed = None
+    else:
+        inter_ecs_transposed = inter_ecs.rename(columns={"i":"j","j":"i"})
 
     if d_inter is None:
         d_inter_T = None

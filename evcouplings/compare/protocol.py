@@ -259,7 +259,8 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             Paths of generated contact map files
         """
 
-    def plot_complex_cm(ecs_i, ecs_j, ecs_inter, first_segment_name,
+    def plot_complex_cm(ecs_i, ecs_j, ecs_inter, 
+                        first_segment_name,
                         second_segment_name,output_file=None):
         """
         Simple wrapper for contact map plotting
@@ -274,14 +275,15 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 ecs_i = ecs.query("segment_i == segment_j == @first_segment_name")
                 ecs_j = ecs.query("segment_i == segment_j == @second_segment_name")
                 ecs_inter = ecs.query("segment_i != segment_j")
-
+                
             pairs.complex_contact_map(
                 ecs_i, ecs_j, ecs_inter,
                 d_intra_i, d_multimer_i,
                 d_intra_j, d_multimer_j,
                 d_inter,
                 margin=5,
-                boundaries=kwargs["boundaries"]
+                boundaries=kwargs["boundaries"],
+                scale_sizes=kwargs["scale_sizes"]
             )
 
             plt.suptitle("{} inter-molecule evolutionary couplings".format(len(ecs_inter)), fontsize=14)
@@ -763,6 +765,7 @@ def complex_compare(**kwargs):
     d_intra_i, d_multimer_i = _compute_monomer_distance_maps(first_sifts_map, "first")
     d_intra_j, d_multimer_j = _compute_monomer_distance_maps(second_sifts_map, "second")
 
+
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
         d_inter = inter_dists(first_sifts_map, second_sifts_map,
                               raise_missing=kwargs["raise_missing"])
@@ -870,7 +873,6 @@ def complex_compare(**kwargs):
 
     # Step 4: Make contact map plots
     # if no structures available, defaults to EC-only plot
-
     outcfg["contact_map_files"] = _make_complex_contact_maps(
         ec_table, d_intra_i, d_multimer_i,
         d_intra_j, d_multimer_j,

@@ -1141,7 +1141,7 @@ def complex(**kwargs):
                 kwargs["override_annotation_file"]
             )
             annotation_data = pd.read_csv(kwargs["override_annotation_file"])
-            annotation_file = prefix+"_annotations.csv"
+            annotation_file = prefix+"_annotation.csv"
             annotation_data.to_csv(annotation_file)
             outcfg["annotation_file"] = annotation_file
 
