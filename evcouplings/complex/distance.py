@@ -11,6 +11,9 @@ from evcouplings.align import Alignment
 from collections import defaultdict
 from operator import itemgetter
 from evcouplings.align.alignment import read_fasta
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import re
 
 
@@ -200,3 +203,31 @@ def filter_ids_by_distance(id_pairing,
             filtered_id_pairing.append(id_pair)
 
     return filtered_id_pairing
+
+def plot_distance_distribution(id_pair_to_distance,outfile):
+    '''
+    plots the distribution of genome distances
+    
+    Parameters
+    ----------
+    id_pair_to_distance: dict of tuple: int
+        pairs of identifiers and their distances on the genome
+    outfile: str
+        path to file to save plot
+    '''
+    
+    distances = list(id_pair_to_distance.values())
+    distances = sorted(distances)
+    
+    cdf = [i for i,_ in enumerate(distances)]
+
+    fig = plt.figure(figsize=(8,6))
+    ax1 = fig.gca()
+    ax1.set_xscale("log")
+    ax1.set_xlim(xmin=1,xmax=max(distances))
+    ax1.set_ylabel("Number of sequences")
+    ax1.set_xlabel("Genome distance (bases)")
+    ax1.plot(distances,cdf)
+    
+    plt.savefig(outfile)
+    

@@ -36,7 +36,8 @@ from evcouplings.complex.alignment import (
 from evcouplings.complex.distance import (
     find_possible_partners,
     best_reciprocal_matching,
-    filter_ids_by_distance
+    filter_ids_by_distance,
+    plot_distance_distribution
 )
 from evcouplings.complex.similarity import (
     read_identity_file,
@@ -205,8 +206,14 @@ def genome_distance(**kwargs):
     # * focus_sequence: this is the identifier of the concatenated target
     #   sequence which will be passed into plmc with -f
     outcfg = aln_outcfg
+
     outcfg["segments"] = [s.to_list() for s in segments_complex]
     outcfg["focus_sequence"] = target_seq_id
+
+    # plot the genome distance distribution
+    outcfg["distance_plot_file"]=prefix + "_distplot.pdf"
+    plot_distance_distribution(id_pair_to_distance, outcfg["distance_plot_file"])
+
     return outcfg
 
 
