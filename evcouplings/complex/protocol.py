@@ -8,6 +8,10 @@ Authors:
   Anna G. Green
 """
 
+import numpy as np
+import pandas as pd
+from collections import Counter
+
 from evcouplings.couplings.mapping import Segment
 from evcouplings.align.alignment import read_fasta
 
@@ -45,6 +49,108 @@ from evcouplings.complex.similarity import (
     most_similar_by_organism
 )
 import re
+
+def describe_concatenation(annotation_file_1,annotation_file_2,
+                           uniprot_to_embl_filename_1,uniprot_to_embl_filename_2,
+                           genome_location_filename_1,genome_location_filename_2,
+                           outfile):
+    '''
+    runs sanity checks and describes concatenation
+    
+    Parameters:
+    annotation_file_1,annotation_file_2: str
+        path to annotation.csv file
+    uniprot_to_embl_filename_1,uniprot_to_embl_filename_2: str
+        path to uniprot to embl mapping file
+    genome_location_filename_1,genome_location_filename_2: str
+        path to uniprot to genome location mapping file
+    outfile: str
+        path to output file
+    '''
+    
+    def _calculate_total_theoretical(annotations_1,annotations_2,overlap_species):
+
+        total_theoretical=0
+        species_count_1 = Counter(annotations_1.values())
+        species_count_2 = Counter(annotations_2.values())
+        for identifier in overlap_species:
+            n_1 = species_count_1[identifier]
+            n_2 = species_count_2[identifier]
+            total_theoretical+=min(n_1,n_2)
+        return total_theoretical
+    
+    #number of species in the alignment
+    annotations_1 = read_annotation_file(annotation_file_1)
+    annotations_2 = read_annotation_file(annotation_file_2)
+    
+    num_seqs_1 = len(annotations_1)
+    num_seqs_2 = len(annotations_2)
+    
+    nonredundant_annotations_1 = len(list(set(annotations_1.values())))
+    nonredundant_annotations_2 = len(list(set(annotations_2.values())))
+
+    species_overlap = list(set(annotations_1.values()).intersection(set(annotations_2.values())))
+    n_species_overlap = len(species_overlap)
+    
+    total_theoretical = _calculate_total_theoretical(annotations_1,annotations_2,species_overlap)
+    
+    n_paralogs_1 = float(np.median(list(Counter(annotations_1.values()).values())))
+    n_paralogs_2 = float(np.median(list(Counter(annotations_2.values()).values())))
+    
+    #### genome distance
+    if uniprot_to_embl_filename_1 is not None:
+        uniprot_to_embl_1 = load_uniprot_to_embl(uniprot_to_embl_filename_1)
+        uniprot_to_embl_2 = load_uniprot_to_embl(uniprot_to_embl_filename_2)
+
+        embl_to_annotation_1 = load_embl_to_annotation(genome_location_filename_1)
+        embl_to_annotation_2 = load_embl_to_annotation(genome_location_filename_2)
+
+        embl_seq1 = len([x for x in embl_to_annotation_1.keys()])
+        embl_seq2 = len([x for x in embl_to_annotation_2.keys()])
+
+        embl_cds1 = len([x[0] for x in embl_to_annotation_1.values() if len(x[0]) > 1])
+        embl_cds2 = len([x[0] for x in embl_to_annotation_2.values() if len(x[0]) > 1])
+        
+    else:
+        embl_cds1 = None
+        embl_cds2 = None
+        embl_seq1 = None
+        embl_seq2 = None
+    
+    
+    concatenation_data = [
+        num_seqs_1,
+        num_seqs_2,
+        nonredundant_annotations_1,
+        nonredundant_annotations_2,
+        n_species_overlap,
+        total_theoretical,
+        n_paralogs_1,
+        n_paralogs_2,
+        embl_seq1,
+        embl_seq2,
+        embl_cds1,
+        embl_cds2
+    ]
+    
+    cols = [
+        "num_seqs_1",
+        "num_seqs_2",
+        "num_nonred_species_1",
+        "num_nonred_species_2",
+        "num_species_overlap",
+        "max_concatenation",
+        "median_num_per_species_1",
+        "median_num_per_species_2",
+        "num_with_embl_annot_1",
+        "num_with_embl_annot_2",
+        "num_with_embl_cds_1",
+        "num_with_embl_cds_2"
+    ]
+    
+    
+    data_df = pd.DataFrame([concatenation_data],columns=cols)
+    data_df.to_csv(outfile)
 
 
 def genome_distance(**kwargs):
@@ -214,6 +320,16 @@ def genome_distance(**kwargs):
     outcfg["distance_plot_file"]=prefix + "_distplot.pdf"
     plot_distance_distribution(id_pair_to_distance, outcfg["distance_plot_file"])
 
+    alignment_1 = kwargs["first_alignment_file"]
+    alignment_2 = kwargs["second_alignment_file"]
+
+    outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
+
+    describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
+                      kwargs["first_embl_mapping_file"],kwargs["second_embl_mapping_file"],
+                      kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],
+                      outcfg["concatentation_statistics_file"])
+
     return outcfg
 
 
@@ -355,6 +471,13 @@ def best_hit(**kwargs):
     outcfg = aln_outcfg
     outcfg["segments"] = [s.to_list() for s in segments_complex]
     outcfg["focus_sequence"] = target_seq_id
+
+    outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
+    describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
+                      kwargs["first_embl_mapping_file"],kwargs["second_embl_mapping_file"],
+                      kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],
+                      outcfg["concatentation_statistics_file"])
+
     return outcfg
 
 
