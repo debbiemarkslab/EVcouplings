@@ -400,7 +400,21 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
                                              multimer=d_multimer_j,
                                              symmetric=True))
 
-    inter_boundaries = [intra1_boundaries[0], intra2_boundaries[0]]
+    inter_boundaries = list(find_boundaries(boundaries,
+                                             ecs=inter_ecs,
+                                             monomer=d_inter,
+                                             multimer=None,
+                                             symmetric=False))
+
+    inter_boundaries = [
+        (
+            min(intra1_boundaries[0][0],inter_boundaries[0][0]),
+            max(intra1_boundaries[0][1],inter_boundaries[0][1])
+        ),(
+            min(intra2_boundaries[0][0],inter_boundaries[1][0]),
+            max(intra2_boundaries[0][1],inter_boundaries[1][1])
+        )
+    ]
 
     # Calculate the length ratios of the monomers
     mon1_len = intra1_boundaries[0][1] - intra1_boundaries[0][0]
