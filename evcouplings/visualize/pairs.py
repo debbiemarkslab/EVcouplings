@@ -1072,8 +1072,15 @@ def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
         Use this column in ec_table to adjust radius
         of lines. If None, all lines will be drawn
         at equal radius.
-    chain : str, optional (default: None)
-        Use this PDB chain in residue selection
+    chain : str or dict(str -> str), optional (default: None)
+        PDB chain(s) that should be targeted by line drawing
+        - If None, residues will be selected
+          py position alone, which may cause wrong assignments
+          if multiple chains are present in the structure.
+        - Different chains can be assigned for each i and j,
+          if a dictionary that maps from segment (str) to PDB chain (str)
+          is given. In this case, columns "segment_i" and "segment_j"
+          must be present in the pairs dataframe.
     """
     t = ec_table.copy()
 
@@ -1095,7 +1102,11 @@ def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
         t.loc[:, "color"] = "green"
 
     if chain is not None:
-        chain_sel = ", chain '{}'".format(chain)
+        if isinstance(chain, dict):
+            chain_sel = ", chain " + " or chain ".join([x for x in chain.values()])
+        else:
+            # otherwise just take the name of the chain as it is
+            chain_sel = ", chain '{}'".format(chain)
     else:
         chain_sel = ""
 
