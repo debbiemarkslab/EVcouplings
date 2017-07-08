@@ -172,7 +172,7 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
             "plot_probability_cutoffs",
             "boundaries", "plot_lowest_count",
             "plot_highest_count", "plot_increase",
-            "draw_secondary_structure",
+            "draw_secondary_structure"
         ]
     )
     prefix = kwargs["prefix"]
@@ -298,7 +298,9 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             "prefix", "min_sequence_distance",
             "plot_probability_cutoffs",
             "boundaries",
-            "draw_secondary_structure",
+            "draw_secondary_structure","plot_lowest_count",
+            "plot_highest_count", "plot_increase",
+            "scale_sizes"
         ]
     )
 
