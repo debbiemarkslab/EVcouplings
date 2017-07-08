@@ -1,0 +1,464 @@
+# Sample configuration file for evcouplings complex protein prediction pipeline.
+# This file determines all aspects of the computation:
+# - which compute environment to use
+# - which stages of the pipeline to run
+# - what the settings for each of the stages are
+
+# Minimal settings required before this configuration can be executed:
+# - set your environment, paths to tools and databases (at the end of this file)
+# - under "global", set prefix and sequence_id
+# - run it! :)
+
+# Configuration rules:
+# 1) Global settings override settings for stages
+# 2) Outputs of a stage are merged into "global" and fed into the input of subsequent stages
+#    (e.g., the alignment_file output of align will be used by the alignment_file input of couplings)
+# 3) All settings are explicitly specified here. No hidden defaults in code.
+# 4) Each stage is also passed the parameters in the "databases" and "tools" sections
+
+pipeline: protein_complex
+
+# which stages of workflow to run. Uncomment downstream stages using # (however, no stage can be run before the previous
+# stage has been run)
+stages:
+    - align_1
+    - align_2
+    - concatenate
+    - couplings
+    - compare
+    
+# Global job settings. These will override settings of the same name in each of the stages.
+# These are typically the settings you want to modify for each of your jobs, together with some settings in the align stage.
+global:
+    # mandatory output prefix of the job (e.g. output/HRAS will store outputs in folder "output", using files prefixed with "HRAS")
+    prefix:
+
+    # Clustering threshold for downweighting redudant sequences (Meff computation). E.g. 0.8 will cluster sequences
+    # at a 80% sequence identity cutoff
+    theta: 0.8
+
+    # number of cores to use. If running through evcouplings application, will be overriden by environment.cores
+    cpu:
+
+# Sequence alignment generation/processing for the first monomer.
+align_1:
+    # use complex protocol to properly prepare inputs for concatenation
+    protocol: complex
+    
+    # monomer alignment creation protocol to nest within the complex alignment protocol
+    # choose either existing (below) to use a previously created alignment
+    # or standard to construct an alignment 
+    alignment_protocol: standard
+
+
+    # Mandatory: specify the sequence identifier and region
+    # Sequence file can be left blank
+    sequence_id:
+    region:
+    sequence_file:
+    
+    # The following typically do not need to be set because 'global' overrides them
+    # prefix:
+    # theta:
+
+    # index of first residue in sequence_id / sequence_file. This can be used to renumber sequences that already have
+    # been cut to a subsequence
+    first_index: 1
+
+    # Use bitscore threshold instead of E-value threshold for sequence search
+    use_bitscores: True
+
+    # jackhmmer domain- and sequence-level inclusion thresholds.
+    # if use_bitscores is True:
+    # - floating point number will be interpreted as a relative bitscore threshold (bits/residue)
+    # - integer will be interpreted as an absolute bitscore threshold
+    # if use_bitscore is False:
+    # - mantissa-exponent string or float will be interpreted literally
+    # - integer will be interpreted as negative of the exponent (10 -> 1E-10)
+    domain_threshold: 0.5
+    sequence_threshold: 0.5
+
+    # number of jackhmmer iterations
+    iterations: 5
+
+    # sequence database (specify possible databases and paths in "databases" section below)
+    database: uniref100
+
+    # compute the redundancy-reduced number of effective sequences (M_eff) already in the alignment stage.
+    # To save compute time, this computation is normally carried out in the couplings stage
+    compute_num_effective_seqs: False
+
+    # Filter sequence alignment at this % sequence identity cutoff. Can be used to cut computation time in
+    # the couplings stage (e.g. set to 95 to remove any sequence that is more than 95% identical to a sequence
+    # already present in the alignment). If blank, no filtering. If filtering, HHfilter must be installed.
+    seqid_filter:
+
+    # Only include alignment columns with at least x% residues (rather than gaps) during model inference
+    minimum_sequence_coverage: 50
+
+    # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
+    minimum_column_coverage: 70
+
+    # Create a file with extracted annotation from UniRef/UniProt sequence FASTA headers
+    extract_annotation: True
+    cpu:
+
+    # set to True to turn of jackhmmer bias correction
+    nobias: False
+
+    # if align stage has been run previously, reuse the generated raw sequence alignment coming out of jackhmmer
+    reuse_alignment: True
+
+    # create checkpoint files of HMM and aligment after each iteration
+    checkpoints_hmm: False
+    checkpoints_ali: False
+
+# Alternative protocol: reuse existing alignment and apply postprocessing to generate alignment that is consistent
+# with pipeline requirements. Uncomment, and comment all values in align section above to enable the "existing" protocol
+#    protocol: existing
+#    prefix:
+#    # Path of input alignment. Alignment needs to contain region in form SEQID/start-end, or first_index must be set
+#    input_alignment:
+#    sequence_id:
+#    first_index:
+#    compute_num_effective_seqs: False
+#    theta:
+#    seqid_filter:
+#    minimum_sequence_coverage: 50
+#    minimum_column_coverage: 70
+#    extract_annotation: True
+
+#      if using existing alignment protocol, provide a path to the annotations.csv file 
+#      from the previous run to correctly find the species identifiers for best hit concatenation
+#      override_annotation_file: 
+
+# Sequence alignment generation/processing for the second monomer.
+align_2:
+    # use complex protocol to properly prepare inputs for concatenation
+    protocol: complex
+
+    # Mandatory: specify the sequence identifier and region
+    # Sequence file can be left blank
+    sequence_id:
+    region:
+    sequence_file:
+    
+    # The following typically do not need to be set because 'global' overrides them
+    # prefix:
+    # theta:
+
+    # index of first residue in sequence_id / sequence_file. This can be used to renumber sequences that already have
+    # been cut to a subsequence
+    first_index: 1
+
+    # Use bitscore threshold instead of E-value threshold for sequence search
+    use_bitscores: True
+
+    # jackhmmer domain- and sequence-level inclusion thresholds.
+    # if use_bitscores is True:
+    # - floating point number will be interpreted as a relative bitscore threshold (bits/residue)
+    # - integer will be interpreted as an absolute bitscore threshold
+    # if use_bitscore is False:
+    # - mantissa-exponent string or float will be interpreted literally
+    # - integer will be interpreted as negative of the exponent (10 -> 1E-10)
+    domain_threshold: 0.5
+    sequence_threshold: 0.5
+
+    # number of jackhmmer iterations
+    iterations: 5
+
+    # sequence database (specify possible databases and paths in "databases" section below)
+    database: uniref100
+
+    # compute the redundancy-reduced number of effective sequences (M_eff) already in the alignment stage.
+    # To save compute time, this computation is normally carried out in the couplings stage
+    compute_num_effective_seqs: False
+
+    # Filter sequence alignment at this % sequence identity cutoff. Can be used to cut computation time in
+    # the couplings stage (e.g. set to 95 to remove any sequence that is more than 95% identical to a sequence
+    # already present in the alignment). If blank, no filtering. If filtering, HHfilter must be installed.
+    seqid_filter:
+
+    # Only include alignment columns with at least x% residues (rather than gaps) during model inference
+    minimum_sequence_coverage: 50
+
+    # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
+    minimum_column_coverage: 70
+
+    # Create a file with extracted annotation from UniRef/UniProt sequence FASTA headers
+    extract_annotation: True
+    cpu:
+
+    # set to True to turn of jackhmmer bias correction
+    nobias: False
+
+    # if align stage has been run previously, reuse the generated raw sequence alignment coming out of jackhmmer
+    reuse_alignment: True
+
+    # create checkpoint files of HMM and aligment after each iteration
+    checkpoints_hmm: False
+    checkpoints_ali: False
+
+# Alternative protocol: reuse existing alignment and apply postprocessing to generate alignment that is consistent
+# with pipeline requirements. Uncomment, and comment all values in align section above to enable the "existing" protocol
+#    protocol: existing
+#    prefix:
+#    # Path of input alignment. Alignment needs to contain region in form SEQID/start-end, or first_index must be set
+#    input_alignment:
+#    sequence_id:
+#    first_index:
+#    compute_num_effective_seqs: False
+#    theta:
+#    seqid_filter:
+#    minimum_sequence_coverage: 50
+#    minimum_column_coverage: 70
+#    extract_annotation: True
+#      if using existing alignment protocol, provide a path to the annotations.csv file 
+#      from the previous run to correctly find the species identifiers for best hit concatenation
+#      override_annotation_file: 
+
+#Generation of concatenated sequence alignment for evolutionary couplings calculation
+concatenate:
+
+    # Alignment files to use in concatenation
+    # Will be usually overriden by global settings / output of previous stage
+    first_alignment_file:
+    second_alignment_file:
+
+    # Select protocol for concatenation of sequence alignments
+    # Available protocols: 
+    # genome_distance: pair sequences that are closest neighbors on the genome
+    # best_hit: for each genome, pair the sequences that have the highest % identity to the target sequence
+    
+    protocol: genome_distance
+    
+    # Maximum genome distance in bases allowed between pairs
+    # Required for genome_distance protocol only
+    genome_distance_threshold: 10000
+    
+    # Parameters for filtering of concatenated alignment
+    
+    # Filter sequence alignment at this % sequence identity cutoff. Can be used to cut computation time in
+    # the couplings stage (e.g. set to 95 to remove any sequence that is more than 95% identical to a sequence
+    # already present in the alignment). If blank, no filtering. If filtering, HHfilter must be installed.
+    seqid_filter:
+    
+    # Only include alignment columns with at least x% residues (rather than gaps) during model inference
+    minimum_sequence_coverage: 50
+    
+    # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
+    minimum_column_coverage: 50
+
+    # compute the redundancy-reduced number of effective sequences (M_eff) already in the alignment stage.
+    # To save compute time, this computation is normally carried out in the couplings stage
+    compute_num_effective_seqs: False
+    # typically does not need to be set as 'global' overrides
+    theta:
+
+# Inference of evolutionary couplings from sequence alignment
+couplings:
+    # current options: standard (model inference using plmc, postprocessing for monomers)
+    # complex (model inference using plmc, postprocessing for complexes)
+    protocol: complex
+
+    # number of plmc iterations
+    iterations: 100
+
+    # specify custom alphabet as a string. Gap symbol must be first character
+    alphabet:
+
+    # Treat gaps as missing data during model inference
+    ignore_gaps: True
+
+    # strength of regularization on coupling parameters J
+    lambda_J: 0.01
+
+    # adjust for larger number of coupling parameters relative to number of fields h (multiply by model length and
+    # number of states)
+    lambda_J_times_Lq: True
+
+    # strength of regularization on fields h
+    lambda_h: 0.01
+    lambda_group:
+    scale_clusters:
+
+    # reuse ECs and model parameters, if this stage has been run before
+    reuse_ecs: True
+
+    # Sequence separation filter for generation of CouplingScores_longrange.csv table (i.e. to take out short-range
+    # ECs from table, only pairs with abs(i-j)>=min_sequence_distance will be kept.
+    min_sequence_distance: 6
+    
+    # Parameters specific to complex pipeline scoring
+    # Scoring model to assess confidence in computed ECs
+    # available options: skewnormal, normal, evcomplex
+    scoring_model: skewnormal
+    
+    # Specify whether to use all ECs or only inter-molecular ECs for scoring
+    use_all_ecs_for_scoring: False
+
+    # Following input parameters will usually be overriden by "global" and outputs of "align" stage
+    # prefix:
+    # alignment_file:
+    # focus_sequence:
+    # focus_mode: True
+    # segments:
+    # cpu:
+    # theta:
+
+# Compare ECs to known 3D structures
+compare:
+    # Current options: standard, complex_compare
+    protocol: complex_compare
+    
+    # Following parameters will be usually overriden by global settings / output of previous stage
+    prefix:
+    ec_file:
+    first_sequence_id:
+    first_target_sequence_file:
+    second_sequence_id:
+    second_target_sequence_file:
+
+    # If True, find structures by sequence alignment against the PDB, otherwise identify structures using
+    # sequence_id and SIFTS database (sequence_id must be UniProt AC/ID in this case)
+    first_by_alignment: True
+    second_by_alignment: True
+    
+    # Leave this parameter empty to use all PDB structures for given sequence_id, otherwise
+    # will be limited to the given IDs (single value or list). Important: note that this acts only as a filter on the
+    # structures found by alignment or in the SIFTS table (!)
+    first_pdb_ids:
+    second_pdb_ids:
+
+    # Limit number of structures and chains for comparison
+    # Note - the intersection of the monomer structural hits is taken to find the
+    # Inter-protein structures. If you limit the number of monomer structures found in this step, 
+    # you may miss some inter-protein structures
+    first_max_num_structures: 100
+    first_max_num_hits: 100
+    second_max_num_structures: 100
+    second_max_num_hits: 100
+
+    # compare to multimer contacts (if multiple chains of the same sequence or its homologs are present in a structure)
+    first_compare_multimer: True
+    second_compare_multimer:
+
+    # settings for sequence alignment against PDB sequences using jackhmmer
+    # (additional settings like iterations possible, compare to align stage)
+    sequence_file:
+    first_first_index:
+    first_region:
+    first_alignment_min_overlap: 20
+    first_use_bitscores: True
+    first_domain_threshold: 0.5
+    first_sequence_threshold: 0.5
+    
+    second_sequence_file:
+    second_first_index:
+    second_region:
+    second_alignment_min_overlap: 20
+    second_use_bitscores: True
+    second_domain_threshold: 0.5
+    second_sequence_threshold: 0.5
+
+    # Comparison and plotting settings
+    
+    # Return an error if we fail to automatically retrieve information about a given pdb id
+    raise_missing: False
+    
+    # Set atom_filter to "CA" to compute C_alpha distances instead of minimum atom distances. If blank, will compute minimum atom distance
+    atom_filter:
+
+    # Distance cutoff (Angstrom) for a true positive pair
+    distance_cutoff_intra: 5
+    distance_cutoff_inter: 8
+
+    # Only long-range pairs with abs(i-j)>= min_sequence_distance will be used for CouplingScoresCompared_longrange.csv file
+    min_sequence_distance: 6
+
+    # Plot contact maps with ECs above these mixture model probability cutoffs
+    plot_probability_cutoffs: [0.90, 0.99]
+
+    # Plot fixed numbers of inter-protein ECS, and all intra ECs scoring at least as high
+    # As those inter-protein ECs. 
+    # Use integers only
+    plot_lowest_count: 5
+    plot_highest_count: 10
+    plot_increase: 5
+
+    # Axis boundaries of contact map plot depending on range of ECs and structure.
+    # Options: union, intersection, ecs, structure, [start, end] (e.g. [100, 200])
+    boundaries: union
+
+    # scale sizes of EC dots in scatter plot based on strength of EC score
+    scale_sizes: True
+
+    # draw secondary structure on contact map plots
+    draw_secondary_structure: True
+
+# These settings allow job status tracking using a database, and result collection in an archive
+management:
+    # URI of database
+    database_uri:
+
+    # unique job identifier
+    job_name:
+
+    # add the following output files to results archive
+    archive: [target_sequence_file, statistics_file, alignment_file, frequencies_file, ec_file, ec_longrange_file,
+              model_file, enrichment_file, evzoom_file, enrichment_pml_files, ec_lines_pml_file, contact_map_files,
+              ec_compared_all_file, ec_compared_longrange_file, remapped_pdb_files, mutations_epistatic_pml_files,
+              mutation_matrix_file, mutation_matrix_plot_files, secondary_structure_pml_file, folding_ec_file,
+              folded_structure_files, folding_ranking_file, folding_comparison_file, folding_individual_comparison_files,
+              ec_lines_compared_pml_file, pdb_structure_hits_file, sec_struct_file]
+
+    # Delete the following output files after running the job if you don't need them, to save disk space.
+    # Note that this may jeopardize your ability to rerun parts of the job if intermediate files are missing.
+    # The following, deactivated default deletes the biggest output files.
+    # delete: [raw_alignment_file, model_file]
+
+# Computational environment for batch jobs (using evcouplings command line application)
+environment:
+    # current options for engine: lsf, local (for local, only set cores and leave all other fields blank)
+    # If your batch engine of choice (SGE, Slurm, Torque) is not available yet, please consider contributing by
+    # implementing it and submitting a pull request!
+    # Note that "cores" will override the "cpu" parameter for "global"
+    engine: lsf
+    queue: mcore
+    cores: 2
+    memory: 15000
+    time: 48:0
+
+    # command that will be executed before running actual computation (can be used to set up environment)
+    configuration:
+        - source activate evcouplings_env
+
+# Paths to databases used by evcouplings.
+databases:
+    # Sequence databases (only download the ones you want to use). You can also specify arbitrary databases in FASTA format
+    # using a database name of your choice here)
+    uniprot: /groups/marks/databases/jackhmmer/uniprot/uniprot_2017_04.fasta
+    uniref100: /groups/marks/databases/jackhmmer/uniref100/uniref100_2017_04.fasta
+    uniref90: /groups/marks/databases/jackhmmer/uniref90/uniref90_2017_04.fasta
+
+    # URL do download sequences if sequence_file is not given. {} will be replaced by sequence_id.
+    sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
+
+    # Directory with PDB MMTF structures (leave blank to fetch structures from web)
+    pdb_mmtf_dir:
+
+    # SIFTS mapping information. Point to valid directory, and if these files do not exist, they will be automatically generated
+    # (this may take a while). Periodically delete these files to more recent versions of SIFTS are used.
+    sifts_mapping_table: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_04_18.csv
+    sifts_sequence_db: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_04_18.fa
+
+# Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
+tools:
+    jackhmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
+    plmc: /groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
+    hhfilter: /groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
+    psipred: /groups/marks/software/runpsipred
+    cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
+    maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    uniprot_to_embl_table : /groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
+    ena_genome_location_table : /groups/marks/databases/complexes/ena/2017_02/cds_pro.txt

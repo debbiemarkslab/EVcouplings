@@ -3,12 +3,14 @@ Visualization of evolutionary couplings (contact maps etc.)
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green
 """
 
 from copy import deepcopy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 from evcouplings.visualize.pymol import (
     pymol_pair_lines, pymol_mapping
@@ -86,6 +88,7 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
     (min_y, max_y) : (float, float)
         First and last position on y-axis
     """
+
     def _find_pos(axis):
         """
         Find first and last index along a single contact map axis
@@ -122,12 +125,25 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
         if len(ec_pos) > 0:
             min_ec, max_ec = min(ec_pos), max(ec_pos)
         else:
-            min_ec, max_ec = min(structure_pos), max(structure_pos)
+            if len(structure_pos) > 0:
+                min_ec, max_ec = min(structure_pos), max(structure_pos)
+            else:
+                raise ValueError(
+                    "must provide at least one EC or structural contact for" + \
+                    "each subplot of complex contact map"
+                )
 
         if len(structure_pos) > 0:
             min_struct, max_struct = min(structure_pos), max(structure_pos)
         else:
-            min_struct, max_struct = min(ec_pos), max(ec_pos)
+            if len(ec_pos) > 0:
+                min_struct, max_struct = min(ec_pos), max(ec_pos)
+            else:
+                raise ValueError(
+                    "must provide at least one EC or structural contact for"+ \
+                    "each subplot of complex contact map"
+                )
+
 
         # determine and set plot boundaries
         if boundaries == "union":
@@ -272,7 +288,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     # enable rescaling of points and secondary structure if necessary
     if scale_sizes:
         scale_func = lambda x: scale(x, ax=ax)
-    else:        
+    else:
         scale_func = lambda x: x
 
     # plot monomer contacts
@@ -311,7 +327,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                 secstruct_j = secondary_structure
             else:
                 if (not isinstance(secondary_structure, tuple) or
-                        len(secondary_structure) != 2):
+                            len(secondary_structure) != 2):
                     raise ValueError(
                         "When symmetric is False, secondary structure must "
                         "be a tuple (secstruct_i, secstruct_j)."
@@ -334,6 +350,141 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                 # DataFrame has no secondary structure, cannot do anything here
                 # (this happens when merging across multiple distance maps)
                 pass
+
+
+def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
+                        d_intra_i, d_multimer_i,
+                        d_intra_j, d_multimer_j,
+                        d_inter, **kwargs):
+    """
+    intra1_ecs: pandas.DataFrame
+        Table of intra-molecular evolutionary couplings to plot
+        (using columns "i" and "j") from monomer 1
+    intra2_ecs: pandas.DataFrame
+        Table of intra-molecular evolutionary couplings to plot
+        (using columns "i" and "j") from monomer 2
+    inter_ecs: pandas.DataFrame
+        Table of inter-molecular evolutionary couplings to plot
+        (using columns "i" and "j")
+    d_intra_i:evcouplings.compare.distances.DistanceMap
+        Monomer 1 distance map (intra-chain distances)
+    d_multimer_i:evcouplings.compare.distances.DistanceMap
+        Monomer 1 multimer distance map (inter-chain distances for monomer 1)
+    d_inter:evcouplings.compare.distances.DistanceMap
+        Inter-molecular distance map (inter-chain distances)
+    boundaries: {"union", "intersection", "ecs", "structure"} or tuple
+                 or list(tuple, tuple), optional (default: "union")
+        Set axis range (min/max) of contact map as follows:
+        - "union": Positions either in ECs or 3D structure
+        - "intersection": Positions both in ECs and 3D structure
+        - "ecs": Positions in ECs
+        - "structure": Positions in 3D structure
+        - tuple(float, float): Specify upper/lower bound manually
+        - [(float, float), (float, float)]: Specify upper/lower bounds
+          for both x-axis (first tuple) and y-axis (second tuple)
+    """
+    # check that boundaries is supplied
+
+    boundaries = kwargs["boundaries"]
+
+    # Find the appropriate boundaries for each subset
+    intra1_boundaries = list(find_boundaries(boundaries,
+                                             ecs=intra1_ecs,
+                                             monomer=d_intra_i,
+                                             multimer=d_multimer_i,
+                                             symmetric=True))
+
+    intra2_boundaries = list(find_boundaries(boundaries,
+                                             ecs=intra2_ecs,
+                                             monomer=d_intra_j,
+                                             multimer=d_multimer_j,
+                                             symmetric=True))
+
+    inter_boundaries = list(find_boundaries(boundaries,
+                                             ecs=inter_ecs,
+                                             monomer=d_inter,
+                                             multimer=None,
+                                             symmetric=False))
+
+    inter_boundaries = [
+        (
+            min(intra1_boundaries[0][0],inter_boundaries[0][0]),
+            max(intra1_boundaries[0][1],inter_boundaries[0][1])
+        ),(
+            min(intra2_boundaries[0][0],inter_boundaries[1][0]),
+            max(intra2_boundaries[0][1],inter_boundaries[1][1])
+        )
+    ]
+
+    # Calculate the length ratios of the monomers
+    mon1_len = intra1_boundaries[0][1] - intra1_boundaries[0][0]
+    mon2_len = intra2_boundaries[0][1] - intra2_boundaries[0][0]
+
+    ratio1 = mon1_len / (mon1_len + mon2_len)
+    ratio2 = mon2_len / (mon1_len + mon2_len)
+
+    # Initiate the axes using the above ratios
+    fig = plt.figure(figsize=(8, 8))
+    gs = gridspec.GridSpec(2, 2,
+                           width_ratios=[ratio1, ratio2],
+                           height_ratios=[ratio1, ratio2]
+                           )
+    ax1 = plt.subplot(gs[0])  # intra 1, upper left
+    ax2 = plt.subplot(gs[1])  # inter, upper right
+    ax3 = plt.subplot(gs[2])  # inter, lower left
+    ax4 = plt.subplot(gs[3])  # intra 2, lower right
+
+    # intra 1, upper left
+    new_kwargs = deepcopy(kwargs)
+    new_kwargs["boundaries"] = intra1_boundaries
+    print(d_intra_i)
+    plot_contact_map(ax=ax1,
+                     symmetric=True,
+                     ecs=intra1_ecs,
+                     monomer=d_intra_i,
+                     multimer=d_multimer_i,
+                     **new_kwargs)
+
+    # intra 2, lower right
+    new_kwargs = deepcopy(kwargs)
+    new_kwargs["boundaries"] = intra2_boundaries
+    plot_contact_map(ax=ax4,
+                     symmetric=True,
+                     ecs=intra2_ecs,
+                     monomer=d_intra_j,
+                     multimer=d_multimer_j,
+                     **new_kwargs)
+
+    # inter, lower left
+    new_kwargs = deepcopy(kwargs)
+    new_kwargs["boundaries"] = inter_boundaries
+    plot_contact_map(ax=ax3,
+                     symmetric=False,
+                     ecs=inter_ecs,
+                     multimer=d_inter,
+                     distance_cutoff=8,
+                     **new_kwargs)
+
+    # inter, upper right
+    if inter_ecs is None:
+        inter_ecs_transposed = None
+    else:
+        inter_ecs_transposed = inter_ecs.rename(columns={"i":"j","j":"i"})
+
+    if d_inter is None:
+        d_inter_T = None
+    else:
+        d_inter_T = d_inter.transpose()
+
+    new_kwargs = deepcopy(kwargs)
+    new_kwargs["boundaries"] = list(reversed(inter_boundaries))
+
+    plot_contact_map(ax=ax2,
+                     symmetric=False,
+                     ecs=inter_ecs_transposed,
+                     multimer=d_inter_T,
+                     distance_cutoff=8,
+                     **new_kwargs)
 
 
 def plot_pairs(pairs, symmetric=False, ax=None, style=None):
@@ -532,7 +683,7 @@ def scale(style, ax=None):
 
     # dot size
     if "s" in style.keys():
-        style["s"] = style["s"]**2 / L
+        style["s"] = style["s"] ** 2 / L
 
     # secondary structure width
     if "width" in style.keys():
@@ -572,6 +723,7 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         and secondary structure. If None, defaults
         to the width of secondary structure * 3.
     """
+
     def _extract_secstruct(secstruct, axis_range):
         # turn into dictionary representation if
         # passed as a DataFrame
@@ -732,6 +884,7 @@ def secondary_structure_cartoon(
     draw_coils : bool, optional (Default: True)
         If true, draw line for coil segments.
     """
+
     def _transform(x, y):
         """
         Transform raw drawing coordinates if
