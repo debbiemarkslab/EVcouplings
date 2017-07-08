@@ -418,9 +418,10 @@ def best_hit(**kwargs):
         kwargs["second_alignment_file"]
     )
 
+
     # determine the species intersection
     species_intersection = [x for x in species_to_most_similar_1.keys() if x in species_to_most_similar_2.keys()]
-
+    
     # pair the sequence identifiers
     sequence_pairing = [(species_to_most_similar_1[x][1], species_to_most_similar_2[x][1]) for x in
                         species_intersection]
