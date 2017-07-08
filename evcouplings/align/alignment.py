@@ -5,6 +5,7 @@ multiple sequence alignments.
 Authors:
   Thomas A. Hopf
   Anna G. Green
+  Roc Reguant
 """
 
 from collections import namedtuple, OrderedDict, defaultdict
@@ -155,6 +156,43 @@ def retrieve_sequence_ids(fileobj,regex=None):
 
     
     return sequence_ids,id_to_full_header
+
+def map_uniref_to_uniprot(sequence_ids,uniprot_to_uniref_file,outfile=None):
+    '''
+    Parameters
+    ----------
+    sequence_ids: list of str
+        a list of uniprot sequence identifiers
+    uniprot_to_uniref_database: str
+        path to tsv file containing uniref and corresponding uniprot identifiers
+    outfile: str, default None
+        if provided, path to file to write results
+
+    Returns
+    -------
+    list of list of str
+        each is a list all of the uniprot identifiers corresponding to the uniref
+        identifier at that position in the original sequence_ids list
+    '''
+    mapping_df = pd.read_csv(uniprot_to_uniref_file, sep='\t')
+
+    def _get_single_mapping(df, query_id):
+        query_column = df.columns[0]
+        target_column_j = df.columns[1]
+        i = df[query_column].searchsorted(query_id, 'left') #returns the first element (if it is sorted)
+        
+        mapped = []
+        while((i< len(df)) and int(df.iloc[i,0] == query_id) == 1):
+            mapped.append(df.iloc[i,target_column_j].to_string(index=False))
+            i+=1
+        return mapped
+
+    uniprot_ids = []
+
+    for sequence_id in sequence_ids:
+        uniprot_ids.append(_get_single_mapping(df,sequence_id))
+
+        return uniprot_ids
 
 
 # Holds information of a parsed Stockholm alignment file
