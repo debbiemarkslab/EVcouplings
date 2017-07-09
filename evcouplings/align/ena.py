@@ -5,7 +5,7 @@ database and extracting genomic distances
 Authors:
   Anna G. Green
   Thomas A. Hopf
-  Charlotta P.I. Scharfe
+  Charlotta P.I. Schärfe
 """
 import os
 from operator import itemgetter
