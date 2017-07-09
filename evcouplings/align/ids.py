@@ -31,11 +31,11 @@ def retrieve_sequence_ids(fileobj, regex=None):
     Returns
     -------
     list of str
-        sequence ids 
+        Sequence ids 
     dict
-        points sequence id to list of str giving the full
-        sequence headers corresponding to that sequence id
-
+        Map from sequence id to list of str containing
+         the full sequence headers corresponding to that
+         sequence id
     """
     if regex is None:
         regex = [
@@ -48,7 +48,7 @@ def retrieve_sequence_ids(fileobj, regex=None):
             # example: >NQO8_THET8/1-365
             "^(\w+).*/.*$",
 
-            # example: >Q60019|NQO8_THET8/1-365]
+            # example: >Q60019|NQO8_THET8/1-365
             "^\w+\|\w+\|(\w+)",
         ]
 
