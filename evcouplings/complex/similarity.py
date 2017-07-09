@@ -5,7 +5,7 @@ Authors:
   Anna G. Green
 """
 import pandas as pd
-
+import numpy as np
 
 def read_identity_file(identity_file):
     """
@@ -42,13 +42,20 @@ def read_annotation_file(annotation_file, column_1="OS", column_2 = "Tax"):
         sequence identifier to species annotation
         
     """
-    data = pd.read_csv(annotation_file,na_values=None)
+    data = pd.read_csv(annotation_file,dtype=str)
+    data = data.fillna(value="None")
     id_to_species = {}
     for id, species1, species2 in zip(data.id, data[column_1],data[column_2]):
-        print(id,species1,species2)
-        if species1 is not None:
+
+        if not species1 is "None":
+
+            if "TaxID=" in species1:
+                species1 = species1.split(" TaxID=")[0]
             id_to_species[id] = species1
         else:
+
+            if "TaxID=" in species2:
+                species2 = species2.split(" TaxID=")[0]
             id_to_species[id] = species2
 
     return id_to_species

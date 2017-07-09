@@ -1035,7 +1035,7 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
 
 def remap_chains(sifts_result, output_prefix, sequence=None,
                  structures=None, atom_filter=("N", "CA", "C", "O"),
-                 model=0, raise_missing=True):
+                 model=0, chain_name=None, raise_missing=True):
     """
     Remap a set of PDB chains into the numbering scheme (and
     amino acid sequence) of a target sequence (a.k.a. the poorest
@@ -1134,18 +1134,206 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
                 subset=["one_letter_code", "three_letter_code"]
             )
 
+        #if the user specified a new chain name, change the chain name
+        original_pdb_chain = r["pdb_chain"]
+
+
         # save model coordinates to .pdb file
         filename = "{}_{}_{}_{}.pdb".format(
             output_prefix,
-            r["pdb_id"], r["pdb_chain"], r["mapping_index"]
+            r["pdb_id"], original_pdb_chain, r["mapping_index"]
         )
 
         # save to file
         with open(filename, "w") as f:
-            chain.to_file(f)
+            chain.to_file(f,chain_id=chain_name)
 
         # typecast index so it is regular python type, not numpy
         # (important for yaml dump)
         remapped[int(idx)] = filename
+
+    return remapped
+
+def remap_complex_chains(sifts_result_i, sifts_result_j,
+                         sequence_i=None, sequence_j=None, structures=None,
+                         atom_filter=None, intersect=False, output_prefix=None,
+                         raise_missing=True, chain_name_i="A",
+                         chain_name_j="B", model=0):
+    """
+    Compute inter-chain distances (between different entities)
+    in PDB file. Resulting distance map is typically not
+    symmetric, with either axis corresponding to either chain.
+    Inter-distances are calculated on all combinations of chains
+    that have the same PDB id in sifts_result_i and sifts_result_j.
+
+    Parameters
+    ----------
+    sifts_result_i : SIFTSResult
+        Input structures and mapping to use
+        for first axis of computed distance map
+    sifts_result_j : SIFTSResult
+        Input structures and mapping to use
+        for second axis of computed distance map
+    structures : str or dict, optional (default: None)
+        If str: Load structures from directory this string
+        points to. Missing structures will be fetched
+        from web.
+
+        If dict: dictionary with lower-case PDB ids as keys
+        and PDB objects as values. This dictionary has to
+        contain all necessary structures, missing ones will
+        not be fetched. This dictionary can be created using
+        pdb.load_structures.
+    atom_filter : str, optional (default: None)
+        Filter coordinates to contain only these atoms. E.g.
+        set to "CA" to compute C_alpha - C_alpha distances
+        instead of minimum atom distance over all atoms in
+        both residues.
+    intersect : bool, optional (default: False)
+        If True, intersect indices of the given
+        distance maps. Otherwise, union of indices
+        will be used.
+    output_prefix : str, optional (default: None)
+        If given, save individual and final contact maps
+        to files prefixed with this string. The appended
+        file suffixes map to row index in sifts_results.hits
+    model : int, optional (default: 0)
+        Index of model in PDB structure that should be used
+    raise_missing : bool, optional (default: True)
+        Raise a ResourceError if any of the input structures can
+        not be loaded; otherwise, ignore missing entries.
+
+    Returns
+    -------
+    DistanceMap
+        Computed aggregated distance map
+        across all input structures
+
+    Raises
+    ------
+    ValueError
+        If sifts_result_i or sifts_result_j is empty
+        (no structure hits)
+    ResourceError
+        If any structure could not be loaded and raise_missing is True
+    """
+
+    if len(sifts_result_i.hits) == 0 or len(sifts_result_j.hits) == 0:
+        raise ValueError(
+            "sifts_result_i or sifts_result_j is empty "
+            "(no structure hits, but at least one required)"
+        )
+
+
+    # make sure keys in sequence map are strings,
+    # since indices in structures are stored as strings
+    if sequence_i is not None:
+        sequence_i = {
+            str(k): v for k, v in sequence_i.items()
+        }
+
+    if sequence_j is not None:
+        sequence_j = {
+            str(k): v for k, v in sequence_j.items()
+        }
+
+    # create output folder if necessary
+    if output_prefix is not None:
+        create_prefix_folders(output_prefix)
+
+    # determine which combinations of chains to look at
+    # (anything that has same PDB identifier)
+    combis = sifts_result_i.hits.reset_index().merge(
+        sifts_result_j.hits.reset_index(),
+        on="pdb_id", suffixes=("_i", "_j")
+    )
+
+    # if no structures given, or path to files, load first
+    structures = _prepare_structures(
+        structures, combis.pdb_id, raise_missing
+    )
+
+    remapped = {}
+
+    # go through all chain combinations
+    for i, r in combis.iterrows():
+
+        ### chain i
+
+        # extract and remap PDB chain
+        chain_i = _prepare_chain(
+            structures, r["pdb_id"], r["pdb_chain_i"],
+            atom_filter, sifts_result_i.mapping[r["mapping_index_i"]],
+            model
+        )
+
+        # if a map from sequence index to residue is given,
+        # use it to rename the residues to the target sequence
+        if sequence_i is not None:
+            # change one letter code
+            chain_i.residues.loc[
+                :, "one_letter_code"
+            ] = chain_i.residues.id.map(sequence_i)
+
+            # and three letter code
+            chain_i.residues.loc[
+                :, "three_letter_code"
+            ] = chain_i.residues.one_letter_code.map(AA1_to_AA3)
+
+            # drop anything we could not map
+            chain_i.residues = chain_i.residues.dropna(
+                subset=["one_letter_code", "three_letter_code"]
+            )
+
+        #if the user specified a new chain name, change the chain name
+        original_pdb_chain_i = r["pdb_chain_i"]
+
+        ### chain j
+
+        # extract and remap PDB chain
+        chain_j = _prepare_chain(
+            structures, r["pdb_id"], r["pdb_chain_j"],
+            atom_filter, sifts_result_j.mapping[r["mapping_index_j"]],
+            model
+        )
+
+        # if a map from sequence index to residue is given,
+        # use it to rename the residues to the target sequence
+        if sequence_j is not None:
+            # change one letter code
+            chain_j.residues.loc[
+                :, "one_letter_code"
+            ] = chain_j.residues.id.map(sequence_j)
+
+            # and three letter code
+            chain_j.residues.loc[
+                :, "three_letter_code"
+            ] = chain_j.residues.one_letter_code.map(AA1_to_AA3)
+
+            # drop anything we could not map
+            chain_j.residues = chain_j.residues.dropna(
+                subset=["one_letter_code", "three_letter_code"]
+            )
+
+        #if the user specified a new chain name, change the chain name
+        original_pdb_chain_j = r["pdb_chain_j"]
+
+        # save model coordinates to .pdb file
+        filename = "{}_{}_{}{}_{}{}.pdb".format(
+            output_prefix,
+            r["pdb_id"], original_pdb_chain_i,
+            r["mapping_index_i"],
+            original_pdb_chain_j,
+            r["mapping_index_j"]
+        )
+
+        # save to file
+        with open(filename, "w") as f:
+            chain_i.to_file(f,chain_id=chain_name_i)
+            chain_j.to_file(f,chain_id=chain_name_j)
+
+        # typecast index so it is regular python type, not numpy
+        # (important for yaml dump)
+        remapped[int(i)] = filename
 
     return remapped

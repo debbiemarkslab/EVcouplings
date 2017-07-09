@@ -25,7 +25,7 @@ from evcouplings.utils.system import (
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
     intra_dists, multimer_dists, remap_chains,
-    inter_dists
+    inter_dists, remap_complex_chains
 )
 from evcouplings.compare.sifts import SIFTS, SIFTSResult
 from evcouplings.compare.ecs import (
@@ -685,7 +685,7 @@ def complex_compare(**kwargs):
 
     # Step 2: Compute distance maps
 
-    def _compute_monomer_distance_maps(sifts_map, name_prefix):
+    def _compute_monomer_distance_maps(sifts_map, name_prefix, chain_name):
         # load all structures at once
         structures = load_structures(
             sifts_map.hits.pdb_id,
@@ -698,7 +698,7 @@ def complex_compare(**kwargs):
         if len(sifts_map.hits) > 0:
             d_intra = intra_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
-                output_prefix=aux_prefix + name_prefix + "_distmap_intra"
+                output_prefix=aux_prefix + "_" + name_prefix + "_distmap_intra"
             )
             d_intra.to_file(outcfg[name_prefix + "_distmap_monomer"])
 
@@ -753,7 +753,7 @@ def complex_compare(**kwargs):
             # dictionary so we have a list of files in the dict keys
             outcfg[name_prefix + "_remapped_pdb_files"] = {
                 filename: mapping_index for mapping_index, filename in
-                remap_chains(sifts_map, aux_prefix, seqmap).items()
+                remap_chains(sifts_map, aux_prefix, seqmap, chain_name=chain_name).items()
             }
         else:
             # if no structures, can not compute distance maps
@@ -762,12 +762,12 @@ def complex_compare(**kwargs):
             outcfg[name_prefix + "_distmap_monomer"] = None
             outcfg[name_prefix + "_distmap_multimer"] = None
 
-        return d_intra, d_multimer
+        return d_intra, d_multimer, seqmap
 
-    d_intra_i, d_multimer_i = _compute_monomer_distance_maps(first_sifts_map, "first")
-    d_intra_j, d_multimer_j = _compute_monomer_distance_maps(second_sifts_map, "second")
+    d_intra_i, d_multimer_i, seqmap_i = _compute_monomer_distance_maps(first_sifts_map, "first", "A")
+    d_intra_j, d_multimer_j, seqmap_j = _compute_monomer_distance_maps(second_sifts_map, "second", "B")
 
-
+    #compute inter distance map if sifts map for each monomer exists
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
         d_inter = inter_dists(first_sifts_map, second_sifts_map,
                               raise_missing=kwargs["raise_missing"])
@@ -865,13 +865,22 @@ def complex_compare(**kwargs):
 
     if outcfg["ec_compared_longrange_file"] is not None and kwargs["plot_highest_count"] is not None:
         ecs_longrange = pd.read_csv(outcfg["ec_compared_longrange_file"])
+        inter_ecs = ecs_longrange.query("segment_i != segment_j")
 
         outcfg["ec_lines_compared_pml_file"] = prefix + "_draw_ec_lines_compared.pml"
         pairs.ec_lines_pymol_script(
-            ecs_longrange.iloc[:kwargs["plot_highest_count"], :],
+            inter_ecs.iloc[:kwargs["plot_highest_count"], :],
             outcfg["ec_lines_compared_pml_file"],
-            distance_cutoff=kwargs["distance_cutoff_inter"]
+            distance_cutoff=kwargs["distance_cutoff_inter"],
+            chain={first_segment_name:"A",second_segment_name:"B"}
         )
+
+    outcfg["complex_remapped_pdb_files"] = {
+        filename: mapping_index for mapping_index, filename in
+        remap_complex_chains(first_sifts_map, second_sifts_map,
+                             seqmap_i,seqmap_j,output_prefix=aux_prefix,
+                             raise_missing=kwargs["raise_missing"]).items()
+    }
 
     # Step 4: Make contact map plots
     # if no structures available, defaults to EC-only plot
