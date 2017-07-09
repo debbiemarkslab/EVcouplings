@@ -27,9 +27,9 @@ from evcouplings.align.protocol import (
     modify_alignment
 )
 from evcouplings.align.alignment import (
-    retrieve_sequence_ids,
     Alignment
 )
+from evcouplings.align.ids import retrieve_sequence_ids
 from evcouplings.align.ena import (
     load_uniprot_to_embl,
     load_embl_to_annotation

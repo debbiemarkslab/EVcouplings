@@ -4,13 +4,11 @@ multiple sequence alignments.
 
 Authors:
   Thomas A. Hopf
-  Anna G. Green
-  Roc Reguant
 """
 
+import re
 from collections import namedtuple, OrderedDict, defaultdict
 from copy import deepcopy
-import re
 
 import numpy as np
 from numba import jit
@@ -104,95 +102,6 @@ def write_aln(sequences, fileobj, width=80):
     """
     for (seq_id, seq) in sequences:
         fileobj.write(seq + "\n")
-
-
-def retrieve_sequence_ids(fileobj,regex=None):
-
-    """
-    returns all ids in a FASTA alignment
-    Extracts ids (substrings of the FASTA file headers)
-        based on the given regular expressions
-    
-    CAVEAT: if multiple regular expressions match the
-        FASTA file header, will return the string extracted
-        by the FIRST match
-    
-    Parameters
-    ----------
-    fileobj : file-like object
-        FASTA alignment file
-    regex : list of str, optional (default=None)
-        regular expression strings to extract sequence ids
-        default None uses list of objects to extract uniprot ACs
-
-
-    Returns
-    -------
-    list of str
-        sequence ids 
-    dict
-        points sequence id to list of str giving the full
-        sequence headers corresponding to that sequence id
-
-    """
-    if regex is None:
-        regex = ["^Uni\w+\_(\w+).*/",  #example: >UniRef100_H6SNJ6/11-331
-                    "^\w+\|(\w+)\|\w+\/", #example: >tr|Q1NYN0|Q1NYN0_9FLAO
-                    "^(\w+).*/.*$",       #example: >NQO8_THET8/1-365
-                    "^\w+\|\w+\|(\w+)",   #example: >Q60019|NQO8_THET8/1-365]
-                    ]
-
-    sequence_ids = []
-    id_to_full_header = defaultdict(list)
-    
-    for current_id,_ in read_fasta(fileobj):
-        for pattern in regex:
-            
-            m = re.match(pattern,current_id)
-            if m:
-                sequence_ids.append(m.group(1))
-                id_to_full_header[m.group(1)].append(current_id)
-                break
-
-    
-    return sequence_ids,id_to_full_header
-
-def map_uniref_to_uniprot(sequence_ids,uniprot_to_uniref_file,outfile=None):
-    '''
-    Parameters
-    ----------
-    sequence_ids: list of str
-        a list of uniprot sequence identifiers
-    uniprot_to_uniref_database: str
-        path to tsv file containing uniref and corresponding uniprot identifiers
-    outfile: str, default None
-        if provided, path to file to write results
-
-    Returns
-    -------
-    list of list of str
-        each is a list all of the uniprot identifiers corresponding to the uniref
-        identifier at that position in the original sequence_ids list
-    '''
-    mapping_df = pd.read_csv(uniprot_to_uniref_file, sep='\t')
-
-    def _get_single_mapping(df, query_id):
-        query_column = df.columns[0]
-        target_column_j = df.columns[1]
-        i = df[query_column].searchsorted(query_id, 'left') #returns the first element (if it is sorted)
-        
-        mapped = []
-        while((i< len(df)) and int(df.iloc[i,0] == query_id) == 1):
-            mapped.append(df.iloc[i,target_column_j].to_string(index=False))
-            i+=1
-        return mapped
-
-    uniprot_ids = []
-
-    for sequence_id in sequence_ids:
-        uniprot_ids.append(_get_single_mapping(df,sequence_id))
-
-        return uniprot_ids
 
 
 # Holds information of a parsed Stockholm alignment file

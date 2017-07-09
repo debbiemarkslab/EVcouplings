@@ -10,9 +10,10 @@ Authors:
 import os
 from operator import itemgetter
 from collections import defaultdict
-from evcouplings.align.alignment import retrieve_sequence_ids
+from evcouplings.align.ids import retrieve_sequence_ids
 
-def extract_uniprot_to_embl(alignment_file, 
+
+def extract_uniprot_to_embl(alignment_file,
                             uniprot_to_embl_table,
                             uniprot_to_embl_filename):
     """
