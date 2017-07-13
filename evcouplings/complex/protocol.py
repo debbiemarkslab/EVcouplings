@@ -46,7 +46,8 @@ from evcouplings.complex.distance import (
 from evcouplings.complex.similarity import (
     read_identity_file,
     read_annotation_file,
-    most_similar_by_organism
+    most_similar_by_organism,
+    filter_best_reciprocal
 )
 import re
 
@@ -482,16 +483,220 @@ def best_hit(**kwargs):
     return outcfg
 
 
+def best_reciprocal_hit(**kwargs):
+    """
+    Protocol:
+
+    Concatenate alignments based on the best reciprocal
+    to the focus sequence in each species
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+        (TODO: explain meaning of parameters in detail).
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        alignment_file
+        raw_alignment_file
+        focus_mode
+        focus_sequence
+        segments
+        frequencies_file
+        identities_file
+        num_sequences
+        num_sites
+        raw_focus_alignment_file
+        statistics_file
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix",
+            "first_alignment_file", "second_alignment_file",
+            "first_focus_sequence", "second_focus_sequence",
+            "first_focus_mode", "second_focus_mode",
+            "first_segments", "second_segments",
+            "first_identities_file", "second_identities_file",
+            "first_annotation_file", "second_annotation_file",
+            "paralog_identity_threshold"
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    # make sure input alignments
+    verify_resources(
+        "Input alignment does not exist",
+        kwargs["first_alignment_file"], kwargs["second_alignment_file"]
+    )
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+
+    def _find_paralogs(query_id, annotation_file, identity_file,
+                       identity_threshold):
+        '''
+        Parameters
+        ----------
+        identity_threshold: float
+            sequences above this identity to the query are not considered paralogs
+
+        Returns
+        -------
+        filtered_paralogs: list of str
+            full sequence identities of paralogs found in the same genome as
+            the query id
+        '''
+
+
+        annotations = pd.read_csv(annotation_file)
+        base_query = query_id.split('/')[0]
+
+        identities = read_identity_file(identity_file)
+
+        # if it's uniprot, extract based on having the same species annotation
+        if annotations.RepID.isnull().all():
+            self_hit_row = annotations[[True if base_query in x else False
+                                        for x in list(annotations.id)]
+            ]
+            self_hit_annotation = self_hit_row.iloc[-1, :]['OS']
+            paralogs = list(annotations[annotations.OS == self_hit_annotation].id)
+
+        # if it's uniref, extract based on having the same RepID
+        else:
+            paralogs = list(annotations.iloc[0, :].id)
+            paralogs += annotations[annotations.RepID == base_query].id
+
+        # confirm that paralogs are below the similarity threshold
+        # ie, are diverged in sequence space from the query
+        filtered_paralogs = [paralogs[0]]
+        for paralog in paralogs[1::]:  # first entry is query
+            if identities[paralog] < identity_threshold:
+                filtered_paralogs.append(paralog)
+
+        return filtered_paralogs
+
+    def _load_monomer_info(annotations_file,
+                           identities_file,
+                           target_sequence,
+                           alignment_file,
+                           identity_threshold):
+        id_to_organism = read_annotation_file(annotations_file)
+        id_to_header = {x: [x] for x in id_to_organism.keys()}
+
+        # TODO: fix this so that we don"t assume target sequence is the first sequence
+        id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file)).ids[0]]
+
+        similarities = read_identity_file(identities_file)
+        species_to_most_similar = most_similar_by_organism(similarities, id_to_organism)
+
+        paralogs = _find_paralogs(target_sequence, annotations_file, identities_file,
+                                  identity_threshold)
+
+        species_to_bestreciprocal,_ = filter_best_reciprocal(alignment_file,paralogs,species_to_most_similar)
+
+        return species_to_bestreciprocal, id_to_header
+
+    # load the information about each monomer alignment
+    species_to_most_similar_1, id_to_header_1 = _load_monomer_info(
+        kwargs["first_annotation_file"],
+        kwargs["first_identities_file"],
+        kwargs["first_focus_sequence"],
+        kwargs["first_alignment_file"],
+        kwargs["paralog_identity_threshold"]
+    )
+
+    species_to_most_similar_2, id_to_header_2 = _load_monomer_info(
+        kwargs["second_annotation_file"],
+        kwargs["second_identities_file"],
+        kwargs["second_focus_sequence"],
+        kwargs["second_alignment_file"],
+        kwargs["paralog_identity_threshold"]
+    )
+
+    # determine the species intersection
+    species_intersection = [x for x in species_to_most_similar_1.keys() if x in species_to_most_similar_2.keys()]
+
+    # pair the sequence identifiers
+    sequence_pairing = [(species_to_most_similar_1[x][1], species_to_most_similar_2[x][1]) for x in
+                        species_intersection]
+
+    raw_alignment_file = prefix + "_raw.fasta"
+
+    target_seq_id, target_seq_index = write_concatenated_alignment(
+        sequence_pairing,
+        id_to_header_1, id_to_header_2,
+        kwargs["first_alignment_file"],
+        kwargs["second_alignment_file"],
+        kwargs["first_focus_sequence"],
+        kwargs["second_focus_sequence"],
+        raw_alignment_file
+    )
+
+    # filter the alignment
+    raw_ali = Alignment.from_file(open(raw_alignment_file))
+    aln_outcfg, _ = modify_alignment(
+        raw_ali,
+        target_seq_index,
+        target_seq_id,
+        kwargs["first_region_start"],
+        **kwargs
+    )
+
+
+    def _modify_segments(seg_list, seg_prefix):
+        # extract segments from list representation into objects
+        segs = [
+            Segment.from_list(s) for s in seg_list
+        ]
+        # update segment IDs
+        for i, s in enumerate(segs, start=1):
+            s.segment_id = "{}_{}".format(seg_prefix, i)
+
+        return segs
+
+
+    # merge segments - this allows to have more than one segment per
+    # "monomer" alignment
+    segments_1 = _modify_segments(kwargs["first_segments"], "A")
+    segments_2 = _modify_segments(kwargs["second_segments"], "B")
+    segments_complex = segments_1 + segments_2
+
+    # make sure we return all the necessary information:
+    # * alignment_file: final concatenated alignment that will go into plmc
+    # * focus_sequence: this is the identifier of the concatenated target
+    #   sequence which will be passed into plmc with -f
+    outcfg = aln_outcfg
+    outcfg["segments"] = [s.to_list() for s in segments_complex]
+    outcfg["focus_sequence"] = target_seq_id
+
+    outcfg["concatentation_statistics_file"] = prefix + "_concatenation_statistics.csv"
+    describe_concatenation(kwargs["first_annotation_file"], kwargs["second_annotation_file"],
+                           kwargs["first_embl_mapping_file"], kwargs["second_embl_mapping_file"],
+                           kwargs["first_genome_location_file"], kwargs["second_genome_location_file"],
+                           outcfg["concatentation_statistics_file"])
+
+    return outcfg
+
 # list of available EC inference protocols
 PROTOCOLS = {
     # concatenate based on genomic distance ("operon-based")
     "genome_distance": genome_distance,
 
     # concatenate based on best hit per genome ("species")
-    "best_hit": best_hit
+    "best_hit": best_hit,
+
+    # concatenate based on best hit per genome ("species")
+    "best_reciprocal": best_reciprocal_hit
 
 }
-
 
 def run(**kwargs):
     """
