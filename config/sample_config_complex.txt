@@ -128,9 +128,9 @@ align_1:
 #    minimum_column_coverage: 70
 #    extract_annotation: True
 
-#      if using existing alignment protocol, provide a path to the annotations.csv file 
-#      from the previous run to correctly find the species identifiers for best hit concatenation
-#      override_annotation_file: 
+#    if using existing alignment protocol, provide a path to the annotations.csv file 
+#    from the previous run to correctly find the species identifiers for best hit concatenation
+#    override_annotation_file: 
 
 # Sequence alignment generation/processing for the second monomer.
 align_2:
@@ -213,9 +213,9 @@ align_2:
 #    minimum_sequence_coverage: 50
 #    minimum_column_coverage: 70
 #    extract_annotation: True
-#      if using existing alignment protocol, provide a path to the annotations.csv file 
-#      from the previous run to correctly find the species identifiers for best hit concatenation
-#      override_annotation_file: 
+#    if using existing alignment protocol, provide a path to the annotations.csv file 
+#    from the previous run to correctly find the species identifiers for best hit concatenation
+#    override_annotation_file: 
 
 #Generation of concatenated sequence alignment for evolutionary couplings calculation
 concatenate:
@@ -229,12 +229,19 @@ concatenate:
     # Available protocols: 
     # genome_distance: pair sequences that are closest neighbors on the genome
     # best_hit: for each genome, pair the sequences that have the highest % identity to the target sequence
+    # best_reciprocal: for each genome, pair the sequences that have the highest reciprocal % identity to the target sequence
+    #    in the target genome
     
     protocol: genome_distance
     
     # Maximum genome distance in bases allowed between pairs
     # Required for genome_distance protocol only
     genome_distance_threshold: 10000
+    
+    # Requierd for best_recprical protocol only
+    # sequences below this identity threshold in the target genome will be considered paralogs of the 
+    # target sequence
+    paralog_identity_threshold = 0.8
     
     # Parameters for filtering of concatenated alignment
     
