@@ -6,7 +6,7 @@ Authors:
   Anna G. Green (complex couplings)
 """
 
-import numpy as np
+import string
 import pandas as pd
 from evcouplings.couplings import tools as ct
 from evcouplings.couplings import pairs, mapping
@@ -479,31 +479,43 @@ def complex(**kwargs):
         )
         ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
 
-    print(segments)  # TODO: Remove me
+    # also create line-drawing script (for multiple chains)
+    outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
+    L = outcfg["num_sites"]
 
-    # TODO: line drawing script has to use chains A and B
-    # also create line-drawing script (for now, only for single segments)
-    if segments is None or len(segments) == 1:
-        outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
-        L = outcfg["num_sites"]
-        ec_lines_pymol_script(
-            ecs_longrange.iloc[:L, :],
-            outcfg["ec_lines_pml_file"]
+    # by convention, we map first segment to chain A,
+    # second to B, a.s.f.
+    chain_mapping = dict(
+        zip(
+            [s.segment_id for s in segments],
+            string.ascii_uppercase,
         )
+    )
 
-    # TODO: think about making EC enrichment complex-ready and add
+    ec_lines_pymol_script(
+        ecs_longrange.iloc[:L, :],
+        outcfg["ec_lines_pml_file"],
+        chain=chain_mapping
+    )
+
+    # TODO: make the following complex-ready
+    # EC enrichment:
+    #
+    # 1) think about making EC enrichment complex-ready and add
     # it back here - so far it only makes sense if all ECs are
     # on one segment
-
-    # output EVzoom JSON file if we have stored model file
-
-    # TODO: at the moment, this will use numbering before remapping
+    #
+    # EVzoom:
+    #
+    # 1) at the moment, EVzoom will use numbering before remapping
     # we should eventually get this to a point where segments + residue
     # index are displayed on EVzoom
-
-    # TODO: note that this will currently use the default mixture model
+    #
+    # 2) note that this will currently use the default mixture model
     # selection for determining the EC cutoff, rather than the selection
     # used for the EC table above
+
+    # output EVzoom JSON file if we have stored model file
     if outcfg.get("model_file", None) is not None:
         outcfg["evzoom_file"] = prefix + "_evzoom.json"
         with open(outcfg["evzoom_file"], "w") as f:
