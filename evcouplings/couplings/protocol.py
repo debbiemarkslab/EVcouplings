@@ -5,6 +5,9 @@ Authors:
   Thomas A. Hopf
 """
 
+import pandas as pd
+import numpy as np
+
 from evcouplings.couplings import tools as ct
 from evcouplings.couplings import pairs, mapping
 from evcouplings.couplings.model import CouplingsModel
@@ -15,7 +18,7 @@ from evcouplings.visualize.pairs import (
 
 from evcouplings.align.alignment import (
     read_fasta, ALPHABET_PROTEIN, ALPHABET_DNA,
-    ALPHABET_RNA
+    ALPHABET_RNA, Alignment
 )
 
 from evcouplings.utils.config import (
@@ -298,11 +301,243 @@ def standard(**kwargs):
     return outcfg
 
 
+def dca(**kwargs):
+    """
+    Protocol:
+
+    Infer ECs from alignment using mean field direct coupling analysis.
+
+    For now, mean field DCA can only be run in focus mode, gaps
+    included. Also, a segment is needed to map the indices back
+    to UniProt space when writing the EC file. Multiple
+    segments are not handled.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required.
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        raw_ec_file
+        model_file
+        num_sites
+        num_sequences
+        effective_sequences
+
+        focus_mode (passed through)
+        focus_sequence (passed through)
+        segments (passed through)
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "alignment_file", "segments",
+            "focus_mode", "focus_sequence", "theta",
+            "pseudo_count", "alphabet",
+            "min_sequence_distance", # "save_model",
+        ]
+    )
+
+    if not kwargs["focus_mode"]:
+        raise InvalidParameterError(
+            "For now, mean field DCA can only be run in focus mode."
+        )
+
+    prefix = kwargs["prefix"]
+
+    # TODO: for now, option of writing model to file disabled
+    """
+    if kwargs["save_model"]:
+        model = prefix + ".model"
+    else:
+        model = None
+    """
+    # model = prefix + ".model"
+    model = None
+
+    outcfg = {
+        "model_file": model,
+        "raw_ec_file": prefix + "_ECs.txt",
+        "ec_file": prefix + "_CouplingScores.csv",
+        # TODO: the following are passed through stage...
+        # keep this or unnecessary?
+        "focus_mode": kwargs["focus_mode"],
+        "focus_sequence": kwargs["focus_sequence"],
+        "segments": kwargs["segments"],
+    }
+
+    # make sure input alignment exists
+    alignment_file = kwargs["alignment_file"]
+    verify_resources(
+        "Input alignment does not exist",
+        kwargs["alignment_file"]
+    )
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    segments = kwargs["segments"]
+    if segments is not None and len(segments) == 1:
+        segment = mapping.Segment.from_list(segments[0])
+    # TODO: not sure, how to map from index to
+    # UniProt space when writing the EC file
+    # without the information provided by segment
+    else:
+        raise InvalidParameterError(
+            "For now, DCA can only handle a single segment."
+        )
+
+    # determine alphabet
+    # default is protein
+    if kwargs["alphabet"] is None:
+        alphabet = ALPHABET_PROTEIN
+    else:
+        alphabet = kwargs["alphabet"]
+
+        # allow shortcuts for protein, DNA, RNA
+        if alphabet in ALPHABET_MAP:
+            alphabet = ALPHABET_MAP[alphabet]
+
+    # read in a2m alignment
+    with open(alignment_file) as f:
+        ali_raw = Alignment.from_file(
+            f, alphabet=alphabet,
+            format="fasta"
+        )
+
+    # the first sequence of an a2m alignment
+    # in focus mode is the target sequence
+    target_seq = ali_raw[0]
+
+    # select focus columns as alignment columns
+    # that are non-gapped and a upper
+    # character in the target sequence
+    focus_cols = np.array([
+        c.isupper() and c not in [ali_raw._match_gap, ali_raw._insert_gap]
+        for c in target_seq
+    ])
+
+    # extract focus alignment
+    focus_ali = ali_raw.select(columns=focus_cols)
+
+    # find sequences that are valid,
+    # i.e. contain only alphabet symbols
+    np_alphabet = np.array(list(focus_ali.alphabet))
+    valid_sequences = np.array([
+        np.in1d(seq, np_alphabet).all()
+        for seq in focus_ali.matrix
+    ])
+
+    # extract alignment with valid sequences only
+    focus_ali = focus_ali.select(sequences=valid_sequences)
+
+    # run mean field direct coupling analysis
+    dca_result = ct.run_dca(
+        focus_ali,
+        outcfg["raw_ec_file"],
+        segment,
+        param_file=outcfg["model_file"],
+        theta=kwargs["theta"],
+        pseudo_count=kwargs["pseudo_count"]
+    )
+
+    # turn namedtuple into dictionary to make
+    # restarting code nicer
+    dca_result = dict(dca_result._asdict())
+
+    # store useful information about model in outcfg
+    outcfg.update({
+        "num_sites": focus_ali.L,
+        "num_sequences": focus_ali.N,
+        "effective_sequences": float(dca_result["effective_sequences"]),
+        "region_start": segment.region_start,
+    })
+
+    # read and sort ECs, the second last column "mi"
+    # is a placeholder for mutual information
+    # (right now, filled with zeros)
+    ecs = pd.read_csv(
+        outcfg["raw_ec_file"], sep=" ",
+        # for now, call the last two columns
+        # "fn" and "cn" to prevent compare
+        # stage from crashing
+        names=["i", "A_i", "j", "A_j", "fn", "cn"]
+        # names=["i", "A_i", "j", "A_j", "mi", "di"]
+    ).sort_values(
+        by="fn",
+        ascending=False
+    )
+
+    # write the sorted ECs table to csv file
+    ecs.to_csv(outcfg["ec_file"], index=False)
+
+    # also store longrange ECs as convenience output
+    if kwargs["min_sequence_distance"] is not None:
+        outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
+        ecs_longrange = ecs.query(
+            "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
+        )
+        ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
+
+        # also create line-drawing script (for now, only for single segments)
+        if segments is None or len(segments) == 1:
+            outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
+            L = outcfg["num_sites"]
+            ec_lines_pymol_script(
+                ecs_longrange.iloc[:L, :],
+                outcfg["ec_lines_pml_file"],
+                score_column="cn"  # "di
+            )
+
+    # compute EC enrichment (for now, for single segments
+    # only since enrichment code cannot handle multiple segments)
+    if segments is None or len(segments) == 1:
+        outcfg["enrichment_file"] = prefix + "_enrichment.csv"
+        ecs_enriched = pairs.enrichment(ecs, score="cn")  # "di"
+        ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
+
+        # create corresponding enrichment pymol scripts
+        outcfg["enrichment_pml_files"] = []
+        for sphere_view, pml_suffix in [
+            (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
+        ]:
+            pml_file = prefix + pml_suffix
+            enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
+            outcfg["enrichment_pml_files"].append(pml_file)
+
+    # output EVzoom JSON file if we have stored model file
+    if outcfg.get("model_file", None) is not None:
+        outcfg["evzoom_file"] = prefix + "_evzoom.json"
+        with open(outcfg["evzoom_file"], "w") as f:
+            # load parameters
+            c = CouplingsModel(outcfg["model_file"])
+
+            # create JSON output and write to file
+            f.write(
+                evzoom_json(c) + "\n"
+            )
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
+
+    return outcfg
+
+
 # list of available EC inference protocols
 PROTOCOLS = {
     # standard plmc inference protocol
     "standard": standard,
+
+    # inference protocol using mean field approximation
+    "dca": dca,
 }
+
+
 
 
 def run(**kwargs):

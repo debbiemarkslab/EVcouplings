@@ -9,12 +9,15 @@ Authors:
 from collections import namedtuple
 import re
 
+import numpy as np
 import pandas as pd
 
 from evcouplings.utils.system import (
     run, valid_file, create_prefix_folders,
     verify_resources, ResourceError
 )
+
+from evcouplings.couplings import dca
 
 
 def parse_plmc_log(log):
@@ -303,4 +306,129 @@ def run_plmc(alignment, couplings_file, param_file=None,
     return PlmcResult(
         couplings_file, param_file,
         iter_df, *out_fields
+    )
+
+
+# output fields for storing results of a DCA run
+# (returned by run_dca)
+DCAResult = namedtuple(
+    "DCAResult",
+    [
+        "couplings_file", "param_file",
+        "effective_sequences"
+    ]
+)
+
+
+def run_dca(alignment, couplings_file, segment,
+            param_file=None, theta=0.8, pseudo_count=0.5,
+            N_invalid=0):
+    """
+    Run mean field direct coupling analysis and write
+    raw ECs to couplings file.
+
+    TODO: write the inferred parameters to model file
+
+    Parameters
+    ----------
+    alignment : Alignment
+        Multiple sequence alignment in focus mode.
+        This should be the alignment read in from the
+        raw_focus_alignment_file or an alignment that
+        has been filtered for gaps and lower columns.
+    couplings_file : str
+        Output path for file with evolutionary couplings.
+    param_file : str, optional (default: None)
+        Output path for binary file containing model.
+    segment : Segment
+        For now, segment is needed to map index to
+        UniProt space when writing the couplings file.
+        Note: I'm not sure, how to map if there is no
+        segment information provided.
+    theta : float, optional (default: 0.8)
+        Sequences with pairwise identity >= theta
+        will be clustered and their sequence weights
+        downweighted as 1 / num_cluster_members.
+    pseudo_count : float, optional (default: 0.5)
+        Applied to frequency counts to regularize
+        in the case of insufficient data availability.
+    N_invalid : int, optional (default: 0)
+        The number of invalid sequences encountered
+        in the input alignment, i.e. the number of
+        sequences given in the input alignment
+        but not contained in the alignment that is
+        passed to this method. The parameter is just
+        passed through this method to be able to write it
+        to the model file.
+
+    Returns
+    -------
+    DCAResult
+        namedtuple containing output files and
+        number of effective sequences
+    """
+    # compute sequence weights
+    if alignment.weights is None:
+        alignment.set_weights(identity_threshold=theta)
+    n_eff = alignment.weights.sum()
+
+    # compute relative single-site frequencies
+    # of symbols in the alignment
+    fi_raw = dca.frequencies(alignment)
+
+    # compute relative pairwise frequencies
+    # of symbols in the alignment
+    fij_raw = dca.pair_frequencies(alignment, fi_raw)
+
+    # add pseudo-count to column frequencies
+    fi = dca.add_pseudo_count_to_frequencies(
+        fi_raw, pseudo_count=pseudo_count
+    )
+
+    # add pseudo-count to pairwise frequencies
+    fij = dca.add_pseudo_count_to_pair_frequencies(
+        fij_raw, pseudo_count=pseudo_count
+    )
+
+    # compute the covariance matrix from
+    # the computed column and pair frequencies
+    covariance_matrix = dca.compute_covariance_matrix(fi, fij)
+
+    # coupling parameters are inferred
+    # by inverting the covariance matrix
+    inv_cov_matrix = np.linalg.inv(covariance_matrix)
+
+    # compute direct information
+    di = dca.direct_information(inv_cov_matrix, fi)
+
+    # write direct information to couplings file
+    dca.write_raw_ec_file(
+        di,
+        couplings_file,
+        alignment.matrix[0],
+        segment
+    )
+
+    if param_file is not None:
+        # reshape the inverted covariance matrix
+        # to make couplings easily accessible
+        eij = dca.reshape_inv_covariance_matrix(
+            inv_cov_matrix,
+            alignment.L,
+            alignment.num_symbols
+        )
+
+        # compute fields
+        hi = dca.fields(inv_cov_matrix, fi)
+
+        # write model file
+        dca.write_param_file(
+            param_file, eij, hi, fij, fi,
+            alignment, segment, theta, N_invalid
+        )
+
+    return DCAResult(
+        couplings_file,
+        param_file,
+        n_eff
     )
