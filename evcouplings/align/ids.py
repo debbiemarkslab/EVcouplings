@@ -1,5 +1,5 @@
 """
-Class and functions for handling sequence
+Functions for handling sequence
 identifiers in alignments
 
 Authors:
