@@ -181,7 +181,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                      multimer_style=STYLE_CONTACT_MULTIMER,
                      secstruct_style=STYLE_SECSTRUCT,
                      margin=5, invert_y=True, boundaries="union",
-                     symmetric=True, ax=None):
+                     symmetric=True, ax=None, draw_box=False, raw_ec_file=None):
     """
     Wrapper for simple contact map plots with optional
     multimer contacts (can also handle non-symmetric inter-chain
@@ -301,6 +301,51 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         plot_pairs(
             ecs, symmetric=symmetric, style=scale_func(ec_style), ax=ax
         )
+
+    # draw a box
+    if draw_box:
+        if raw_ec_file is not None:
+            s = set(ecs.i.astype(int)).union(ecs.j.astype(int))
+            box_min, box_max = min(s), max(s)
+            length = box_max - box_min
+
+            # color of the box
+            color = "crimson"
+
+            # top
+            ax.scatter(
+                [i for i in range(box_min, box_max)],
+                [box_min] * length,
+                c = color
+            )
+
+            # bottom
+            ax.scatter(
+                [i for i in range(box_min, box_max)],
+                [box_max] * length,
+                c = color
+            )
+
+            # left
+            ax.scatter(
+                [box_min] * length,
+                [i for i in range(box_min, box_max)],
+                c = color
+            )
+
+            # right
+            ax.scatter(
+                [box_max] * length,
+                [i for i in range(box_min, box_max)],
+                c = color
+            )            
+
+
+        else:
+            raise ValueError(
+                "raw_ec_file can't be None when "
+                "drawing the box (draw_box=True)."
+            )
 
     # plot secondary structure
     if show_secstruct:
