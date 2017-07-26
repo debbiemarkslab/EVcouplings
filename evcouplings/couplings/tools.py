@@ -380,6 +380,10 @@ def run_dca(alignment, couplings_file, segment,
     # of symbols in the alignment
     fij_raw = dca.pair_frequencies(alignment, fi_raw)
 
+    # compute mutual information from raw
+    # relative frequencies
+    mi = dca.mutual_information(fi_raw, fij_raw)
+
     # add pseudo-count to column frequencies
     fi = dca.add_pseudo_count_to_frequencies(
         fi_raw, pseudo_count=pseudo_count
@@ -403,7 +407,7 @@ def run_dca(alignment, couplings_file, segment,
 
     # write direct information to couplings file
     dca.write_raw_ec_file(
-        di,
+        di, mi,
         couplings_file,
         alignment.matrix[0],
         segment

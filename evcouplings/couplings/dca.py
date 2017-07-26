@@ -97,6 +97,45 @@ def pair_frequencies(alignment, fi):
     return fij
 
 
+def mutual_information(fi, fij):
+    """
+    Compute mutual information
+    of all possible postion pairs.
+
+    Parameters
+    ----------
+    fi : np.array
+        Matrix of size L x num_symbols containing relative
+        column frequencies of all symbols.
+    fij : np.array
+        Matrix of size L x L x num_symbols x num_symbols
+        containing relative frequencies of all possible
+        combinations of symbol pairs.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x L containing the mutual
+        information of all possible position pairs.
+    """
+    L, num_symbols = fi.shape
+
+    mi = np.zeros((L, L))
+    for i in range(L):
+        for j in range(i + 1, L):
+            for alpha in range(num_symbols):
+                for beta in range(num_symbols):
+                    if fij[i, j, alpha, beta] > 0:
+                        mi[i, j] += (
+                            fij[i, j, alpha, beta] *
+                            np.log(
+                                fij[i, j, alpha, beta] / (fi[i, alpha] * fi[j, beta])
+                            )
+                        )
+
+    return mi
+
+
 def add_pseudo_count_to_frequencies(fi, pseudo_count=0.5):
     """
     Add pseudo-count to single-site frequencies to regularize
@@ -343,7 +382,7 @@ def direct_information(inv_c, fi):
     return di
 
 
-def write_raw_ec_file(di, couplings_file, target_sequence, segment):
+def write_raw_ec_file(di, mi, couplings_file, target_sequence, segment):
     """
     Write direct information to couplings file.
 
@@ -352,6 +391,9 @@ def write_raw_ec_file(di, couplings_file, target_sequence, segment):
     di : np.array
         Matrix of size L x L containing the direct
         information of all possible position pairs.
+    mi : np.array
+        Matrix of size L x L containing the mutual
+        information of all possible position pairs
     couplings_file : str
         Output path for file with evolutionary couplings.
     target_sequence : np.array
@@ -369,7 +411,7 @@ def write_raw_ec_file(di, couplings_file, target_sequence, segment):
                     target_sequence[i],
                     segment.positions[j],
                     target_sequence[j],
-                    0,
+                    0 if mi is None else "{0:.6f}".format(mi[i, j]),
                     "{0:.6f}".format(di[i, j])
                 ])) + "\n")
 
