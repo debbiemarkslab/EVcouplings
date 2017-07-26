@@ -454,7 +454,8 @@ def fields(inv_c, fi):
 # problem: __read_plmc_v2 fails to read in
 # the dumped target sequence
 def write_param_file(param_file, eij, hi, fij, fi,
-                     alignment, segment, theta, N_invalid):
+                     alignment, segment, theta, N_invalid,
+                     precision="float32"):
     """
     Write binary Jij file.
 
@@ -489,60 +490,49 @@ def write_param_file(param_file, eij, hi, fij, fi,
     theta : float
         Pairwise identity threshold that was used to cluster and
         weight sequences.
+    precision : {"float32", "float64"}
+        Write binary file in single or double precision.
     """
     with open(param_file, "w") as f:
-        # model length
-        np.array([alignment.L], dtype=np.int32).tofile(f)
+        # model length, number of symbols, valid and invalid sequences, iterations
+        np.array([alignment.L,
+                  alignment.num_symbols,
+                  alignment.N,
+                  N_invalid,
+                  -1], dtype="int32").tofile(f)
 
-        # number of symbols
-        np.array([alignment.num_symbols], dtype=np.int32).tofile(f)
-
-        # valid sequences
-        np.array([alignment.N], dtype=np.int32).tofile(f)
-
-        # invalid sequences
-        np.array([N_invalid], dtype=np.int32).tofile(f)
-
-        # iterations (plmc specific parameter)
-        np.array([-1], dtype=np.int32).tofile(f)
-
-        # theta
-        np.array([theta], dtype=np.float64).tofile(f)
-
-        # regularization weights (plmc specific parameters)
-        np.array([-1], dtype=np.int32).tofile(f)  # lambda_h
-        np.array([-1], dtype=np.int32).tofile(f)  # lambda_J
-        np.array([-1], dtype=np.int32).tofile(f)  # lambda_group
-
+        # theta, regularization weights (plmc specific parameters),
         # effective number of sequences
-        np.array([alignment.weights.sum()], dtype=np.float64).tofile(f)
+        np.array([theta,
+                  -1,  # lambda_h placeholder
+                  -1,  # lambda_J placeholder
+                  -1,  # lambda_group placeholder
+                  alignment.weights.sum()], dtype=precision).tofile(f)
 
         # alphabet
-        print(alignment.alphabet, type(alignment.alphabet))
-        np.array(list(alignment.alphabet), dtype="S1").tofile(f)
+        alphabet = np.array(list(alignment.alphabet), dtype="S1")
+        alphabet[np.where(alphabet != b"")].tofile(f)
 
         # weights of individual sequences (after clustering)
-        alignment.weights.tofile(f)
+        alignment.weights.astype(precision).tofile(f)
 
         # target sequence
-        # TODO: can't make this work
-        # __read_plmc_v2 throws error
-        # when trying to read in this portion
-        alignment.matrix[0].astype("S1").tofile(f)
+        target_seq = alignment.matrix[0].astype("S1")
+        target_seq[np.where(target_seq != b"")].tofile(f)
 
         # index mapping
-        np.array(segment.positions, dtype=np.int32).tofile(f)
+        np.array(segment.positions, dtype="int32").tofile(f)
 
         # single site frequencies fi and fields hi
-        fi.tofile(f)
-        hi.tofile(f)
+        fi.astype(precision).tofile(f)
+        hi.astype(precision).tofile(f)
 
         # pair frequencies fij
         for i in range(alignment.L - 1):
             for j in range(i + 1, alignment.L):
-                fij[i, j].tofile(f)
+                fij[i, j].astype(precision).tofile(f)
 
         # pair couplings eij
         for i in range(alignment.L - 1):
             for j in range(i + 1, alignment.L):
-                eij[i, j].tofile(f)
+                eij[i, j].astype(precision).tofile(f)

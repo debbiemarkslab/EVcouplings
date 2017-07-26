@@ -357,8 +357,7 @@ def dca(**kwargs):
     else:
         model = None
     """
-    # model = prefix + ".model"
-    model = None
+    model = prefix + ".model"
 
     outcfg = {
         "model_file": model,
@@ -469,7 +468,7 @@ def dca(**kwargs):
         names=["i", "A_i", "j", "A_j", "fn", "cn"]
         # names=["i", "A_i", "j", "A_j", "mi", "di"]
     ).sort_values(
-        by="fn",
+        by="cn",
         ascending=False
     )
 
