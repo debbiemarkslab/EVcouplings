@@ -10,6 +10,7 @@ import numpy as np
 
 from evcouplings.couplings import tools as ct
 from evcouplings.couplings import pairs, mapping
+from evcouplings.couplings.dca import MeanFieldDirectCouplingAnalysis
 from evcouplings.couplings.model import CouplingsModel
 from evcouplings.visualize.parameters import evzoom_json
 from evcouplings.visualize.pairs import (
@@ -350,7 +351,7 @@ def dca(**kwargs):
 
     prefix = kwargs["prefix"]
 
-    # TODO: for now, option of writing model to file disabled
+    # option to save model disabled
     """
     if kwargs["save_model"]:
         model = prefix + ".model"
@@ -404,62 +405,42 @@ def dca(**kwargs):
 
     # read in a2m alignment
     with open(alignment_file) as f:
-        ali_raw = Alignment.from_file(
+        input_alignment = Alignment.from_file(
             f, alphabet=alphabet,
             format="fasta"
         )
 
-    # the first sequence of an a2m alignment
-    # in focus mode is the target sequence
-    target_seq = ali_raw[0]
-
-    # select focus columns as alignment columns
-    # that are non-gapped and a upper
-    # character in the target sequence
-    focus_cols = np.array([
-        c.isupper() and c not in [ali_raw._match_gap, ali_raw._insert_gap]
-        for c in target_seq
-    ])
-
-    # extract focus alignment
-    focus_ali = ali_raw.select(columns=focus_cols)
-
-    # find sequences that are valid,
-    # i.e. contain only alphabet symbols
-    np_alphabet = np.array(list(focus_ali.alphabet))
-    valid_sequences = np.array([
-        np.in1d(seq, np_alphabet).all()
-        for seq in focus_ali.matrix
-    ])
-
-    # extract alignment with valid sequences only
-    focus_ali = focus_ali.select(sequences=valid_sequences)
-
     # run mean field direct coupling analysis
-    dca_result = ct.run_dca(
-        focus_ali,
-        outcfg["raw_ec_file"],
-        segment,
-        param_file=outcfg["model_file"],
+    mf_dca = MeanFieldDirectCouplingAnalysis.run(
+        input_alignment,
         theta=kwargs["theta"],
         pseudo_count=kwargs["pseudo_count"]
     )
 
-    # turn namedtuple into dictionary to make
-    # restarting code nicer
-    dca_result = dict(dca_result._asdict())
+    # write ECs to file
+    mf_dca.to_raw_ec_file(
+        outcfg["raw_ec_file"],
+        input_alignment[0],
+        segment
+    )
+
+    # write model file
+    if outcfg["model_file"] is not None:
+        mf_dca.to_model_file(
+            outcfg["model_file"],
+            segment=segment,
+            theta=kwargs["theta"]
+        )
 
     # store useful information about model in outcfg
     outcfg.update({
-        "num_sites": focus_ali.L,
-        "num_sequences": focus_ali.N,
-        "effective_sequences": float(dca_result["effective_sequences"]),
+        "num_sites": input_alignment.L,
+        "num_sequences": input_alignment.N,
+        "effective_sequences": float(mf_dca.alignment.weights.sum()),
         "region_start": segment.region_start,
     })
 
-    # read and sort ECs, the second last column "mi"
-    # is a placeholder for mutual information
-    # (right now, filled with zeros)
+    # read and sort ECs
     ecs = pd.read_csv(
         outcfg["raw_ec_file"], sep=" ",
         # for now, call the last two columns
@@ -535,8 +516,6 @@ PROTOCOLS = {
     # inference protocol using mean field approximation
     "dca": dca,
 }
-
-
 
 
 def run(**kwargs):
