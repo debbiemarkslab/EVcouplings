@@ -589,7 +589,7 @@ class MeanFieldDirectCouplingAnalysis:
 
         return self.di
 
-    def to_raw_ec_file(self, couplings_file, target_sequence, segment):
+    def to_raw_ec_file(self, couplings_file, segment):
         """
         Write mutual and direct information to the EC file.
 
@@ -597,12 +597,12 @@ class MeanFieldDirectCouplingAnalysis:
         ----------
         couplings_file : str
             Output path for file with evolutionary couplings.
-        target_sequence : np.array
-            Array of length L containing the target sequence.
         segment : Segment
             For now, segment is needed to map index to
             UniProt space.
         """
+        target_sequence = self.alignment.matrix[0]
+
         with open(couplings_file, "w") as f:
             for i in range(self.L):
                 for j in range(i + 1, self.L):

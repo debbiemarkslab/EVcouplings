@@ -420,7 +420,6 @@ def dca(**kwargs):
     # write ECs to file
     mf_dca.to_raw_ec_file(
         outcfg["raw_ec_file"],
-        input_alignment[0],
         segment
     )
 
