@@ -103,10 +103,10 @@ align:
     # already present in the alignment). If blank, no filtering. If filtering, HHfilter must be installed.
     seqid_filter:
 
-    # Only include alignment columns with at least x% residues (rather than gaps) during model inference
+    # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
     minimum_sequence_coverage: 50
 
-    # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
+    # Only include alignment columns with at least x% residues (rather than gaps) during model inference
     minimum_column_coverage: 70
 
     # Create a file with extracted annotation from UniRef/UniProt sequence FASTA headers
