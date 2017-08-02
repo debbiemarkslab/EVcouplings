@@ -663,7 +663,6 @@ def _prepare_chain(structures, pdb_id, pdb_chain,
         Chain prepared for distance calculation
     """
     # get chain from structure
-    print(pdb_id)
     chain = structures[pdb_id].get_chain(pdb_chain, model)
 
     # filter atoms if option selected
@@ -860,17 +859,20 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
             continue
 
         # extract all chains for this structure
-        chains = [
-            (
-                r["index"],
-                _prepare_chain(
-                    structures, r["pdb_id"], r["pdb_chain"],
-                    atom_filter, sifts_result.mapping[r["mapping_index"]],
-                    model
+        try:
+            chains = [
+                (
+                    r["index"],
+                    _prepare_chain(
+                        structures, r["pdb_id"], r["pdb_chain"],
+                        atom_filter, sifts_result.mapping[r["mapping_index"]],
+                        model
+                    )
                 )
-            )
-            for i, r in grp.iterrows()
-        ]
+                for i, r in grp.iterrows()
+            ]
+        except ValueError:
+            continue
 
         # compare all possible pairs of chains
         for (index_i, ch_i), (index_j, ch_j) in combinations(chains, 2):
@@ -979,6 +981,7 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         )
 
     # if no structures given, or path to files, load first
+
     structures = _prepare_structures(
         structures,
         sifts_result_i.hits.pdb_id.append(
@@ -1002,8 +1005,11 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
     )
 
     # extract chains for each subunit
-    chains_i = _get_chains(sifts_result_i)
-    chains_j = _get_chains(sifts_result_j)
+    try:
+        chains_i = _get_chains(sifts_result_i)
+        chains_j = _get_chains(sifts_result_j)
+    except ValueError:
+        return agg_distmap
 
     # go through all chain combinations
     for i, r in combis.iterrows():
@@ -1114,11 +1120,14 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
             continue
 
         # extract and remap PDB chain
-        chain = _prepare_chain(
-            structures, r["pdb_id"], r["pdb_chain"],
-            atom_filter, sifts_result.mapping[r["mapping_index"]],
-            model
-        )
+        try:
+            chain = _prepare_chain(
+                structures, r["pdb_id"], r["pdb_chain"],
+                atom_filter, sifts_result.mapping[r["mapping_index"]],
+                model
+            )
+        except ValueError:
+            continue
 
         # if a map from sequence index to residue is given,
         # use it to rename the residues to the target sequence
