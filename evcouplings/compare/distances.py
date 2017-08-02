@@ -663,6 +663,7 @@ def _prepare_chain(structures, pdb_id, pdb_chain,
         Chain prepared for distance calculation
     """
     # get chain from structure
+    print(pdb_id)
     chain = structures[pdb_id].get_chain(pdb_chain, model)
 
     # filter atoms if option selected
@@ -752,11 +753,14 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
             continue
 
         # extract and remap PDB chain
-        chain = _prepare_chain(
-            structures, r["pdb_id"], r["pdb_chain"],
-            atom_filter, sifts_result.mapping[r["mapping_index"]],
-            model
-        )
+        try:
+            chain = _prepare_chain(
+                structures, r["pdb_id"], r["pdb_chain"],
+                atom_filter, sifts_result.mapping[r["mapping_index"]],
+                model
+            )
+        except ValueError:
+            continue
 
         # compute distance map
         distmap = DistanceMap.from_coords(chain)
