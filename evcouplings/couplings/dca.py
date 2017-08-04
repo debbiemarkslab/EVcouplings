@@ -195,17 +195,6 @@ class MeanFieldDirectCouplingAnalysis:
         refers to the processed alignment).
     num_symbols : int
         The number of symbols of the alphabet used.
-    raw_fi : np.array
-        Matrix of size L x num_symbols containing
-        relative column frequencies of all symbols.
-    fi : np.array
-        raw_fi corrected by a pseudo-count.
-    raw_fij : np.array
-        Matrix of size L x L x num_symbols x num_symbols
-        containing relative frequencies of all possible
-        combinations of symbol pairs.
-    fij : np.array
-        raw_fij corrected by a pseudo-count.
     covariance_matrix : np.array
         Matrix of size (L * (num_symbols-1)) x (L * (num_symbols-1))
         containing the co-variation of each character pair
@@ -246,14 +235,6 @@ class MeanFieldDirectCouplingAnalysis:
         self.N = self.alignment.N
         self.L = self.alignment.L
         self.num_symbols = self.alignment.num_symbols
-
-        # raw and corrected single-site frequencies
-        self.raw_fi = None
-        self.fi = None
-
-        # raw and corrected pair frequencies
-        self.raw_fij = None
-        self.fij = None
 
         # covariance matrix
         self.covariance_matrix = None
@@ -300,21 +281,13 @@ class MeanFieldDirectCouplingAnalysis:
         if dca.alignment.weights is None:
             dca.alignment.set_weights(identity_threshold=theta)
 
-        # compute relative single-site frequencies
-        # of symbols in the alignment
-        dca.frequencies()
-
-        # compute relative pairwise frequencies
-        # of symbols in the alignment
-        dca.pair_frequencies()
-
-        # add pseudo-count to column frequencies
-        dca.add_pseudo_count_to_frequencies(
+        # compute column frequencies corrected by a pseudo-count
+        dca.alignment.compute_corrected_frequencies(
             pseudo_count=pseudo_count
         )
 
-        # add pseudo-count to pairwise frequencies
-        dca.add_pseudo_count_to_pair_frequencies(
+        # compute pairwise frequencies corrected by a pseudo-count
+        dca.alignment.compute_corrected_pair_frequencies(
             pseudo_count=pseudo_count
         )
 
@@ -344,81 +317,6 @@ class MeanFieldDirectCouplingAnalysis:
 
         return dca
 
-    def frequencies(self):
-        """
-        Compute relative single-site frequencies of
-        symbols in the alignment.
-
-        This method sets the attribute self.raw_fi
-        and returns a reference to it.
-
-        Be sure that alignment.set_weights()
-        has been called prior to the use of
-        this method.
-
-        Implementation note: Frequencies can also be
-        computed using the alignment method / property
-        frequencies. However, DCA requires to normalize
-        the frequencies by the number of effective
-        sequences rather than N.
-
-        Returns
-        -------
-        np.array
-            Reference to attribute self.raw_fi
-        """
-        matrix = self.alignment.matrix_mapped
-
-        self.raw_fi = np.zeros((self.L, self.num_symbols))
-        for s in range(self.N):
-            for i in range(self.L):
-                self.raw_fi[i, matrix[s, i]] += self.alignment.weights[s]
-
-        # normalize frequencies by the number
-        # of effective sequences
-        self.raw_fi /= self.alignment.weights.sum()
-
-        return self.raw_fi
-
-    def pair_frequencies(self):
-        """
-        Compute relative pairwise frequencies of
-        symbols in the alignment.
-
-        This method sets the attribute self.raw_fij
-        and returns a reference to it.
-
-        Be sure that alignment.set_weights()
-        has been called prior to the use of
-        this method.
-
-        Returns
-        -------
-        np.array
-            Reference to attribute self.raw_fij
-        """
-        matrix = self.alignment.matrix_mapped
-
-        self.raw_fij = np.zeros((self.L, self.L, self.num_symbols, self.num_symbols))
-        for s in range(self.N):
-            for i in range(self.L):
-                for j in range(i + 1, self.L):
-                    self.raw_fij[i, j, matrix[s, i], matrix[s, j]] += self.alignment.weights[s]
-                    self.raw_fij[j, i, matrix[s, j], matrix[s, i]] = self.raw_fij[i, j, matrix[s, i], matrix[s, j]]
-
-        # normalize frequencies by the number
-        # of effective sequences
-        self.raw_fij /= self.alignment.weights.sum()
-
-        # set the frequencies of symbol pairs (alpha, alpha)
-        # in position i to the respective single-site
-        # frequency of alpha in position i
-        for i in range(self.L):
-            for alpha in range(self.num_symbols):
-                self.raw_fij[i, i, alpha, alpha] = self.raw_fi[i, alpha]
-
-        return self.raw_fij
-
     def mutual_information(self):
         """
         Compute mutual information
@@ -432,85 +330,24 @@ class MeanFieldDirectCouplingAnalysis:
         np.array
             Reference to attribute self.mi
         """
+        # for convenience
+        raw_fi = self.alignment.frequencies
+        raw_fij = self.alignment.pair_frequencies
+
         self.mi = np.zeros((self.L, self.L))
         for i in range(self.L):
             for j in range(i + 1, self.L):
                 for alpha in range(self.num_symbols):
                     for beta in range(self.num_symbols):
-                        if self.raw_fij[i, j, alpha, beta] > 0:
+                        if raw_fij[i, j, alpha, beta] > 0:
                             self.mi[i, j] += (
-                                self.raw_fij[i, j, alpha, beta] *
+                                raw_fij[i, j, alpha, beta] *
                                 np.log(
-                                    self.raw_fij[i, j, alpha, beta] / (self.raw_fi[i, alpha] * self.raw_fi[j, beta])
+                                    raw_fij[i, j, alpha, beta] / (raw_fi[i, alpha] * raw_fi[j, beta])
                                 )
                             )
 
         return self.mi
-
-    def add_pseudo_count_to_frequencies(self, pseudo_count=0.5):
-        """
-        Add pseudo-count to the raw single-site frequencies
-        to regularize in the case of insufficient data availability.
-
-        This method sets the attribute self.fi
-        and returns a reference to it.
-
-        Parameters
-        ----------
-        pseudo_count : float, optional (default: 0.5)
-            The value to be added as pseudo-count.
-
-        Returns
-        -------
-        np.array
-            Reference to attribute self.fi
-        """
-        self.fi = (
-            (1. - pseudo_count) * self.raw_fi +
-            (pseudo_count / float(self.num_symbols))
-        )
-
-        return self.fi
-
-    def add_pseudo_count_to_pair_frequencies(self, pseudo_count=0.5):
-        """
-        Add pseudo-count to pairwise frequencies to regularize
-        in the case of insufficient data availability.
-
-        This method sets the attribute self.fij
-        and returns a reference to it.
-
-        Parameters
-        ----------
-        pseudo_count : float, optional (default: 0.5)
-            The value to be added as pseudo-count.
-
-        Returns
-        -------
-        np.array
-            Reference to attribute self.fij
-        """
-        # add a pseudo-count to the frequencies
-        self.fij = (
-            (1. - pseudo_count) * self.raw_fij +
-            (pseudo_count / float(self.num_symbols ** 2))
-        )
-
-        # again, set the "pair" frequency of two identical
-        # symbols in the same position to the respective
-        # single-site frequency (stored in saved copy of raw fij)
-        # also, set all other entries in matrix of position pair
-        # (i, i) to zero
-        id_matrix = np.identity(self.num_symbols)
-        for i in range(self.L):
-            for alpha in range(self.num_symbols):
-                for beta in range(self.num_symbols):
-                    self.fij[i, i, alpha, beta] = (
-                        (1. - pseudo_count) * self.raw_fij[i, i, alpha, beta] +
-                        (pseudo_count / self.num_symbols) * id_matrix[alpha, beta]
-                    )
-
-        return self.fij
 
     def compute_covariance_matrix(self):
         """
@@ -535,6 +372,10 @@ class MeanFieldDirectCouplingAnalysis:
              self.L * (self.num_symbols - 1))
         )
 
+        # for convenience
+        fi = self.alignment.corrected_frequencies
+        fij = self.alignment.corrected_pair_frequencies
+
         for i in range(self.L):
             for j in range(self.L):
                 for alpha in range(self.num_symbols - 1):
@@ -542,7 +383,7 @@ class MeanFieldDirectCouplingAnalysis:
                         self.covariance_matrix[
                             _flatten_index(i, alpha, self.num_symbols),
                             _flatten_index(j, beta, self.num_symbols),
-                        ] = self.fij[i, j, alpha, beta] - self.fi[i, alpha] * self.fi[j, beta]
+                        ] = fij[i, j, alpha, beta] - fi[i, alpha] * fi[j, beta]
 
         return self.covariance_matrix
 
@@ -567,15 +408,19 @@ class MeanFieldDirectCouplingAnalysis:
                 e_ij = np.exp(-self.eij[i, j])
 
                 # compute two-site model
-                h_tilde_i, h_tilde_j = _tilde_fields(e_ij, self.fi[i], self.fi[j])
+                h_tilde_i, h_tilde_j = _tilde_fields(
+                    e_ij,
+                    self.alignment.corrected_frequencies[i],
+                    self.alignment.corrected_frequencies[j]
+                )
                 p_di_ij = e_ij * np.dot(h_tilde_i.T, h_tilde_j)
                 p_di_ij = p_di_ij / p_di_ij.sum()
 
                 # dot product of single-site frequencies
                 # of columns i and j
                 f_ij = np.dot(
-                    self.fi[i].reshape((1, 21)).T,
-                    self.fi[j].reshape((1, 21))
+                    self.alignment.corrected_frequencies[i].reshape((1, 21)).T,
+                    self.alignment.corrected_frequencies[j].reshape((1, 21))
                 )
 
                 # finally, compute direct information as
@@ -627,9 +472,12 @@ class MeanFieldDirectCouplingAnalysis:
         np.array
             Reference to attribute self.hi
         """
+        # for convenience
+        fi = self.alignment.corrected_frequencies
+
         self.hi = np.zeros((self.L, self.num_symbols))
         for i in range(self.L):
-            log_fi = np.log(self.fi[i] / self.fi[i, self.num_symbols - 1])
+            log_fi = np.log(fi[i] / fi[i, self.num_symbols - 1])
             e_ij_sum = np.zeros((1, self.num_symbols))
             for j in range(self.L):
                 if i != j:
@@ -637,7 +485,7 @@ class MeanFieldDirectCouplingAnalysis:
                     e_ij = -self.eij[i, j]
 
                     # some eij values over all j
-                    e_ij_sum += np.dot(e_ij, self.fi[j].reshape((1, 21)).T).T
+                    e_ij_sum += np.dot(e_ij, fi[j].reshape((1, 21)).T).T
             self.hi[i] = log_fi - e_ij_sum
 
         return self.hi
@@ -705,14 +553,20 @@ class MeanFieldDirectCouplingAnalysis:
             # index mapping
             np.array(segment.positions, dtype="int32").tofile(f)
 
-            # single site frequencies fi and fields hi
-            self.fi.astype(precision).tofile(f)
+            # single site frequencies
+            self.alignment.corrected_frequencies.astype(
+                precision
+            ).tofile(f)
+
+            # fields hi
             self.hi.astype(precision).tofile(f)
 
-            # pair frequencies fij
+            # pair frequencies
             for i in range(self.L - 1):
                 for j in range(i + 1, self.L):
-                    self.fij[i, j].astype(precision).tofile(f)
+                    self.alignment.corrected_pair_frequencies[i, j].astype(
+                        precision
+                    ).tofile(f)
 
             # pair couplings eij
             for i in range(self.L - 1):
