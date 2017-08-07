@@ -32,7 +32,7 @@ def _flatten_index(i, alpha, num_symbols):
     return i * (num_symbols - 1) + alpha
 
 
-class MeanFieldDCA:
+class MeanFieldDCA(object):
     """
     Class that provides the functionality
     to infer evolutionary couplings from a given
