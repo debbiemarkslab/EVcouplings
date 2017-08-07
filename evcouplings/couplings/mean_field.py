@@ -8,10 +8,12 @@ Authors:
 """
 
 import numpy as np
+import numba
 
 from evcouplings.couplings import CouplingsModel
 
 
+@numba.jit(nopython=True)
 def _flatten_index(i, alpha, num_symbols):
     """
     Map position and symbol to index in
@@ -94,11 +96,8 @@ class MeanFieldDCA:
         # and selecting focus columns
         self._prepare_alignment()
 
-        # for convenience
-        self.N = self.alignment.N
-        self.L = self.alignment.L
-        self.num_symbols = self.alignment.num_symbols
-
+        # reset pre-calculated sequence weigths
+        # and frequencies of the alignment
         self._reset()
 
     def _reset(self):
@@ -250,30 +249,10 @@ class MeanFieldDCA:
         np.array
             Reference to attribute self.convariance_matrix
         """
-        # The covariance values concerning the last symbol
-        # are required to equal zero and are not represented
-        # in the covariance matrix (important for taking the
-        # inverse) - resulting in a matrix of size
-        # (L * (num_symbols-1)) x (L * (num_symbols-1))
-        # rather than (L * num_symbols) x (L * num_symbols).
-        self.covariance_matrix = np.zeros(
-            (self.L * (self.num_symbols - 1),
-             self.L * (self.num_symbols - 1))
+        self.covariance_matrix = compute_covariance_matrix(
+            self.alignment.corrected_frequencies,
+            self.alignment.corrected_pair_frequencies
         )
-
-        # for convenience
-        fi = self.alignment.corrected_frequencies
-        fij = self.alignment.corrected_pair_frequencies
-
-        for i in range(self.L):
-            for j in range(self.L):
-                for alpha in range(self.num_symbols - 1):
-                    for beta in range(self.num_symbols - 1):
-                        self.covariance_matrix[
-                            _flatten_index(i, alpha, self.num_symbols),
-                            _flatten_index(j, beta, self.num_symbols),
-                        ] = fij[i, j, alpha, beta] - fi[i, alpha] * fi[j, beta]
-
         return self.covariance_matrix
 
     def reshape_invC_to_4d(self):
@@ -288,16 +267,11 @@ class MeanFieldDCA:
             Matrix of size L x L x
             num_symbols x num_symbols.
         """
-        J_ij = np.zeros((self.L, self.L, self.num_symbols, self.num_symbols))
-        for i in range(self.L):
-            for j in range(self.L):
-                for alpha in range(self.num_symbols - 1):
-                    for beta in range(self.num_symbols - 1):
-                        J_ij[i, j, alpha, beta] = self.covariance_matrix_inv[
-                            _flatten_index(i, alpha, self.num_symbols),
-                            _flatten_index(j, beta, self.num_symbols)
-                        ]
-        return J_ij
+        return reshape_invC_to_4d(
+            self.covariance_matrix_inv,
+            self.alignment.L,
+            self.alignment.num_symbols
+        )
 
     def fields(self):
         """
@@ -309,28 +283,10 @@ class MeanFieldDCA:
             Matrix of size L x num_symbols
             containing single-site fields.
         """
-        # make couplings easily accessible
-        J_ij = self.reshape_invC_to_4d()
-
-        # for convenience
-        fi = self.alignment.corrected_frequencies
-
-        hi = np.zeros((self.L, self.num_symbols))
-        for i in range(self.L):
-            log_fi = np.log(fi[i] / fi[i, self.num_symbols - 1])
-            J_ij_sum = np.zeros((1, self.num_symbols))
-            for j in range(self.L):
-                if i != j:
-                    # extract couplings relevant to position pair (i, j)
-                    J = -J_ij[i, j]
-
-                    # some eij values over all j
-                    J_ij_sum += np.dot(
-                        J, fi[j].reshape((1, self.num_symbols)).T
-                    ).T
-            hi[i] = log_fi - J_ij_sum
-
-        return hi
+        return fields(
+            self.reshape_invC_to_4d(),
+            self.alignment.corrected_frequencies
+        )
 
 
 class MeanFieldCouplingsModel(CouplingsModel):
@@ -476,34 +432,9 @@ class MeanFieldCouplingsModel(CouplingsModel):
         super(MeanFieldCouplingsModel, self)._calculate_ecs()
 
         # calculate DI scores
-        self._di_scores = np.zeros((self.L, self.L))
-        for i in range(self.L):
-            for j in range(i + 1, self.L):
-                # extract couplings relevant to
-                # position pair (i, j)
-                J = np.exp(-self.J_ij[i, j])
-
-                # compute two-site model
-                h_tilde_i, h_tilde_j = self.tilde_fields(i, j)
-                p_di_ij = J * np.dot(h_tilde_i.T, h_tilde_j)
-                p_di_ij = p_di_ij / p_di_ij.sum()
-
-                # dot product of single-site frequencies
-                # of columns i and j
-                f_ij = np.dot(
-                    self.corrected_f_i[i].reshape((1, self.num_symbols)).T,
-                    self.corrected_f_i[j].reshape((1, self.num_symbols))
-                )
-
-                # finally, compute direct information as
-                # mutual information associated to p_di_ij
-                _TINY = 1.0e-100
-                self._di_scores[i, j] = np.trace(
-                    np.dot(
-                        p_di_ij.T,
-                        np.log((p_di_ij + _TINY) / (f_ij + _TINY)))
-                )
-                self._di_scores[j, i] = self._di_scores[i, j]
+        self._di_scores = direct_information(
+            self.J_ij, self.corrected_f_i
+        )
 
         # add DI scores to EC data frame
         di = []
@@ -534,32 +465,11 @@ class MeanFieldCouplingsModel(CouplingsModel):
             h_tilde fields of position i and j -
             both arrays of size 1 x num_symbols
         """
-        _EPSILON = 1e-4
-        diff = 1.0
-
-        h_tilde_i = np.full((1, self.num_symbols), 1 / float(self.num_symbols))
-        h_tilde_j = np.full((1, self.num_symbols), 1 / float(self.num_symbols))
-
-        J = np.exp(-self.J_ij[i, j])
-        while diff > _EPSILON:
-            tmp_1 = np.dot(h_tilde_j, J.T)
-            tmp_2 = np.dot(h_tilde_i, J)
-
-            h_tilde_i_updated = self.corrected_f_i[i] / tmp_1
-            h_tilde_i_updated /= h_tilde_i_updated.sum()
-
-            h_tilde_j_updated = self.corrected_f_i[j] / tmp_2
-            h_tilde_j_updated /= h_tilde_j_updated.sum()
-
-            diff = max(
-                np.absolute(h_tilde_i_updated - h_tilde_i).max(),
-                np.absolute(h_tilde_j_updated - h_tilde_j).max()
-            )
-
-            h_tilde_i = h_tilde_i_updated
-            h_tilde_j = h_tilde_j_updated
-
-        return h_tilde_i, h_tilde_j
+        return tilde_fields(
+            self.J_ij,
+            self.corrected_f_i[i],
+            self.corrected_f_i[j]
+        )
 
     @property
     def di_scores(self):
@@ -589,3 +499,228 @@ class MeanFieldCouplingsModel(CouplingsModel):
                         "{0:.6f}".format(self.mi_scores_raw[i, j]),
                         "{0:.6f}".format(self.di_scores[i, j])
                     ])) + "\n")
+
+
+@numba.jit(nopython=True)
+def compute_covariance_matrix(f_i, f_ij):
+    """
+    Compute the covariance matrix.
+
+    Parameters
+    ----------
+    f_i : np.array
+        Matrix of size L x num_symbols
+        containing column frequencies.
+    f_ij : np.array
+        Matrix of size L x L x num_symbols x
+        num_symbols containing pair frequencies.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x (num_symbols-1) x
+        L x (num_symbols-1) containing
+        covariance values.
+    """
+    L, num_symbols = f_i.shape
+
+    # The covariance values concerning the last symbol
+    # are required to equal zero and are not represented
+    # in the covariance matrix (important for taking the
+    # inverse) - resulting in a matrix of size
+    # (L * (num_symbols-1)) x (L * (num_symbols-1))
+    # rather than (L * num_symbols) x (L * num_symbols).
+    covariance_matrix = np.zeros((
+        L * (num_symbols - 1),
+        L * (num_symbols - 1)
+    ))
+
+    for i in range(L):
+        for j in range(L):
+            for alpha in range(num_symbols - 1):
+                for beta in range(num_symbols - 1):
+                    covariance_matrix[
+                        _flatten_index(i, alpha, num_symbols),
+                        _flatten_index(j, beta, num_symbols),
+                    ] = f_ij[i, j, alpha, beta] - f_i[i, alpha] * f_i[j, beta]
+
+    return covariance_matrix
+
+
+@numba.jit(nopython=True)
+def reshape_invC_to_4d(inv_cov_matrix, L, num_symbols):
+    """
+    "Un-flatten" inverse of the covariance
+    matrix to allow easy access to couplings
+    using position and symbol indices.
+
+    Parameters
+    ----------
+    inv_cov_matrix : np.array
+        The inverse of the covariance matrix.
+    L : int
+        Model length.
+    num_symbols : int
+        Number of characters in the alphabet.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x L x
+        num_symbols x num_symbols.
+    """
+    J_ij = np.zeros((L, L, num_symbols, num_symbols))
+    for i in range(L):
+        for j in range(L):
+            for alpha in range(num_symbols - 1):
+                for beta in range(num_symbols - 1):
+                    J_ij[i, j, alpha, beta] = inv_cov_matrix[
+                        _flatten_index(i, alpha, num_symbols),
+                        _flatten_index(j, beta, num_symbols)
+                    ]
+    return J_ij
+
+
+@numba.jit(nopython=True)
+def fields(J_ij, f_i):
+    """
+    Compute fields.
+
+    Parameters
+    ----------
+    J_ij : np.array
+        Matrix of size L x L x num_symbols x
+        num_symbols containing coupling parameters.
+    f_i : np.array
+        Matrix of size L x num_symbols
+        containing column frequencies.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x num_symbols
+        containing single-site fields.
+    """
+    L, num_symbols = f_i.shape
+
+    hi = np.zeros((L, num_symbols))
+    for i in range(L):
+        log_fi = np.log(f_i[i] / f_i[i, num_symbols - 1])
+        J_ij_sum = np.zeros((1, num_symbols))
+        for j in range(L):
+            if i != j:
+                # extract couplings relevant to position pair (i, j)
+                J = -J_ij[i, j]
+
+                # some eij values over all j
+                J_ij_sum += np.dot(
+                    J, f_i[j].reshape((1, num_symbols)).T
+                ).T
+        hi[i] = log_fi - J_ij_sum
+
+    return hi
+
+
+@numba.jit(nopython=True)
+def tilde_fields(J_ij, f_i, f_j):
+    """Compute h_tilde fields of the two-site model.
+
+    Parameters
+    ----------
+    J_ij : np.array
+        Matrix of size num_symbols x num_symbols
+        containing all coupling strengths of
+        position pair (i, j).
+    f_i : np.array
+        Row i of single-site frequencies.
+    f_j : np.array
+        Row j of single-site frequencies.
+
+    Returns
+    -------
+    np.array, np.array
+        h_tilde fields of position i and j -
+        both arrays of size 1 x num_symbols
+    """
+    _EPSILON = 1e-4
+    diff = 1.0
+
+    num_symbols = f_i.shape[0]
+
+    h_tilde_i = np.full((1, num_symbols), 1 / float(num_symbols))
+    h_tilde_j = np.full((1, num_symbols), 1 / float(num_symbols))
+
+    while diff > _EPSILON:
+        tmp_1 = np.dot(h_tilde_j, J_ij.T)
+        tmp_2 = np.dot(h_tilde_i, J_ij)
+
+        h_tilde_i_updated = f_i / tmp_1
+        h_tilde_i_updated /= h_tilde_i_updated.sum()
+
+        h_tilde_j_updated = f_j / tmp_2
+        h_tilde_j_updated /= h_tilde_j_updated.sum()
+
+        diff = max(
+            np.absolute(h_tilde_i_updated - h_tilde_i).max(),
+            np.absolute(h_tilde_j_updated - h_tilde_j).max()
+        )
+
+        h_tilde_i = h_tilde_i_updated
+        h_tilde_j = h_tilde_j_updated
+
+    return h_tilde_i, h_tilde_j
+
+
+@numba.jit(nopython=True)
+def direct_information(J_ij, f_i):
+    """
+    Calculate direct information.
+
+    Parameters
+    ----------
+    J_ij : np.array
+        Matrix of size num_symbols x num_symbols
+        containing all coupling strengths of
+        position pair (i, j).
+    f_i : np.array
+        Matrix of size L x num_symbols
+        containing column frequencies.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x L
+        containing direct information.
+    """
+    L, num_symbols = f_i.shape
+
+    di = np.zeros((L, L))
+    for i in range(L):
+        for j in range(i + 1, L):
+            # extract couplings relevant to
+            # position pair (i, j)
+            J = np.exp(-J_ij[i, j])
+
+            # compute two-site model
+            h_tilde_i, h_tilde_j = tilde_fields(J, f_i[i], f_i[j])
+            p_di_ij = J * np.dot(h_tilde_i.T, h_tilde_j)
+            p_di_ij = p_di_ij / p_di_ij.sum()
+
+            # dot product of single-site frequencies
+            # of columns i and j
+            f_ij = np.dot(
+                f_i[i].reshape((1, num_symbols)).T,
+                f_i[j].reshape((1, num_symbols))
+            )
+
+            # finally, compute direct information as
+            # mutual information associated to p_di_ij
+            _TINY = 1.0e-100
+            di[i, j] = di[j, i] = np.trace(
+                np.dot(
+                    p_di_ij.T,
+                    np.log((p_di_ij + _TINY) / (f_ij + _TINY))
+                )
+            )
+
+    return di
