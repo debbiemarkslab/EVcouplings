@@ -10,7 +10,7 @@ import numpy as np
 
 from evcouplings.couplings import tools as ct
 from evcouplings.couplings import pairs, mapping
-from evcouplings.couplings.dca import MeanFieldDirectCouplingAnalysis
+from evcouplings.couplings.mean_field import MeanFieldDCA
 from evcouplings.couplings.model import CouplingsModel
 from evcouplings.visualize.parameters import evzoom_json
 from evcouplings.visualize.pairs import (
@@ -302,7 +302,7 @@ def standard(**kwargs):
     return outcfg
 
 
-def dca(**kwargs):
+def mean_field(**kwargs):
     """
     Protocol:
 
@@ -410,32 +410,34 @@ def dca(**kwargs):
             format="fasta"
         )
 
-    # run mean field direct coupling analysis
-    mf_dca = MeanFieldDirectCouplingAnalysis.run(
-        input_alignment,
+    # init mean field direct coupling analysis
+    mf_dca = MeanFieldDCA(
+        input_alignment, segment
+    )
+
+    # run mean field approximation
+    model = mf_dca.fit(
         theta=kwargs["theta"],
         pseudo_count=kwargs["pseudo_count"]
     )
 
     # write ECs to file
-    mf_dca.to_raw_ec_file(
-        outcfg["raw_ec_file"],
-        segment
+    model.to_raw_ec_file(
+        outcfg["raw_ec_file"]
     )
 
     # write model file
     if outcfg["model_file"] is not None:
-        mf_dca.to_model_file(
+        model.to_file(
             outcfg["model_file"],
-            segment=segment,
-            theta=kwargs["theta"]
+            file_format="plmc_v2"
         )
 
     # store useful information about model in outcfg
     outcfg.update({
-        "num_sites": input_alignment.L,
-        "num_sequences": input_alignment.N,
-        "effective_sequences": float(mf_dca.alignment.weights.sum()),
+        "num_sites": model.L,
+        "num_sequences": model.N_valid,
+        "effective_sequences": float(round(model.N_eff, 1)),
         "region_start": segment.region_start,
     })
 
@@ -513,7 +515,7 @@ PROTOCOLS = {
     "standard": standard,
 
     # inference protocol using mean field approximation
-    "dca": dca,
+    "mean_field": mean_field,
 }
 
 
