@@ -1335,17 +1335,6 @@ class MeanFieldCouplingsModel(CouplingsModel):
 
         self._reset_precomputed()
 
-    @classmethod
-    def from_file(cls, filename, precision="float32", file_format="plmc_v2", **kwargs):
-        """
-        Read the model from a binary .Jij file
-
-        For a detailed description of the method's parameters,
-        have a look at the __init__ method of
-        evcouplings.couplings.model.CouplingsModel.
-        """
-        super().__init__(filename, precision, file_format, **kwargs)
-
     def _reset_precomputed(self):
         """
         Delete precomputed values (e.g. mutation matrices)
