@@ -1,6 +1,6 @@
 """
 Functions for concatenating based on best hit or
- best reciprocal hit to target
+best reciprocal hit to target
 
 Authors:
   Anna G. Green
@@ -10,6 +10,7 @@ import numpy as np
 from evcouplings.align.alignment import (
     Alignment
 )
+
 
 def read_identity_file(identity_file):
     """
@@ -46,7 +47,7 @@ def read_annotation_file(annotation_file, column_1="OS", column_2 = "Tax"):
         sequence identifier to species annotation
         
     """
-    data = pd.read_csv(annotation_file,dtype=str)
+    data = pd.read_csv(annotation_file, dtype=str)
     data = data.fillna(value="None")
     id_to_species = {}
     for id, species1, species2 in zip(data.id, data[column_1],data[column_2]):
