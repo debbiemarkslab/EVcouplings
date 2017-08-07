@@ -37,8 +37,12 @@ def get_genome_to_cds_list(sequence_id_list, uniprot_to_embl):
     genome_to_cds = defaultdict(list)
     cds_to_uniprot = {}
 
+    #For each ID in the alignment
     for id_ in sequence_id_list:
+
+        #if we found a mapping for that ID
         if id_ in uniprot_to_embl:
+
             for embl_genome, embl_cds in uniprot_to_embl[id_]:
                 genome_to_cds[embl_genome].append(embl_cds)
                 cds_to_uniprot[embl_cds] = id_

@@ -15,6 +15,16 @@ from collections import defaultdict
 from evcouplings.align.ids import retrieve_sequence_ids
 
 
+def _split_annotation_string(annotation_string):
+    # reformat the ena string as a list of tuples
+
+    full_annotation = [
+        x.split(":") for x in
+        annotation_string.split(";")
+    ]  # list of lists in format [read,cds]
+
+    return full_annotation
+
 def extract_uniprot_to_embl(alignment_file,
                             uniprot_to_embl_table,
                             uniprot_to_embl_filename):
@@ -34,6 +44,37 @@ def extract_uniprot_to_embl(alignment_file,
     uniprot_to_embl_filename : str
         Write extracted mapping table to this file
     """
+
+    def _remove_redundant_reads(uniprot_to_embl):
+
+        """
+        Removes CDSs that have hits to multiple reads
+
+        """
+
+        for uniprot_ac, embl_mapping in uniprot_to_embl.items():
+            # reformat the ena string as a list of tuples
+            full_annotation = _split_annotation_string(embl_mapping)
+
+            count_reads = defaultdict(list)
+
+            for read, cds in full_annotation:
+                count_reads[cds].append(read)
+
+            uniprot_to_embl[uniprot_ac] = []
+
+            # check how many reads are associated with a particular CDS,
+            # only keep CDSs that can be matched to *one* read
+            for cds, reads in count_reads.items():
+                if len(reads) == 1:
+                    uniprot_to_embl[uniprot_ac].append((reads[0], cds))
+
+            # if none of the ena hits passed quality control, delete the entry
+            if len(uniprot_to_embl[uniprot_ac]) == 0:
+                del uniprot_to_embl[uniprot_ac]
+
+         return uniprot_to_embl
+
     # extract identifiers from sequence alignment
     with open(alignment_file) as f:
         sequence_id_list, _ = retrieve_sequence_ids(f)
@@ -50,11 +91,14 @@ def extract_uniprot_to_embl(alignment_file,
 
             if uniprot_ac in target_ids:
                 uniprot_to_embl[uniprot_ac] = ena_data
-   
+
+    # clean the uniprot to embl hits
+    uniprot_to_embl = _remove_redundant_reads(uniprot_to_embl)
+
     # store mapping information for alignment to file
     with open(uniprot_to_embl_filename, "w") as of:
         for key, value in uniprot_to_embl.items():
-            value_to_write = value.replace(",", ";")
+            value_to_write = (';').join([(':').join(x) for x in value])
             of.write(
                 "{},{}\n".format(key, value_to_write)
             )
@@ -62,7 +106,7 @@ def extract_uniprot_to_embl(alignment_file,
 
 def load_uniprot_to_embl(uniprot_to_embl_filename):
     """
-    Load a previously extracted Uniprot to EMBL ID
+    Load a previously extracted Uniprot ID to EMBL ID
     mapping file and exclude inconsistent mappings
     
     Parameters
@@ -79,39 +123,14 @@ def load_uniprot_to_embl(uniprot_to_embl_filename):
 
     # reads the csv file uniprot_to_embl_filename
     # info a dictionary in the format uniprot_ac: annotation_string
-    uniprot_to_embl_str = {}
+
+    uniprot_to_embl = {}
 
     with open(uniprot_to_embl_filename) as inf:
         for line in inf:
-            ac, annotation = line.rstrip().split(",")
-            uniprot_to_embl_str[ac] = annotation
-
-    # Clean up uniprot to embl dictionary
-    uniprot_to_embl = {}
-    
-    for uniprot_ac, embl_mapping in uniprot_to_embl_str.items():
-        # reformat the ena string as a list of tuples
-        full_annotation = [
-            x.split(":") for x in
-            uniprot_to_embl_str[uniprot_ac].split(";")
-        ]
-        
-        count_reads = defaultdict(list)
-        
-        for read, cds in full_annotation:
-            count_reads[cds].append(read)
-
-        uniprot_to_embl[uniprot_ac] = []
-
-        # check how many reads are associated with a particular CDS, 
-        # only keep CDSs that can be matched to *one* read
-        for cds, reads in count_reads.items():
-            if len(reads) == 1:
-                uniprot_to_embl[uniprot_ac].append((reads[0], cds))
-
-        # if none of the ena hits passed quality control, delete the entry
-        if len(uniprot_to_embl[uniprot_ac]) == 0:
-            del uniprot_to_embl[uniprot_ac]
+            ac, annotation_string = line.rstrip().split(",")
+            annotation = _split_annotation_string(annotation_string)
+            uniprot_to_embl[ac] = annotation
 
     return uniprot_to_embl
 
