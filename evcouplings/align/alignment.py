@@ -524,8 +524,6 @@ class Alignment:
         self.weights = None
         self._frequencies = None
         self._pair_frequencies = None
-        self.corrected_frequencies = None
-        self.corrected_pair_frequencies = None
 
         if sequence_ids is None:
             # default to numbering sequences if not given
@@ -859,8 +857,6 @@ class Alignment:
         # different weights before or had no weights at all
         self._frequencies = None
         self._pair_frequencies = None
-        self.corrected_frequencies = None
-        self.corrected_pair_frequencies = None
 
     @property
     def frequencies(self):
@@ -923,61 +919,6 @@ class Alignment:
             )
 
         return self._pair_frequencies
-
-    def compute_corrected_frequencies(self, pseudo_count=0.5):
-        """
-        Returns/calculates single-site frequencies corrected by a
-        pseudo-count of symbols in alignment.
-
-        This method sets the attribute self.corrected_frequencies
-        and returns a reference to it. Also, self._frequencies
-        is implicitly set.
-
-        Parameters
-        ----------
-        pseudo_count : float, optional (default: 0.5)
-            The value to be added as pseudo-count.
-
-        Returns
-        -------
-        np.array
-            Matrix of size L x num_symbols containing
-            relative column frequencies of all symbols
-            corrected by a pseudo-count.
-        """
-        self.corrected_frequencies = add_pseudo_count_to_frequencies(
-            self.frequencies, pseudo_count=pseudo_count
-        )
-
-        return self.corrected_frequencies
-
-    def compute_corrected_pair_frequencies(self, pseudo_count=0.5):
-        """
-        Add pseudo-count to pairwise frequencies
-        to regularize in the case of insufficient
-        data availability.
-
-        This method sets the attribute self.corrected_pair_frequencies
-        and returns a reference to it. Also, self._pair_frequencies
-        is implicitly set.
-
-        Parameters
-        ----------
-        pseudo_count : float, optional (default: 0.5)
-            The value to be added as pseudo-count.
-
-        Returns
-        -------
-        np.array
-            Matrix of size L x L x num_symbols x num_symbols
-            containing relative pairwise frequencies of all
-            symbols corrected by a pseudo-count.
-        """
-        self.corrected_pair_frequencies = add_pseudo_count_to_pair_frequencies(
-            self.pair_frequencies, pseudo_count=pseudo_count
-        )
-
-        return self.corrected_pair_frequencies
 
     def identities_to(self, seq, normalize=True):
         """
@@ -1139,77 +1080,6 @@ def pair_frequencies(matrix, seq_weights, num_symbols, fi):
             fij[i, i, alpha, alpha] = fi[i, alpha]
 
     return fij
-
-
-@jit(nopython=True)
-def add_pseudo_count_to_frequencies(fi, pseudo_count=0.5):
-    """
-    Add pseudo-count to single-site frequencies
-    to regularize in the case of insufficient
-    data availability.
-
-    Parameters
-    ----------
-    fi : np.array
-        Matrix of size L x num_symbols containing relative
-        column frequencies of all characters
-    pseudo_count : float, optional (default: 0.5)
-        The value to be added as pseudo-count.
-
-    Returns
-    -------
-    np.array
-        fi corrected by a pseudo-count.
-    """
-    num_symbols = fi.shape[1]
-    return (
-        (1. - pseudo_count) * fi +
-        (pseudo_count / float(num_symbols))
-    )
-
-
-@jit(nopython=True)
-def add_pseudo_count_to_pair_frequencies(fij, pseudo_count=0.5):
-    """
-    Add pseudo-count to pairwise frequencies
-    to regularize in the case of insufficient
-    data availability.
-
-    Parameters
-    ----------
-    fij : np.array
-        Matrix of size L x L x num_symbols x num_symbols
-        containing relative column frequencies of all characters
-    pseudo_count : float, optional (default: 0.5)
-        The value to be added as pseudo-count.
-
-    Returns
-    -------
-    np.array
-        fij corrected by pseudo-count.
-    """
-    L, num_symbols = fij.shape[1: 3]
-
-    # add a pseudo-count to the frequencies
-    corrected_fij = (
-        (1. - pseudo_count) * fij +
-        (pseudo_count / float(num_symbols ** 2))
-    )
-
-    # again, set the "pair frequency" of two identical
-    # symbols in the same position to the respective
-    # single-site frequency (and all other entries
-    # in matrices concerning position pair (i, i) to zero)
-    id_matrix = np.identity(num_symbols)
-    for i in range(L):
-        for alpha in range(num_symbols):
-            for beta in range(num_symbols):
-                corrected_fij[i, i, alpha, beta] = (
-                    (1. - pseudo_count) * fij[i, i, alpha, beta] +
-                    (pseudo_count / num_symbols) * id_matrix[alpha, beta]
-                )
-
-    return corrected_fij
 
 
 @jit(nopython=True)

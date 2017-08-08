@@ -1244,8 +1244,9 @@ class MeanFieldCouplingsModel(CouplingsModel):
     and calculates mutual and direct information as
     well as fn and cn scores.
     """
-    def __init__(self, alignment, segment, h_i, J_ij,
-                 theta, pseudo_count):
+    def __init__(self, alignment, segment, regularized_f_i,
+                 regularized_f_ij, h_i, J_ij, theta,
+                 pseudo_count):
         """
         Initialize the model with the results of a
         mean field inference.
@@ -1258,6 +1259,14 @@ class MeanFieldCouplingsModel(CouplingsModel):
         segment : Segment
             The segment is used for mapping indices
             into UniProt space.
+        regularized_f_i : np.array
+            Matrix of size L x num_symbols
+            containing column frequencies
+            corrected by pseudo-count.
+        regularized_f_ij : np.array
+            Matrix of size L x L x num_symbols x
+            num_symbols containing pair
+            frequencies corrected by pseudo-count.
         h_i : np.array
             Matrix of size L x num_symbols
             containing single-site fields.
@@ -1308,9 +1317,9 @@ class MeanFieldCouplingsModel(CouplingsModel):
         self.f_i = alignment.frequencies
         self.f_ij = alignment.pair_frequencies
 
-        # corrected single and pair frequencies
-        self.corrected_f_i = alignment.corrected_frequencies
-        self.corrected_f_ij = alignment.corrected_pair_frequencies
+        # raw single and pair frequencies
+        self.regularized_f_i = regularized_f_i
+        self.regularized_f_ij = regularized_f_ij
 
         # fields and couplings
         self.h_i = h_i
@@ -1370,7 +1379,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
 
         # calculate DI scores
         self._di_scores = direct_information(
-            self.J_ij, self.corrected_f_i
+            self.J_ij, self.regularized_f_i
         )
 
         # add DI scores to EC data frame
@@ -1404,8 +1413,8 @@ class MeanFieldCouplingsModel(CouplingsModel):
         """
         return tilde_fields(
             self.J_ij,
-            self.corrected_f_i[i],
-            self.corrected_f_i[j]
+            self.regularized_f_i[i],
+            self.regularized_f_ij[j]
         )
 
     @property

@@ -117,8 +117,8 @@ class MeanFieldDCA(object):
         # given pseudo-count)
         self.alignment._frequencies = None
         self.alignment._pair_frequencies = None
-        self.alignment.corrected_frequencies = None
-        self.alignment.corrected_pair_frequencies = None
+        self.regularized_frequencies = None
+        self.regularized_pair_frequencies = None
 
         # reset covariance matrix and its inverse
         self.covariance_matrix = None
@@ -150,17 +150,13 @@ class MeanFieldDCA(object):
         # using the given theta
         self.alignment.set_weights(identity_threshold=theta)
 
-        # compute column frequencies corrected by a pseudo-count
+        # compute column frequencies regularized by a pseudo-count
         # (this implicitly calculates the raw frequencies as well)
-        self.alignment.compute_corrected_frequencies(
-            pseudo_count=pseudo_count
-        )
+        self.regularize_frequencies(pseudo_count=pseudo_count)
 
-        # compute pairwise frequencies corrected by a pseudo-count
+        # compute pairwise frequencies regularized by a pseudo-count
         # (this implicitly calculates the raw frequencies as well)
-        self.alignment.compute_corrected_pair_frequencies(
-            pseudo_count=pseudo_count
-        )
+        self.regularize_pair_frequencies(pseudo_count=pseudo_count)
 
         # compute the covariance matrix from
         # the column and pair frequencies
@@ -182,8 +178,9 @@ class MeanFieldDCA(object):
         return MeanFieldCouplingsModel(
             alignment=self.alignment,
             segment=self._segment,
-            h_i=h_i,
-            J_ij=J_ij,
+            regularized_f_i=self.regularized_frequencies,
+            regularized_f_ij=self.regularized_pair_frequencies,
+            h_i=h_i, J_ij=J_ij,
             theta=theta,
             pseudo_count=pseudo_count
         )
@@ -237,6 +234,78 @@ class MeanFieldDCA(object):
 
         return self.alignment
 
+    def regularize_frequencies(self, pseudo_count=0.5):
+        """
+        Returns/calculates single-site frequencies
+        regularized by a pseudo-count of symbols
+        in alignment.
+
+        This method sets the attribute
+        self.regularized_frequencies
+        and returns a reference to it.
+
+        Parameters
+        ----------
+        pseudo_count : float, optional (default: 0.5)
+            The value to be added as pseudo-count.
+
+        Returns
+        -------
+        np.array
+            Matrix of size L x num_symbols containing
+            relative column frequencies of all symbols
+            regularized by a pseudo-count.
+        """
+        num_symbols = self.alignment.num_symbols
+        self.regularized_frequencies = (
+            (1. - pseudo_count) * self.alignment.frequencies +
+            (pseudo_count / float(num_symbols))
+        )
+        return self.regularized_frequencies
+
+    def regularize_pair_frequencies(self, pseudo_count=0.5):
+        """
+        Add pseudo-count to pairwise frequencies
+        to regularize in the case of insufficient
+        data availability.
+
+        This method sets the attribute
+        self.regularized_pair_frequencies
+        and returns a reference to it.
+
+        Parameters
+        ----------
+        pseudo_count : float, optional (default: 0.5)
+            The value to be added as pseudo-count.
+
+        Returns
+        -------
+        np.array
+            Matrix of size L x L x num_symbols x num_symbols
+            containing relative pairwise frequencies of all
+            symbols regularized by a pseudo-count.
+        """
+        # add a pseudo-count to the frequencies
+        self.regularized_pair_frequencies = (
+            (1. - pseudo_count) * self.alignment.pair_frequencies +
+            (pseudo_count / float(self.alignment.num_symbols ** 2))
+        )
+
+        # again, set the "pair frequency" of two identical
+        # symbols in the same position to the respective
+        # single-site frequency (and all other entries
+        # in matrices concerning position pair (i, i) to zero)
+        id_matrix = np.identity(self.alignment.num_symbols)
+        for i in range(self.alignment.L):
+            for alpha in range(self.alignment.num_symbols):
+                for beta in range(self.alignment.num_symbols):
+                    self.regularized_pair_frequencies[i, i, alpha, beta] = (
+                        (1. - pseudo_count) * self.alignment.pair_frequencies[i, i, alpha, beta] +
+                        (pseudo_count / self.alignment.num_symbols) * id_matrix[alpha, beta]
+                    )
+
+        return self.regularized_pair_frequencies
+
     def compute_covariance_matrix(self):
         """
         Compute the covariance matrix.
@@ -250,8 +319,8 @@ class MeanFieldDCA(object):
             Reference to attribute self.convariance_matrix
         """
         self.covariance_matrix = compute_covariance_matrix(
-            self.alignment.corrected_frequencies,
-            self.alignment.corrected_pair_frequencies
+            self.regularized_frequencies,
+            self.regularized_pair_frequencies
         )
         return self.covariance_matrix
 
@@ -285,7 +354,7 @@ class MeanFieldDCA(object):
         """
         return fields(
             self.reshape_invC_to_4d(),
-            self.alignment.corrected_frequencies
+            self.regularized_frequencies
         )
 
 
