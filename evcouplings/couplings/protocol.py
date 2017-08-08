@@ -495,12 +495,9 @@ def mean_field(**kwargs):
     if outcfg.get("model_file", None) is not None:
         outcfg["evzoom_file"] = prefix + "_evzoom.json"
         with open(outcfg["evzoom_file"], "w") as f:
-            # load parameters
-            c = CouplingsModel(outcfg["model_file"])
-
             # create JSON output and write to file
             f.write(
-                evzoom_json(c) + "\n"
+                evzoom_json(model) + "\n"
             )
 
     # dump output config to YAML file for debugging/logging
