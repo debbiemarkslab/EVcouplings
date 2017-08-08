@@ -309,9 +309,7 @@ def mean_field(**kwargs):
     Infer ECs from alignment using mean field direct coupling analysis.
 
     For now, mean field DCA can only be run in focus mode, gaps
-    included. Also, a segment is needed to map the indices back
-    to UniProt space when writing the EC file. Multiple
-    segments are not handled.
+    included.
 
     Parameters
     ----------
@@ -382,15 +380,10 @@ def mean_field(**kwargs):
     create_prefix_folders(prefix)
 
     segments = kwargs["segments"]
-    if segments is not None and len(segments) == 1:
-        segment = mapping.Segment.from_list(segments[0])
-    # TODO: not sure, how to map from index to
-    # UniProt space when writing the EC file
-    # without the information provided by segment
-    else:
-        raise InvalidParameterError(
-            "For now, DCA can only handle a single segment."
-        )
+    if segments is not None:
+        segments = [
+            mapping.Segment.from_list(s) for s in segments
+        ]
 
     # determine alphabet
     # default is protein
@@ -411,9 +404,7 @@ def mean_field(**kwargs):
         )
 
     # init mean field direct coupling analysis
-    mf_dca = MeanFieldDCA(
-        input_alignment, segment
-    )
+    mf_dca = MeanFieldDCA(input_alignment)
 
     # run mean field approximation
     model = mf_dca.fit(
@@ -438,7 +429,7 @@ def mean_field(**kwargs):
         "num_sites": model.L,
         "num_sequences": model.N_valid,
         "effective_sequences": float(round(model.N_eff, 1)),
-        "region_start": segment.region_start,
+        "region_start": int(model.index_list[0]),
     })
 
     # read and sort ECs

@@ -10,6 +10,7 @@ Authors:
 import numpy as np
 import numba
 
+from evcouplings.align import parse_header
 from evcouplings.couplings import CouplingsModel
 
 
@@ -51,9 +52,9 @@ class MeanFieldDCA(object):
         The input alignment. This should be an
         a2m alignment with lower / upper columns
         and the target sequence as first record.
-    _segment : Segment
-        Segment that definces the mapping from position
-        indices to UniProt space.
+    index_list : np.array
+        List of UniProt numbers of the target
+        sequence (only upper case characters).
     alignment : Alignment
         A processed version of the given alignment
         (_raw_alignment) that is then used to
@@ -73,7 +74,7 @@ class MeanFieldDCA(object):
     covariance_matrix_inv : np.array
         Inverse of covariance_matrix.
     """
-    def __init__(self, alignment, segment):
+    def __init__(self, alignment):
         """
         Initialize direct couplings analysis by
         processing the given alignment.
@@ -83,18 +84,48 @@ class MeanFieldDCA(object):
         alignment : Alignment
             Alignment with lower / upper columns
             and the target sequence as first record.
-        segment : Segment
-            The segment used to map the index to
-            UniProt space.
         """
-        # input alignment and segment
+        # input alignment
         self._raw_alignment = alignment
-        self._segment = segment
 
-        # prepare alignment for DCA
-        # by removing invalid sequences
-        # and selecting focus columns
-        self._prepare_alignment()
+        # the first sequence of an a2m alignment
+        # in focus mode is the target sequence
+        target_seq = self._raw_alignment[0]
+
+        # select focus columns as alignment columns
+        # that are non-gapped and a upper
+        # character in the target sequence
+        focus_cols = np.array([
+            c.isupper() and c not in [
+                self._raw_alignment._match_gap,
+                self._raw_alignment._insert_gap
+            ]
+            for c in target_seq
+        ])
+
+        # extract focus alignment
+        focus_ali = self._raw_alignment.select(
+            columns=focus_cols
+        )
+
+        # extract index list of the target sequence
+        # (only focus columns)
+        _, start, stop = parse_header(self._raw_alignment.ids[0])
+        self.index_list = np.array(range(start, stop + 1))
+        self.index_list = self.index_list[focus_cols]
+
+        # find sequences that are valid,
+        # i.e. contain only alphabet symbols
+        np_alphabet = np.array(list(focus_ali.alphabet))
+        valid_sequences = np.array([
+            np.in1d(seq, np_alphabet).all()
+            for seq in focus_ali.matrix
+        ])
+
+        # remove invalid sequences
+        self.alignment = focus_ali.select(
+            sequences=valid_sequences
+        )
 
         # reset pre-calculated sequence weigths
         # and frequencies of the alignment
@@ -177,62 +208,13 @@ class MeanFieldDCA(object):
 
         return MeanFieldCouplingsModel(
             alignment=self.alignment,
-            segment=self._segment,
+            index_list=self.index_list,
             regularized_f_i=self.regularized_frequencies,
             regularized_f_ij=self.regularized_pair_frequencies,
             h_i=h_i, J_ij=J_ij,
             theta=theta,
             pseudo_count=pseudo_count
         )
-
-    def _prepare_alignment(self):
-        """
-        Prepare the input a2m alignment for
-        mean field direct coupling analysis.
-
-        The method processes the input alignment
-        to an alignment of only valid sequences
-        and focus columns. It sets the attribute
-        self.alignment and returns a reference to it.
-
-        Returns
-        -------
-            Reference to self.alignment
-        """
-        # the first sequence of an a2m alignment
-        # in focus mode is the target sequence
-        target_seq = self._raw_alignment[0]
-
-        # select focus columns as alignment columns
-        # that are non-gapped and a upper
-        # character in the target sequence
-        focus_cols = np.array([
-            c.isupper() and c not in [
-                self._raw_alignment._match_gap,
-                self._raw_alignment._insert_gap
-            ]
-            for c in target_seq
-        ])
-
-        # extract focus alignment
-        focus_ali = self._raw_alignment.select(
-            columns=focus_cols
-        )
-
-        # find sequences that are valid,
-        # i.e. contain only alphabet symbols
-        np_alphabet = np.array(list(focus_ali.alphabet))
-        valid_sequences = np.array([
-            np.in1d(seq, np_alphabet).all()
-            for seq in focus_ali.matrix
-        ])
-
-        # remove invalid sequences
-        self.alignment = focus_ali.select(
-            sequences=valid_sequences
-        )
-
-        return self.alignment
 
     def regularize_frequencies(self, pseudo_count=0.5):
         """
@@ -365,7 +347,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
     and calculates mutual and direct information as
     well as fn and cn scores.
     """
-    def __init__(self, alignment, segment, regularized_f_i,
+    def __init__(self, alignment, index_list, regularized_f_i,
                  regularized_f_ij, h_i, J_ij, theta,
                  pseudo_count):
         """
@@ -377,9 +359,9 @@ class MeanFieldCouplingsModel(CouplingsModel):
         alignment : Alignment
             The alignment that was used inferring
             model parameters using mean field approximation.
-        segment : Segment
-            The segment is used for mapping indices
-            into UniProt space.
+        index_list : np.array
+            Array of UniProt numbers of the target
+            sequence (only upper case characters).
         regularized_f_i : np.array
             Matrix of size L x num_symbols
             containing column frequencies
@@ -451,7 +433,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
         self.pseudo_count = pseudo_count
 
         # mapping
-        self.index_list = np.array(segment.positions)
+        self.index_list = index_list
 
         # for now, the number of invalid sequences
         # is set to zero since __read_plmc_v2() in
