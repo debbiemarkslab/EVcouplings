@@ -58,7 +58,7 @@ def substitute_config(**kwargs):
         "id": ("align", "seqid_filter"),
         "seqcov": ("align", "minimum_sequence_coverage"),
         "colcov": ("align", "minimum_column_coverage"),
-        "theta": ("couplings", "theta"),
+        "theta": ("global", "theta"),
         "plmiter": ("couplings", "iterations"),
         "queue": ("environment", "queue"),
         "time": ("environment", "time"),
