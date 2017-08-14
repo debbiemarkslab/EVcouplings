@@ -596,6 +596,14 @@ class DistanceMap:
                 indexing="ij"
             )
 
+            # check we have valid indices (otherwise
+            # will crash on empty distance matrices)
+            if (len(i_agg) == 0 or len(j_agg) == 0 or
+                    len(i_src) == 0 or len(j_src) == 0):
+                raise ValueError(
+                    "Trying to aggregate distance matrices on empty set of positions."
+                )
+
             new_mat[k][i_agg, j_agg] = m.dist_matrix[i_src, j_src]
 
         # aggregate
@@ -758,6 +766,10 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
             model
         )
 
+        # skip empty chains
+        if len(chain.residues) == 0:
+            continue
+
         # compute distance map
         distmap = DistanceMap.from_coords(chain)
 
@@ -870,6 +882,10 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
         # compare all possible pairs of chains
         for (index_i, ch_i), (index_j, ch_j) in combinations(chains, 2):
+            # skip empty chains (e.g. residues lost during remapping)
+            if len(ch_i.residues) == 0 or len(ch_j.residues) == 0:
+                continue
+
             distmap = DistanceMap.from_coords(ch_i, ch_j)
 
             # symmetrize matrix (for ECs we are only interested if a pair
@@ -1009,6 +1025,11 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
 
         index_i = r["index_i"]
         index_j = r["index_j"]
+
+        # skip empty chains
+        if (len(chains_i[index_i].residues) == 0 or
+                len(chains_j[index_j].residues) == 0):
+            continue
 
         # compute distance map for current chain pair
         distmap = DistanceMap.from_coords(
