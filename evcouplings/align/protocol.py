@@ -771,11 +771,8 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
         outcfg["frequencies_file"], float_format="%.3f", index=False
     )
 
-    describe_coverage(
+    coverage_stats = describe_coverage(
         ali, prefix, region_start, kwargs["minimum_column_coverage"]
-    ).to_csv(
-        outcfg["statistics_file"], float_format="%.3f",
-        index=False
     )
 
     # keep list of uppercase sequence positions in alignment
@@ -812,8 +809,17 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
 
         # N_eff := sum of all sequence weights
         n_eff = float(cut_ali.weights.sum())
+
+        # patch into coverage statistics (N_eff column)
+        coverage_stats.loc[:, "N_eff"] = n_eff
     else:
         n_eff = None
+
+    # save coverage statistics to file
+    coverage_stats.to_csv(
+        outcfg["statistics_file"], float_format="%.3f",
+        index=False
+    )
 
     # store description of final sequence alignment in outcfg
     # (note these parameters will be updated by couplings protocol)
