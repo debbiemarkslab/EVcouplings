@@ -523,6 +523,7 @@ class Alignment:
         self.num_cluster_members = None
         self.weights = None
         self._frequencies = None
+        self._pair_frequencies = None
 
         if sequence_ids is None:
             # default to numbering sequences if not given
@@ -855,6 +856,7 @@ class Alignment:
         # reset frequencies, since these were based on
         # different weights before or had no weights at all
         self._frequencies = None
+        self._pair_frequencies = None
 
     @property
     def frequencies(self):
@@ -887,6 +889,36 @@ class Alignment:
             )
 
         return self._frequencies
+
+    @property
+    def pair_frequencies(self):
+        """
+        Returns/calculates pairwise frequencies of symbols in alignment.
+        Also sets self._pair_frequencies member variable for later reuse.
+
+        Previously calculated sequence weights using self.set_weights()
+        will be used to adjust frequency counts; otherwise, each sequence
+        will contribute with equal weight.
+
+        Returns
+        -------
+        np.array
+            Reference to self._pair_frequencies
+        """
+        if self._pair_frequencies is None:
+            self.__ensure_mapped_matrix()
+
+            if self.weights is None:
+                weights = np.ones((self.N))
+            else:
+                weights = self.weights
+
+            self._pair_frequencies = pair_frequencies(
+                self.matrix_mapped, weights,
+                self.num_symbols, self.frequencies
+            )
+
+        return self._pair_frequencies
 
     def identities_to(self, seq, normalize=True):
         """
@@ -1000,7 +1032,54 @@ def frequencies(matrix, seq_weights, num_symbols):
         for i in range(L):
             fi[i, matrix[s, i]] += seq_weights[s]
 
-    return fi / N
+    return fi / seq_weights.sum()
+
+
+@jit(nopython=True)
+def pair_frequencies(matrix, seq_weights, num_symbols, fi):
+    """
+    Calculate pairwise frequencies of symbols in alignment.
+
+    Parameters
+    ----------
+    matrix : np.array
+        N x L matrix containing N sequences of length L.
+        Matrix must be mapped to range(0, num_symbols) using
+        map_matrix function
+    seq_weights : np.array
+        Vector of length N containing weight for each sequence
+    num_symbols : int
+        Number of different symbols contained in alignment
+    fi : np.array
+        Matrix of size L x num_symbols containing relative
+        column frequencies of all characters.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x L x num_symbols x num_symbols containing
+        relative pairwise frequencies of all character combinations
+    """
+    N, L = matrix.shape
+    fij = np.zeros((L, L, num_symbols, num_symbols))
+    for s in range(N):
+        for i in range(L):
+            for j in range(i + 1, L):
+                fij[i, j, matrix[s, i], matrix[s, j]] += seq_weights[s]
+                fij[j, i, matrix[s, j], matrix[s, i]] = fij[i, j, matrix[s, i], matrix[s, j]]
+
+    # normalize frequencies by the number
+    # of effective sequences
+    fij /= seq_weights.sum()
+
+    # set the frequency of a pair (alpha, alpha)
+    # in position i to the respective single-site
+    # frequency of alpha in position i
+    for i in range(L):
+        for alpha in range(num_symbols):
+            fij[i, i, alpha, alpha] = fi[i, alpha]
+
+    return fij
 
 
 @jit(nopython=True)
