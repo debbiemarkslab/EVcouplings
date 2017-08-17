@@ -1,0 +1,1481 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.compare package &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="index.html"/>
+        <link rel="up" title="Alignment" href="evcouplings.html"/>
+        <link rel="next" title="evcouplings.complex package" href="evcouplings.complex.html"/>
+        <link rel="prev" title="evcouplings.align package" href="evcouplings.align.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html">Alignment</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="evcouplings.html#couplings-analysis">Couplings Analysis</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">evcouplings.compare package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.compare.distances">evcouplings.compare.distances module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.compare.ecs">evcouplings.compare.ecs module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.compare.mapping">evcouplings.compare.mapping module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.compare.pdb">evcouplings.compare.pdb module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.compare.protocol">evcouplings.compare.protocol module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.compare.sifts">evcouplings.compare.sifts module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.complex.html">evcouplings.complex package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.couplings.html">evcouplings.couplings package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.mutate.html">evcouplings.mutate package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="evcouplings.html">Alignment</a> &raquo;</li>
+        
+      <li>evcouplings.compare package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/evcouplings.compare.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="evcouplings-compare-package">
+<h1>evcouplings.compare package<a class="headerlink" href="#evcouplings-compare-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-evcouplings.compare.distances">
+<span id="evcouplings-compare-distances-module"></span><h2>evcouplings.compare.distances module<a class="headerlink" href="#module-evcouplings.compare.distances" title="Permalink to this headline">¶</a></h2>
+<p>Distance calculations on PDB 3D coordinates</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.compare.distances.DistanceMap">
+<em class="property">class </em><code class="descclassname">evcouplings.compare.distances.</code><code class="descname">DistanceMap</code><span class="sig-paren">(</span><em>residues_i</em>, <em>residues_j</em>, <em>dist_matrix</em>, <em>symmetric</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#DistanceMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.DistanceMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Compute, store and accesss pairwise residue
+distances in PDB 3D structures</p>
+<dl class="classmethod">
+<dt id="evcouplings.compare.distances.DistanceMap.aggregate">
+<em class="property">classmethod </em><code class="descname">aggregate</code><span class="sig-paren">(</span><em>*matrices</em>, <em>intersect=False</em>, <em>agg_func=&lt;function nanmin&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#DistanceMap.aggregate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.DistanceMap.aggregate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Aggregate with other distance map(s). Secondary structure will
+be aggregated by assigning the most frequent state across
+all distance matrices; if there are equal counts, H (helix) will
+be chosen over E (strand) over C (coil).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>*matrices</strong> (<a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap"><em>DistanceMap</em></a>) – <p><code class="docutils literal"><span class="pre">*args-style</span></code> list of DistanceMaps that
+will be aggregated.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The id column of each axis may only
+contain numeric residue ids (and no characters
+such as insertion codes)</p>
+</div>
+</li>
+<li><strong>intersect</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – If True, intersect indices of the given
+distance maps. Otherwise, union of indices
+will be used.</li>
+<li><strong>agg_func</strong> (<em>function</em><em> (</em><em>default: numpy.nanmin</em><em>)</em>) – Function that will be used to aggregate
+distance matrices. Needs to take a
+parameter “axis” to aggregate over
+all matrices.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Aggregated distance map</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap">DistanceMap</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – If residue identifiers are not numeric, or
+if intersect is True, but positions on
+axis do not overlap.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.distances.DistanceMap.contacts">
+<code class="descname">contacts</code><span class="sig-paren">(</span><em>max_dist=5.0</em>, <em>min_dist=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#DistanceMap.contacts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.DistanceMap.contacts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return list of pairs below distance threshold</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>max_dist</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 5.0</em><em>)</em>) – Maximum distance for any pair to be
+considered a contact</li>
+<li><strong>min_dist</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Minimum distance of any pair to be
+returned (may be useful if extracting
+different distance ranges from matrix).
+Distance has to be &gt; min_dist, (not &gt;=).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p><strong>contacts</strong> – Table with residue-residue contacts, with the
+following columns:</p>
+<ol class="arabic simple">
+<li>id_i: identifier of residue in chain i</li>
+<li>id_j: identifier of residue in chain j</li>
+<li>dist: pair distance</li>
+</ol>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.distances.DistanceMap.dist">
+<code class="descname">dist</code><span class="sig-paren">(</span><em>i</em>, <em>j</em>, <em>raise_na=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#DistanceMap.dist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.DistanceMap.dist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return distance of residue pair</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Identifier of position on first axis</li>
+<li><strong>j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Identifier of position on second axis</li>
+<li><strong>raise_na</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Raise error if i or j is not
+contained in either axis. If False,
+returns np.nan for undefined entries.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Distance of pair (i, j). If raise_na
+is False and identifiers are not valid,
+distance will be np.nan</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">np.float</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">KeyError</span></code> – If index i or j is not a valid identifier
+for respective chain</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.compare.distances.DistanceMap.from_coords">
+<em class="property">classmethod </em><code class="descname">from_coords</code><span class="sig-paren">(</span><em>chain_i</em>, <em>chain_j=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#DistanceMap.from_coords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.DistanceMap.from_coords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute distance matrix from PDB chain
+coordinates.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>chain_i</strong> (<a class="reference internal" href="#evcouplings.compare.pdb.Chain" title="evcouplings.compare.pdb.Chain"><em>Chain</em></a>) – PDB chain to be used for first axis of matrix</li>
+<li><strong>chain_j</strong> (<a class="reference internal" href="#evcouplings.compare.pdb.Chain" title="evcouplings.compare.pdb.Chain"><em>Chain</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – PDB chain to be used for second axis of matrix.
+If not given, will be set to chain_i, resulting
+in a symmetric distance matrix</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Distance map computed from given
+coordinates</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap">DistanceMap</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.compare.distances.DistanceMap.from_file">
+<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#DistanceMap.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.DistanceMap.from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load existing distance map from file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to distance map file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Loaded distance map</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap">DistanceMap</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.distances.DistanceMap.to_file">
+<code class="descname">to_file</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#DistanceMap.to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.DistanceMap.to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store distance map in file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Prefix of distance map files
+(will create .csv and .npy file)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.distances.DistanceMap.transpose">
+<code class="descname">transpose</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#DistanceMap.transpose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.DistanceMap.transpose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transpose distance map (i.e. swap axes)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Transposed copy of distance map</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap">DistanceMap</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.distances.inter_dists">
+<code class="descclassname">evcouplings.compare.distances.</code><code class="descname">inter_dists</code><span class="sig-paren">(</span><em>sifts_result_i</em>, <em>sifts_result_j</em>, <em>structures=None</em>, <em>atom_filter=None</em>, <em>intersect=False</em>, <em>output_prefix=None</em>, <em>model=0</em>, <em>raise_missing=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#inter_dists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.inter_dists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute inter-chain distances (between different entities)
+in PDB file. Resulting distance map is typically not
+symmetric, with either axis corresponding to either chain.
+Inter-distances are calculated on all combinations of chains
+that have the same PDB id in sifts_result_i and sifts_result_j.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sifts_result_i</strong> (<a class="reference internal" href="#evcouplings.compare.sifts.SIFTSResult" title="evcouplings.compare.sifts.SIFTSResult"><em>SIFTSResult</em></a>) – Input structures and mapping to use
+for first axis of computed distance map</li>
+<li><strong>sifts_result_j</strong> (<a class="reference internal" href="#evcouplings.compare.sifts.SIFTSResult" title="evcouplings.compare.sifts.SIFTSResult"><em>SIFTSResult</em></a>) – Input structures and mapping to use
+for second axis of computed distance map</li>
+<li><strong>structures</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – <ul>
+<li>If str: Load structures from directory this string
+points to. Missing structures will be fetched
+from web.</li>
+<li>If dict: dictionary with lower-case PDB ids as keys
+and PDB objects as values. This dictionary has to
+contain all necessary structures, missing ones will
+not be fetched. This dictionary can be created using
+pdb.load_structures.</li>
+</ul>
+</li>
+<li><strong>atom_filter</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Filter coordinates to contain only these atoms. E.g.
+set to “CA” to compute C_alpha - C_alpha distances
+instead of minimum atom distance over all atoms in
+both residues.</li>
+<li><strong>intersect</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – If True, intersect indices of the given
+distance maps. Otherwise, union of indices
+will be used.</li>
+<li><strong>output_prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – If given, save individual and final contact maps
+to files prefixed with this string. The appended
+file suffixes map to row index in sifts_results.hits</li>
+<li><strong>model</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Index of model in PDB structure that should be used</li>
+<li><strong>raise_missing</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Raise a ResourceError if any of the input structures can
+not be loaded; otherwise, ignore missing entries.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Computed aggregated distance map
+across all input structures</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap">DistanceMap</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – If sifts_result_i or sifts_result_j is empty
+(no structure hits)</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ResourceError</span></code> – If any structure could not be loaded and raise_missing is True</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.distances.intra_dists">
+<code class="descclassname">evcouplings.compare.distances.</code><code class="descname">intra_dists</code><span class="sig-paren">(</span><em>sifts_result</em>, <em>structures=None</em>, <em>atom_filter=None</em>, <em>intersect=False</em>, <em>output_prefix=None</em>, <em>model=0</em>, <em>raise_missing=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#intra_dists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.intra_dists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute intra-chain distances in PDB files.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sifts_result</strong> (<a class="reference internal" href="#evcouplings.compare.sifts.SIFTSResult" title="evcouplings.compare.sifts.SIFTSResult"><em>SIFTSResult</em></a>) – Input structures and mapping to use
+for distance map calculation</li>
+<li><strong>structures</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – <p>If str: Load structures from directory this string
+points to. Missing structures will be fetched
+from web.</p>
+<p>If dict: dictionary with lower-case PDB ids as keys
+and PDB objects as values. This dictionary has to
+contain all necessary structures, missing ones will
+not be fetched. This dictionary can be created using
+pdb.load_structures.</p>
+</li>
+<li><strong>atom_filter</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Filter coordinates to contain only these atoms. E.g.
+set to “CA” to compute C_alpha - C_alpha distances
+instead of minimum atom distance over all atoms in
+both residues.</li>
+<li><strong>intersect</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – If True, intersect indices of the given
+distance maps. Otherwise, union of indices
+will be used.</li>
+<li><strong>output_prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – If given, save individual and final contact maps
+to files prefixed with this string. The appended
+file suffixes map to row index in sifts_results.hits</li>
+<li><strong>model</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Index of model in PDB structure that should be used</li>
+<li><strong>raise_missing</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Raise a ResourceError if any of the input structures can
+not be loaded; otherwise, ignore missing entries.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Computed aggregated distance map
+across all input structures</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap">DistanceMap</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – If sifts_result is empty (no structure hits)</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ResourceError</span></code> – If any structure could not be loaded and raise_missing is True</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.distances.multimer_dists">
+<code class="descclassname">evcouplings.compare.distances.</code><code class="descname">multimer_dists</code><span class="sig-paren">(</span><em>sifts_result</em>, <em>structures=None</em>, <em>atom_filter=None</em>, <em>intersect=False</em>, <em>output_prefix=None</em>, <em>model=0</em>, <em>raise_missing=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#multimer_dists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.multimer_dists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute homomultimer distances (between repeated copies of the
+same entity) in PDB file. Resulting distance matrix will be
+symmetric by minimization over upper and lower triangle of matrix,
+even if the complex structure is not symmetric.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sifts_result</strong> (<a class="reference internal" href="#evcouplings.compare.sifts.SIFTSResult" title="evcouplings.compare.sifts.SIFTSResult"><em>SIFTSResult</em></a>) – Input structures and mapping to use
+for distance map calculation</li>
+<li><strong>structures</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – <p>If str: Load structures from directory this string
+points to. Missing structures will be fetched
+from web.</p>
+<p>If dict: dictionary with lower-case PDB ids as keys
+and PDB objects as values. This dictionary has to
+contain all necessary structures, missing ones will
+not be fetched. This dictionary can be created using
+pdb.load_structures.</p>
+</li>
+<li><strong>atom_filter</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Filter coordinates to contain only these atoms. E.g.
+set to “CA” to compute C_alpha - C_alpha distances
+instead of minimum atom distance over all atoms in
+both residues.</li>
+<li><strong>intersect</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – If True, intersect indices of the given
+distance maps. Otherwise, union of indices
+will be used.</li>
+<li><strong>output_prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – If given, save individual and final contact maps
+to files prefixed with this string. The appended
+file suffixes map to row index in sifts_results.hits</li>
+<li><strong>model</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Index of model in PDB structure that should be used</li>
+<li><strong>raise_missing</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Raise a ResourceError if any of the input structures can
+not be loaded; otherwise, ignore missing entries.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Computed aggregated distance map
+across all input structures</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap">DistanceMap</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – If sifts_result is empty (no structure hits)</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ResourceError</span></code> – If any structure could not be loaded and raise_missing is True</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.distances.remap_chains">
+<code class="descclassname">evcouplings.compare.distances.</code><code class="descname">remap_chains</code><span class="sig-paren">(</span><em>sifts_result</em>, <em>output_prefix</em>, <em>sequence=None</em>, <em>structures=None</em>, <em>atom_filter=('N'</em>, <em>'CA'</em>, <em>'C'</em>, <em>'O')</em>, <em>model=0</em>, <em>raise_missing=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/distances.html#remap_chains"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.distances.remap_chains" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remap a set of PDB chains into the numbering scheme (and
+amino acid sequence) of a target sequence (a.k.a. the poorest
+homology model possible).</p>
+<p>(This function is placed here because of close relationship
+to intra_dists and reusing functionality for it).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sifts_result</strong> (<a class="reference internal" href="#evcouplings.compare.sifts.SIFTSResult" title="evcouplings.compare.sifts.SIFTSResult"><em>SIFTSResult</em></a>) – Input structures and mapping to use
+for remapping</li>
+<li><strong>output_prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Save remapped structures to files prefixed with this string</li>
+<li><strong>sequence</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – <p>Mapping from sequence position (int or str) to residue.
+If this parameter is given, residues in the output
+structures will be renamed to the residues in this
+mapping.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">if side-chain residues are not taken off using atom_filter, this will e.g. happily label
+an actual glutamate as an alanine).</p>
+</div>
+</li>
+<li><strong>structures</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – <ul>
+<li>If str: Load structures from directory this string
+points to. Missing structures will be fetched
+from web.</li>
+<li>If dict: dictionary with lower-case PDB ids as keys
+and PDB objects as values. This dictionary has to
+contain all necessary structures, missing ones will
+not be fetched. This dictionary can be created using
+pdb.load_structures.</li>
+</ul>
+</li>
+<li><strong>atom_filter</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default:</em><em> (</em><em>&quot;N&quot;</em><em>, </em><em>&quot;CA&quot;</em><em>, </em><em>&quot;C&quot;</em><em>, </em><em>&quot;O&quot;</em><em>)</em><em>)</em>) – Filter coordinates to contain only these atoms. If None,
+will retain all atoms; the default value will only keep
+backbone atoms.</li>
+<li><strong>model</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Index of model in PDB structure that should be used</li>
+<li><strong>raise_missing</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Raise a ResourceError if any of the input structures can
+not be loaded; otherwise, ignore missing entries.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>remapped</strong> – Mapping from index of each structure hit in sifts_results.hits
+to filename of stored remapped structure</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.compare.ecs">
+<span id="evcouplings-compare-ecs-module"></span><h2>evcouplings.compare.ecs module<a class="headerlink" href="#module-evcouplings.compare.ecs" title="Permalink to this headline">¶</a></h2>
+<p>Compare evolutionary couplings to distances in 3D structures</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.compare.ecs.add_distances">
+<code class="descclassname">evcouplings.compare.ecs.</code><code class="descname">add_distances</code><span class="sig-paren">(</span><em>ec_table</em>, <em>dist_map</em>, <em>target_column='dist'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/ecs.html#add_distances"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.ecs.add_distances" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add pair distances to EC score table</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ec_table</strong> (<em>pandas.DataFrame</em>) – List of evolutionary couplings, with pair
+positions in columns i and j</li>
+<li><strong>dist_map</strong> (<a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap"><em>DistanceMap</em></a>) – Distance map that will be used to annotate
+distances in ec_table</li>
+<li><strong>target_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of column in which distances will be stored</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Couplings table with added distances
+in target_column. Pairs where no distance
+information is available will be np.nan</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.ecs.add_precision">
+<code class="descclassname">evcouplings.compare.ecs.</code><code class="descname">add_precision</code><span class="sig-paren">(</span><em>ec_table</em>, <em>dist_cutoff=5</em>, <em>score='cn'</em>, <em>min_sequence_dist=6</em>, <em>target_column='precision'</em>, <em>dist_column='dist'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/ecs.html#add_precision"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.ecs.add_precision" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute precision of evolutionary couplings as predictor
+of 3D structure contacts</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ec_table</strong> (<em>pandas.DataFrame</em>) – List of evolutionary couplings</li>
+<li><strong>dist_cutoff</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 5</em><em>)</em>) – Upper distance cutoff (in Angstrom) for a
+pair to be considered a true positive contact</li>
+<li><strong>score</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cn&quot;</em><em>)</em>) – Column which contains coupling score. Table will
+be sorted in descending order by this score.</li>
+<li><strong>min_sequence_dist</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 6</em><em>)</em>) – Minimal distance in primary sequence for an EC to
+be included in precision calculation</li>
+<li><strong>target_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;precision&quot;</em><em>)</em>) – Name of column in which precision will be stored</li>
+<li><strong>dist_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;dist&quot;</em><em>)</em>) – Name of column which contains pair distances</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">EC table with added precision values as a
+function of EC rank (returned table will be
+sorted by score column)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.ecs.coupling_scores_compared">
+<code class="descclassname">evcouplings.compare.ecs.</code><code class="descname">coupling_scores_compared</code><span class="sig-paren">(</span><em>ec_table</em>, <em>dist_map</em>, <em>dist_map_multimer=None</em>, <em>dist_cutoff=5</em>, <em>output_file=None</em>, <em>score='cn'</em>, <em>min_sequence_dist=6</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/ecs.html#coupling_scores_compared"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.ecs.coupling_scores_compared" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utility function to create “CouplingScores.csv”-style
+table</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ec_table</strong> (<em>pandas.DataFrame</em>) – List of evolutionary couplings</li>
+<li><strong>dist_map</strong> (<a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap"><em>DistanceMap</em></a>) – Distance map that will be used to annotate
+distances in ec_table</li>
+<li><strong>dist_map_multimer</strong> (<a class="reference internal" href="#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap"><em>DistanceMap</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Additional multimer distance map. If given,
+the distance for any EC pair will be the minimum
+out of the monomer and multimer distances.</li>
+<li><strong>dist_cutoff</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 5</em><em>)</em>) – Upper distance cutoff (in Angstrom) for a
+pair to be considered a true positive contact</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Store final table to this file</li>
+<li><strong>score</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cn&quot;</em><em>)</em>) – Column which contains coupling score. Table will
+be sorted in descending order by this score.</li>
+<li><strong>min_sequence_dist</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 6</em><em>)</em>) – Minimal distance in primary sequence for an EC to
+be included in precision calculation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">EC table with added distances, and precision
+if dist_cutoff is given.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.compare.mapping">
+<span id="evcouplings-compare-mapping-module"></span><h2>evcouplings.compare.mapping module<a class="headerlink" href="#module-evcouplings.compare.mapping" title="Permalink to this headline">¶</a></h2>
+<p>Index mapping for PDB structures</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf
+Charlotta P. Schärfe</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.compare.mapping.alignment_index_mapping">
+<code class="descclassname">evcouplings.compare.mapping.</code><code class="descname">alignment_index_mapping</code><span class="sig-paren">(</span><em>alignment_file</em>, <em>format='stockholm'</em>, <em>target_seq=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/mapping.html#alignment_index_mapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.mapping.alignment_index_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create index mapping table between sequence positions
+based on a sequence alignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>alignment_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path of alignment file containing sequences for
+which indices shoul dbe mapped</li>
+<li><strong>format</strong> (<em>{&quot;stockholm&quot;</em><em>, </em><em>&quot;fasta&quot;}</em>) – Format of alignment file</li>
+<li><strong>target_seq</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Identifier of sequence around which the index
+mapping will be centered. If None, first sequence
+in alignment will be used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p>Mapping table containing assignment of</p>
+<ol class="arabic simple">
+<li>index in target sequence (i)</li>
+<li>symbol in target sequence (A_i)</li>
+</ol>
+<p>For all other sequences in alignment, the following
+two columns:</p>
+<ol class="arabic simple" start="3">
+<li>index in second sequence (j_&lt;sequence id&gt;)</li>
+<li>symbol in second sequence (A_j_&lt;sequence_id&gt;)</li>
+</ol>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.mapping.map_indices">
+<code class="descclassname">evcouplings.compare.mapping.</code><code class="descname">map_indices</code><span class="sig-paren">(</span><em>seq_i</em>, <em>start_i</em>, <em>end_i</em>, <em>seq_j</em>, <em>start_j</em>, <em>end_j</em>, <em>gaps=('-'</em>, <em>'.')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/mapping.html#map_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.mapping.map_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute index mapping between positions in two
+aligned sequences</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>seq_i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – First aligned sequence</li>
+<li><strong>start_i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of first position in first sequence</li>
+<li><strong>end_i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of last position in first sequence
+(used for verification purposes only)</li>
+<li><strong>seq_j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Second aligned sequence</li>
+<li><strong>start_j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of first position in second sequence</li>
+<li><strong>end_j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of last position in second sequence
+(used for verification purposes only)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p>Mapping table containing assignment of</p>
+<ol class="arabic simple">
+<li>index in first sequence (i)</li>
+<li>symbol in first sequence (A_i)</li>
+<li>index in second sequence (j)</li>
+<li>symbol in second sequence (A_j)</li>
+</ol>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.compare.pdb">
+<span id="evcouplings-compare-pdb-module"></span><h2>evcouplings.compare.pdb module<a class="headerlink" href="#module-evcouplings.compare.pdb" title="Permalink to this headline">¶</a></h2>
+<p>PDB structure handling based on MMTF format</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.compare.pdb.Chain">
+<em class="property">class </em><code class="descclassname">evcouplings.compare.pdb.</code><code class="descname">Chain</code><span class="sig-paren">(</span><em>residues</em>, <em>coords</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#Chain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.Chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Container for PDB chain residue and coordinate information</p>
+<dl class="method">
+<dt id="evcouplings.compare.pdb.Chain.filter_atoms">
+<code class="descname">filter_atoms</code><span class="sig-paren">(</span><em>atom_name='CA'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#Chain.filter_atoms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.Chain.filter_atoms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filter coordinates of chain, e.g. to
+compute C_alpha-C_alpha distances</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>atom_name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>list-like</em><em>, </em><em>optional</em><em> (</em><em>default: &quot;CA&quot;</em><em>)</em>) – Name(s) of atoms to keep</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Chain containing only filtered atoms (and those
+residues that have such an atom)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.compare.pdb.Chain" title="evcouplings.compare.pdb.Chain">Chain</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.pdb.Chain.filter_positions">
+<code class="descname">filter_positions</code><span class="sig-paren">(</span><em>positions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#Chain.filter_positions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.Chain.filter_positions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Select a subset of positions from the chain</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>positions</strong> (<em>list-like</em>) – Set of residues that will be kept</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Chain containing only the selected residues</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.compare.pdb.Chain" title="evcouplings.compare.pdb.Chain">Chain</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.pdb.Chain.remap">
+<code class="descname">remap</code><span class="sig-paren">(</span><em>mapping</em>, <em>source_id='seqres_id'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#Chain.remap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.Chain.remap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remap chain into different numbering scheme
+(e.g. from seqres to uniprot numbering)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>mapping</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) – <p>Mapping of residue identifiers from
+source_id (current main index of PDB chain)
+to new identifiers.</p>
+<p>mapping may either be:</p>
+<ol class="arabic">
+<li>dict(str -&gt; str) to map individual residue
+IDs. Keys and values of dictionary will be
+typecast to string before the mapping, so it
+is possible to pass in integer values too
+(if the source or target IDs are numbers)</li>
+<li>dict((int, int) -&gt; (int, int)) to map ranges
+of numbers to ranges of numbers. This should
+typically be only used with RESSEQ or UniProt
+numbering. End index or range is *inclusive*               Note that residue IDs in the end will still
+be handled as strings when mapping.</li>
+</ol>
+</li>
+<li><strong>source_id</strong> (<em>{&quot;seqres_id&quot;</em><em>, </em><em>&quot;coord_id&quot;</em><em>, </em><em>&quot;id&quot;}</em><em>, </em><em>optional</em><em> (</em><em>default: &quot;seqres_id&quot;</em><em>)</em>) – Residue identifier in chain to map *from*            (will be used as key to access mapping)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Chain with remapped numbering (“id” column
+in residues DataFrame)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.compare.pdb.Chain" title="evcouplings.compare.pdb.Chain">Chain</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.pdb.Chain.to_file">
+<code class="descname">to_file</code><span class="sig-paren">(</span><em>fileobj</em>, <em>chain_id='A'</em>, <em>end=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#Chain.to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.Chain.to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write chain to a file in PDB format (mmCIF not yet
+supported).</p>
+<p>Note that PDB files written this function may not
+be 100% compliant with the PDB format standards,
+in particular:</p>
+<ul class="simple">
+<li>some HETATM records may turn into ATOM records
+when starting from an mmtf file, if the record
+has a one-letter code (such as MSE / M).</li>
+<li>code does not print TER record at the end of
+a peptide chain</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>fileobj</strong> (<em>file-like object</em>) – Write to this file handle</li>
+<li><strong>chain_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;A&quot;</em><em>)</em>) – Assign this chain name in file (allows to redefine
+chain name from whatever chain was originally)</li>
+<li><strong>end</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Print “END” record after chain (signals end of PDB file)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.pdb.Chain.to_seqres">
+<code class="descname">to_seqres</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#Chain.to_seqres"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.Chain.to_seqres" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return copy of chain with main index set to
+SEQRES numbering. Residues that do not have
+a SEQRES id will be dropped.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Chain with seqres IDs as main index</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.compare.pdb.Chain" title="evcouplings.compare.pdb.Chain">Chain</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.compare.pdb.ClassicPDB">
+<em class="property">class </em><code class="descclassname">evcouplings.compare.pdb.</code><code class="descname">ClassicPDB</code><span class="sig-paren">(</span><em>structure</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#ClassicPDB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.ClassicPDB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Class to handle “classic” PDB and mmCIF formats
+(for new mmtf format see PDB class above). Wraps
+around Biopython PDB functionality to provide a consistent
+interface.</p>
+<p>Unlike the PDB class (based on mmtf), this object will
+not be able to extract SEQRES indices corresponding to
+ATOM-record residue indices.</p>
+<dl class="classmethod">
+<dt id="evcouplings.compare.pdb.ClassicPDB.from_file">
+<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>filename</em>, <em>file_format='pdb'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#ClassicPDB.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.ClassicPDB.from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize structure from PDB/mmCIF file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path of file</li>
+<li><strong>file_format</strong> (<em>{&quot;pdb&quot;</em><em>, </em><em>&quot;cif&quot;}</em><em>, </em><em>optional</em><em> (</em><em>default: &quot;pdb&quot;</em><em>)</em>) – Format of structure (old PDB format or mmCIF)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Initialized PDB structure</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.compare.pdb.ClassicPDB" title="evcouplings.compare.pdb.ClassicPDB">ClassicPDB</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.compare.pdb.ClassicPDB.from_id">
+<em class="property">classmethod </em><code class="descname">from_id</code><span class="sig-paren">(</span><em>pdb_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#ClassicPDB.from_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.ClassicPDB.from_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize structure by PDB ID (fetches
+structure from RCSB servers)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pdb_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – PDB identifier (e.g. 1hzx)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">initialized PDB structure</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.compare.pdb.PDB" title="evcouplings.compare.pdb.PDB">PDB</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.pdb.ClassicPDB.get_chain">
+<code class="descname">get_chain</code><span class="sig-paren">(</span><em>chain</em>, <em>model=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#ClassicPDB.get_chain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.ClassicPDB.get_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract residue information and atom coordinates
+for a given chain in PDB structure</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of chain to be extracted (e.g. “A”)</li>
+<li><strong>model</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Index of model to be extracted</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Chain object containing DataFrames listing residues
+and atom coordinates</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.compare.pdb.Chain" title="evcouplings.compare.pdb.Chain">Chain</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.compare.pdb.PDB">
+<em class="property">class </em><code class="descclassname">evcouplings.compare.pdb.</code><code class="descname">PDB</code><span class="sig-paren">(</span><em>mmtf</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#PDB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.PDB" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Wrapper around PDB MMTF decoder object to access residue and
+coordinate information</p>
+<dl class="classmethod">
+<dt id="evcouplings.compare.pdb.PDB.from_file">
+<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#PDB.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.PDB.from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize structure from MMTF file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path of MMTF file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">initialized PDB structure</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.compare.pdb.PDB" title="evcouplings.compare.pdb.PDB">PDB</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.compare.pdb.PDB.from_id">
+<em class="property">classmethod </em><code class="descname">from_id</code><span class="sig-paren">(</span><em>pdb_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#PDB.from_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.PDB.from_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize structure by PDB ID (fetches
+structure from RCSB servers)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pdb_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – PDB identifier (e.g. 1hzx)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">initialized PDB structure</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.compare.pdb.PDB" title="evcouplings.compare.pdb.PDB">PDB</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.pdb.PDB.get_chain">
+<code class="descname">get_chain</code><span class="sig-paren">(</span><em>chain</em>, <em>model=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#PDB.get_chain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.PDB.get_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract residue information and atom coordinates
+for a given chain in PDB structure</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of chain to be extracted (e.g. “A”)</li>
+<li><strong>model</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Index of model to be extracted</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Chain object containing DataFrames listing residues
+and atom coordinates</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.compare.pdb.Chain" title="evcouplings.compare.pdb.Chain">Chain</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.pdb.load_structures">
+<code class="descclassname">evcouplings.compare.pdb.</code><code class="descname">load_structures</code><span class="sig-paren">(</span><em>pdb_ids</em>, <em>structure_dir=None</em>, <em>raise_missing=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/pdb.html#load_structures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.pdb.load_structures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load PDB structures from files / web</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pdb_ids</strong> (<em>Iterable</em>) – List / iterable containing PDB identifiers
+to be loaded.</li>
+<li><strong>structure_dir</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Path to directory with structures. Structures
+filenames must be in the format 5p21.mmtf.
+If a file can not be found, will try to fetch
+from web instead.</li>
+<li><strong>raise_missing</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Raise a ResourceError exception if any of the
+PDB IDs cannot be loaded. If False, missing
+entries will be ignored.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>structures</strong> – Dictionary containing loaded structures.
+Keys (PDB identifiers) will be lower-case.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a>(str -&gt; PDB)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ResourceError</span></code> – Raised if raise_missing is True and any of the given
+PDB IDs cannot be loaded.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.compare.protocol">
+<span id="evcouplings-compare-protocol-module"></span><h2>evcouplings.compare.protocol module<a class="headerlink" href="#module-evcouplings.compare.protocol" title="Permalink to this headline">¶</a></h2>
+<p>EC to 3D structure comparison protocols/workflows.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.compare.protocol.run">
+<code class="descclassname">evcouplings.compare.protocol.</code><code class="descname">run</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/protocol.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.protocol.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run inference protocol to calculate ECs from
+input sequence alignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – protocol: EC protocol to run
+prefix: Output prefix for all generated files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of stage
+(see individual protocol for fields)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.protocol.standard">
+<code class="descclassname">evcouplings.compare.protocol.</code><code class="descname">standard</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/protocol.html#standard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.protocol.standard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Protocol:
+Compare ECs for single proteins (or domains)
+to 3D structure information</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – See list below in code where calling check_required</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of the pipeline, including
+the following fields:<ul class="simple">
+<li>ec_file_compared_all</li>
+<li>ec_file_compared_all_longrange</li>
+<li>pdb_structure_hits</li>
+<li>distmap_monomer</li>
+<li>distmap_multimer</li>
+<li>contact_map_files</li>
+<li>remapped_pdb_files</li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.compare.sifts">
+<span id="evcouplings-compare-sifts-module"></span><h2>evcouplings.compare.sifts module<a class="headerlink" href="#module-evcouplings.compare.sifts" title="Permalink to this headline">¶</a></h2>
+<p>Uniprot to PDB structure identification and
+index mapping using the SIFTS database
+(<a class="reference external" href="https://www.ebi.ac.uk/pdbe/docs/sifts/">https://www.ebi.ac.uk/pdbe/docs/sifts/</a>)</p>
+<p>This functionality is centered around the
+pdb_chain_uniprot.csv table available from SIFTS.
+(<a class="reference external" href="ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz">ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz</a>)</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.compare.sifts.SIFTS">
+<em class="property">class </em><code class="descclassname">evcouplings.compare.sifts.</code><code class="descname">SIFTS</code><span class="sig-paren">(</span><em>sifts_table_file</em>, <em>sequence_file=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/sifts.html#SIFTS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.sifts.SIFTS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Provide Uniprot to PDB mapping data and functions
+starting from SIFTS mapping table.</p>
+<dl class="method">
+<dt id="evcouplings.compare.sifts.SIFTS.by_alignment">
+<code class="descname">by_alignment</code><span class="sig-paren">(</span><em>min_overlap=20</em>, <em>reduce_chains=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/sifts.html#SIFTS.by_alignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.sifts.SIFTS.by_alignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find structures by sequence alignment between
+query sequence and sequences in PDB.</p>
+<p># TODO: offer option to start from HMM profile for this</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>min_overlap</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 20</em><em>)</em>) – Require at least this many aligned positions
+with the target structure</li>
+<li><strong>reduce_chains</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>Default: True</em><em>)</em>) – If true, keep only first chain per PDB ID
+(i.e. remove redundant occurrences of same
+protein in PDB structures). Should be set to
+False to identify homomultimeric contacts.</li>
+<li><strong>**kwargs</strong> – Passed into jackhmmer_search protocol
+(see documentation for available options).
+Additionally, if “prefix” is given, individual
+mappings will be saved to files suffixed by
+the respective key in mapping table.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Record of hits and mappings found for this
+query sequence by alignment. See by_pdb_id()
+for detailed explanation of fields.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.compare.sifts.SIFTSResult" title="evcouplings.compare.sifts.SIFTSResult">SIFTSResult</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.sifts.SIFTS.by_pdb_id">
+<code class="descname">by_pdb_id</code><span class="sig-paren">(</span><em>pdb_id</em>, <em>pdb_chain=None</em>, <em>uniprot_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/sifts.html#SIFTS.by_pdb_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.sifts.SIFTS.by_pdb_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find structures and mapping by PDB id
+and chain name</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pdb_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – 4-letter PDB identifier</li>
+<li><strong>pdb_chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – PDB chain name (if not given, all
+chains for PDB entry will be returned)</li>
+<li><strong>uniprot_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Filter to keep only this Uniprot accession
+number or identifier (necessary for chimeras,
+or multi-chain complexes with different proteins)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Identified hits plus index mappings
+to Uniprot</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.compare.sifts.SIFTSResult" title="evcouplings.compare.sifts.SIFTSResult">SIFTSResult</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – If selected segments in PDB file do
+not unambigously map to one Uniprot
+entry</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.sifts.SIFTS.by_uniprot_id">
+<code class="descname">by_uniprot_id</code><span class="sig-paren">(</span><em>uniprot_id</em>, <em>reduce_chains=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/sifts.html#SIFTS.by_uniprot_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.sifts.SIFTS.by_uniprot_id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find structures and mapping by Uniprot
+access number.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>uniprot_ac</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Find PDB structures for this Uniprot accession
+number. If sequence_file was given while creating
+the SIFTS object, Uniprot identifiers can also be
+used.</li>
+<li><strong>reduce_chains</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>Default: True</em><em>)</em>) – If true, keep only first chain per PDB ID
+(i.e. remove redundant occurrences of same
+protein in PDB structures). Should be set to
+False to identify homomultimeric contacts.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Record of hits and mappings found for this
+Uniprot protein. See by_pdb_id() for detailed
+explanation of fields.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.compare.sifts.SIFTSResult" title="evcouplings.compare.sifts.SIFTSResult">SIFTSResult</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.compare.sifts.SIFTS.create_sequence_file">
+<code class="descname">create_sequence_file</code><span class="sig-paren">(</span><em>output_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/sifts.html#SIFTS.create_sequence_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.sifts.SIFTS.create_sequence_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create FASTA sequence file containing all UniProt
+sequences of proteins in SIFTS. This file is required
+for homology-based structure identification and
+index remapping.
+This function will also automatically associate
+the sequence file with the SIFTS object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path at which to store sequence file</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.compare.sifts.SIFTSResult">
+<em class="property">class </em><code class="descclassname">evcouplings.compare.sifts.</code><code class="descname">SIFTSResult</code><span class="sig-paren">(</span><em>hits</em>, <em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/sifts.html#SIFTSResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.sifts.SIFTSResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Store results of SIFTS structure/mapping identification.</p>
+<p>(Full class defined for easify modification of fields)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.sifts.fetch_uniprot_mapping">
+<code class="descclassname">evcouplings.compare.sifts.</code><code class="descname">fetch_uniprot_mapping</code><span class="sig-paren">(</span><em>ids</em>, <em>from_='ACC'</em>, <em>to='ACC'</em>, <em>format='fasta'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/sifts.html#fetch_uniprot_mapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.sifts.fetch_uniprot_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch data from UniProt ID mapping service
+(e.g. download set of sequences)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ids</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – List of UniProt identifiers for which to
+retrieve mapping</li>
+<li><strong>from</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;ACC&quot;</em><em>)</em>) – Source identifier (i.e. contained in “ids” list)</li>
+<li><strong>to</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;ACC&quot;</em><em>)</em>) – Target identifier (to which source should be mapped)</li>
+<li><strong>format</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;fasta&quot;</em><em>)</em>) – Output format to request from Uniprot server</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Response from UniProt server</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.compare.sifts.find_homologs_jackhmmer">
+<code class="descclassname">evcouplings.compare.sifts.</code><code class="descname">find_homologs_jackhmmer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/compare/sifts.html#find_homologs_jackhmmer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.compare.sifts.find_homologs_jackhmmer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify homologs using jackhmmer</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**kwargs</strong> – Passed into jackhmmer_search protocol
+(see documentation for available options)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>ali</strong> (<em>evcouplings.align.Alignment</em>) – Alignment of homologs of query sequence
+in sequence database</li>
+<li><strong>hits</strong> (<em>pandas.DataFrame</em>) – Tabular representation of hits</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="evcouplings.complex.html" class="btn btn-neutral float-right" title="evcouplings.complex package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="evcouplings.align.html" class="btn btn-neutral" title="evcouplings.align package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,367 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.utils.calculations &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.utils.calculations</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.utils.calculations</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">General calculation functions.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="entropy"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.calculations.entropy">[docs]</a><span class="k">def</span> <span class="nf">entropy</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate entropy of distribution</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    X : np.array</span>
+<span class="sd">        Vector for which entropy will be calculated</span>
+<span class="sd">    normalize:</span>
+<span class="sd">        Rescale entropy to range from 0 (&quot;variable&quot;, &quot;flat&quot;)</span>
+<span class="sd">        to 1 (&quot;conserved&quot;)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Entropy of X</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">X_</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">X</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X_</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">X_</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">H</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">H</span></div>
+
+
+<div class="viewcode-block" id="entropy_vector"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.calculations.entropy_vector">[docs]</a><span class="k">def</span> <span class="nf">entropy_vector</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute vector of positional entropies for</span>
+<span class="sd">    single-site frequencies in a CouplingsModel</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : CouplingsModel</span>
+<span class="sd">        Model for which entropy of sequence</span>
+<span class="sd">        alignment will be computed (based on</span>
+<span class="sd">        single-site frequencies f_i(A_i)</span>
+<span class="sd">        contained in model)</span>
+<span class="sd">    normalize : bool, default: True</span>
+<span class="sd">        Normalize entropy to range 0 (variable)</span>
+<span class="sd">        to 1 (conserved) instead of raw values</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Vector of length model.L containing</span>
+<span class="sd">        entropy for each position</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">apply_along_axis</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">entropy</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">),</span>
+        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">arr</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">fi</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cons</span></div>
+
+<div class="viewcode-block" id="entropy_map"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.calculations.entropy_map">[docs]</a><span class="k">def</span> <span class="nf">entropy_map</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute dictionary of positional entropies for</span>
+<span class="sd">    single-site frequencies in a CouplingsModel</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : CouplingsModel</span>
+<span class="sd">        Model for which entropy of sequence</span>
+<span class="sd">        alignment will be computed (based on</span>
+<span class="sd">        single-site frequencies f_i(A_i)</span>
+<span class="sd">        contained in model)</span>
+<span class="sd">    normalize : bool, default: True</span>
+<span class="sd">        Normalize entropy to range 0 (variable)</span>
+<span class="sd">        to 1 (conserved) instead of raw values</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Map from positions in sequence (int) to</span>
+<span class="sd">        entropy of column (float) in alignment</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cons</span> <span class="o">=</span> <span class="n">entropy_vector</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">normalize</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">index_list</span><span class="p">,</span> <span class="n">cons</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="dihedral_angle"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.calculations.dihedral_angle">[docs]</a><span class="k">def</span> <span class="nf">dihedral_angle</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute dihedral angle given four points</span>
+<span class="sd">    </span>
+<span class="sd">    Adapted from the following source:</span>
+<span class="sd">    http://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python</span>
+<span class="sd">    (answer by user Praxeolitic)</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    p0 : np.array</span>
+<span class="sd">        Coordinates of first point</span>
+<span class="sd">    p1 : np.array</span>
+<span class="sd">        Coordinates of second point</span>
+<span class="sd">    p2 : np.array</span>
+<span class="sd">        Coordinates of third point</span>
+<span class="sd">    p3 : np.array</span>
+<span class="sd">        Coordinates of fourth point</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.float</span>
+<span class="sd">        Dihedral angle (in radians)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">b0</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">*</span><span class="p">(</span><span class="n">p1</span> <span class="o">-</span> <span class="n">p0</span><span class="p">)</span>
+    <span class="n">b1</span> <span class="o">=</span> <span class="n">p2</span> <span class="o">-</span> <span class="n">p1</span>
+    <span class="n">b2</span> <span class="o">=</span> <span class="n">p3</span> <span class="o">-</span> <span class="n">p2</span>
+
+    <span class="c1"># normalize b1 so that it does not influence magnitude of vector</span>
+    <span class="c1"># rejections that come next</span>
+    <span class="n">b1</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">b1</span><span class="p">)</span>
+
+    <span class="c1"># vector rejections</span>
+    <span class="c1"># v = projection of b0 onto plane perpendicular to b1</span>
+    <span class="c1">#   = b0 minus component that aligns with b1</span>
+    <span class="c1"># w = projection of b2 onto plane perpendicular to b1</span>
+    <span class="c1">#   = b2 minus component that aligns with b1</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">b0</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">b0</span><span class="p">,</span> <span class="n">b1</span><span class="p">)</span><span class="o">*</span><span class="n">b1</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">b2</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">b2</span><span class="p">,</span> <span class="n">b1</span><span class="p">)</span><span class="o">*</span><span class="n">b1</span>
+
+    <span class="c1"># angle between v and w in a plane is the torsion angle</span>
+    <span class="c1"># v and w may not be normalized but that&#39;s fine since tan is y/x</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">b1</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">w</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

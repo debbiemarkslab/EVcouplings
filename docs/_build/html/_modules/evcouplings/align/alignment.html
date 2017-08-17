@@ -1,0 +1,1405 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.align.alignment &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.align.alignment</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.align.alignment</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Class and functions for reading, storing and manipulating</span>
+<span class="sd">multiple sequence alignments.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.calculations</span> <span class="k">import</span> <span class="n">entropy</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.helpers</span> <span class="k">import</span> <span class="n">DefaultOrderedDict</span><span class="p">,</span> <span class="n">wrap</span>
+
+<span class="c1"># constants</span>
+<span class="n">GAP</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
+<span class="n">MATCH_GAP</span> <span class="o">=</span> <span class="n">GAP</span>
+<span class="n">INSERT_GAP</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+
+<span class="n">ALPHABET_PROTEIN_NOGAP</span> <span class="o">=</span> <span class="s2">&quot;ACDEFGHIKLMNPQRSTVWY&quot;</span>
+<span class="n">ALPHABET_PROTEIN</span> <span class="o">=</span> <span class="n">GAP</span> <span class="o">+</span> <span class="n">ALPHABET_PROTEIN_NOGAP</span>
+
+<span class="n">ALPHABET_DNA_NOGAP</span> <span class="o">=</span> <span class="s2">&quot;ACGT&quot;</span>
+<span class="n">ALPHABET_DNA</span> <span class="o">=</span> <span class="n">GAP</span> <span class="o">+</span> <span class="n">ALPHABET_DNA_NOGAP</span>
+
+<span class="n">ALPHABET_RNA_NOGAP</span> <span class="o">=</span> <span class="s2">&quot;ACGU&quot;</span>
+<span class="n">ALPHABET_RNA</span> <span class="o">=</span> <span class="n">GAP</span> <span class="o">+</span> <span class="n">ALPHABET_RNA_NOGAP</span>
+
+
+<div class="viewcode-block" id="read_fasta"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.read_fasta">[docs]</a><span class="k">def</span> <span class="nf">read_fasta</span><span class="p">(</span><span class="n">fileobj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generator function to read a FASTA-format file</span>
+<span class="sd">    (includes aligned FASTA, A2M, A3M formats)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileobj : file-like object</span>
+<span class="sd">        FASTA alignment file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    generator of (str, str) tuples</span>
+<span class="sd">        Returns tuples of (sequence ID, sequence)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">current_sequence</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">current_id</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fileobj</span><span class="p">:</span>
+        <span class="c1"># Start reading new entry. If we already have</span>
+        <span class="c1"># seen an entry before, return it first.</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">current_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">current_id</span><span class="p">,</span> <span class="n">current_sequence</span>
+
+            <span class="n">current_id</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">current_sequence</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">):</span>
+            <span class="n">current_sequence</span> <span class="o">+=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+
+    <span class="c1"># Also do not forget last entry in file</span>
+    <span class="k">yield</span> <span class="n">current_id</span><span class="p">,</span> <span class="n">current_sequence</span></div>
+
+
+<div class="viewcode-block" id="write_fasta"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.write_fasta">[docs]</a><span class="k">def</span> <span class="nf">write_fasta</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write a list of IDs/sequences to a FASTA-format file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sequences : Iterable</span>
+<span class="sd">        Iterator returning tuples(str, str), where</span>
+<span class="sd">        first value is header/ID and second the</span>
+<span class="sd">        sequence</span>
+<span class="sd">    fileobj : file-like obj</span>
+<span class="sd">        File to which alignment will be written</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">seq_id</span><span class="p">,</span> <span class="n">seq</span><span class="p">)</span> <span class="ow">in</span> <span class="n">sequences</span><span class="p">:</span>
+        <span class="n">fileobj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&gt;</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">seq_id</span><span class="p">))</span>
+        <span class="n">fileobj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">wrap</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="write_aln"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.write_aln">[docs]</a><span class="k">def</span> <span class="nf">write_aln</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write a list of IDs/sequences to a ALN-format file</span>
+
+<span class="sd">    Currently, the file will not contain headers but simply</span>
+<span class="sd">    a block matrix of the alignment</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sequences : Iterable</span>
+<span class="sd">        Iterator returning tuples(str, str), where</span>
+<span class="sd">        first value is header/ID and second the</span>
+<span class="sd">        sequence</span>
+<span class="sd">    fileobj : file-like obj</span>
+<span class="sd">        File to which alignment will be written</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">seq_id</span><span class="p">,</span> <span class="n">seq</span><span class="p">)</span> <span class="ow">in</span> <span class="n">sequences</span><span class="p">:</span>
+        <span class="n">fileobj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">seq</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1"># Holds information of a parsed Stockholm alignment file</span>
+<span class="n">StockholmAlignment</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s2">&quot;StockholmAlignment&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;seqs&quot;</span><span class="p">,</span> <span class="s2">&quot;gf&quot;</span><span class="p">,</span> <span class="s2">&quot;gc&quot;</span><span class="p">,</span> <span class="s2">&quot;gs&quot;</span><span class="p">,</span> <span class="s2">&quot;gr&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="read_stockholm"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.read_stockholm">[docs]</a><span class="k">def</span> <span class="nf">read_stockholm</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">read_annotation</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generator function to read Stockholm format alignment</span>
+<span class="sd">    file (e.g. from hmmer).</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        Generator iterates over different alignments in the</span>
+<span class="sd">        same file (but not over individual sequences, which makes</span>
+<span class="sd">        little sense due to wrapped Stockholm alignments).</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileobj : file-like object</span>
+<span class="sd">        Stockholm alignment file</span>
+<span class="sd">    read_annotation : bool, optional (default=False)</span>
+<span class="sd">        Read annotation columns from alignment</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    StockholmAlignment</span>
+<span class="sd">        namedtuple with the following fields:</span>
+<span class="sd">        seqs, gf, gc, gs, gr (all DefaultOrderedDict)</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seqs</span> <span class="o">=</span> <span class="n">DefaultOrderedDict</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Markup definition: http://sonnhammer.sbc.su.se/Stockholm.html</span>
+<span class="sd">    #=GF &lt;feature&gt; &lt;Generic per-File annotation, free text&gt;</span>
+<span class="sd">    #=GC &lt;feature&gt; &lt;Generic per-Column annotation, exactly 1 char per column&gt;</span>
+<span class="sd">    #=GS &lt;seqname&gt; &lt;feature&gt; &lt;Generic per-Sequence annotation, free text&gt;</span>
+<span class="sd">    #=GR &lt;seqname&gt; &lt;feature&gt; &lt;Generic per-Residue annotation, exactly 1 char per residue&gt;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">gf</span> <span class="o">=</span> <span class="n">DefaultOrderedDict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">gc</span> <span class="o">=</span> <span class="n">DefaultOrderedDict</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">gs</span> <span class="o">=</span> <span class="n">DefaultOrderedDict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">DefaultOrderedDict</span><span class="p">(</span><span class="nb">list</span><span class="p">))</span>
+    <span class="n">gr</span> <span class="o">=</span> <span class="n">DefaultOrderedDict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">DefaultOrderedDict</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+
+    <span class="c1"># line counter within current alignment (can be more than one per file)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># read alignment</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fileobj</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;# STOCKHOLM 1.0&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Not a valid Stockholm alignment: &quot;</span>
+                <span class="s2">&quot;Header missing. </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+            <span class="p">)</span>
+
+        <span class="c1"># annotation lines</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">read_annotation</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#=GF&quot;</span><span class="p">):</span>
+                    <span class="c1"># can have multiple lines for the same feature</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">feat</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="n">gf</span><span class="p">[</span><span class="n">feat</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#=GC&quot;</span><span class="p">):</span>
+                    <span class="c1"># only one line with the same GC label</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">feat</span><span class="p">,</span> <span class="n">seq</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="n">gc</span><span class="p">[</span><span class="n">feat</span><span class="p">]</span> <span class="o">+=</span> <span class="n">seq</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#=GS&quot;</span><span class="p">):</span>
+                    <span class="c1"># can have multiple lines for the same feature</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">seq_id</span><span class="p">,</span> <span class="n">feat</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+                    <span class="n">gs</span><span class="p">[</span><span class="n">seq_id</span><span class="p">][</span><span class="n">feat</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#=GR&quot;</span><span class="p">):</span>
+                    <span class="c1"># per sequence, only one line with a certain GR feature</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">seq_id</span><span class="p">,</span> <span class="n">feat</span><span class="p">,</span> <span class="n">seq</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                    <span class="n">gr</span><span class="p">[</span><span class="n">seq_id</span><span class="p">][</span><span class="n">feat</span><span class="p">]</span> <span class="o">+=</span> <span class="n">seq</span>
+
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># terminator line for current alignment;</span>
+        <span class="c1"># only yield once we see // to avoid reading</span>
+        <span class="c1"># truncated alignments</span>
+        <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;//&quot;</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">StockholmAlignment</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="n">gf</span><span class="p">,</span> <span class="n">gc</span><span class="p">,</span> <span class="n">gs</span><span class="p">,</span> <span class="n">gr</span><span class="p">)</span>
+
+            <span class="c1"># reset counter to check for valid start of alignment</span>
+            <span class="c1"># once we read the next line</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># actual alignment lines</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">splitted</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="c1"># there might be empty lines, so check for valid split</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">splitted</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">seq_id</span><span class="p">,</span> <span class="n">seq</span> <span class="o">=</span> <span class="n">splitted</span>
+                <span class="n">seqs</span><span class="p">[</span><span class="n">seq_id</span><span class="p">]</span> <span class="o">+=</span> <span class="n">seq</span>
+
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+    <span class="c1"># Do NOT yield at the end without // to avoid returning truncated alignments</span>
+
+
+<div class="viewcode-block" id="read_a3m"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.read_a3m">[docs]</a><span class="k">def</span> <span class="nf">read_a3m</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">inserts</span><span class="o">=</span><span class="s2">&quot;first&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read an alignment in compressed a3m format and expand</span>
+<span class="sd">    into a2m format.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        this function is currently not able to keep inserts in all the sequences</span>
+
+<span class="sd">    ..todo::</span>
+
+<span class="sd">        implement this</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileobj : file-like object</span>
+<span class="sd">        A3M alignment file</span>
+<span class="sd">    inserts : {&quot;first&quot;, &quot;delete&quot;}</span>
+<span class="sd">        Keep inserts in first sequence, or delete</span>
+<span class="sd">        any insert column and keep only match state</span>
+<span class="sd">        columns.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    OrderedDict</span>
+<span class="sd">        Sequences in alignment (key: ID, value: sequence),</span>
+<span class="sd">        in order they appeared in input file</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        Upon invalid choice of insert strategy</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seqs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">seq_id</span><span class="p">,</span> <span class="n">seq</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">read_fasta</span><span class="p">(</span><span class="n">fileobj</span><span class="p">)):</span>
+        <span class="c1"># remove any insert gaps that may still be in alignment</span>
+        <span class="c1"># (just to be sure)</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="n">seq</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">inserts</span> <span class="o">==</span> <span class="s2">&quot;first&quot;</span><span class="p">:</span>
+            <span class="c1"># define &quot;spacing&quot; of uppercase columns in</span>
+            <span class="c1"># final alignment based on target sequence;</span>
+            <span class="c1"># remaining columns will be filled with insert</span>
+            <span class="c1"># gaps in the other sequences</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">uppercase_cols</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">j</span> <span class="k">for</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">c</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">or</span> <span class="n">c</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="n">gap_template</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="s2">&quot;.&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">))</span>
+                <span class="n">filled_seq</span> <span class="o">=</span> <span class="n">seq</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">uppercase_chars</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">seq</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">or</span> <span class="n">c</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span>
+                <span class="p">]</span>
+                <span class="n">filled</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">gap_template</span><span class="p">)</span>
+                <span class="n">filled</span><span class="p">[</span><span class="n">uppercase_cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">uppercase_chars</span>
+                <span class="n">filled_seq</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filled</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">inserts</span> <span class="o">==</span> <span class="s2">&quot;delete&quot;</span><span class="p">:</span>
+            <span class="c1"># remove all lowercase letters and insert gaps .;</span>
+            <span class="c1"># since each sequence must have same number of</span>
+            <span class="c1"># uppercase letters or match gaps -, this gives</span>
+            <span class="c1"># the final sequence in alignment</span>
+            <span class="n">seq</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">seq</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">and</span> <span class="n">c</span> <span class="o">!=</span> <span class="s2">&quot;.&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid option for inserts: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">inserts</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">seqs</span><span class="p">[</span><span class="n">seq_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">filled_seq</span>
+
+    <span class="k">return</span> <span class="n">seqs</span></div>
+
+
+<div class="viewcode-block" id="write_a3m"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.write_a3m">[docs]</a><span class="k">def</span> <span class="nf">write_a3m</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="n">insert_gap</span><span class="o">=</span><span class="n">INSERT_GAP</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write a list of IDs/sequences to a FASTA-format file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sequences : Iterable</span>
+<span class="sd">        Iterator returning tuples(str, str), where</span>
+<span class="sd">        first value is header/ID and second the</span>
+<span class="sd">        sequence</span>
+<span class="sd">    fileobj : file-like obj</span>
+<span class="sd">        File to which alignment will be written</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">seq_id</span><span class="p">,</span> <span class="n">seq</span><span class="p">)</span> <span class="ow">in</span> <span class="n">sequences</span><span class="p">:</span>
+        <span class="n">fileobj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&gt;</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">seq_id</span><span class="p">))</span>
+        <span class="n">fileobj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">seq</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">insert_gap</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="detect_format"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.detect_format">[docs]</a><span class="k">def</span> <span class="nf">detect_format</span><span class="p">(</span><span class="n">fileobj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Detect if an alignment file is in FASTA or</span>
+<span class="sd">    Stockholm format.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fileobj : file-like obj</span>
+<span class="sd">        Alignment file for which to detect format</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    format : {&quot;fasta&quot;, &quot;stockholm&quot;, None}</span>
+<span class="sd">        Format of alignment, None if not detectable</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fileobj</span><span class="p">):</span>
+        <span class="c1"># must be first line of Stockholm file by definition</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;# STOCKHOLM 1.0&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;stockholm&quot;</span>
+
+        <span class="c1"># This indicates a FASTA file</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&gt;&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;fasta&quot;</span>
+
+        <span class="c1"># Skip comment lines and empty lines for FASTA detection</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Arriving here means we could not detect format</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="parse_header"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.parse_header">[docs]</a><span class="k">def</span> <span class="nf">parse_header</span><span class="p">(</span><span class="n">header</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract ID of the (overall) sequence and the</span>
+<span class="sd">    sequence range fromat a sequence header of the form</span>
+<span class="sd">    sequenceID/start-end.</span>
+
+<span class="sd">    If the header contains any additional information</span>
+<span class="sd">    after the first whitespace character (e.g. sequence annotation),</span>
+<span class="sd">    it will be discarded before parsing. If there is no sequence</span>
+<span class="sd">    range, only the id (part of string before whitespace) will</span>
+<span class="sd">    be returned but no range.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    header : str</span>
+<span class="sd">        Sequence header</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    seq_id : str</span>
+<span class="sd">        Sequence identifier</span>
+<span class="sd">    start : int</span>
+<span class="sd">        Start of sequence range. Will be None if it cannot</span>
+<span class="sd">        be extracted from the header.</span>
+<span class="sd">    stop : int</span>
+<span class="sd">        End of sequence range. Will be None if it cannot</span>
+<span class="sd">        be extracted from the header.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># discard anything in header that might come after the</span>
+    <span class="c1"># first whitespace (by convention this is typically annotation)</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># try to extract region from sequence header</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">&quot;(.+)/(\d+)-(\d+)&quot;</span><span class="p">,</span> <span class="n">header</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+        <span class="n">id_</span><span class="p">,</span> <span class="n">start_str</span><span class="p">,</span> <span class="n">end_str</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+        <span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">start_str</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">end_str</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">id_</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># cannot find region, so just give back sequence iD</span>
+        <span class="k">return</span> <span class="n">header</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="sequences_to_matrix"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.sequences_to_matrix">[docs]</a><span class="k">def</span> <span class="nf">sequences_to_matrix</span><span class="p">(</span><span class="n">sequences</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transforms a list of sequences into a</span>
+<span class="sd">    numpy array.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sequences : list-like (str)</span>
+<span class="sd">        List of strings containing aligned sequences</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    numpy.array</span>
+<span class="sd">        2D array containing sequence alignment</span>
+<span class="sd">        (first axis: sequences, second axis: columns)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Need at least one sequence&quot;</span><span class="p">)</span>
+
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">sequences</span><span class="p">)))</span>
+    <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">L</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">str</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">seq</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sequences</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="o">!=</span> <span class="n">L</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Sequences have differing lengths: i=</span><span class="si">{}</span><span class="s2"> L_0=</span><span class="si">{}</span><span class="s2"> L_i=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">i</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">seq</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">matrix</span></div>
+
+
+<div class="viewcode-block" id="map_from_alphabet"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.map_from_alphabet">[docs]</a><span class="k">def</span> <span class="nf">map_from_alphabet</span><span class="p">(</span><span class="n">alphabet</span><span class="o">=</span><span class="n">ALPHABET_PROTEIN</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">GAP</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a mapping dictionary from a given alphabet.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alphabet : str</span>
+<span class="sd">        Alphabet for remapping. Elements will</span>
+<span class="sd">        be remapped according to alphabet starting</span>
+<span class="sd">        from 0</span>
+<span class="sd">    default : Elements in matrix that are not</span>
+<span class="sd">        contained in alphabet will be treated as</span>
+<span class="sd">        this character</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        For invalid default character</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">map_</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">c</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">alphabet</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">default</span> <span class="o">=</span> <span class="n">map_</span><span class="p">[</span><span class="n">default</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Default </span><span class="si">{}</span><span class="s2"> is not in alphabet </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">default</span><span class="p">,</span> <span class="n">alphabet</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">default</span><span class="p">,</span> <span class="n">map_</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="map_matrix"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.map_matrix">[docs]</a><span class="k">def</span> <span class="nf">map_matrix</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">map_</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Map elements in a numpy array using alphabet</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    matrix : np.array</span>
+<span class="sd">        Matrix that should be remapped</span>
+<span class="sd">    map_ : defaultdict</span>
+<span class="sd">        Map that will be applied to matrix elements</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Remapped matrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">map_</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">)(</span><span class="n">matrix</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Alignment"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment">[docs]</a><span class="k">class</span> <span class="nc">Alignment</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container to store and manipulate multiple sequence alignments.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        Important:</span>
+
+<span class="sd">        1. Sequence annotation currently is not transformed when</span>
+<span class="sd">           selecting subsets of columns or positions (e.g. affects GR and GC</span>
+<span class="sd">           lines in Stockholm alignments)</span>
+<span class="sd">        2. Sequence ranges in IDs are not adjusted when selecting</span>
+<span class="sd">           subsets of positions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequence_matrix</span><span class="p">,</span> <span class="n">sequence_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">alphabet</span><span class="o">=</span><span class="n">ALPHABET_PROTEIN</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create new alignment object from ready-made components.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            Use factory method Alignment.from_file to create alignment from file,</span>
+<span class="sd">            or Alignment.from_dict from dictionary of sequences.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sequence_matrix : np.array</span>
+<span class="sd">            N x L array of characters in the alignment</span>
+<span class="sd">            (N=number of sequences, L=width of alignment)</span>
+<span class="sd">        sequence_ids : list-like, optional (default=None)</span>
+<span class="sd">            Sequence names of alignment members (must have N elements).</span>
+<span class="sd">            If None, defaults sequence IDs to &quot;0&quot;, &quot;1&quot;, ...</span>
+<span class="sd">        annotation : dict-like</span>
+<span class="sd">            Annotation for sequence alignment</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If dimensions of sequence_matrix and sequence_ids</span>
+<span class="sd">            are inconsistent</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sequence_matrix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># characters coding for gaps in match-state and insert</span>
+        <span class="c1"># columns of the alignment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_match_gap</span> <span class="o">=</span> <span class="n">MATCH_GAP</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_insert_gap</span> <span class="o">=</span> <span class="n">INSERT_GAP</span>
+
+        <span class="c1"># defined alphabet of alignment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span> <span class="o">=</span> <span class="n">alphabet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_default</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_match_gap</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span> <span class="o">=</span> <span class="n">map_from_alphabet</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet_default</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">)</span>
+
+        <span class="c1"># Alignment matrix remapped into in integers</span>
+        <span class="c1"># Will only be calculated if necessary for downstream</span>
+        <span class="c1"># calculations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matrix_mapped</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_cluster_members</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frequencies</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pair_frequencies</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">sequence_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># default to numbering sequences if not given</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence_ids</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Number of sequence IDs and length of &quot;</span>
+                    <span class="s2">&quot;alignment do not match&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">sequence_ids</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="c1"># make sure we get rid of iterators etc.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sequence_ids</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_to_index</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">id_</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">id_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">annotation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">annotation</span> <span class="o">=</span> <span class="n">annotation</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">annotation</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="Alignment.from_dict"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.from_dict">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">sequences</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct an alignment object from a dictionary</span>
+<span class="sd">        with sequence IDs as keys and aligned sequences</span>
+<span class="sd">        as values.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sequences : dict-like</span>
+<span class="sd">            Dictionary with pairs of sequence ID (key) and</span>
+<span class="sd">            aligned sequence (value)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Alignment</span>
+<span class="sd">            initialized alignment</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">sequences_to_matrix</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">matrix</span><span class="p">,</span> <span class="n">sequences</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Alignment.from_file"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.from_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;fasta&quot;</span><span class="p">,</span>
+                  <span class="n">a3m_inserts</span><span class="o">=</span><span class="s2">&quot;first&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct an alignment object by reading in an</span>
+<span class="sd">        alignment file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fileobj : file-like obj</span>
+<span class="sd">            Alignment to be read in</span>
+<span class="sd">        format : {&quot;fasta&quot;, &quot;stockholm&quot;, &quot;a3m&quot;}</span>
+<span class="sd">            Format of input alignment</span>
+<span class="sd">        a3m_inserts : {&quot;first&quot;, &quot;delete&quot;}, optional (default: &quot;first&quot;)</span>
+<span class="sd">            Strategy to deal with inserts in a3m alignment files</span>
+<span class="sd">            (see read_a3m documentation for details)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Alignment</span>
+<span class="sd">            Parsed alignment</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            For invalid alignments or alignment formats</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># read in sequence alignment from file</span>
+
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;fasta&quot;</span><span class="p">:</span>
+            <span class="n">seqs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">seq_id</span><span class="p">,</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">read_fasta</span><span class="p">(</span><span class="n">fileobj</span><span class="p">):</span>
+                <span class="n">seqs</span><span class="p">[</span><span class="n">seq_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq</span>
+        <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;stockholm&quot;</span><span class="p">:</span>
+            <span class="c1"># only reads first Stockholm alignment contained in file</span>
+            <span class="n">ali</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">read_stockholm</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">read_annotation</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="n">seqs</span> <span class="o">=</span> <span class="n">ali</span><span class="o">.</span><span class="n">seqs</span>
+            <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;GF&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ali</span><span class="o">.</span><span class="n">gf</span>
+            <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;GC&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ali</span><span class="o">.</span><span class="n">gc</span>
+            <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;GS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ali</span><span class="o">.</span><span class="n">gs</span>
+            <span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;GR&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ali</span><span class="o">.</span><span class="n">gr</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;annotation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotation</span>
+        <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;a3m&quot;</span><span class="p">:</span>
+            <span class="n">seqs</span> <span class="o">=</span> <span class="n">read_a3m</span><span class="p">(</span><span class="n">fileobj</span><span class="p">,</span> <span class="n">inserts</span><span class="o">=</span><span class="n">a3m_inserts</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid alignment format: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">format</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        .. todo::</span>
+
+<span class="sd">            eventually this should allow fancy indexing and offer the functionality of select()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_to_index</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id_to_index</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="p">:]</span>
+        <span class="k">elif</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                <span class="s2">&quot;Not a valid index for sequence alignment: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span>
+
+<div class="viewcode-block" id="Alignment.count"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.count">[docs]</a>    <span class="k">def</span> <span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">char</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Count occurrences of a character in the sequence</span>
+<span class="sd">        alignment.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            The counts are raw counts not adjusted for</span>
+<span class="sd">            sequence redundancy.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        char : str</span>
+<span class="sd">            Character which is counted</span>
+<span class="sd">        axis : {&quot;pos&quot;, &quot;seq&quot;}, optional (default=&quot;pos&quot;)</span>
+<span class="sd">            Count along positions or sequences</span>
+<span class="sd">        normalize : bool, optional (default=True)</span>
+<span class="sd">            Normalize count for length of axis (i.e. relative count)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Vector containing counts of char along the axis</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Upon invalid axis specification</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="s2">&quot;pos&quot;</span><span class="p">:</span>
+            <span class="n">naxis</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="n">axis</span> <span class="o">==</span> <span class="s2">&quot;seq&quot;</span><span class="p">:</span>
+            <span class="n">naxis</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid axis: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">axis</span><span class="p">))</span>
+
+        <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matrix</span> <span class="o">==</span> <span class="n">char</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">naxis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">c</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">naxis</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">c</span></div>
+
+<div class="viewcode-block" id="Alignment.select"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.select">[docs]</a>    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sequences</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a sub-alignment that contains a subset of</span>
+<span class="sd">        sequences and/or columns.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            This does currently not adjust the indices</span>
+<span class="sd">            of the sequences. Annotation in the original alignment</span>
+<span class="sd">            will be lost and not passed on to the new object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        columns : np.array(bool) or np.array(int), optional</span>
+<span class="sd">            Vector containing True for each column that</span>
+<span class="sd">            should be retained, False otherwise; or the</span>
+<span class="sd">            indices of columns that should be selected</span>
+<span class="sd">        sequences : np.array(bool) or np.array(int), optional</span>
+<span class="sd">            Vector containing True for each sequence that</span>
+<span class="sd">            should be retained, False otherwise; or the</span>
+<span class="sd">            indices of sequences that should be selected</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Alignment</span>
+<span class="sd">            Alignment with selected columns and sequences</span>
+<span class="sd">            (note this alignment looses annotation)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">sequences</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="n">sel_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span>
+
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sel_matrix</span> <span class="o">=</span> <span class="n">sel_matrix</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">sequences</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sel_matrix</span> <span class="o">=</span> <span class="n">sel_matrix</span><span class="p">[</span><span class="n">sequences</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">ids</span> <span class="o">=</span> <span class="n">ids</span><span class="p">[</span><span class="n">sequences</span><span class="p">]</span>
+
+        <span class="c1"># do not copy annotation since it may become</span>
+        <span class="c1"># inconsistent</span>
+        <span class="k">return</span> <span class="n">Alignment</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">sel_matrix</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span>
+            <span class="n">alphabet</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Alignment.apply"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.apply">[docs]</a>    <span class="k">def</span> <span class="nf">apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sequences</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">lower</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply a function along columns and/or rows of alignment matrix,</span>
+<span class="sd">        or to entire matrix.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        columns : np.array(bool) or np.array(int), optional</span>
+<span class="sd">            Vector containing True for each column that</span>
+<span class="sd">            should be retained, False otherwise; or the</span>
+<span class="sd">            indices of columns that should be selected</span>
+<span class="sd">        sequences : np.array(bool) or np.array(int), optional</span>
+<span class="sd">            Vector containing True for each sequence that</span>
+<span class="sd">            should be retained, False otherwise; or the</span>
+<span class="sd">            indices of sequences that should be selected</span>
+<span class="sd">        func : callable</span>
+<span class="sd">            Vectorized numpy function that will be applied to</span>
+<span class="sd">            the selected subset of the alignment matrix</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Alignment</span>
+<span class="sd">            Alignment with modified columns and sequences</span>
+<span class="sd">            (this alignment maintains annotation)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mod_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">sequences</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">mod_matrix</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">mod_matrix</span><span class="p">[:,</span> <span class="n">columns</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">sequences</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">mod_matrix</span><span class="p">[</span><span class="n">sequences</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">mod_matrix</span><span class="p">[</span><span class="n">sequences</span><span class="p">,</span> <span class="p">:])</span>
+
+        <span class="k">return</span> <span class="n">Alignment</span><span class="p">(</span>
+            <span class="n">mod_matrix</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">),</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">annotation</span><span class="p">),</span>
+            <span class="n">alphabet</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Alignment.replace"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.replace">[docs]</a>    <span class="k">def</span> <span class="nf">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original</span><span class="p">,</span> <span class="n">replacement</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sequences</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Replace character with another in full matrix or</span>
+<span class="sd">        subset of columns/sequences.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        original : char</span>
+<span class="sd">            Character that should be replaced</span>
+<span class="sd">        replacement : char</span>
+<span class="sd">            Replacement character</span>
+<span class="sd">        columns : numpy index array</span>
+<span class="sd">            See self.apply for explanation</span>
+<span class="sd">        sequences : numpy index array</span>
+<span class="sd">            See self.apply for explanation</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Alignment</span>
+<span class="sd">            Alignment with replaced characters</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+            <span class="n">columns</span><span class="p">,</span> <span class="n">sequences</span><span class="p">,</span>
+            <span class="n">func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">original</span><span class="p">,</span> <span class="n">replacement</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Alignment.lowercase_columns"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.lowercase_columns">[docs]</a>    <span class="k">def</span> <span class="nf">lowercase_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change a subset of columns to lowercase character</span>
+<span class="sd">        and replace &quot;-&quot; gaps with &quot;.&quot; gaps, e.g. to exclude</span>
+<span class="sd">        them from EC calculations</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        columns : numpy index array</span>
+<span class="sd">            Subset of columns to make lowercase</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Alignment</span>
+<span class="sd">            Alignment with lowercase columns</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">char</span><span class="o">.</span><span class="n">lower</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_match_gap</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insert_gap</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">columns</span>
+        <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__ensure_mapped_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Ensure self.matrix_mapped exists</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix_mapped</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matrix_mapped</span> <span class="o">=</span> <span class="n">map_matrix</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="Alignment.set_weights"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.set_weights">[docs]</a>    <span class="k">def</span> <span class="nf">set_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identity_threshold</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate weights for sequences in alignment by</span>
+<span class="sd">        clustering all sequences with sequence identity</span>
+<span class="sd">        greater or equal to the given threshold.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            This method sets self.weights. After this method was called, methods/attributes such as</span>
+<span class="sd">            self.frequencies or self.conservation()</span>
+<span class="sd">            will make use of sequence weights.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            (Implementation: cannot use property here since we need identity threshold as a parameter....)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        identity_threshold : float, optional (default: 0.8)</span>
+<span class="sd">            Sequence identity threshold</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__ensure_mapped_matrix</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_cluster_members</span> <span class="o">=</span> <span class="n">num_cluster_members</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">matrix_mapped</span><span class="p">,</span> <span class="n">identity_threshold</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_cluster_members</span>
+
+        <span class="c1"># reset frequencies, since these were based on</span>
+        <span class="c1"># different weights before or had no weights at all</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frequencies</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pair_frequencies</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">frequencies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns/calculates single-site frequencies of symbols in alignment.</span>
+<span class="sd">        Also sets self._frequencies member variable for later reuse.</span>
+
+<span class="sd">        Previously calculated sequence weights using self.set_weights()</span>
+<span class="sd">        will be used to adjust frequency counts; otherwise, each sequence</span>
+<span class="sd">        will contribute with equal weight.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Reference to self._frequencies</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frequencies</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__ensure_mapped_matrix</span><span class="p">()</span>
+
+            <span class="c1"># use precalculated sequence weights, but only</span>
+            <span class="c1"># if we have explicitly calculated them before</span>
+            <span class="c1"># (expensive calculation)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_frequencies</span> <span class="o">=</span> <span class="n">frequencies</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">matrix_mapped</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frequencies</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pair_frequencies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns/calculates pairwise frequencies of symbols in alignment.</span>
+<span class="sd">        Also sets self._pair_frequencies member variable for later reuse.</span>
+
+<span class="sd">        Previously calculated sequence weights using self.set_weights()</span>
+<span class="sd">        will be used to adjust frequency counts; otherwise, each sequence</span>
+<span class="sd">        will contribute with equal weight.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Reference to self._pair_frequencies</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pair_frequencies</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__ensure_mapped_matrix</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pair_frequencies</span> <span class="o">=</span> <span class="n">pair_frequencies</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">matrix_mapped</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequencies</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pair_frequencies</span>
+
+<div class="viewcode-block" id="Alignment.identities_to"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.identities_to">[docs]</a>    <span class="k">def</span> <span class="nf">identities_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate sequence identity between sequence</span>
+<span class="sd">        and all sequences in the alignment.</span>
+
+<span class="sd">        seq : np.array, list-like, or str</span>
+<span class="sd">            Sequence for comparison</span>
+<span class="sd">        normalize : bool, optional (default: True)</span>
+<span class="sd">            Calculate relative identity between 0 and 1</span>
+<span class="sd">            by normalizing with length of alignment</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__ensure_mapped_matrix</span><span class="p">()</span>
+
+        <span class="c1"># make sure this doesnt break with strings</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">seq</span><span class="p">))</span>
+
+        <span class="n">seq_mapped</span> <span class="o">=</span> <span class="n">map_matrix</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">)</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">identities_to_seq</span><span class="p">(</span><span class="n">seq_mapped</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix_mapped</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ids</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ids</span></div>
+
+<div class="viewcode-block" id="Alignment.conservation"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.conservation">[docs]</a>    <span class="k">def</span> <span class="nf">conservation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate per-column conservation of sequence alignment</span>
+<span class="sd">        based on entropy of single-column frequency distribution.</span>
+
+<span class="sd">        If self.set_weights() was called previously, the</span>
+<span class="sd">        frequencies used to calculate site entropies will be based</span>
+<span class="sd">        on reweighted sequences.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        normalize : bool, optional (default: True)</span>
+<span class="sd">            Transform column entropy to range 0 (no conservation)</span>
+<span class="sd">            to 1 (fully conserved)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Vector of length L with conservation scores</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">apply_along_axis</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">entropy</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">),</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">arr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">frequencies</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Alignment.write"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.Alignment.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;fasta&quot;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write an alignment to a file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fileobj : file-like object</span>
+<span class="sd">            File to which alignment is saved</span>
+<span class="sd">        format : {&quot;fasta&quot;, &quot;aln&quot;, &quot;a3m&quot;}</span>
+<span class="sd">            Output format for alignment</span>
+<span class="sd">        width : int</span>
+<span class="sd">            Column width for fasta alignment</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            Upon invalid file format specification</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">seqs</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">id_</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">id_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;fasta&quot;</span><span class="p">:</span>
+            <span class="n">write_fasta</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;a3m&quot;</span><span class="p">:</span>
+            <span class="n">write_a3m</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_insert_gap</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;aln&quot;</span><span class="p">:</span>
+            <span class="n">write_aln</span><span class="p">(</span><span class="n">seqs</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid alignment format: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">format</span><span class="p">)</span>
+            <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="frequencies"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.frequencies">[docs]</a><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">frequencies</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">seq_weights</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate single-site frequencies of symbols in alignment</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    matrix : np.array</span>
+<span class="sd">        N x L matrix containing N sequences of length L.</span>
+<span class="sd">        Matrix must be mapped to range(0, num_symbols) using</span>
+<span class="sd">        map_matrix function</span>
+<span class="sd">    seq_weights : np.array</span>
+<span class="sd">        Vector of length N containing weight for each sequence</span>
+<span class="sd">    num_symbols : int</span>
+<span class="sd">        Number of different symbols contained in alignment</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Matrix of size L x num_symbols containing relative</span>
+<span class="sd">        column frequencies of all characters</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">N</span><span class="p">,</span> <span class="n">L</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">fi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">fi</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">matrix</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">i</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">seq_weights</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">fi</span> <span class="o">/</span> <span class="n">seq_weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="pair_frequencies"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.pair_frequencies">[docs]</a><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">pair_frequencies</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">seq_weights</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">,</span> <span class="n">fi</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate pairwise frequencies of symbols in alignment.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    matrix : np.array</span>
+<span class="sd">        N x L matrix containing N sequences of length L.</span>
+<span class="sd">        Matrix must be mapped to range(0, num_symbols) using</span>
+<span class="sd">        map_matrix function</span>
+<span class="sd">    seq_weights : np.array</span>
+<span class="sd">        Vector of length N containing weight for each sequence</span>
+<span class="sd">    num_symbols : int</span>
+<span class="sd">        Number of different symbols contained in alignment</span>
+<span class="sd">    fi : np.array</span>
+<span class="sd">        Matrix of size L x num_symbols containing relative</span>
+<span class="sd">        column frequencies of all characters.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Matrix of size L x L x num_symbols x num_symbols containing</span>
+<span class="sd">        relative pairwise frequencies of all character combinations</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">N</span><span class="p">,</span> <span class="n">L</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">fij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">L</span><span class="p">):</span>
+                <span class="n">fij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">matrix</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">i</span><span class="p">],</span> <span class="n">matrix</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">j</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">seq_weights</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+                <span class="n">fij</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">matrix</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">matrix</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">fij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">matrix</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">i</span><span class="p">],</span> <span class="n">matrix</span><span class="p">[</span><span class="n">s</span><span class="p">,</span> <span class="n">j</span><span class="p">]]</span>
+
+    <span class="c1"># normalize frequencies by the number</span>
+    <span class="c1"># of effective sequences</span>
+    <span class="n">fij</span> <span class="o">/=</span> <span class="n">seq_weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="c1"># set the frequency of a pair (alpha, alpha)</span>
+    <span class="c1"># in position i to the respective single-site</span>
+    <span class="c1"># frequency of alpha in position i</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">alpha</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">):</span>
+            <span class="n">fij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">alpha</span><span class="p">]</span> <span class="o">=</span> <span class="n">fi</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">alpha</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">fij</span></div>
+
+
+<div class="viewcode-block" id="identities_to_seq"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.identities_to_seq">[docs]</a><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">identities_to_seq</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">matrix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate number of identities to given target sequence</span>
+<span class="sd">    for all sequences in the matrix</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    seq : np.array</span>
+<span class="sd">        Vector of length L containing mapped sequence</span>
+<span class="sd">        (using map_matrix function)</span>
+<span class="sd">    matrix : np.array</span>
+<span class="sd">        N x L matrix containing N sequences of length L.</span>
+<span class="sd">        Matrix must be mapped to range(0, num_symbols)</span>
+<span class="sd">        using map_matrix function</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Vector of length N containing number of identities</span>
+<span class="sd">        to each sequence in matrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">N</span><span class="p">,</span> <span class="n">L</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">identities</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="n">id_i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="n">seq</span><span class="p">[</span><span class="n">j</span><span class="p">]:</span>
+                <span class="n">id_i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">identities</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_i</span>
+
+    <span class="k">return</span> <span class="n">identities</span></div>
+
+
+<div class="viewcode-block" id="num_cluster_members"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.alignment.num_cluster_members">[docs]</a><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">num_cluster_members</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">identity_threshold</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate number of sequences in alignment</span>
+<span class="sd">    within given identity_threshold of each other</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    matrix : np.array</span>
+<span class="sd">        N x L matrix containing N sequences of length L.</span>
+<span class="sd">        Matrix must be mapped to range(0, num_symbols) using</span>
+<span class="sd">        map_matrix function</span>
+<span class="sd">    identity_threshold : float</span>
+<span class="sd">        Sequences with at least this pairwise identity will be</span>
+<span class="sd">        grouped in the same cluster.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Vector of length N containing number of cluster</span>
+<span class="sd">        members for each sequence (inverse of sequence</span>
+<span class="sd">        weight)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">N</span><span class="p">,</span> <span class="n">L</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">L</span>
+
+    <span class="c1"># minimal cluster size is 1 (self)</span>
+    <span class="n">num_neighbors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">N</span><span class="p">))</span>
+
+    <span class="c1"># compare all pairs of sequences</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+            <span class="n">pair_id</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="n">matrix</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]:</span>
+                    <span class="n">pair_id</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">pair_id</span> <span class="o">/</span> <span class="n">L</span> <span class="o">&gt;=</span> <span class="n">identity_threshold</span><span class="p">:</span>
+                <span class="n">num_neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">num_neighbors</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">num_neighbors</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

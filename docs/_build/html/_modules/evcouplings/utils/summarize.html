@@ -1,0 +1,486 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.utils.summarize &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.utils.summarize</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.utils.summarize</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Create summary statistics / plots for runs from</span>
+<span class="sd">evcouplings app</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># chose backend for command-line usage</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">filelock</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">click</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="n">valid_file</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="n">read_config_file</span><span class="p">,</span> <span class="n">InvalidParameterError</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.pipeline</span> <span class="k">import</span> <span class="n">FINAL_CONFIG_SUFFIX</span>
+
+<span class="n">CONTEXT_SETTINGS</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">help_option_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;-h&#39;</span><span class="p">,</span> <span class="s1">&#39;--help&#39;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="protein_monomer"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.summarize.protein_monomer">[docs]</a><span class="k">def</span> <span class="nf">protein_monomer</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">configs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create results summary for run using</span>
+<span class="sd">    protein_monomer pipeline</span>
+
+<span class="sd">    # TODO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">MIN_PROBABILITY</span> <span class="o">=</span> <span class="mf">0.9</span>
+
+    <span class="n">ali_table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+    <span class="n">prefix_to_cfgs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">())</span>
+
+    <span class="c1"># go through all config files</span>
+    <span class="k">for</span> <span class="n">cfg_file</span> <span class="ow">in</span> <span class="n">configs</span><span class="p">:</span>
+        <span class="c1"># check if the file exists and has contents</span>
+        <span class="c1"># since run might not yet have finished or crashed</span>
+        <span class="k">if</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">cfg_file</span><span class="p">):</span>
+            <span class="c1"># job input configuration</span>
+            <span class="n">C</span> <span class="o">=</span> <span class="n">read_config_file</span><span class="p">(</span><span class="n">cfg_file</span><span class="p">)</span>
+            <span class="n">sub_prefix</span> <span class="o">=</span> <span class="n">C</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+            <span class="n">domain_threshold</span> <span class="o">=</span> <span class="n">C</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">][</span><span class="s2">&quot;domain_threshold&quot;</span><span class="p">]</span>
+            <span class="n">sub_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">domain_threshold</span><span class="p">,</span> <span class="n">sub_prefix</span><span class="p">)</span>
+
+            <span class="n">final_state_cfg</span> <span class="o">=</span> <span class="n">sub_prefix</span> <span class="o">+</span> <span class="n">FINAL_CONFIG_SUFFIX</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">final_state_cfg</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># read final output state of job</span>
+            <span class="n">R</span> <span class="o">=</span> <span class="n">read_config_file</span><span class="p">(</span><span class="n">final_state_cfg</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">sub_index</span><span class="p">][</span><span class="s2">&quot;identities&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">R</span><span class="p">[</span><span class="s2">&quot;identities_file&quot;</span><span class="p">]</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">sub_index</span><span class="p">][</span><span class="s2">&quot;frequencies&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">R</span><span class="p">[</span><span class="s2">&quot;frequencies_file&quot;</span><span class="p">]</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">sub_index</span><span class="p">][</span><span class="s2">&quot;minimum_column_coverage&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">C</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">][</span><span class="s2">&quot;minimum_column_coverage&quot;</span><span class="p">]</span>
+
+            <span class="n">stat_file</span> <span class="o">=</span> <span class="n">R</span><span class="p">[</span><span class="s2">&quot;statistics_file&quot;</span><span class="p">]</span>
+            <span class="n">ec_file</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ec_file&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">ec_comp_file</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ec_compared_longrange_file&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+            <span class="n">prefix_to_cfgs</span><span class="p">[(</span><span class="n">sub_prefix</span><span class="p">)]</span> <span class="o">=</span> <span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">R</span><span class="p">)</span>
+
+            <span class="c1"># read and modify alignment statistics</span>
+            <span class="k">if</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">stat_file</span><span class="p">):</span>
+                <span class="c1"># get alignment stats for current job</span>
+                <span class="n">stat_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">stat_file</span><span class="p">)</span>
+                <span class="n">n_eff</span> <span class="o">=</span> <span class="n">R</span><span class="p">[</span><span class="s2">&quot;effective_sequences&quot;</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">n_eff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">stat_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;N_eff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_eff</span>
+
+                <span class="n">stat_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;domain_threshold&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">domain_threshold</span>
+                <span class="n">L</span> <span class="o">=</span> <span class="n">stat_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;num_cov&quot;</span><span class="p">]</span>
+
+                <span class="c1"># try to get number of significant ECs in addition</span>
+                <span class="k">if</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">ec_file</span><span class="p">):</span>
+                    <span class="n">ecs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">ec_file</span><span class="p">)</span>
+                    <span class="n">min_seq_dist</span> <span class="o">=</span> <span class="n">C</span><span class="p">[</span><span class="s2">&quot;compare&quot;</span><span class="p">][</span><span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">]</span>
+                    <span class="n">num_sig</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                        <span class="s2">&quot;abs(i-j) &gt;= @min_seq_dist and probability &gt;= @MIN_PROBABILITY&quot;</span>
+                    <span class="p">))</span>
+                    <span class="n">stat_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;num_significant&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_sig</span>
+
+                <span class="c1"># try to get EC precision in addition</span>
+                <span class="k">if</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">ec_comp_file</span><span class="p">):</span>
+                    <span class="n">ec_comp</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">ec_comp_file</span><span class="p">)</span>
+                    <span class="n">stat_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;precision&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ec_comp</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">L</span><span class="p">][</span><span class="s2">&quot;precision&quot;</span><span class="p">]</span>
+
+                <span class="c1"># finally, append to global table</span>
+                <span class="n">ali_table</span> <span class="o">=</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stat_df</span><span class="p">)</span>
+
+    <span class="c1"># sort table by sequence search threshold</span>
+    <span class="n">ali_table</span> <span class="o">=</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;domain_threshold&quot;</span><span class="p">)</span>
+
+    <span class="c1"># when saving files, have to aquire lock to make sure</span>
+    <span class="c1"># jobs don&#39;t start overwriting results</span>
+
+    <span class="c1"># make plots and save</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">_protein_monomer_plot</span><span class="p">(</span><span class="n">ali_table</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="n">plot_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_job_statistics_summary.pdf&quot;</span>
+    <span class="n">lock_plot</span> <span class="o">=</span> <span class="n">filelock</span><span class="o">.</span><span class="n">FileLock</span><span class="p">(</span><span class="n">plot_file</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">lock_plot</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">plot_file</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">)</span>
+
+    <span class="c1"># save ali statistics table</span>
+    <span class="n">table_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_job_statistics_summary.csv&quot;</span>
+    <span class="n">lock_table</span> <span class="o">=</span> <span class="n">filelock</span><span class="o">.</span><span class="n">FileLock</span><span class="p">(</span><span class="n">table_file</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">lock_table</span><span class="p">:</span>
+        <span class="n">ali_table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+            <span class="n">table_file</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.3f</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ali_table</span></div>
+
+
+<span class="k">def</span> <span class="nf">_protein_monomer_plot</span><span class="p">(</span><span class="n">ali_table</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    # TODO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">set_palette</span><span class="p">(</span><span class="s2">&quot;Paired&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ali_table</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">FONTSIZE</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="c1"># set up plot and grid</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">))</span>
+    <span class="n">gridsize</span> <span class="o">=</span> <span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">ax_cov</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot2grid</span><span class="p">(</span><span class="n">gridsize</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">colspan</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax_distr</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot2grid</span><span class="p">(</span><span class="n">gridsize</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">colspan</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax_gaps</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot2grid</span><span class="p">(</span><span class="n">gridsize</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">colspan</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax_sig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot2grid</span><span class="p">(</span><span class="n">gridsize</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">colspan</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax_comp</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot2grid</span><span class="p">(</span><span class="n">gridsize</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">colspan</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># 1) Number of sequences, coverage</span>
+    <span class="n">l_seqs</span> <span class="o">=</span> <span class="n">ax_cov</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">ali_table</span><span class="o">.</span><span class="n">domain_threshold</span><span class="p">,</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">N_eff</span> <span class="o">/</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">num_cov</span><span class="p">,</span>
+        <span class="s2">&quot;ok-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;# Sequences&quot;</span>
+    <span class="p">)</span>
+    <span class="n">ax_cov</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Domain inclusion threshold&quot;</span><span class="p">)</span>
+    <span class="n">ax_cov</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;# effective sequences / L&quot;</span><span class="p">)</span>
+    <span class="n">ax_cov</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Sequences and coverage&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">FONTSIZE</span><span class="p">)</span>
+    <span class="n">ax_cov</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;lower left&quot;</span><span class="p">)</span>
+
+    <span class="n">ax_cov2</span> <span class="o">=</span> <span class="n">ax_cov</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+    <span class="n">l_cov</span> <span class="o">=</span> <span class="n">ax_cov2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">ali_table</span><span class="o">.</span><span class="n">domain_threshold</span><span class="p">,</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">num_cov</span> <span class="o">/</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">seqlen</span><span class="p">,</span>
+        <span class="s2">&quot;o-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Coverage&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#2079b4&quot;</span>
+    <span class="p">)</span>
+    <span class="n">ax_cov2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Coverage (</span><span class="si">% o</span><span class="s2">f region)&quot;</span><span class="p">)</span>
+    <span class="n">ax_cov2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;lower right&quot;</span><span class="p">)</span>
+    <span class="n">ax_cov2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># 2) sequence identity &amp; coverage distributions</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">domain_threshold</span><span class="p">,</span> <span class="n">subjob</span><span class="p">),</span> <span class="n">subdata</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="c1"># sequence identities to query</span>
+        <span class="k">if</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">subdata</span><span class="p">[</span><span class="s2">&quot;identities&quot;</span><span class="p">]):</span>
+            <span class="n">ids</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">subdata</span><span class="p">[</span><span class="s2">&quot;identities&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">identity_to_query</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+            <span class="n">ax_distr</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span>
+                <span class="n">ids</span><span class="p">,</span> <span class="n">histtype</span><span class="o">=</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+                <span class="n">bins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cumulative</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">domain_threshold</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">ali_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ali_table</span><span class="o">.</span><span class="n">prefix</span> <span class="o">==</span> <span class="n">subjob</span><span class="p">,</span> <span class="s2">&quot;average_identity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># coverage distribution</span>
+        <span class="k">if</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">subdata</span><span class="p">[</span><span class="s2">&quot;frequencies&quot;</span><span class="p">]):</span>
+            <span class="n">freqs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">subdata</span><span class="p">[</span><span class="s2">&quot;frequencies&quot;</span><span class="p">])</span>
+            <span class="c1"># print(freqs.head())</span>
+            <span class="n">ax_gaps</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="n">freqs</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">freqs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;-&quot;</span><span class="p">],</span> <span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">domain_threshold</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">mincov</span> <span class="o">=</span> <span class="n">subdata</span><span class="p">[</span><span class="s2">&quot;minimum_column_coverage&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">mincov</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">mincov</span> <span class="o">/=</span> <span class="mi">100</span>
+
+            <span class="n">ax_gaps</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">mincov</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">)</span>
+
+    <span class="n">ax_distr</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">% s</span><span class="s2">equence identity to query&quot;</span><span class="p">)</span>
+    <span class="n">ax_distr</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Sequence identity distribution&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">FONTSIZE</span><span class="p">)</span>
+    <span class="n">ax_distr</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax_distr</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax_distr</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="n">ax_gaps</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Gap statistics&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">FONTSIZE</span><span class="p">)</span>
+    <span class="n">ax_gaps</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Sequence index&quot;</span><span class="p">)</span>
+    <span class="n">ax_gaps</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Column coverage (1 - </span><span class="si">% g</span><span class="s2">aps)&quot;</span><span class="p">)</span>
+    <span class="n">ax_gaps</span><span class="o">.</span><span class="n">autoscale</span><span class="p">(</span><span class="n">enable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">tight</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ax_gaps</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax_gaps</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;best&quot;</span><span class="p">)</span>
+
+    <span class="c1"># number of significant ECs, EC precision</span>
+    <span class="k">if</span> <span class="s2">&quot;num_significant&quot;</span> <span class="ow">in</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">ax_sig</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">ali_table</span><span class="o">.</span><span class="n">domain_threshold</span><span class="p">,</span>
+            <span class="n">ali_table</span><span class="o">.</span><span class="n">num_significant</span> <span class="o">/</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">num_cov</span><span class="p">,</span>
+            <span class="s2">&quot;ok-&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">ax_sig</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Significant ECs&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">FONTSIZE</span><span class="p">)</span>
+    <span class="n">ax_sig</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Domain inclusion threshold&quot;</span><span class="p">)</span>
+    <span class="n">ax_sig</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Fraction of significant ECs (</span><span class="si">% o</span><span class="s2">f L)&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;precision&quot;</span> <span class="ow">in</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">ax_comp</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ali_table</span><span class="o">.</span><span class="n">domain_threshold</span><span class="p">,</span> <span class="n">ali_table</span><span class="o">.</span><span class="n">precision</span><span class="p">,</span> <span class="s2">&quot;ok-&quot;</span><span class="p">)</span>
+
+    <span class="n">ax_comp</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Comparison to 3D (top L ECs)&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">FONTSIZE</span><span class="p">)</span>
+    <span class="n">ax_comp</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Domain inclusion threshold&quot;</span><span class="p">)</span>
+    <span class="n">ax_comp</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;EC precision&quot;</span><span class="p">)</span>
+    <span class="n">ax_comp</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fig</span>
+
+
+<div class="viewcode-block" id="protein_complex"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.summarize.protein_complex">[docs]</a><span class="k">def</span> <span class="nf">protein_complex</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">configs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create results summary for run using</span>
+<span class="sd">    protein_complex pipeline</span>
+
+<span class="sd">    # TODO</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+        <span class="s2">&quot;EVcomplex summary not yet implemented.&quot;</span>
+    <span class="p">)</span></div>
+
+
+<span class="n">PIPELINE_TO_SUMMARIZER</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;protein_monomer&quot;</span><span class="p">:</span> <span class="n">protein_monomer</span><span class="p">,</span>
+    <span class="s2">&quot;protein_complex&quot;</span><span class="p">:</span> <span class="n">protein_complex</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="n">context_settings</span><span class="o">=</span><span class="n">CONTEXT_SETTINGS</span><span class="p">)</span>
+<span class="c1"># run settings</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s1">&#39;pipeline&#39;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s1">&#39;prefix&#39;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s1">&#39;configs&#39;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create summary statistics for evcouplings pipeline runs</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">summarizer</span> <span class="o">=</span> <span class="n">PIPELINE_TO_SUMMARIZER</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;pipeline&quot;</span><span class="p">]]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Not a valid pipeline, valid selections are: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PIPELINE_TO_SUMMARIZER</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">summarizer</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;configs&quot;</span><span class="p">])</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,348 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.utils.config &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.utils.config</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.utils.config</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Configuration handling</span>
+
+<span class="sd">.. todo::</span>
+
+<span class="sd">    switch ruamel.yaml to round trip loading</span>
+<span class="sd">    to preserver order and comments?</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">ruamel.yaml</span> <span class="k">as</span> <span class="nn">yaml</span>
+
+
+<div class="viewcode-block" id="MissingParameterError"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.config.MissingParameterError">[docs]</a><span class="k">class</span> <span class="nc">MissingParameterError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception for missing parameters</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="InvalidParameterError"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.config.InvalidParameterError">[docs]</a><span class="k">class</span> <span class="nc">InvalidParameterError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception for invalid parameter settings</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="parse_config"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.config.parse_config">[docs]</a><span class="k">def</span> <span class="nf">parse_config</span><span class="p">(</span><span class="n">config_str</span><span class="p">,</span> <span class="n">preserve_order</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse a configuration string</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    config_str : str</span>
+<span class="sd">        Configuration to be parsed</span>
+<span class="sd">    preserve_order : bool, optional (default: True)</span>
+<span class="sd">        Preserve formatting of input configuration</span>
+<span class="sd">        string</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Configuration dictionary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">preserve_order</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">config_str</span><span class="p">,</span> <span class="n">Loader</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">config_str</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">yaml</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">ParserError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Could not parse input configuration. &quot;</span>
+            <span class="s2">&quot;Formatting mistake in config file? &quot;</span>
+            <span class="s2">&quot;See ParserError above for details.&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span></div>
+
+
+<div class="viewcode-block" id="read_config_file"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.config.read_config_file">[docs]</a><span class="k">def</span> <span class="nf">read_config_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">preserve_order</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read and parse a configuration file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Path of configuration file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Configuration dictionary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parse_config</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">preserve_order</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="write_config_file"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.config.write_config_file">[docs]</a><span class="k">def</span> <span class="nf">write_config_file</span><span class="p">(</span><span class="n">out_filename</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save configuration data structure in YAML file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    out_filename : str</span>
+<span class="sd">        Filename of output file</span>
+<span class="sd">    config : dict</span>
+<span class="sd">        Config data that will be written to file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">yaml</span><span class="o">.</span><span class="n">comments</span><span class="o">.</span><span class="n">CommentedBase</span><span class="p">):</span>
+        <span class="n">dumper</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dumper</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">Dumper</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">dumper</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="check_required"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.config.check_required">[docs]</a><span class="k">def</span> <span class="nf">check_required</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">keys</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify if required set of parameters is present in configuration</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    params : dict</span>
+<span class="sd">        Dictionary with parameters</span>
+<span class="sd">    keys : list-like</span>
+<span class="sd">        Set of parameters that has to be present in params</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        True if all parameters present, False otherwise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">MissingParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Missing required parameters: </span><span class="si">{}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">Given: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">),</span> <span class="n">params</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

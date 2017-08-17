@@ -1,0 +1,909 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.couplings.pairs &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.couplings.pairs</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.couplings.pairs</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for handling evolutionary couplings data.</span>
+
+<span class="sd">.. todo::</span>
+
+<span class="sd">    1. clean up</span>
+<span class="sd">    2. add Pompom score</span>
+<span class="sd">    3. add mapping tools (multidomain, complexes)</span>
+<span class="sd">    4. ECs to matrix</span>
+<span class="sd">    5. APC on subsets of positions (e.g. for complexes)</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">  Agnes Toth-Petroczy (original mixture model code)</span>
+<span class="sd">  John Ingraham (skew normal mixture model)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">ceil</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">scipy.optimize</span> <span class="k">as</span> <span class="nn">op</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">stats</span>
+
+
+<div class="viewcode-block" id="read_raw_ec_file"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.read_raw_ec_file">[docs]</a><span class="k">def</span> <span class="nf">read_raw_ec_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read a raw EC file (e.g. from plmc) and sort</span>
+<span class="sd">    by scores</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        File containing evolutionary couplings</span>
+<span class="sd">    sort : bool, optional (default: True)</span>
+<span class="sd">        If True, sort pairs by coupling score in</span>
+<span class="sd">        descending order</span>
+<span class="sd">    score_column : str, optional (default: True)</span>
+<span class="sd">        Score column to be used for sorting</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ecs : pd.DataFrame</span>
+<span class="sd">        Table of evolutionary couplings</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ecs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+        <span class="n">filename</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span>
+        <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;A_i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;A_j&quot;</span><span class="p">,</span> <span class="s2">&quot;fn&quot;</span><span class="p">,</span> <span class="s2">&quot;cn&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
+        <span class="n">ecs</span> <span class="o">=</span> <span class="n">ecs</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span>
+            <span class="n">by</span><span class="o">=</span><span class="n">score</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ecs</span></div>
+
+
+<div class="viewcode-block" id="enrichment"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.enrichment">[docs]</a><span class="k">def</span> <span class="nf">enrichment</span><span class="p">(</span><span class="n">ecs</span><span class="p">,</span> <span class="n">num_pairs</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">,</span> <span class="n">min_seqdist</span><span class="o">=</span><span class="mi">6</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate EC &quot;enrichment&quot; as first described in</span>
+<span class="sd">    Hopf et al., Cell, 2012.</span>
+
+<span class="sd">    .. todo::</span>
+
+<span class="sd">        Make this handle segments if they are in EC table</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ecs : pd.DataFrame</span>
+<span class="sd">        Dataframe containing couplings</span>
+<span class="sd">    num_pairs : int or float, optional (default: 1.0)</span>
+<span class="sd">        Number of ECs to use for enrichment calculation.</span>
+<span class="sd">        - If float, will be interpreted as fraction of the</span>
+<span class="sd">        length of the sequence (e.g. 1.0*L)</span>
+<span class="sd">        - If int, will be interpreted as</span>
+<span class="sd">        absolute number of pairs</span>
+<span class="sd">    score : str, optional (default: cn)</span>
+<span class="sd">        Pair coupling score used for calculation</span>
+<span class="sd">    min_seqdist : int, optional (default: 6)</span>
+<span class="sd">        Minimum sequence distance of couplings that will</span>
+<span class="sd">        be included in the calculation</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    enrichment_table : pd.DataFrame</span>
+<span class="sd">        Sorted table with enrichment values for each</span>
+<span class="sd">        position in the sequence</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># determine how many positions ECs are over</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+    <span class="n">num_pos</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+
+    <span class="c1"># calculate absolute number of pairs if</span>
+    <span class="c1"># fraction of length is given</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">num_pairs</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">num_pairs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_pairs</span> <span class="o">*</span> <span class="n">num_pos</span><span class="p">))</span>
+
+    <span class="c1"># get longrange ECs and sort by score</span>
+    <span class="n">sorted_ecs</span> <span class="o">=</span> <span class="n">ecs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="s2">&quot;abs(i-j) &gt;= </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">min_seqdist</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span>
+        <span class="n">by</span><span class="o">=</span><span class="n">score</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1"># select top EC pairs</span>
+    <span class="n">top_ecs</span> <span class="o">=</span> <span class="n">sorted_ecs</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">num_pairs</span><span class="p">]</span>
+
+    <span class="c1"># stack dataframe so it contains each</span>
+    <span class="c1"># EC twice as forward and backward pairs</span>
+    <span class="c1"># (i, j) and (j, i)</span>
+    <span class="n">flipped</span> <span class="o">=</span> <span class="n">top_ecs</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;i&quot;</span><span class="p">:</span> <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">:</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;A_i&quot;</span><span class="p">:</span> <span class="s2">&quot;A_j&quot;</span><span class="p">,</span> <span class="s2">&quot;A_j&quot;</span><span class="p">:</span> <span class="s2">&quot;A_i&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">stacked_ecs</span> <span class="o">=</span> <span class="n">top_ecs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flipped</span><span class="p">)</span>
+
+    <span class="c1"># now sum cumulative strength of EC for each position</span>
+    <span class="n">ec_sums</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">stacked_ecs</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;A_i&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="c1"># average EC strength for top ECs</span>
+    <span class="n">avg_degree</span> <span class="o">=</span> <span class="n">top_ecs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">score</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">top_ecs</span><span class="p">)</span>
+
+    <span class="c1"># &quot;enrichment&quot; is ratio how much EC strength on</span>
+    <span class="c1"># an individual position exceeds average strength in top</span>
+    <span class="n">ec_sums</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;enrichment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ec_sums</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">score</span><span class="p">]</span> <span class="o">/</span> <span class="n">avg_degree</span>
+
+    <span class="n">e</span> <span class="o">=</span> <span class="n">ec_sums</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;A_i&quot;</span><span class="p">,</span> <span class="s2">&quot;enrichment&quot;</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;enrichment&quot;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LegacyScoreMixtureModel"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.LegacyScoreMixtureModel">[docs]</a><span class="k">class</span> <span class="nc">LegacyScoreMixtureModel</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assign to each EC score the probability of being in the</span>
+<span class="sd">    lognormal tail of a normal-lognormal mixture model.</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        this is the original version of the score mixture model</span>
+<span class="sd">        with a normal distribution noise component, this has been</span>
+<span class="sd">        superseded by a model using a skew normal distribution</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">clamp_mu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_fun</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Mixture model of evolutionary coupling scores to</span>
+<span class="sd">        determine significant scores that are in high-scoring,</span>
+<span class="sd">        positive tail of distribution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array (or list-like)</span>
+<span class="sd">            EC scores from which to infer the mixture model</span>
+<span class="sd">        clamp_mu : bool, optional (default: False)</span>
+<span class="sd">            Fix mean of Gaussian component to 0 instead of</span>
+<span class="sd">            fitting it based on data</span>
+<span class="sd">        max_fun : int</span>
+<span class="sd">            Maximum number of function evaluations</span>
+<span class="sd">        max_iter : int</span>
+<span class="sd">            Maximum number of iterations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># Infer parameters of mixture model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_learn_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">clamp_mu</span><span class="p">,</span> <span class="n">max_fun</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_learn_params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">clamp_mu</span><span class="p">,</span> <span class="n">max_fun</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Infer parameters of mixture model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array (or list-like)</span>
+<span class="sd">            EC scores from which to infer the mixture model</span>
+<span class="sd">        clamp_mu : bool, optional (default: False)</span>
+<span class="sd">            Fix mean of Gaussian component to 0 instead of</span>
+<span class="sd">            fitting it based on data</span>
+<span class="sd">        max_fun : int</span>
+<span class="sd">            Maximum number of function evaluations</span>
+<span class="sd">        max_iter : int</span>
+<span class="sd">            Maximum number of iterations</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mu : float</span>
+<span class="sd">            Mean of normal distribution</span>
+<span class="sd">        sigma : float</span>
+<span class="sd">            Standard deviation of normal distribution</span>
+<span class="sd">        q : float</span>
+<span class="sd">            Relative weights of each distribution</span>
+<span class="sd">        logmu : float</span>
+<span class="sd">            Mean of lognormal distribution</span>
+<span class="sd">        logsigma : float</span>
+<span class="sd">            Standard deviation of lognormal distribution</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Initial starting parameters for normal</span>
+        <span class="c1"># and lognormal distributions</span>
+        <span class="c1"># q: relative contribution of each distribtuion</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">logsigma</span> <span class="o">=</span> <span class="mf">0.4</span>
+        <span class="n">logmu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">75</span><span class="p">)</span> <span class="o">-</span> <span class="n">logsigma</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">logmu</span><span class="p">,</span> <span class="n">logsigma</span><span class="p">])</span>
+
+        <span class="c1"># Target function for minimization</span>
+        <span class="k">def</span> <span class="nf">target_func</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">clamp_mu</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_gaussian_lognormal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">params</span><span class="p">)))</span>
+
+        <span class="c1"># Minimize function</span>
+        <span class="n">coeff</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">fmin</span><span class="p">(</span>
+            <span class="n">target_func</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">maxfun</span><span class="o">=</span><span class="n">max_fun</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="n">max_iter</span><span class="p">,</span> <span class="n">disp</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+        <span class="c1"># If clamping mu, also set to 0 in the end, so this value</span>
+        <span class="c1"># is used for probability calculations</span>
+        <span class="k">if</span> <span class="n">clamp_mu</span><span class="p">:</span>
+            <span class="n">coeff</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">q</span> <span class="o">=</span> <span class="n">coeff</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="c1"># Check if fit worked</span>
+        <span class="k">if</span> <span class="n">q</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">isneginf</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;No tail, fit failed. q=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">coeff</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_gaussian_lognormal</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gaussian-lognormal mixture probability</span>
+<span class="sd">        density function.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array</span>
+<span class="sd">            Scores for which PDF is calculated</span>
+<span class="sd">        params : tuple</span>
+<span class="sd">            Parameters of lognormal-Gaussian mixture</span>
+<span class="sd">            (mu, sigma, class weight q, loglog, logsigma)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Probabilities</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span> <span class="o">+</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_lognormal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_gaussian</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normal probability density (multiplied</span>
+<span class="sd">        by class weight).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array</span>
+<span class="sd">            Scores for which PDF is calculated</span>
+<span class="sd">        params : tuple</span>
+<span class="sd">            Parameters of lognormal-Gaussian mixture</span>
+<span class="sd">            (mu, sigma, class weight q, loglog, logsigma)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Probabilities</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">logmu</span><span class="p">,</span> <span class="n">logsigma</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="k">return</span> <span class="n">q</span> <span class="o">*</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_lognormal</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Log normal probability density (multiplied</span>
+<span class="sd">        by class weight).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array</span>
+<span class="sd">            Scores for which PDF is calculated</span>
+<span class="sd">        params : tuple</span>
+<span class="sd">            Parameters of lognormal-Gaussian mixture</span>
+<span class="sd">            (mu, sigma, class weight q, loglog, logsigma)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Probabilities</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">logmu</span><span class="p">,</span> <span class="n">logsigma</span> <span class="o">=</span> <span class="n">params</span>
+
+        <span class="c1"># only assign probability to defined (i.e. positive) values,</span>
+        <span class="c1"># set all others to zero</span>
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">xpos</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">prob</span><span class="p">[</span><span class="n">xpos</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">q</span><span class="p">)</span> <span class="o">*</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">xpos</span><span class="p">]),</span> <span class="n">loc</span><span class="o">=</span><span class="n">logmu</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">logsigma</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="n">x</span><span class="p">[</span><span class="n">xpos</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">prob</span>
+
+<div class="viewcode-block" id="LegacyScoreMixtureModel.probability"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.LegacyScoreMixtureModel.probability">[docs]</a>    <span class="k">def</span> <span class="nf">probability</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate posterior probability of EC pair to</span>
+<span class="sd">        be located in positive (lognormal) tail of the</span>
+<span class="sd">        distribution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array (or list-like)</span>
+<span class="sd">            List of scores</span>
+<span class="sd">        plot : bool, optional (default: False)</span>
+<span class="sd">            Plot score distribution and probabilities</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        posterior : np.array(float)</span>
+<span class="sd">            Posterior probability of being in signal</span>
+<span class="sd">            component of mixture model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">p_lognormal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lognormal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">p_gaussian</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+        <span class="n">posterior</span> <span class="o">=</span> <span class="n">p_lognormal</span> <span class="o">/</span> <span class="p">(</span><span class="n">p_lognormal</span> <span class="o">+</span> <span class="n">p_gaussian</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">plot</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+            <span class="c1"># fig = plt.figure(figsize=(4,4))</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="s2">&quot;#fdc832&quot;</span>
+            <span class="n">n_ECs</span><span class="p">,</span> <span class="n">edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">mid</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">l</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="n">mid</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">l</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="n">mid</span><span class="p">,</span> <span class="n">n_ECs</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">markerfacecolor</span><span class="o">=</span><span class="n">c</span><span class="p">,</span>
+                <span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">posterior</span><span class="p">,</span> <span class="s1">&#39;-k&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p_lognormal</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p_gaussian</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">takeover</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">p_lognormal</span> <span class="o">&gt;</span> <span class="n">p_gaussian</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">takeover</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">posterior</span> <span class="o">&gt;</span> <span class="mf">0.99</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">pompom</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="o">-</span><span class="n">pompom</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">pompom</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;EC scores&quot;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;PDF&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">posterior</span></div></div>
+
+
+<div class="viewcode-block" id="ScoreMixtureModel"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.ScoreMixtureModel">[docs]</a><span class="k">class</span> <span class="nc">ScoreMixtureModel</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assign to each EC score the probability of being in the</span>
+<span class="sd">    lognormal tail of a skew normal-lognormal mixture model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Mixture model of evolutionary coupling scores to</span>
+<span class="sd">        determine signifcant scores that are in high-scoring,</span>
+<span class="sd">        positive tail of distribution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array (or list-like)</span>
+<span class="sd">            EC scores from which to infer the mixture model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># Infer parameters of mixture model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_learn_params</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ScoreMixtureModel.skewnorm_pdf"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.ScoreMixtureModel.skewnorm_pdf">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">skewnorm_pdf</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">skew</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Probability density of skew normal distribution</span>
+<span class="sd">        (noise component)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ---------</span>
+<span class="sd">        x : np.array(float)</span>
+<span class="sd">            Data for which probability density should be calculated</span>
+<span class="sd">        location : float</span>
+<span class="sd">            Location parameter of skew normal distribution</span>
+<span class="sd">        scale : float</span>
+<span class="sd">            Scale parameter of skew normal distribution</span>
+<span class="sd">        skew : float</span>
+<span class="sd">            Skew parameter of skew normal distribution</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ------</span>
+<span class="sd">        density : np.array(float)</span>
+<span class="sd">            Probability density for input array x</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_transform</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">location</span><span class="p">)</span> <span class="o">/</span> <span class="n">scale</span>
+        <span class="n">density</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mi">2</span> <span class="o">/</span> <span class="n">scale</span> <span class="o">*</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x_transform</span><span class="p">)</span> <span class="o">*</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">skew</span> <span class="o">*</span> <span class="n">x_transform</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">density</span></div>
+
+<div class="viewcode-block" id="ScoreMixtureModel.lognorm_pdf"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.ScoreMixtureModel.lognorm_pdf">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">lognorm_pdf</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">logmu</span><span class="p">,</span> <span class="n">logsig</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Probability density of lognormal distribution</span>
+<span class="sd">        (signal component)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ---------</span>
+<span class="sd">        x : np.array(float)</span>
+<span class="sd">            Data for which probability density should be calculated</span>
+<span class="sd">        logmu : float</span>
+<span class="sd">            Location of lognormal distribution (signal component)</span>
+<span class="sd">        logsig : float</span>
+<span class="sd">            Scale parameter of lognormal distribution (signal component)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        ------</span>
+<span class="sd">        density : np.array(float)</span>
+<span class="sd">            Probability density for input array x</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">density</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">xpos</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">density</span><span class="p">[</span><span class="n">xpos</span><span class="p">]</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">xpos</span><span class="p">]),</span> <span class="n">loc</span><span class="o">=</span><span class="n">logmu</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">logsig</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="n">x</span><span class="p">[</span><span class="n">xpos</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">density</span></div>
+
+<div class="viewcode-block" id="ScoreMixtureModel.skewnorm_constraint"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.ScoreMixtureModel.skewnorm_constraint">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">skewnorm_constraint</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">skew</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given scale and skew, returns location parameter to yield mean zero</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        scale : float</span>
+<span class="sd">            Scale parameter of skew normal distribution</span>
+<span class="sd">        skew : float</span>
+<span class="sd">            Skew parameter of skew normal distribution</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        location : float</span>
+<span class="sd">            Location parameter of skew normal distribution s.t.</span>
+<span class="sd">            mean of distribution is equal to 0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">location</span> <span class="o">=</span> <span class="o">-</span><span class="n">scale</span> <span class="o">*</span> <span class="n">skew</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">skew</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">location</span></div>
+
+<div class="viewcode-block" id="ScoreMixtureModel.mixture_pdf"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.ScoreMixtureModel.mixture_pdf">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">mixture_pdf</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">skew</span><span class="p">,</span> <span class="n">logmu</span><span class="p">,</span> <span class="n">logsig</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute mixture probability</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array(float)</span>
+<span class="sd">            Data for which probability density should be calculated</span>
+<span class="sd">        p : float</span>
+<span class="sd">            Mixing fraction between components for noise component</span>
+<span class="sd">            (signal component will be 1-p)</span>
+<span class="sd">        scale : float</span>
+<span class="sd">            Scale parameter of skew normal distribution (noise component)</span>
+<span class="sd">        skew : float</span>
+<span class="sd">            Skew parameter of skew normal distribution (noise component)</span>
+<span class="sd">        logmu : float</span>
+<span class="sd">            Location of lognormal distribution (signal component)</span>
+<span class="sd">        logsig : float</span>
+<span class="sd">            Scale parameter of lognormal distribution (signal component)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        density : np.array(float)</span>
+<span class="sd">            Probability density for input array x</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">location</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">skewnorm_constraint</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">skew</span><span class="p">)</span>
+        <span class="n">density</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">p</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">skewnorm_pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">skew</span><span class="p">)</span> <span class="o">+</span>
+            <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">)</span> <span class="o">*</span> <span class="bp">cls</span><span class="o">.</span><span class="n">lognorm_pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">logmu</span><span class="p">,</span> <span class="n">logsig</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">density</span></div>
+
+<div class="viewcode-block" id="ScoreMixtureModel.posterior_signal"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.ScoreMixtureModel.posterior_signal">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">posterior_signal</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">skew</span><span class="p">,</span> <span class="n">logmu</span><span class="p">,</span> <span class="n">logsig</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute posterior probability of being in signal component</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array(float)</span>
+<span class="sd">            Data for which probability density should be calculated</span>
+<span class="sd">        p : float</span>
+<span class="sd">            Mixing fraction between components for noise component</span>
+<span class="sd">            (signal component will be 1-p)</span>
+<span class="sd">        scale : float</span>
+<span class="sd">            Scale parameter of skew normal distribution (noise component)</span>
+<span class="sd">        skew : float</span>
+<span class="sd">            Skew parameter of skew normal distribution (noise component)</span>
+<span class="sd">        logmu : float</span>
+<span class="sd">            Location of lognormal distribution (signal component)</span>
+<span class="sd">        logsig : float</span>
+<span class="sd">            Scale parameter of lognormal distribution (signal component)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        posterior : np.array(float)</span>
+<span class="sd">            Posterior probability of being in signal component</span>
+<span class="sd">            for input array x</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">P</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mixture_pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">skew</span><span class="p">,</span> <span class="n">logmu</span><span class="p">,</span> <span class="n">logsig</span><span class="p">)</span>
+        <span class="n">posterior</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">f2</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">lognorm_pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">logmu</span><span class="p">,</span> <span class="n">logsig</span><span class="p">)</span>
+        <span class="n">posterior</span><span class="p">[</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="p">)</span> <span class="o">*</span> <span class="n">f2</span><span class="p">[</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">P</span><span class="p">[</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">posterior</span></div>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_learn_params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Infer parameters of mixture model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array(float)</span>
+<span class="sd">            EC scores from which to infer the mixture model</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        theta : np.array(float)</span>
+<span class="sd">            Array with inferred parameters of model</span>
+<span class="sd">            (mixing fraction, skew-normal scale, skew-normal skew,</span>
+<span class="sd">            log-normal mean, log-normal stddev)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># mixing fraction, skew-normal scale, skew-normal skew,</span>
+        <span class="c1"># log-normal mean, log-normal stddev</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="mf">0.1</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">loglk_fun</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">mixture_pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">params</span><span class="p">)))</span>
+
+        <span class="n">loglk</span> <span class="o">=</span> <span class="n">loglk_fun</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+        <span class="n">delta_loglk</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">200</span>
+        <span class="n">cur_iter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">0.0001</span>
+
+        <span class="k">while</span> <span class="n">delta_loglk</span> <span class="o">&gt;</span> <span class="n">tolerance</span> <span class="ow">and</span> <span class="n">cur_iter</span> <span class="o">&lt;</span> <span class="n">max_iter</span><span class="p">:</span>
+            <span class="c1"># E step</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">cls</span><span class="o">.</span><span class="n">posterior_signal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">theta</span><span class="p">)</span>
+
+            <span class="c1"># M step</span>
+            <span class="c1"># MLE of the mixing fraction is the mean z</span>
+            <span class="n">theta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+            <span class="c1"># Log-normal component</span>
+            <span class="c1"># MLE is the z-weighted mean and std deviation of the log-scores</span>
+            <span class="n">pos_ix</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="n">z_complement</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">z</span><span class="p">[</span><span class="n">pos_ix</span><span class="p">]</span>
+            <span class="n">log_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">pos_ix</span><span class="p">])</span>
+            <span class="n">theta</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z_complement</span> <span class="o">*</span> <span class="n">log_score</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z_complement</span><span class="p">)</span>
+            <span class="n">theta</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z_complement</span> <span class="o">*</span> <span class="p">(</span><span class="n">log_score</span> <span class="o">-</span> <span class="n">theta</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">z_complement</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Skew-normal distribution</span>
+            <span class="c1"># MLE requires numerical optimization</span>
+            <span class="k">def</span> <span class="nf">objfun</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+                <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                    <span class="n">z</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                        <span class="bp">cls</span><span class="o">.</span><span class="n">skewnorm_pdf</span><span class="p">(</span>
+                            <span class="n">x</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">skewnorm_constraint</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                            <span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="n">theta</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">fmin</span><span class="p">(</span><span class="n">objfun</span><span class="p">,</span> <span class="n">theta</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">disp</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="c1"># Test for EM convergence</span>
+            <span class="n">loglk_new</span> <span class="o">=</span> <span class="n">loglk_fun</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="n">delta_loglk</span> <span class="o">=</span> <span class="n">loglk_new</span> <span class="o">-</span> <span class="n">loglk</span>
+            <span class="n">loglk</span> <span class="o">=</span> <span class="n">loglk_new</span>
+
+            <span class="c1"># status update</span>
+            <span class="n">cur_iter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">theta</span>
+
+<div class="viewcode-block" id="ScoreMixtureModel.probability"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.ScoreMixtureModel.probability">[docs]</a>    <span class="k">def</span> <span class="nf">probability</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate posterior probability of EC pair to</span>
+<span class="sd">        be located in positive (lognormal) tail of the</span>
+<span class="sd">        distribution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : np.array (or list-like)</span>
+<span class="sd">            List of scores</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        posterior : np.array(float)</span>
+<span class="sd">            Posterior probability of being in signal</span>
+<span class="sd">            component of mixture model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">posterior</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">posterior_signal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">plot</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixture_pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">posterior</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;gold&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">posterior</span></div></div>
+
+
+<div class="viewcode-block" id="add_mixture_probability"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.pairs.add_mixture_probability">[docs]</a><span class="k">def</span> <span class="nf">add_mixture_probability</span><span class="p">(</span><span class="n">ecs</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&quot;skewnormal&quot;</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">,</span>
+                            <span class="n">clamp_mu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add lognormal mixture model probability to EC table.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ecs : pd.DataFrame</span>
+<span class="sd">        EC table with scores</span>
+<span class="sd">    model : {&quot;skewnormal&quot;, &quot;normal&quot;}, optional (default: skewnormal)</span>
+<span class="sd">        Use model with skew-normal or normal distribution</span>
+<span class="sd">        for the noise component of mixture model</span>
+<span class="sd">    score : str, optional (default: &quot;cn&quot;)</span>
+<span class="sd">        Score on which mixture model will be based</span>
+<span class="sd">    clamp_mu : bool, optional (default: False)</span>
+<span class="sd">        Fix mean of Gaussian component to 0 instead of</span>
+<span class="sd">        fitting it based on data</span>
+<span class="sd">    plot : bool, optional (default: False)</span>
+<span class="sd">        Plot score distribution and probabilities</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ec_prob : pd.DataFrame</span>
+<span class="sd">        EC table with additional column &quot;probability&quot;</span>
+<span class="sd">        that for each EC contains the posterior</span>
+<span class="sd">        probability of belonging to the lognormal</span>
+<span class="sd">        tail of the distribution.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ec_prob</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">ecs</span><span class="p">)</span>
+
+    <span class="c1"># learn mixture model</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s2">&quot;skewnormal&quot;</span><span class="p">:</span>
+        <span class="n">mm</span> <span class="o">=</span> <span class="n">ScoreMixtureModel</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">score</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s2">&quot;normal&quot;</span><span class="p">:</span>
+        <span class="n">mm</span> <span class="o">=</span> <span class="n">LegacyScoreMixtureModel</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">score</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">clamp_mu</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid model selection, valid options are: &quot;</span>
+            <span class="s2">&quot;skewnormal, normal&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># assign probability</span>
+    <span class="n">ec_prob</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;probability&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">probability</span><span class="p">(</span>
+        <span class="n">ec_prob</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">score</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="n">plot</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ec_prob</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

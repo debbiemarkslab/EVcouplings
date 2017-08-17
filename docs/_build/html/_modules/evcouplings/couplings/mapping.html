@@ -1,0 +1,556 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.couplings.mapping &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.couplings.mapping</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.couplings.mapping</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Mapping indices for complexes / multi-domain sequences to</span>
+<span class="sd">internal model numbering.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+
+<div class="viewcode-block" id="Segment"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mapping.Segment">[docs]</a><span class="k">class</span> <span class="nc">Segment</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents a continuous stretch of sequence in a sequence</span>
+<span class="sd">    alignment to infer evolutionary couplings (e.g. multiple domains,</span>
+<span class="sd">    or monomers in a concatenated complex alignment)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment_type</span><span class="p">,</span> <span class="n">sequence_id</span><span class="p">,</span>
+                 <span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">segment_id</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new sequence segment</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        segment_type : {&quot;aa&quot;, &quot;dna&quot;, &quot;rna&quot;}</span>
+<span class="sd">            Type of sequence</span>
+<span class="sd">        sequence_id : str</span>
+<span class="sd">            Identifier of sequence</span>
+<span class="sd">        region_start : int</span>
+<span class="sd">            Start index of sequence segment</span>
+<span class="sd">        region_end : int</span>
+<span class="sd">            End index of sequence segment (position</span>
+<span class="sd">            is inclusive)</span>
+<span class="sd">        positions : list(int), optional (default: None)</span>
+<span class="sd">            Positions in the sequence alignment that</span>
+<span class="sd">            will be used for EC calculation</span>
+<span class="sd">            (all positions corresponding to uppercase</span>
+<span class="sd">            residues). Compulsory parameter when using</span>
+<span class="sd">            non-focus mode.</span>
+<span class="sd">        segment_id : str</span>
+<span class="sd">            Identifier of segment (must be unique)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">segment_type</span> <span class="o">=</span> <span class="n">segment_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequence_id</span> <span class="o">=</span> <span class="n">sequence_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">region_start</span> <span class="o">=</span> <span class="n">region_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">region_end</span> <span class="o">=</span> <span class="n">region_end</span>
+        <span class="k">if</span> <span class="n">positions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">positions</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">segment_id</span> <span class="o">=</span> <span class="n">segment_id</span>
+
+<div class="viewcode-block" id="Segment.from_list"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mapping.Segment.from_list">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_list</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a segment object from list representation</span>
+<span class="sd">        (e.g. from config).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        segment : list</span>
+<span class="sd">            List representation of segment, with the following items:</span>
+<span class="sd">            segment_id (str), segment_type (str), sequence_id (str),</span>
+<span class="sd">            region_start (int), region_end (int), positions (list(int))</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Segment</span>
+<span class="sd">            New Segment instance from list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">segment_id</span><span class="p">,</span> <span class="n">segment_type</span><span class="p">,</span> <span class="n">sequence_id</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span><span class="p">,</span> <span class="n">positions</span> <span class="o">=</span> <span class="n">segment</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">segment_type</span><span class="p">,</span> <span class="n">sequence_id</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Segment.to_list"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mapping.Segment.to_list">[docs]</a>    <span class="k">def</span> <span class="nf">to_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Represent segment as list (for storing in configs)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            List representation of segment, with the following items:</span>
+<span class="sd">            segment_id (str), segment_type (str), sequence_id (str),</span>
+<span class="sd">            region_start (int), region_end (int), positions (list(int))</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">segment_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">segment_type</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sequence_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">region_start</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">region_end</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">positions</span>
+        <span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="SegmentIndexMapper"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mapping.SegmentIndexMapper">[docs]</a><span class="k">class</span> <span class="nc">SegmentIndexMapper</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Map indices of one or more sequence segments into</span>
+<span class="sd">    CouplingsModel internal numbering space. Can also</span>
+<span class="sd">    be used to (trivially) remap indices for a single sequence.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">focus_mode</span><span class="p">,</span> <span class="n">first_index</span><span class="p">,</span> <span class="o">*</span><span class="n">segments</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create index mapping from individual segments</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        focus_mode : bool</span>
+<span class="sd">            Set to true if model was inferred in focus mode,</span>
+<span class="sd">            False otherwise.</span>
+<span class="sd">        first_index : int</span>
+<span class="sd">            Index of first position in model/sequence.</span>
+<span class="sd">            For nonfocus mode, should always be one. For focus</span>
+<span class="sd">            mode, corresponds to index given in sequence header</span>
+<span class="sd">            (1 if not in alignment)</span>
+<span class="sd">        *segments: (int, int):</span>
+<span class="sd">            Segments containing numberings for each</span>
+<span class="sd">            individual segment</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># store segments so we retain full information</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">segments</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span>
+
+        <span class="c1"># build up target indices by going through all segments</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_pos</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">segments</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">focus_mode</span><span class="p">:</span>
+                <span class="c1"># in focus mode, we simply assemble the</span>
+                <span class="c1"># ranges of continuous indices, because</span>
+                <span class="c1"># numbering in model is also continuous</span>
+                <span class="n">cur_target</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span>
+                    <span class="n">s</span><span class="o">.</span><span class="n">region_start</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">region_end</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># in non-focus mode, we need to assemble</span>
+                <span class="c1"># the indices of actual model positions,</span>
+                <span class="c1"># since the numbering in model may be</span>
+                <span class="c1"># discontinuous</span>
+                <span class="n">cur_target</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">positions</span>
+
+            <span class="c1"># create tuples of (segment_id, target_pos)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_pos</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">segment_id</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">cur_target</span><span class="p">),</span>
+                <span class="n">cur_target</span>
+            <span class="p">))</span>
+
+        <span class="c1"># create correspond list of model positions;</span>
+        <span class="c1"># note that in focus mode, not all of these</span>
+        <span class="c1"># positions might actually be in the model</span>
+        <span class="c1"># (if they correspond to lowercase columns)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_pos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span>
+            <span class="n">first_index</span><span class="p">,</span> <span class="n">first_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_pos</span><span class="p">)</span>
+        <span class="p">))</span>
+
+        <span class="c1"># mapping from target sequences (segments) into</span>
+        <span class="c1"># model numbering space (continuous numbering)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_to_model</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_pos</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># inverse mapping from model numbering into target</span>
+        <span class="c1"># numbering</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_to_target</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_pos</span><span class="p">)</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="SegmentIndexMapper.patch_model"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mapping.SegmentIndexMapper.patch_model">[docs]</a>    <span class="k">def</span> <span class="nf">patch_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change numbering of CouplingModel object</span>
+<span class="sd">        so that it uses segment-based numbering</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : CouplingsModel</span>
+<span class="sd">            Model that will be updated to segment-</span>
+<span class="sd">            based numbering</span>
+<span class="sd">        inplace : bool, optional (default: True)</span>
+<span class="sd">            If True, change passed model; otherwise</span>
+<span class="sd">            returnnew object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        CouplingsModel</span>
+<span class="sd">            Model with updated numbering</span>
+<span class="sd">            (if inplace is False, this will</span>
+<span class="sd">            point to original model)</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If segment mapping does not match</span>
+<span class="sd">            internal model numbering</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inplace</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mapped</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_to_target</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">index_list</span>
+            <span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Mapping from target to model positions does &quot;</span>
+                <span class="s2">&quot;not contain all positions of internal model numbering&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># update model mapping</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">index_list</span> <span class="o">=</span> <span class="n">mapped</span>
+
+        <span class="c1"># return updated model</span>
+        <span class="k">return</span> <span class="n">model</span></div>
+
+    <span class="k">def</span> <span class="nf">__map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">mapping_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies index mapping either to a single index,</span>
+<span class="sd">        or to a list of indices</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        indices: int, or (str, int), or lists thereof</span>
+<span class="sd">            Indices in input numbering space</span>
+
+<span class="sd">        mapping_dict : dict(int-&gt;(str, int)) or dict((str, int)-&gt; int)</span>
+<span class="sd">            Mapping from one indexing space into the other</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list of int, or list of (str, int)</span>
+<span class="sd">            Mapped indices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">mapping_dict</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mapping_dict</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function-style syntax for single position to be mapped</span>
+<span class="sd">        (calls to_model method)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        segment_id : str</span>
+<span class="sd">            Identifier of segment</span>
+<span class="sd">        pos : int</span>
+<span class="sd">            Position in segment numbering</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            Index in coupling object numbering space</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_model</span><span class="p">((</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">pos</span><span class="p">))</span>
+
+<div class="viewcode-block" id="SegmentIndexMapper.to_target"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mapping.SegmentIndexMapper.to_target">[docs]</a>    <span class="k">def</span> <span class="nf">to_target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Map model index to target index</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : int, or list of ints</span>
+<span class="sd">            Indices in model numbering</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        (str, int), or list of (str, int)</span>
+<span class="sd">            Indices mapped into target numbering.</span>
+<span class="sd">            Tuples are (segment_id, index_in_segment)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_to_target</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SegmentIndexMapper.to_model"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mapping.SegmentIndexMapper.to_model">[docs]</a>    <span class="k">def</span> <span class="nf">to_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Map target index to model index</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : (str, int), or list of (str, int)</span>
+<span class="sd">            Indices in target indexing</span>
+<span class="sd">            (segment_id, index_in_segment)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int, or list of int</span>
+<span class="sd">            Monomer indices mapped into couplings object numbering</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_to_model</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="segment_map_ecs"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mapping.segment_map_ecs">[docs]</a><span class="k">def</span> <span class="nf">segment_map_ecs</span><span class="p">(</span><span class="n">ecs</span><span class="p">,</span> <span class="n">mapper</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Map EC dataframe in model numbering into</span>
+<span class="sd">    segment numbering</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ecs : pandas.DataFrame</span>
+<span class="sd">        EC table (with columns i and j)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Mapped EC table (with columns i and j</span>
+<span class="sd">        mapped, and additional columns</span>
+<span class="sd">        segment_i and segment_j)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ecs</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">ecs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_map_column</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
+        <span class="n">seg_col</span> <span class="o">=</span> <span class="s2">&quot;segment_&quot;</span> <span class="o">+</span> <span class="n">col</span>
+        <span class="c1"># create new dataframe with two columns</span>
+        <span class="c1"># 1) mapped segment, 2) mapped position</span>
+        <span class="n">col_m</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">mapper</span><span class="o">.</span><span class="n">to_target</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]),</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">seg_col</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="c1"># assign values instead of Series, because otherwise</span>
+        <span class="c1"># wrong values end up in column</span>
+        <span class="n">ecs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_m</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">ecs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">seg_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">col_m</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">seg_col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="c1"># map both position columns (and add segment id)</span>
+    <span class="n">_map_column</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">)</span>
+    <span class="n">_map_column</span><span class="p">(</span><span class="s2">&quot;j&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ecs</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

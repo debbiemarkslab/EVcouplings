@@ -1,0 +1,344 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.complex package &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="index.html"/>
+        <link rel="up" title="Alignment" href="evcouplings.html"/>
+        <link rel="next" title="evcouplings.couplings package" href="evcouplings.couplings.html"/>
+        <link rel="prev" title="evcouplings.compare package" href="evcouplings.compare.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html">Alignment</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="evcouplings.html#couplings-analysis">Couplings Analysis</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.compare.html">evcouplings.compare package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">evcouplings.complex package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.complex.protocol">evcouplings.complex.protocol module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.couplings.html">evcouplings.couplings package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.mutate.html">evcouplings.mutate package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="evcouplings.html">Alignment</a> &raquo;</li>
+        
+      <li>evcouplings.complex package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/evcouplings.complex.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="evcouplings-complex-package">
+<h1>evcouplings.complex package<a class="headerlink" href="#evcouplings-complex-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-evcouplings.complex.protocol">
+<span id="evcouplings-complex-protocol-module"></span><h2>evcouplings.complex.protocol module<a class="headerlink" href="#module-evcouplings.complex.protocol" title="Permalink to this headline">¶</a></h2>
+<p>Protocols for matching putatively interacting sequences
+in protein complexes to create a concatenated sequence
+alignment</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf
+Anna G. Green</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.complex.protocol.genome_distance">
+<code class="descclassname">evcouplings.complex.protocol.</code><code class="descname">genome_distance</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/complex/protocol.html#genome_distance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.complex.protocol.genome_distance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Protocol:</p>
+<p>Concatenate alignments based on genomic distance</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – <p>See list below in code where calling check_required</p>
+<span class="target" id="index-0"></span><div class="admonition-todo admonition">
+<p class="first admonition-title">Todo</p>
+<p class="last">Explain meaning of parameters in detail.</p>
+</div>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of the pipeline, including
+the following fields:<span class="target" id="index-1"></span><div class="admonition-todo admonition">
+<p class="first admonition-title">Todo</p>
+<p>this is the full list normally returned by alignment protocol, decide which ones to keep.
+Mandatory:</p>
+<ul class="last simple">
+<li>alignment_file</li>
+<li>focus_sequence</li>
+<li>focus_mode</li>
+<li>segments</li>
+</ul>
+</div>
+<ul class="simple">
+<li>alignment_file</li>
+<li>[raw_alignment_file]</li>
+<li>statistics_file</li>
+<li>target_sequence_file</li>
+<li>sequence_file</li>
+<li>[annotation_file]</li>
+<li>frequencies_file</li>
+<li>identities_file</li>
+<li>[hittable_file]</li>
+<li>focus_mode</li>
+<li>focus_sequence</li>
+<li>segments</li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.complex.protocol.run">
+<code class="descclassname">evcouplings.complex.protocol.</code><code class="descname">run</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/complex/protocol.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.complex.protocol.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run alignment concatenation protocol</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – protocol: concatenation protocol to run
+prefix: Output prefix for all generated files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of concatenation stage
+Dictionary with results in following fields (in brackets: not mandatory):<span class="target" id="index-2"></span><div class="admonition-todo admonition">
+<p class="first admonition-title">Todo</p>
+<p class="last">to be finalized after implementing protocols</p>
+</div>
+<ul class="simple">
+<li>alignment_file</li>
+<li>focus_mode</li>
+<li>focus_sequence</li>
+<li>segments</li>
+<li>num_sites</li>
+<li>num_sequences</li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="evcouplings.couplings.html" class="btn btn-neutral float-right" title="evcouplings.couplings package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="evcouplings.compare.html" class="btn btn-neutral" title="evcouplings.compare package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

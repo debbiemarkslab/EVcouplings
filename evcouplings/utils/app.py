@@ -4,9 +4,11 @@ evcouplings command-line app
 Authors:
   Thomas A. Hopf
 
-# TODO: Once there are different pipelines to run, there should
-be individual commands for these, so will need to define additional
-entry points for applications (e.g. evcomplex in addition to evcouplings).
+.. todo::
+
+    Once there are different pipelines to run, there should
+    be individual commands for these, so will need to define additional
+    entry points for applications (e.g. evcomplex in addition to evcouplings).
 """
 
 import re

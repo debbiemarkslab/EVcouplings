@@ -1,0 +1,504 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.visualize.pymol &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.visualize.pymol</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.visualize.pymol</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Visualization of properties on 3D structures using</span>
+<span class="sd">Pymol pml scripts</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+
+<span class="k">def</span> <span class="nf">_write_pymol_commands</span><span class="p">(</span><span class="n">commands</span><span class="p">,</span> <span class="n">output_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function to write a set of lines to a file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    commands : list(str)</span>
+<span class="sd">        List of commands, each will be written to a new</span>
+<span class="sd">        line.</span>
+<span class="sd">    output_file : str or file-like:</span>
+<span class="sd">        Path to output file (str), or writeable</span>
+<span class="sd">        file handle, in which commands will be stored</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cmd_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">output_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">cmd_str</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">cmd_str</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="pymol_secondary_structure"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pymol.pymol_secondary_structure">[docs]</a><span class="k">def</span> <span class="nf">pymol_secondary_structure</span><span class="p">(</span><span class="n">residues</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">sec_struct_column</span><span class="o">=</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assign predicted secondary structure to 3D structure in Pymol</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    residues : pandas.DataFrame</span>
+<span class="sd">        Table with secondary structure prediction/assignment</span>
+<span class="sd">        (position in column i)</span>
+<span class="sd">    output_file : str or file-like</span>
+<span class="sd">        Write Pymol script to this file (filename as string,</span>
+<span class="sd">        or writeable file handle)</span>
+<span class="sd">    chain : str, optional (default: None)</span>
+<span class="sd">        PDB chain that should be targeted by secondary</span>
+<span class="sd">        structure assignment. If None, residues will be selected</span>
+<span class="sd">        py position alone, which may cause wrong assignments</span>
+<span class="sd">        if multiple chains are present in the structure.</span>
+<span class="sd">    sec_struct_column : str, optional (default: sec_struct_3state)</span>
+<span class="sd">        Column in residues table that contains the secondary</span>
+<span class="sd">        structure symbols for each position (convention: helix: H,</span>
+<span class="sd">        strand: E, other: C)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cmds : list</span>
+<span class="sd">        List of generated pymol commands (written to output_file)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cmds</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># define chain selector if chain is given</span>
+    <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot; and chain &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># mapping from our secondary structure state</span>
+    <span class="c1"># convention to what Pymol expects</span>
+    <span class="n">state_mapping</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;H&quot;</span><span class="p">:</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;E&quot;</span><span class="p">:</span> <span class="s2">&quot;S&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="c1"># go through all residues</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">residues</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">sec_struct</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="n">sec_struct_column</span><span class="p">]</span>
+
+        <span class="c1"># see if we have helix or sheet prediction</span>
+        <span class="k">if</span> <span class="n">sec_struct</span> <span class="ow">in</span> <span class="n">state_mapping</span><span class="p">:</span>
+            <span class="c1"># create pymol command</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;alter (resi </span><span class="si">{}{}</span><span class="s2">), ss=&#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">r</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">],</span> <span class="n">chain_sel</span><span class="p">,</span> <span class="n">state_mapping</span><span class="p">[</span><span class="n">sec_struct</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="c1"># at the end we also need to issue a rebuild so</span>
+    <span class="c1"># the changes are displayed</span>
+    <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;rebuild&quot;</span><span class="p">)</span>
+
+    <span class="n">_write_pymol_commands</span><span class="p">(</span><span class="n">cmds</span><span class="p">,</span> <span class="n">output_file</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cmds</span></div>
+
+
+<div class="viewcode-block" id="pymol_pair_lines"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pymol.pymol_pair_lines">[docs]</a><span class="k">def</span> <span class="nf">pymol_pair_lines</span><span class="p">(</span><span class="n">pairs</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="s2">&quot;CA&quot;</span><span class="p">,</span> <span class="n">pair_prefix</span><span class="o">=</span><span class="s2">&quot;ec&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Draw lines between residue pairs on a structure using Pymol</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pairs : pandas.DataFrame</span>
+<span class="sd">        Table of pairs to draw (positions in columns i and j).</span>
+<span class="sd">        If this dataframe contains columns named &quot;color&quot;,</span>
+<span class="sd">        &quot;dash_radius&quot;, &quot;dash_gap&quot; or &quot;dash_length&quot;, these will</span>
+<span class="sd">        be used to adjust the corresponding Pymol property of each</span>
+<span class="sd">        drawn line. Dash parameters should be floats, colors can</span>
+<span class="sd">        be any of the Pymol color names or a hexademical color code</span>
+<span class="sd">        (# will be converted to Pymol 0x convention automatically).</span>
+<span class="sd">        If columns &quot;chain_i&quot; or &quot;chain_j&quot; are present, these will</span>
+<span class="sd">        define the respective chains for each end of the line, and</span>
+<span class="sd">        override the chain parameter.</span>
+<span class="sd">    output_file : str or file-like</span>
+<span class="sd">        Write Pymol script to this file (filename as string,</span>
+<span class="sd">        or writeable file handle)</span>
+<span class="sd">    chain : str or dict(str -&gt; str), optional (default: None)</span>
+<span class="sd">        PDB chain(s) that should be targeted by line drawing</span>
+
+<span class="sd">        * If None, residues will be selected</span>
+<span class="sd">          py position alone, which may cause wrong assignments</span>
+<span class="sd">          if multiple chains are present in the structure.</span>
+
+<span class="sd">        * Different chains can be assigned for each i and j,</span>
+<span class="sd">          if a dictionary that maps from segment (str) to PDB chain (str)</span>
+<span class="sd">          is given. In this case, columns &quot;segment_i&quot; and &quot;segment_j&quot;</span>
+<span class="sd">          must be present in the pairs dataframe.</span>
+
+<span class="sd">    atom : str, optional (default: &quot;CA&quot;)</span>
+<span class="sd">        Put end of line on this atom in each residue</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cmds : list</span>
+<span class="sd">        List of generated pymol commands (written to output_file)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cmds</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">_selector</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">column</span><span class="p">):</span>
+        <span class="c1"># if there is a chain specified, take it</span>
+        <span class="k">if</span> <span class="s2">&quot;chain_&quot;</span> <span class="o">+</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;chain_&quot;</span> <span class="o">+</span> <span class="n">column</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># if we have a dictionary and a segment column,</span>
+            <span class="c1"># use that</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">chain</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;segment_&quot;</span> <span class="o">+</span> <span class="n">column</span><span class="p">]]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># otherwise just take the name of the chain as it is</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">chain</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># create selector for chain</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;chain &#39;</span><span class="si">{}</span><span class="s2">&#39; and &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># otherwise, if no chain info given, do not put selector on chain</span>
+            <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="c1"># return full residue selector</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">resid </span><span class="si">{}</span><span class="s2"> and name </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">chain_sel</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="n">column</span><span class="p">],</span> <span class="n">atom</span>
+        <span class="p">)</span>
+
+    <span class="c1"># go through all pairs</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pairs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">(),</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">sel_i</span> <span class="o">=</span> <span class="n">_selector</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">)</span>
+        <span class="n">sel_j</span> <span class="o">=</span> <span class="n">_selector</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">)</span>
+        <span class="n">id_</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pair_prefix</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;dist </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">, label=0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">id_</span><span class="p">,</span> <span class="n">sel_i</span><span class="p">,</span> <span class="n">sel_j</span>
+        <span class="p">)</span>
+        <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+        <span class="c1"># check if we need to set color</span>
+        <span class="k">if</span> <span class="s2">&quot;color&quot;</span> <span class="ow">in</span> <span class="n">r</span> <span class="ow">and</span> <span class="n">pd</span><span class="o">.</span><span class="n">notnull</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]):</span>
+            <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="s2">&quot;color </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">r</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="s2">&quot;0x&quot;</span><span class="p">),</span>
+                    <span class="n">id_</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># check all other properties we can set using</span>
+        <span class="c1"># set &lt;parameter&gt;, &lt;value&gt;, &lt;object&gt;</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;dash_radius&quot;</span><span class="p">,</span> <span class="s2">&quot;dash_gap&quot;</span><span class="p">,</span> <span class="s2">&quot;dash_length&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">r</span> <span class="ow">and</span> <span class="n">pd</span><span class="o">.</span><span class="n">notnull</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="n">param</span><span class="p">]):</span>
+                <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="s2">&quot;set </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="n">param</span><span class="p">],</span> <span class="n">id_</span><span class="p">)</span>
+                <span class="p">)</span>
+
+    <span class="n">_write_pymol_commands</span><span class="p">(</span><span class="n">cmds</span><span class="p">,</span> <span class="n">output_file</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cmds</span></div>
+
+
+<div class="viewcode-block" id="pymol_mapping"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pymol.pymol_mapping">[docs]</a><span class="k">def</span> <span class="nf">pymol_mapping</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Map properties onto individual residues of</span>
+<span class="sd">    structure using Pymol</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mapping : pandas.DataFrame</span>
+<span class="sd">        Table of properties to map on residues.</span>
+
+<span class="sd">        * positions in column &quot;i&quot;</span>
+
+<span class="sd">        * color in column &quot;color&quot; (hexadecimal</span>
+<span class="sd">          color codes have to start with a &quot;#&quot;,</span>
+<span class="sd">          and will be converted to Pymol format</span>
+<span class="sd">          starting with 0x automatically)</span>
+
+<span class="sd">        * display type in column &quot;show&quot;</span>
+
+<span class="sd">        * b factor in column &quot;b_factor&quot;</span>
+
+<span class="sd">    output_file : str or file-like</span>
+<span class="sd">        Write Pymol script to this file (filename as string,</span>
+<span class="sd">        or writeable file handle)</span>
+<span class="sd">    chain : str, optional (default: None)</span>
+<span class="sd">        PDB chain that should be targeted by secondary</span>
+<span class="sd">        structure assignment. If None, residues will be selected</span>
+<span class="sd">        py position alone, which may cause wrong assignments</span>
+<span class="sd">        if multiple chains are present in the structure.</span>
+<span class="sd">    atom : str, optional (default: None)</span>
+<span class="sd">        Only apply mapping to this atom in each residue</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cmds : list</span>
+<span class="sd">        List of generated pymol commands (written to output_file)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cmds</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># define chain selector if chain is given</span>
+    <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot; and chain &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># define atom selector, if given</span>
+    <span class="k">if</span> <span class="n">atom</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">atom_sel</span> <span class="o">=</span> <span class="s2">&quot; and name </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">atom</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">atom_sel</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># create Pymol commands for each row in mapping table</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mapping</span><span class="o">.</span><span class="n">iterrows</span><span class="p">(),</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">sel</span> <span class="o">=</span> <span class="s2">&quot;resid </span><span class="si">{}{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">r</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">],</span> <span class="n">chain_sel</span><span class="p">,</span> <span class="n">atom_sel</span>
+        <span class="p">)</span>
+
+        <span class="c1"># adjust color, display type and b_factor if</span>
+        <span class="c1"># the respective value is given (i.e., not nan)</span>
+        <span class="k">if</span> <span class="s2">&quot;color&quot;</span> <span class="ow">in</span> <span class="n">r</span> <span class="ow">and</span> <span class="n">pd</span><span class="o">.</span><span class="n">notnull</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]):</span>
+            <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="s2">&quot;color </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">r</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">,</span> <span class="s2">&quot;0x&quot;</span><span class="p">),</span>
+                    <span class="n">sel</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;show&quot;</span> <span class="ow">in</span> <span class="n">r</span> <span class="ow">and</span> <span class="n">pd</span><span class="o">.</span><span class="n">notnull</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;show&quot;</span><span class="p">]):</span>
+            <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="s2">&quot;show </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;show&quot;</span><span class="p">],</span> <span class="n">sel</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;b_factor&quot;</span> <span class="ow">in</span> <span class="n">r</span> <span class="ow">and</span> <span class="n">pd</span><span class="o">.</span><span class="n">notnull</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;b_factor&quot;</span><span class="p">]):</span>
+            <span class="n">cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="s2">&quot;alter </span><span class="si">{}</span><span class="s2">, b=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sel</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;b_factor&quot;</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="k">pass</span>
+
+    <span class="n">_write_pymol_commands</span><span class="p">(</span><span class="n">cmds</span><span class="p">,</span> <span class="n">output_file</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cmds</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

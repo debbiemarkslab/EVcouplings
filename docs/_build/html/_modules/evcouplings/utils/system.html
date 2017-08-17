@@ -1,0 +1,528 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.utils.system &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.utils.system</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.utils.system</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">System-level calls to external tools, directory creation, etc.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="k">import</span> <span class="n">path</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">urllib.request</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+
+
+<div class="viewcode-block" id="ResourceError"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.ResourceError">[docs]</a><span class="k">class</span> <span class="nc">ResourceError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception for missing resources (files, URLs, ...)</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="ExternalToolError"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.ExternalToolError">[docs]</a><span class="k">class</span> <span class="nc">ExternalToolError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception for failing external calculations</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_returncode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">working_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run external program as subprocess.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cmd : str or list of str</span>
+<span class="sd">        Command (and  optional command line arguments)</span>
+<span class="sd">    stdin : str or byte sequence, optional (default: None)</span>
+<span class="sd">        Input to be sent to STDIN of the process</span>
+<span class="sd">    check_returncode : bool, optional (default=True)</span>
+<span class="sd">        Verify if call had returncode == 0, otherwise raise</span>
+<span class="sd">        ExternalToolError</span>
+<span class="sd">    working_dir : str, optional (default: None)</span>
+<span class="sd">        Change to this directory before running command</span>
+<span class="sd">    shell : bool, optional (default: False)</span>
+<span class="sd">        Invoke shell when calling subprocess (default: False)</span>
+<span class="sd">    env : dict, optional (default: None)</span>
+<span class="sd">        Use this environment for executing the subprocess</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    int</span>
+<span class="sd">        Return code of process</span>
+<span class="sd">    stdout</span>
+<span class="sd">        Byte string with stdout output</span>
+<span class="sd">    stderr</span>
+<span class="sd">        Byte string of stderr output</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ExternalToolError</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+                <span class="n">cmd</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">cwd</span><span class="o">=</span><span class="n">working_dir</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="n">shell</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">proc</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">communicate</span><span class="p">(</span><span class="n">stdin</span><span class="p">)</span>
+            <span class="n">return_code</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">returncode</span>
+
+            <span class="k">if</span> <span class="n">check_returncode</span> <span class="ow">and</span> <span class="n">return_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ExternalToolError</span><span class="p">(</span>
+                    <span class="s2">&quot;Call failed:</span><span class="se">\n</span><span class="s2">cmd=</span><span class="si">{}</span><span class="se">\n</span><span class="s2">returncode=</span><span class="si">{}</span><span class="se">\n</span><span class="s2">stdout=</span><span class="si">{}</span><span class="se">\n</span><span class="s2">stderr=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">cmd</span><span class="p">,</span> <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span>
+
+    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ExternalToolError</span><span class="p">(</span>
+            <span class="s2">&quot;Call to external tool failed and did not return: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span></div>
+
+
+<div class="viewcode-block" id="valid_file"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.valid_file">[docs]</a><span class="k">def</span> <span class="nf">valid_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify if a file exists and is not empty.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file_path : str</span>
+<span class="sd">        Path to file to check</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        True if file exists and is non-zero size,</span>
+<span class="sd">        False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">stat</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span><span class="o">.</span><span class="n">st_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+        <span class="c1"># catch TypeError for nonsense paths, e.g. None</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="verify_resources"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.verify_resources">[docs]</a><span class="k">def</span> <span class="nf">verify_resources</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify if a set of files exists and is not empty.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    message : str</span>
+<span class="sd">        Message to display with raised ResourceError</span>
+<span class="sd">    *args : List of str</span>
+<span class="sd">        Path(s) of file(s) to be checked</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ResourceError</span>
+<span class="sd">        If any of the resources does not exist or is empty</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">invalid</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">args</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">invalid</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">invalid</span><span class="p">))</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="create_prefix_folders"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.create_prefix_folders">[docs]</a><span class="k">def</span> <span class="nf">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a directory tree contained in a prefix.</span>
+
+<span class="sd">    prefix : str</span>
+<span class="sd">        Prefix containing directory tree</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dirname</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dirname</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">makedirs</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="makedirs"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.makedirs">[docs]</a><span class="k">def</span> <span class="nf">makedirs</span><span class="p">(</span><span class="n">directories</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create directory subtree, some or all of the folders</span>
+<span class="sd">    may already exist.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    directories : str</span>
+<span class="sd">        Directory subtree to create</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">directories</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="insert_dir"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.insert_dir">[docs]</a><span class="k">def</span> <span class="nf">insert_dir</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">dirs</span><span class="p">,</span> <span class="n">rootname_subdir</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create new path by inserting additional</span>
+<span class="sd">    directories into the folder tree of prefix</span>
+<span class="sd">    (but keeping the filename prefix at the end),</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    prefix : str</span>
+<span class="sd">        Prefix of path that should be extended</span>
+<span class="sd">    *dirs : str</span>
+<span class="sd">        Add these directories at the end of path</span>
+<span class="sd">    rootname_subdir : bool, optional (default: True)</span>
+<span class="sd">        Given /my/path/prefix,</span>
+
+<span class="sd">        * if True, creates structure like</span>
+<span class="sd">          /my/path/prefix/*dirs/prefix</span>
+
+<span class="sd">        * if False, creates structure like</span>
+<span class="sd">          /my/path/*dirs/prefix</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Extended path</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">base_dir</span><span class="p">,</span> <span class="n">rootname</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rootname_subdir</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="o">*</span><span class="n">dirs</span><span class="p">,</span> <span class="n">rootname</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_dir</span><span class="p">,</span> <span class="o">*</span><span class="n">dirs</span><span class="p">,</span> <span class="n">rootname</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="temp"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.temp">[docs]</a><span class="k">def</span> <span class="nf">temp</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a temporary file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Path of temporary file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">handle</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="tempdir"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.tempdir">[docs]</a><span class="k">def</span> <span class="nf">tempdir</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a temporary directory</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Path of temporary directory</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="write_file"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.write_file">[docs]</a><span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">content</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Writes content to output file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file_path : str</span>
+<span class="sd">        Path of output file</span>
+<span class="sd">    content : str</span>
+<span class="sd">        Content to be written to file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">content</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.get">[docs]</a><span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">output_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">allow_redirects</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Download external resource</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    url : str</span>
+<span class="sd">        URL of resource that should be downloaded</span>
+<span class="sd">    output_path: str, optional</span>
+<span class="sd">        Save contents of URL to this file</span>
+<span class="sd">        (only for text files)</span>
+<span class="sd">    allow_redirects: bool</span>
+<span class="sd">        Allow redirects by server or not</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    r : requests.models.Response</span>
+<span class="sd">        Response object, use r.text to access text,</span>
+<span class="sd">        r.json() to decode json, and r.content for</span>
+<span class="sd">        raw bytestring</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ResourceError</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">allow_redirects</span><span class="o">=</span><span class="n">allow_redirects</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid status code (</span><span class="si">{}</span><span class="s2">) for URL: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">url</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">output_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">write_file</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+                    <span class="s2">&quot;Could not save to file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+        <span class="k">return</span> <span class="n">r</span>
+
+    <span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">()</span> <span class="kn">from</span> <span class="nn">e</span></div>
+
+
+<div class="viewcode-block" id="get_urllib"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.system.get_urllib">[docs]</a><span class="k">def</span> <span class="nf">get_urllib</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">output_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Download external resource to file using urllib.</span>
+<span class="sd">    This function is intended for cases where get()</span>
+<span class="sd">    implemented using requests can not be used, e.g.</span>
+<span class="sd">    for download from an FTP server.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    url : str</span>
+<span class="sd">        URL of resource that should be downloaded</span>
+<span class="sd">    output_path: str, optional</span>
+<span class="sd">        Save contents of URL to this file</span>
+<span class="sd">        (only for text files)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span> <span class="k">as</span> <span class="n">r</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfileobj</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

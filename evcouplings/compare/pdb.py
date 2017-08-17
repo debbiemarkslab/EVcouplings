@@ -55,6 +55,7 @@ PDB_FORMAT = (
     "{element_symbol:>2}{charge:>2}"
 )
 
+
 class Chain:
     """
     Container for PDB chain residue and coordinate information
@@ -201,20 +202,22 @@ class Chain:
             to new identifiers.
 
             mapping may either be:
+
             1. dict(str -> str) to map individual residue
                IDs. Keys and values of dictionary will be
                typecast to string before the mapping, so it
                is possible to pass in integer values too
                (if the source or target IDs are numbers)
+
             2. dict((int, int) -> (int, int)) to map ranges
                of numbers to ranges of numbers. This should
                typically be only used with RESSEQ or UniProt
-               numbering. End index or range is *inclusive*
+               numbering. End index or range is \*inclusive*\
                Note that residue IDs in the end will still
                be handled as strings when mapping.
 
         source_id: {"seqres_id", "coord_id", "id"}, optional (default: "seqres_id")
-            Residue identifier in chain to map *from*
+            Residue identifier in chain to map \*from*\
             (will be used as key to access mapping)
 
         Returns
@@ -265,9 +268,11 @@ class Chain:
         Note that PDB files written this function may not 
         be 100% compliant with the PDB format standards,
         in particular:
+
         * some HETATM records may turn into ATOM records
           when starting from an mmtf file, if the record
           has a one-letter code (such as MSE / M).
+
         * code does not print TER record at the end of
           a peptide chain
         

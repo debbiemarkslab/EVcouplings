@@ -1,0 +1,398 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.visualize.misc &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.visualize.misc</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.visualize.misc</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Miscellaneous visualization functions</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+
+<div class="viewcode-block" id="plot_context"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.misc.plot_context">[docs]</a><span class="k">def</span> <span class="nf">plot_context</span><span class="p">(</span><span class="n">font</span><span class="o">=</span><span class="s2">&quot;Helvetica&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+                 <span class="n">axis_label_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">axis_title_size</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+                 <span class="n">axis_line_width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">tick_label_size</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+                 <span class="n">tick_direction</span><span class="o">=</span><span class="s2">&quot;out&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+                 <span class="n">additional_param_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Syntactic sugar for matplotlib rc_context defaulting</span>
+<span class="sd">    to values useable for nice figures</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    font : str, optional (default: &quot;Helvetica&quot;)</span>
+<span class="sd">        Default font (make sure this font is added to</span>
+<span class="sd">        fonts available to matplotlib)</span>
+<span class="sd">    size : float, optional (default: 12)</span>
+<span class="sd">        Default font size</span>
+<span class="sd">    axis_label_size : float, optional (default: 12)</span>
+<span class="sd">        Default size of axis labels</span>
+<span class="sd">    axis_title_size : float, optional (default: 14)</span>
+<span class="sd">        Default size of axis titles</span>
+<span class="sd">    axis_line_width : float, optional (default: 1)</span>
+<span class="sd">        Default line width</span>
+<span class="sd">    tick_label_size : float, optional (default: 12)</span>
+<span class="sd">        Default tick label size</span>
+<span class="sd">    tick_direction : {&quot;in&quot;, &quot;out&quot;}, optional (default: &quot;out&quot;)</span>
+<span class="sd">        Direction of axis ticks</span>
+<span class="sd">    dpi : int, optional (default: 300)</span>
+<span class="sd">        Resolution of plot in dpi</span>
+<span class="sd">    additional_param_dict : dict, optional (default: None)</span>
+<span class="sd">        Additional parameters passed to matplotlib.rc_context</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    matplotlib.rc_context</span>
+<span class="sd">        Context for matplotlib plotting</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">rc_context</span>
+    <span class="n">param_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;font.family&quot;</span><span class="p">:</span> <span class="n">font</span><span class="p">,</span>
+        <span class="s2">&quot;font.size&quot;</span><span class="p">:</span> <span class="n">size</span><span class="p">,</span>
+        <span class="s2">&quot;axes.labelsize&quot;</span><span class="p">:</span> <span class="n">axis_label_size</span><span class="p">,</span>
+        <span class="s2">&quot;axes.titlesize&quot;</span><span class="p">:</span> <span class="n">axis_title_size</span><span class="p">,</span>
+        <span class="s2">&quot;axes.linewidth&quot;</span><span class="p">:</span> <span class="n">axis_line_width</span><span class="p">,</span>
+        <span class="s2">&quot;xtick.labelsize&quot;</span><span class="p">:</span> <span class="n">tick_label_size</span><span class="p">,</span>
+        <span class="s2">&quot;ytick.labelsize&quot;</span><span class="p">:</span> <span class="n">tick_label_size</span><span class="p">,</span>
+        <span class="s2">&quot;xtick.direction&quot;</span><span class="p">:</span> <span class="n">tick_direction</span><span class="p">,</span>
+        <span class="s2">&quot;ytick.direction&quot;</span><span class="p">:</span> <span class="n">tick_direction</span><span class="p">,</span>
+        <span class="s2">&quot;figure.dpi&quot;</span><span class="p">:</span> <span class="n">dpi</span><span class="p">,</span>
+        <span class="s2">&quot;savefig.dpi&quot;</span><span class="p">:</span> <span class="n">dpi</span><span class="p">,</span>
+        <span class="s2">&quot;savefig.bbox&quot;</span><span class="p">:</span> <span class="s2">&quot;tight&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;pdf.fonttype&quot;</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="c1"># add additional parameters</span>
+    <span class="k">if</span> <span class="n">additional_param_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">param_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">param_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="o">+</span> <span class="n">additional_param_dict</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">rc_context</span><span class="p">(</span><span class="n">param_dict</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="remove_chart_junk"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.misc.remove_chart_junk">[docs]</a><span class="k">def</span> <span class="nf">remove_chart_junk</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remove</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;top&quot;</span><span class="p">,</span> <span class="s2">&quot;right&quot;</span><span class="p">),</span>
+                      <span class="n">x_ticks_loc</span><span class="o">=</span><span class="s2">&quot;bottom&quot;</span><span class="p">,</span> <span class="n">y_ticks_loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+                      <span class="n">hide_x_labels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">hide_y_labels</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remove unnecessary plot axis, ticks etc.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ax : matplotlib Axes object</span>
+<span class="sd">            Remove chart junk from this axis</span>
+<span class="sd">        remove : list, optional (default: [&quot;top&quot;, &quot;right&quot;])</span>
+<span class="sd">            Remove the selected axis. Options:</span>
+<span class="sd">            [&quot;top&quot;, &quot;bottom&quot;, &quot;right&quot;, &quot;left&quot;]:</span>
+<span class="sd">        x_ticks_loc : str, optional (default: &quot;bottom&quot;)</span>
+<span class="sd">            Location of x-axis ticks. Set &quot;none&quot; to hide</span>
+<span class="sd">            ticks completely.</span>
+<span class="sd">        y_ticks_loc : str, optional (default: &quot;left&quot;)</span>
+<span class="sd">            Location of y-axis ticks. Set &quot;none&quot; to hide</span>
+<span class="sd">            ticks completely.</span>
+<span class="sd">        hide_x_label : bool, optional (default: False)</span>
+<span class="sd">            Hide x-tick labels on x-axis</span>
+<span class="sd">        hide_y_label : bool, optional (default: False)</span>
+<span class="sd">            Hide y-tick labels on y-axis</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">remove</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="n">line</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="n">x_ticks_loc</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="n">y_ticks_loc</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">hide_x_labels</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">(),</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">hide_y_labels</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">(),</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="rgb2hex"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.misc.rgb2hex">[docs]</a><span class="k">def</span> <span class="nf">rgb2hex</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transform RGB color into hexadecimal format</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    r : float</span>
+<span class="sd">        Red component (0-1)</span>
+<span class="sd">    g : float</span>
+<span class="sd">        Green component (0-1)</span>
+<span class="sd">    b : float</span>
+<span class="sd">        Blue component (0-1)</span>
+<span class="sd">    a : float, optional (default: None)</span>
+<span class="sd">        Alpha channel, will be ignored</span>
+<span class="sd">        (exists only for convenient rgba</span>
+<span class="sd">        tuple unpacking)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Hexadecimal color code (prefixed by #)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;#</span><span class="si">{:02x}{:02x}{:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="nb">int</span><span class="p">(</span><span class="mi">255</span> <span class="o">*</span> <span class="n">r</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="mi">255</span> <span class="o">*</span> <span class="n">g</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="mi">255</span> <span class="o">*</span> <span class="n">b</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="colormap"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.misc.colormap">[docs]</a><span class="k">def</span> <span class="nf">colormap</span><span class="p">(</span><span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">colormap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">RdBu_r</span><span class="p">,</span> <span class="n">to_hex</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Helper function to create a color mapper</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    min_value : float</span>
+<span class="sd">        Minimum value of mapping range</span>
+<span class="sd">        (corresponding to one end of colormap)</span>
+<span class="sd">    max_value : float</span>
+<span class="sd">        Maximum value of mapping range</span>
+<span class="sd">        (corresponding to other end of colormap)</span>
+<span class="sd">    colormap : matplotlib.colors.LinearSegmentedColormap</span>
+<span class="sd">        Colormap used to map numbers</span>
+<span class="sd">    to_hex : bool, optional (default: True)</span>
+<span class="sd">        If True, mapper returns hexadecimal color codes, otherwise</span>
+<span class="sd">        RGBA tuples</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    function</span>
+<span class="sd">        Function that can be used to map values to colors</span>
+<span class="sd">        (takes single value argument, returns color)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="n">min_value</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">max_value</span><span class="p">)</span>
+    <span class="n">mapper</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">ScalarMappable</span><span class="p">(</span><span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">colormap</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_colmap</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">to_hex</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rgb2hex</span><span class="p">(</span><span class="o">*</span><span class="n">mapper</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mapper</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_colmap</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

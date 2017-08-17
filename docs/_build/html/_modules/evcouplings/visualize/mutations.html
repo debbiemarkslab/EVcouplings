@@ -1,0 +1,967 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.visualize.mutations &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.visualize.mutations</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.visualize.mutations</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Visualization of mutation effects</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">isnan</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">bokeh</span> <span class="k">import</span> <span class="n">plotting</span> <span class="k">as</span> <span class="n">bp</span>
+<span class="kn">from</span> <span class="nn">bokeh.core.properties</span> <span class="k">import</span> <span class="n">value</span> <span class="k">as</span> <span class="n">bokeh_value</span>
+<span class="kn">from</span> <span class="nn">bokeh.models</span> <span class="k">import</span> <span class="n">HoverTool</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.couplings.model</span> <span class="k">import</span> <span class="n">CouplingsModel</span>
+<span class="kn">from</span> <span class="nn">evcouplings.visualize.pairs</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">secondary_structure_cartoon</span><span class="p">,</span> <span class="n">find_secondary_structure_segments</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.visualize.pymol</span> <span class="k">import</span> <span class="n">pymol_mapping</span>
+<span class="kn">from</span> <span class="nn">evcouplings.mutate.calculations</span> <span class="k">import</span> <span class="n">split_mutants</span>
+<span class="kn">from</span> <span class="nn">evcouplings.visualize.misc</span> <span class="k">import</span> <span class="n">rgb2hex</span><span class="p">,</span> <span class="n">colormap</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.calculations</span> <span class="k">import</span> <span class="n">entropy_vector</span>
+
+<span class="n">AA_LIST_PROPERTY</span> <span class="o">=</span> <span class="s2">&quot;WFYPMILVAGCSTQNDEHRK&quot;</span>
+
+
+<div class="viewcode-block" id="plot_mutation_matrix"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.mutations.plot_mutation_matrix">[docs]</a><span class="k">def</span> <span class="nf">plot_mutation_matrix</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">mutant_column</span><span class="o">=</span><span class="s2">&quot;mutant&quot;</span><span class="p">,</span>
+                         <span class="n">effect_column</span><span class="o">=</span><span class="s2">&quot;prediction_epistatic&quot;</span><span class="p">,</span>
+                         <span class="n">conservation_column</span><span class="o">=</span><span class="s2">&quot;column_conservation&quot;</span><span class="p">,</span>
+                         <span class="n">order</span><span class="o">=</span><span class="n">AA_LIST_PROPERTY</span><span class="p">,</span>
+                         <span class="n">min_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">min_percentile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_percentile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">show_conservation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                         <span class="n">secondary_structure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;mpl&quot;</span><span class="p">,</span>
+                         <span class="o">**</span><span class="n">matrix_style</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot a single-substitution mutation matrix</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source : evcouplings.couplings.CouplingsModel or pandas.DataFrame</span>
+<span class="sd">        Plot single mutation matrix predicted using CouplingsModel,</span>
+<span class="sd">        or effect data for single mutations DataFrame</span>
+<span class="sd">    mutant_column : str, optional (default: &quot;mutant&quot;)</span>
+<span class="sd">        If using source dataframe, extract single mutations from this column.</span>
+<span class="sd">        Mutations have to be in format A100V.</span>
+<span class="sd">    effect_column : str, optional (default: &quot;prediction_epistatic&quot;)</span>
+<span class="sd">        If using source dataframe, extract mutation effect from this column.</span>
+<span class="sd">        Effects must be numeric.</span>
+<span class="sd">    conservation_column : str, optional (default: &quot;column_conservation&quot;)</span>
+<span class="sd">        If using source dataframe, extract column conservation information</span>
+<span class="sd">        from this column. Conservation values must be between 0 and 1. To</span>
+<span class="sd">        plot conservation, set show_conservation=True.</span>
+<span class="sd">    order : str or list, optional (default: AA_LIST_PROPERTY)</span>
+<span class="sd">        Reorder y-axis (substitutions) according to this parameter. If None,</span>
+<span class="sd">        substitutions will be inferred from source, and sorted alphabetically</span>
+<span class="sd">        if source is a DataFrame.</span>
+<span class="sd">    min_value : float, optional (default: None)</span>
+<span class="sd">        Threshold colormap at this minimum value. If None, defaults to</span>
+<span class="sd">        minimum value in matrix; if max_value is also None, defaults to</span>
+<span class="sd">        -max(abs(matrix))</span>
+<span class="sd">    max_value : float, optional (default: None)</span>
+<span class="sd">        Threshold colormap at this maximum value. If None, defaults to</span>
+<span class="sd">        maximum value in matrix; if min_value is also None, defaults to</span>
+<span class="sd">        max(abs(matrix))</span>
+<span class="sd">    min_percentile : int or float, optional (default: None)</span>
+<span class="sd">        Set min_value to this percentile of the effect distribution. Overrides</span>
+<span class="sd">        min_value.</span>
+<span class="sd">    max_percentile : int or float, optional (default: None)</span>
+<span class="sd">        Set max_value to this percentile of the effect distribution. Overrides</span>
+<span class="sd">        max_value.</span>
+<span class="sd">    show_conservation : bool, optional (default: False)</span>
+<span class="sd">        Plot positional conservation underneath matrix. Only possible for</span>
+<span class="sd">        engine == &quot;mpl&quot;.</span>
+<span class="sd">    secondary_structure : dict or pd.DataFrame</span>
+<span class="sd">        Secondary structure to plot above matrix.</span>
+<span class="sd">        Can be a dictionary of position (int) to</span>
+<span class="sd">        secondary structure character (&quot;H&quot;, &quot;E&quot;, &quot;-&quot;/&quot;C&quot;),</span>
+<span class="sd">        or a DataFrame with columns &quot;id&quot; and &quot;sec_struct_3state&quot;</span>
+<span class="sd">        (as returned by Chain.residues, and DistanceMap.residues_i</span>
+<span class="sd">        and DistanceMap.residues_j). Only supported by engine == &quot;mpl&quot;.</span>
+<span class="sd">    engine : {&quot;mpl&quot;, &quot;bokeh&quot;}</span>
+<span class="sd">        Plot matrix using matplotlib (static, more visualization options)</span>
+<span class="sd">        or with bokeh (interactive, less visualization options)</span>
+<span class="sd">    **matrix_style : kwargs</span>
+<span class="sd">        Will be passed on to matrix_base_mpl or matrix_base_bokeh as kwargs</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    matplotlib AxesSuplot or bokeh Figure</span>
+<span class="sd">        Figure/Axes object. Display bokeh figure using show().</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_extract_secstruct</span><span class="p">(</span><span class="n">secondary_structure</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract secondary structure for plotting functions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># turn into dictionary representation if</span>
+        <span class="c1"># passed as a DataFrame</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">secondary_structure</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="n">secondary_structure</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="nb">zip</span><span class="p">(</span>
+                    <span class="n">secondary_structure</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+                    <span class="n">secondary_structure</span><span class="o">.</span><span class="n">sec_struct_3state</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># make sure we only retain secondary structure</span>
+        <span class="c1"># inside the range of the mutation matrix</span>
+        <span class="n">secondary_structure</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">i</span><span class="p">:</span> <span class="n">sstr</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">sstr</span><span class="p">)</span> <span class="ow">in</span> <span class="n">secondary_structure</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">positions</span>
+        <span class="p">}</span>
+
+        <span class="n">secstruct_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">secondary_structure</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">secstruct_str</span>
+
+    <span class="n">conservation</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># test if we will extract information from CouplingsModel,</span>
+    <span class="c1"># or from a dataframe with mutations</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">CouplingsModel</span><span class="p">):</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">smm</span><span class="p">()</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">index_list</span>
+        <span class="n">substitutions</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">alphabet</span>
+        <span class="n">wildtype_sequence</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">seq</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">show_conservation</span><span class="p">:</span>
+            <span class="n">conservation</span> <span class="o">=</span> <span class="n">entropy_vector</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># extract position, WT and subs for each mutant, and keep singles only</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">split_mutants</span><span class="p">(</span>
+            <span class="n">source</span><span class="p">,</span> <span class="n">mutant_column</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;num_mutations == 1&quot;</span><span class="p">)</span>
+
+        <span class="c1"># turn positions into numbers (may be strings)</span>
+        <span class="n">source</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;pos&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;pos&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># same for effects, ensure they are numeric</span>
+        <span class="n">source</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">effect_column</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span>
+            <span class="n">source</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">effect_column</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">substitutions</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">subs</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+
+        <span class="c1"># group dataframe to get positional information</span>
+        <span class="n">source_grp</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;pos&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;pos&quot;</span><span class="p">)</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">source_grp</span><span class="o">.</span><span class="n">pos</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">wildtype_sequence</span> <span class="o">=</span> <span class="n">source_grp</span><span class="o">.</span><span class="n">wt</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="k">if</span> <span class="n">show_conservation</span><span class="p">:</span>
+            <span class="n">source_grp</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">conservation_column</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span>
+                <span class="n">source_grp</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">conservation_column</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span>
+            <span class="p">)</span>
+            <span class="n">conservation</span> <span class="o">=</span> <span class="n">source_grp</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">conservation_column</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="c1"># create mutation effect matrix</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">substitutions</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+        <span class="c1"># mapping from position/substitution into matrix</span>
+        <span class="n">pos_to_i</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">positions</span><span class="p">)}</span>
+        <span class="n">subs_to_j</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="n">j</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">substitutions</span><span class="p">)}</span>
+
+        <span class="c1"># fill matrix with values</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">matrix</span><span class="p">[</span><span class="n">pos_to_i</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">]],</span> <span class="n">subs_to_j</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;subs&quot;</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="n">effect_column</span><span class="p">]</span>
+
+    <span class="c1"># reorder substitutions</span>
+    <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">matrix_final</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">substitutions</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">substitutions_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">substitutions</span><span class="p">)</span>
+
+        <span class="c1"># go through new order row by row and put in right place</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">subs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">order</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">subs</span> <span class="ow">in</span> <span class="n">substitutions</span><span class="p">:</span>
+                <span class="n">matrix_final</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[:,</span> <span class="n">substitutions_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">subs</span><span class="p">)]</span>
+
+        <span class="c1"># set substitutions to new list</span>
+        <span class="n">substitutions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">matrix_final</span> <span class="o">=</span> <span class="n">matrix</span>
+
+    <span class="c1"># determine ranges for matrix colormaps</span>
+    <span class="c1"># get effects without NaNs</span>
+    <span class="n">effects</span> <span class="o">=</span> <span class="n">matrix_final</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">effects</span> <span class="o">=</span> <span class="n">effects</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">effects</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">min_percentile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">min_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">effects</span><span class="p">,</span> <span class="n">min_percentile</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">max_percentile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">effects</span><span class="p">,</span> <span class="n">max_percentile</span><span class="p">)</span>
+
+    <span class="n">matrix_style</span><span class="p">[</span><span class="s2">&quot;min_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">min_value</span>
+    <span class="n">matrix_style</span><span class="p">[</span><span class="s2">&quot;max_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_value</span>
+
+    <span class="c1"># extract secondary structure</span>
+    <span class="k">if</span> <span class="n">secondary_structure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">secondary_structure_str</span> <span class="o">=</span> <span class="n">_extract_secstruct</span><span class="p">(</span><span class="n">secondary_structure</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">secondary_structure_str</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">engine</span> <span class="o">==</span> <span class="s2">&quot;mpl&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">matrix_base_mpl</span><span class="p">(</span>
+            <span class="n">matrix_final</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">substitutions</span><span class="p">,</span>
+            <span class="n">conservation</span><span class="o">=</span><span class="n">conservation</span><span class="p">,</span>
+            <span class="n">wildtype_sequence</span><span class="o">=</span><span class="n">wildtype_sequence</span><span class="p">,</span>
+            <span class="n">secondary_structure</span><span class="o">=</span><span class="n">secondary_structure_str</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">matrix_style</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">engine</span> <span class="o">==</span> <span class="s2">&quot;bokeh&quot;</span><span class="p">:</span>
+        <span class="c1"># cannot pass conservation for bokeh</span>
+        <span class="k">return</span> <span class="n">matrix_base_bokeh</span><span class="p">(</span>
+            <span class="n">matrix_final</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">substitutions</span><span class="p">,</span>
+            <span class="n">wildtype_sequence</span><span class="o">=</span><span class="n">wildtype_sequence</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">matrix_style</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid plotting engine selected, valid options are: &quot;</span>
+            <span class="s2">&quot;mpl, bokeh&quot;</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="matrix_base_bokeh"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.mutations.matrix_base_bokeh">[docs]</a><span class="k">def</span> <span class="nf">matrix_base_bokeh</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">substitutions</span><span class="p">,</span>
+                      <span class="n">wildtype_sequence</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+                      <span class="n">min_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">colormap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">RdBu_r</span><span class="p">,</span> <span class="n">na_color</span><span class="o">=</span><span class="s2">&quot;#bbbbbb&quot;</span><span class="p">,</span>
+                      <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Bokeh-based interactive mutation matrix plotting. This is the base</span>
+<span class="sd">    plotting function, see plot_mutation_matrix() for more convenient access.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    matrix : np.array(float)</span>
+<span class="sd">        2D numpy array with values for individual single mutations</span>
+<span class="sd">        (first axis: position, second axis: substitution)</span>
+<span class="sd">    positions : list(int) or list(str)</span>
+<span class="sd">        List of positions along x-axis of matrix</span>
+<span class="sd">        (length has to agree with first dimension of matrix)</span>
+<span class="sd">    substitutions : list(str)</span>
+<span class="sd">        List of substitutions along y-axis of matrix</span>
+<span class="sd">        (length has to agree with second dimension of matrix)</span>
+<span class="sd">    wildtype_sequence : str or list(str), optional (default: None)</span>
+<span class="sd">        Sequence of wild-type symbols. If given, will indicate wild-type</span>
+<span class="sd">        entries in matrix with a dot.</span>
+<span class="sd">    label_size : int, optional (default: 8)</span>
+<span class="sd">        Font size of x/y-axis labels.</span>
+<span class="sd">    min_value : float, optional (default: None)</span>
+<span class="sd">        Threshold colormap at this minimum value. If None, defaults to</span>
+<span class="sd">        minimum value in matrix; if max_value is also None, defaults to</span>
+<span class="sd">        -max(abs(matrix))</span>
+<span class="sd">    max_value : float, optional (default: None)</span>
+<span class="sd">        Threshold colormap at this maximum value. If None, defaults to</span>
+<span class="sd">        maximum value in matrix; if min_value is also None, defaults to</span>
+<span class="sd">        max(abs(matrix))</span>
+<span class="sd">    colormap : matplotlib colormap object, optional (default: plt.cm.RdBu_r)</span>
+<span class="sd">        Maps mutation effects to colors of matrix cells.</span>
+<span class="sd">    na_color : str, optional (default: &quot;#bbbbbb&quot;)</span>
+<span class="sd">        Color for missing values in matrix</span>
+<span class="sd">    title : str, optional (default: None)</span>
+<span class="sd">        If given, set title of plot to this value.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bokeh.plotting.figure.Figure</span>
+<span class="sd">        Bokeh figure (for displaying or saving)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># figure out maximum and minimum values for color map</span>
+    <span class="k">if</span> <span class="n">max_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">min_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">matrix</span><span class="p">))</span>
+        <span class="n">min_value</span> <span class="o">=</span> <span class="o">-</span><span class="n">max_value</span>
+    <span class="k">elif</span> <span class="n">min_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">min_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">max_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+
+    <span class="c1"># use matplotlib colormaps to create color values,</span>
+    <span class="c1"># set ranges based on given values</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="n">min_value</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">max_value</span><span class="p">)</span>
+    <span class="n">mapper</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">ScalarMappable</span><span class="p">(</span><span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">colormap</span><span class="p">)</span>
+
+    <span class="c1"># build list of values for plotting from source matrix</span>
+    <span class="n">pos_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">subs_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">color_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">effect_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># go through values on x-axis (substitutions)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">positions</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">wildtype_sequence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">wt_symbol</span> <span class="o">=</span> <span class="n">wildtype_sequence</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wt_symbol</span><span class="p">,</span> <span class="n">pos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">wt_symbol</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="c1"># go through all values on y-axis (substitutions)</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">subs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">substitutions</span><span class="p">):</span>
+            <span class="n">pos_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+            <span class="n">subs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">subs</span><span class="p">))</span>
+
+            <span class="n">cur_effect</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">isnan</span><span class="p">(</span><span class="n">cur_effect</span><span class="p">):</span>
+                <span class="n">cur_effect_str</span> <span class="o">=</span> <span class="s2">&quot;n/a&quot;</span>
+                <span class="n">color_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">na_color</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cur_effect_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:.2f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cur_effect</span><span class="p">)</span>
+                <span class="n">color_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">rgb2hex</span><span class="p">(</span><span class="o">*</span><span class="n">mapper</span><span class="o">.</span><span class="n">to_rgba</span><span class="p">(</span><span class="n">cur_effect</span><span class="p">))</span>
+                <span class="p">)</span>
+
+            <span class="c1"># attach info if this is WT to WT self substitution</span>
+            <span class="k">if</span> <span class="n">subs</span> <span class="o">==</span> <span class="n">wt_symbol</span><span class="p">:</span>
+                <span class="n">cur_effect_str</span> <span class="o">+=</span> <span class="s2">&quot; (WT)&quot;</span>
+
+            <span class="n">effect_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cur_effect_str</span><span class="p">)</span>
+
+    <span class="n">source</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">ColumnDataSource</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">position</span><span class="o">=</span><span class="n">pos_list</span><span class="p">,</span>
+            <span class="n">substitution</span><span class="o">=</span><span class="n">subs_list</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="n">color_list</span><span class="p">,</span>
+            <span class="n">effect</span><span class="o">=</span><span class="n">effect_list</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">TOOLS</span> <span class="o">=</span> <span class="s2">&quot;resize,hover&quot;</span>
+    <span class="n">height_factor</span> <span class="o">=</span> <span class="mi">12</span>
+    <span class="n">width_factor</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="c1"># create lists of values for x- and y-axes, which will be</span>
+    <span class="c1"># axis labels;</span>
+    <span class="c1"># keep all of these as strings so we can have WT/substitution</span>
+    <span class="c1"># symbol in the label</span>
+    <span class="k">if</span> <span class="n">wildtype_sequence</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">positions</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wildtype_sequence</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">p</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="n">substitutions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">substitutions</span><span class="p">))</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">bp</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+        <span class="n">x_range</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">y_range</span><span class="o">=</span><span class="n">substitutions</span><span class="p">,</span>
+        <span class="n">x_axis_location</span><span class="o">=</span><span class="s2">&quot;above&quot;</span><span class="p">,</span> <span class="n">plot_width</span><span class="o">=</span><span class="n">width_factor</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">),</span>
+        <span class="n">plot_height</span><span class="o">=</span><span class="n">height_factor</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">substitutions</span><span class="p">),</span>
+        <span class="n">toolbar_location</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">tools</span><span class="o">=</span><span class="n">TOOLS</span>
+    <span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">rect</span><span class="p">(</span>
+        <span class="s2">&quot;position&quot;</span><span class="p">,</span> <span class="s2">&quot;substitution&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="n">line_color</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span>
+
+    <span class="c1"># modify plot style</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">grid_line_color</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">axis_line_color</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">major_tick_line_color</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">major_label_text_font_size</span> <span class="o">=</span> <span class="n">bokeh_value</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">pt&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">label_size</span><span class="p">))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">axis</span><span class="o">.</span><span class="n">major_label_standoff</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">major_label_orientation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">toolbar_location</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">select_one</span><span class="p">(</span><span class="n">HoverTool</span><span class="p">)</span><span class="o">.</span><span class="n">tooltips</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;mutant&#39;</span><span class="p">,</span> <span class="s1">&#39;@position @substitution&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;effect&#39;</span><span class="p">,</span> <span class="s1">&#39;@effect&#39;</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="matrix_base_mpl"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.mutations.matrix_base_mpl">[docs]</a><span class="k">def</span> <span class="nf">matrix_base_mpl</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">substitutions</span><span class="p">,</span> <span class="n">conservation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">secondary_structure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">wildtype_sequence</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">min_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">colormap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">RdBu_r</span><span class="p">,</span>
+                    <span class="n">colormap_conservation</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Oranges</span><span class="p">,</span> <span class="n">na_color</span><span class="o">=</span><span class="s2">&quot;#bbbbbb&quot;</span><span class="p">,</span>
+                    <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">position_label_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">substitution_label_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+                    <span class="n">show_colorbar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">colorbar_indicate_bounds</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">show_wt_char</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">label_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">secondary_structure_style</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Matplotlib-based mutation matrix plotting. This is the base plotting function,</span>
+<span class="sd">    see plot_mutation_matrix() for more convenient access.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    matrix : np.array(float)</span>
+<span class="sd">        2D numpy array with values for individual single mutations</span>
+<span class="sd">        (first axis: position, second axis: substitution)</span>
+<span class="sd">    positions : list(int) or list(str)</span>
+<span class="sd">        List of positions along x-axis of matrix</span>
+<span class="sd">        (length has to agree with first dimension of matrix)</span>
+<span class="sd">    substitutions : list(str)</span>
+<span class="sd">        List of substitutions along y-axis of matrix</span>
+<span class="sd">        (length has to agree with second dimension of matrix)</span>
+<span class="sd">    conservation : list(float) or np.array(float), optional (default: None)</span>
+<span class="sd">        Positional conservation along sequence. Values must range</span>
+<span class="sd">        between 0 (not conserved) and 1 (fully conserved). If given,</span>
+<span class="sd">        will plot conservation along bottom of mutation matrix.</span>
+<span class="sd">    secondary_structure : str or list(str), optional (default: None)</span>
+<span class="sd">        Secondary structure for each position along sequence. If given,</span>
+<span class="sd">        will draw secondary structure cartoon on top of matrix.</span>
+<span class="sd">    wildtype_sequence : str or list(str), optional (default: None)</span>
+<span class="sd">        Sequence of wild-type symbols. If given, will indicate wild-type</span>
+<span class="sd">        entries in matrix with a dot.</span>
+<span class="sd">    min_value : float, optional (default: None)</span>
+<span class="sd">        Threshold colormap at this minimum value. If None, defaults to</span>
+<span class="sd">        minimum value in matrix; if max_value is also None, defaults to</span>
+<span class="sd">        -max(abs(matrix))</span>
+<span class="sd">    max_value : float, optional (default: None)</span>
+<span class="sd">        Threshold colormap at this maximum value. If None, defaults to</span>
+<span class="sd">        maximum value in matrix; if min_value is also None, defaults to</span>
+<span class="sd">        max(abs(matrix))</span>
+<span class="sd">    ax : Matplotlib axes object, optional (default: None)</span>
+<span class="sd">        Draw mutation matrix on this axis. If None, new figure and axis</span>
+<span class="sd">        will be created.</span>
+<span class="sd">    colormap : matplotlib colormap object, optional (default: plt.cm.RdBu_r)</span>
+<span class="sd">        Maps mutation effects to colors of matrix cells.</span>
+<span class="sd">    colormap_conservation: matplotlib colormap object, optional (default: plt.cm.Oranges)</span>
+<span class="sd">        Maps sequence conservation to colors of conservation vector plot.</span>
+<span class="sd">    na_color : str, optional (default: &quot;#bbbbbb&quot;)</span>
+<span class="sd">        Color for missing values in matrix</span>
+<span class="sd">    title : str, optional (default: None)</span>
+<span class="sd">        If given, set title of plot to this value.</span>
+<span class="sd">    position_label_size : int, optional (default: 8)</span>
+<span class="sd">        Font size of x-axis labels.</span>
+<span class="sd">    substitution_label_size : int, optional (default: 8)</span>
+<span class="sd">        Font size of y-axis labels.</span>
+<span class="sd">    show_colorbar : bool, optional (default: True)</span>
+<span class="sd">        If True, show colorbar next to matrix.</span>
+<span class="sd">    colorbar_indicate_bounds : bool, optional (default: False)</span>
+<span class="sd">        If True, add greater-than/less-than signs to limits of colorbar</span>
+<span class="sd">        to indicate that colors were thresholded at min_value/max_value</span>
+<span class="sd">    show_wt_char : bool, optional (default: True)</span>
+<span class="sd">        Display wild-type symbol in axis labels</span>
+<span class="sd">    label_filter : function, optional (default: None)</span>
+<span class="sd">        Function with one argument (integer) that determines if a certain position</span>
+<span class="sd">        label will be printed (if label_filter(pos)==True) or not.</span>
+<span class="sd">    secondary_structure_style : dict, optional (default: None)</span>
+<span class="sd">        Pass on as **kwargs to evcouplings.visualize.pairs.secondary_structure_cartoon</span>
+<span class="sd">        to determine appearance of secondary structure cartoon.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ax : Matplotlib axes object</span>
+<span class="sd">        Axes on which mutation matrix was drawn</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LINEWIDTH</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">LABEL_X_OFFSET</span> <span class="o">=</span> <span class="mf">0.55</span>
+    <span class="n">LABEL_Y_OFFSET</span> <span class="o">=</span> <span class="mf">0.45</span>
+
+    <span class="k">def</span> <span class="nf">_draw_rect</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y_range</span><span class="p">,</span> <span class="n">linewidth</span><span class="p">):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Rectangle</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">x_range</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">y_range</span><span class="p">)),</span>
+            <span class="nb">max</span><span class="p">(</span><span class="n">x_range</span><span class="p">)</span> <span class="o">-</span> <span class="nb">min</span><span class="p">(</span><span class="n">x_range</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">y_range</span><span class="p">)</span> <span class="o">-</span> <span class="nb">min</span><span class="p">(</span><span class="n">y_range</span><span class="p">),</span>
+            <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span>
+        <span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+
+    <span class="n">matrix_width</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">matrix_height</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">substitutions</span><span class="p">)</span>
+
+    <span class="c1"># mask NaN entries in mutation matrix</span>
+    <span class="n">matrix_masked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">matrix</span><span class="p">),</span> <span class="n">matrix</span><span class="p">)</span>
+
+    <span class="c1"># figure out maximum and minimum values for color map</span>
+    <span class="k">if</span> <span class="n">max_value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">min_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">matrix_masked</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">min_value</span> <span class="o">=</span> <span class="o">-</span><span class="n">max_value</span>
+    <span class="k">elif</span> <span class="n">min_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">min_value</span> <span class="o">=</span> <span class="n">matrix_masked</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">max_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_value</span> <span class="o">=</span> <span class="n">matrix_masked</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="c1"># set NaN color value in colormaps</span>
+    <span class="n">colormap</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">colormap</span><span class="p">)</span>
+    <span class="n">colormap</span><span class="o">.</span><span class="n">set_bad</span><span class="p">(</span><span class="n">na_color</span><span class="p">)</span>
+    <span class="n">colormap_conservation</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">colormap_conservation</span><span class="p">)</span>
+    <span class="n">colormap_conservation</span><span class="o">.</span><span class="n">set_bad</span><span class="p">(</span><span class="n">na_color</span><span class="p">)</span>
+
+    <span class="c1"># determine size of plot (depends on how much tracks</span>
+    <span class="c1"># with information we will add)</span>
+    <span class="n">num_rows</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">substitutions</span><span class="p">)</span> <span class="o">+</span>
+        <span class="p">(</span><span class="n">conservation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">+</span>
+        <span class="p">(</span><span class="n">secondary_structure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">ratio</span> <span class="o">=</span> <span class="n">matrix_width</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_rows</span><span class="p">)</span>
+
+    <span class="c1"># create axis, if not given</span>
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="n">ratio</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+    <span class="c1"># make square-shaped matrix cells</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">,</span> <span class="s2">&quot;box&quot;</span><span class="p">)</span>
+
+    <span class="c1"># define matrix coordinates</span>
+    <span class="c1"># always add +1 because coordinates are used by</span>
+    <span class="c1"># pcolor(mesh) as beginning and start of rectangles</span>
+    <span class="n">x_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">matrix_width</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">y_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">matrix_height</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">y_range_avg</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">x_range_avg</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">matrix_width</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">matrix_width</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">y_range_cons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_range_avg</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.5</span>
+
+    <span class="c1"># coordinates for text labels (fixed axis)</span>
+    <span class="n">x_left_subs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">x_range</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">x_right_subs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">x_range_avg</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">conservation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">y_bottom_res</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">y_range_avg</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">y_bottom_res</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">y_range_cons</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span>
+
+    <span class="c1"># coordinates for additional annotation</span>
+    <span class="n">y_ss</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">y_range</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+
+    <span class="c1"># 1) main mutation matrix</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y_range</span><span class="p">)</span>
+    <span class="n">cm</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">matrix_masked</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">max_value</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">min_value</span>
+    <span class="p">)</span>
+    <span class="n">_draw_rect</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y_range</span><span class="p">,</span> <span class="n">LINEWIDTH</span><span class="p">)</span>
+
+    <span class="c1"># 2) mean column effect (bottom &quot;subplot&quot;)</span>
+    <span class="n">mean_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">matrix_masked</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">X_pos</span><span class="p">,</span> <span class="n">Y_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y_range_avg</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span>
+        <span class="n">X_pos</span><span class="p">,</span> <span class="n">Y_pos</span><span class="p">,</span> <span class="n">mean_pos</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">max_value</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">min_value</span>
+    <span class="p">)</span>
+    <span class="n">_draw_rect</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y_range_avg</span><span class="p">,</span> <span class="n">LINEWIDTH</span><span class="p">)</span>
+
+    <span class="c1"># 3) amino acid average (right &quot;subplot&quot;)</span>
+    <span class="n">mean_aa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">matrix_masked</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">X_aa</span><span class="p">,</span> <span class="n">Y_aa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x_range_avg</span><span class="p">,</span> <span class="n">y_range</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">X_aa</span><span class="p">,</span> <span class="n">Y_aa</span><span class="p">,</span> <span class="n">mean_aa</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">max_value</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="n">min_value</span><span class="p">)</span>
+    <span class="n">_draw_rect</span><span class="p">(</span><span class="n">x_range_avg</span><span class="p">,</span> <span class="n">y_range</span><span class="p">,</span> <span class="n">LINEWIDTH</span><span class="p">)</span>
+
+    <span class="c1"># mark wildtype residues</span>
+    <span class="k">if</span> <span class="n">wildtype_sequence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">subs_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">substitutions</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">wt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">wildtype_sequence</span><span class="p">):</span>
+            <span class="c1"># skip unspecified entries</span>
+            <span class="k">if</span> <span class="n">wt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">wt</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">marker</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Circle</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">x_range</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">y_range</span><span class="p">[</span><span class="n">subs_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">wt</span><span class="p">)]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">),</span>
+                    <span class="mf">0.1</span><span class="p">,</span> <span class="n">fc</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">ax</span>
+                <span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+
+    <span class="c1"># put labels along both axes of matrix</span>
+
+    <span class="c1"># x-axis (positions)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">positions</span><span class="p">):</span>
+        <span class="c1"># filter labels, if selected</span>
+        <span class="k">if</span> <span class="n">label_filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">label_filter</span><span class="p">(</span><span class="n">pos</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># determine what position label should be</span>
+        <span class="k">if</span> <span class="n">show_wt_char</span> <span class="ow">and</span> <span class="n">wildtype_sequence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wildtype_sequence</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">pos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+            <span class="n">i</span> <span class="o">+</span> <span class="n">LABEL_X_OFFSET</span><span class="p">,</span> <span class="n">y_bottom_res</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">position_label_size</span><span class="p">,</span>
+            <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span>
+            <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span>
+            <span class="n">rotation</span><span class="o">=</span><span class="mi">90</span>
+        <span class="p">)</span>
+
+    <span class="c1"># y-axis (substitutions)</span>
+    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">subs</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">y_range</span><span class="p">,</span> <span class="n">substitutions</span><span class="p">):</span>
+        <span class="c1"># put on lefthand side of matrix...</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+            <span class="n">x_left_subs</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="n">LABEL_Y_OFFSET</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">substitution_label_size</span><span class="p">,</span>
+            <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span>
+            <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># ...and on right-hand side of matrix</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+            <span class="n">x_right_subs</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="n">LABEL_Y_OFFSET</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">substitution_label_size</span><span class="p">,</span>
+            <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># draw colorbar</span>
+    <span class="k">if</span> <span class="n">show_colorbar</span><span class="p">:</span>
+        <span class="n">cb</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span>
+            <span class="n">cm</span><span class="p">,</span> <span class="n">ticks</span><span class="o">=</span><span class="p">[</span><span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">],</span>
+            <span class="n">shrink</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.15</span> <span class="o">/</span> <span class="n">ratio</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="mi">8</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">colorbar_indicate_bounds</span><span class="p">:</span>
+            <span class="n">symbol_min</span><span class="p">,</span> <span class="n">symbol_max</span> <span class="o">=</span> <span class="sa">u</span><span class="s2">&quot;</span><span class="se">\u2264</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;</span><span class="se">\u2265</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">symbol_min</span><span class="p">,</span> <span class="n">symbol_max</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="n">cb</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s2">&quot;</span><span class="si">{symbol}</span><span class="s2"> {value:&gt;+</span><span class="si">{width}</span><span class="s2">.1f}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">symbol</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">v</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">0</span>
+                <span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">min_value</span><span class="p">,</span> <span class="n">symbol_min</span><span class="p">),</span> <span class="p">(</span><span class="n">max_value</span><span class="p">,</span> <span class="n">symbol_max</span><span class="p">)]</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">cb</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+        <span class="n">cb</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+        <span class="n">cb</span><span class="o">.</span><span class="n">outline</span><span class="o">.</span><span class="n">set_linewidth</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># plot secondary structure cartoon</span>
+    <span class="k">if</span> <span class="n">secondary_structure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># if no style given for secondary structure, set default</span>
+        <span class="k">if</span> <span class="n">secondary_structure_style</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">secondary_structure_style</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span>
+                <span class="s2">&quot;line_width&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="s2">&quot;strand_width_factor&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+                <span class="s2">&quot;helix_turn_length&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="s2">&quot;min_sse_length&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="p">}</span>
+
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">sse</span> <span class="o">=</span> <span class="n">find_secondary_structure_segments</span><span class="p">(</span><span class="n">secondary_structure</span><span class="p">)</span>
+        <span class="n">secondary_structure_cartoon</span><span class="p">(</span>
+            <span class="n">sse</span><span class="p">,</span> <span class="n">sequence_start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span> <span class="n">sequence_end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="n">y_ss</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">secondary_structure_style</span>
+        <span class="p">)</span>
+
+    <span class="c1"># plot conservation</span>
+    <span class="k">if</span> <span class="n">conservation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conservation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">conservation</span><span class="p">)[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="n">cons_masked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">conservation</span><span class="p">),</span> <span class="n">conservation</span><span class="p">)</span>
+        <span class="n">X_cons</span><span class="p">,</span> <span class="n">Y_cons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y_range_cons</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span>
+            <span class="n">X_cons</span><span class="p">,</span> <span class="n">Y_cons</span><span class="p">,</span> <span class="n">cons_masked</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">colormap_conservation</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+        <span class="n">_draw_rect</span><span class="p">(</span><span class="n">x_range</span><span class="p">,</span> <span class="n">y_range_cons</span><span class="p">,</span> <span class="n">LINEWIDTH</span><span class="p">)</span>
+
+    <span class="c1"># remove chart junk</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;top&#39;</span><span class="p">,</span> <span class="s1">&#39;bottom&#39;</span><span class="p">,</span> <span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">]:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="n">line</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">(),</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">setp</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">(),</span> <span class="n">visible</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ax</span></div>
+
+
+<div class="viewcode-block" id="mutation_pymol_script"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.mutations.mutation_pymol_script">[docs]</a><span class="k">def</span> <span class="nf">mutation_pymol_script</span><span class="p">(</span><span class="n">mutation_table</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span>
+                          <span class="n">effect_column</span><span class="o">=</span><span class="s2">&quot;prediction_epistatic&quot;</span><span class="p">,</span>
+                          <span class="n">mutant_column</span><span class="o">=</span><span class="s2">&quot;mutant&quot;</span><span class="p">,</span> <span class="n">agg_func</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+                          <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">RdBu_r</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Pymol .pml script to visualize single mutation</span>
+<span class="sd">    effects</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mutation_table : pandas.DataFrame</span>
+<span class="sd">        Table with mutation effects (will be filtered</span>
+<span class="sd">        for single mutants)</span>
+<span class="sd">    output_file : str</span>
+<span class="sd">        File path where to store pml script</span>
+<span class="sd">    effect_column : str, optional (default: &quot;prediction_epistatic&quot;)</span>
+<span class="sd">        Column in mutation_table that contains mutation effects</span>
+<span class="sd">    mutant_column : str, optional (default: &quot;mutant&quot;)</span>
+<span class="sd">        Column in mutation_table that contains mutations</span>
+<span class="sd">        (in format &quot;A123G&quot;)</span>
+<span class="sd">    agg_func : str, optional (default: &quot;mean&quot;)</span>
+<span class="sd">        Function used to aggregate single mutations into one</span>
+<span class="sd">        aggregated effect per position (any pandas aggregation</span>
+<span class="sd">        operation, including &quot;mean&quot;, &quot;min, &quot;max&quot;)</span>
+<span class="sd">    cmap : matplotlib.colors.LinearSegmentedColormap, optional</span>
+<span class="sd">            (default: plt.cm.RdBu_r)</span>
+<span class="sd">        Colormap used to map mutation effects to colors</span>
+<span class="sd">    chain : str, optional (default: None)</span>
+<span class="sd">        Use this PDB chain in residue selection</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If no single mutants contained in mutation_table</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># split mutation strings</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">split_mutants</span><span class="p">(</span><span class="n">mutation_table</span><span class="p">,</span> <span class="n">mutant_column</span><span class="p">)</span>
+
+    <span class="c1"># only pick single mutants</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;num_mutations == 1&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;mutation_table does not contain any single &quot;</span>
+            <span class="s2">&quot;amino acid substitutions.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># aggregate into positional information</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="n">effect_column</span><span class="p">]]</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;pos&quot;</span><span class="p">:</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="n">effect_column</span><span class="p">:</span> <span class="s2">&quot;effect&quot;</span><span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">t_agg</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">agg_func</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+    <span class="n">t_agg</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;i&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">t_agg</span><span class="o">.</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="c1"># map aggregated effects to colors</span>
+    <span class="n">max_val</span> <span class="o">=</span> <span class="n">t_agg</span><span class="o">.</span><span class="n">effect</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">mapper</span> <span class="o">=</span> <span class="n">colormap</span><span class="p">(</span><span class="o">-</span><span class="n">max_val</span><span class="p">,</span> <span class="n">max_val</span><span class="p">,</span> <span class="n">cmap</span><span class="p">)</span>
+    <span class="n">t_agg</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t_agg</span><span class="o">.</span><span class="n">effect</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">mapper</span><span class="p">)</span>
+    <span class="n">t_agg</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;show&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;spheres&quot;</span>
+
+    <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;, chain &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;as cartoon</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain_sel</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;color grey80</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain_sel</span><span class="p">))</span>
+
+        <span class="n">pymol_mapping</span><span class="p">(</span><span class="n">t_agg</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">chain</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="s2">&quot;CA&quot;</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

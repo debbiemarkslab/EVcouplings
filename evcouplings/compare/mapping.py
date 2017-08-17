@@ -39,10 +39,11 @@ def map_indices(seq_i, start_i, end_i,
     -------
     pandas.DataFrame
         Mapping table containing assignment of
-        1) index in first sequence (i)
-        2) symbol in first sequence (A_i)
-        3) index in second sequence (j)
-        4) symbol in second sequence (A_j)
+
+        1. index in first sequence (i)
+        2. symbol in first sequence (A_i)
+        3. index in second sequence (j)
+        4. symbol in second sequence (A_j)
     """
     NA = np.nan
     pos_i = start_i
@@ -98,13 +99,15 @@ def alignment_index_mapping(alignment_file, format="stockholm",
     -------
     pandas.DataFrame
         Mapping table containing assignment of
-        1) index in target sequence (i)
-        2) symbol in target sequence (A_i)
+
+        1. index in target sequence (i)
+        2. symbol in target sequence (A_i)
 
         For all other sequences in alignment, the following
         two columns:
-        3) index in second sequence (j_<sequence id>)
-        4) symbol in second sequence (A_j_<sequence_id>)
+
+        3. index in second sequence (j_<sequence id>)
+        4. symbol in second sequence (A_j_<sequence_id>)
     """
     # read alignment that is basis of mapping
     with open(alignment_file) as a:

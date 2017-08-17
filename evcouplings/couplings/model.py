@@ -510,8 +510,7 @@ class CouplingsModel:
         sequence : str, or list of chars
             Define a new default sequence for relative Hamiltonian
             calculations (e.g. energy difference relative to wild-type
-            sequence).
-            Length of sequence must correspond to model length (self.L)
+            sequence). Length of sequence must correspond to model length (self.L)
         """
         self._reset_precomputed()
 
@@ -1188,13 +1187,10 @@ class CouplingsModel:
         """
         Writes the potentially modified model again to binary file
 
-        Parameters:
-        -----------
-        outFile: A string specifying the path to a file
-
-        Returns:
-        --------
-        void
+        Parameters
+        ----------
+        out_file: str
+            A string specifying the path to a file
         """
         new = file_format.lower() == "plmc_v2"
         with open(out_file, "wb") as f:

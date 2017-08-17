@@ -63,8 +63,8 @@ class Command(object):
         """
         Class represents a command to be submitted and contains all relevant information
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         command: str/list(str)
             A single string or a list of strings representing the fully configured commands to be executed
         name: str
@@ -133,16 +133,18 @@ class APluginRegister(abc.ABCMeta):
 
 class ASubmitter(object, metaclass=APluginRegister):
     """
-    Iterface for all submitters
+    Interface for all submitters
     """
 
     @abc.abstractproperty
     def isBlocking(self):
         """
-        Inidactor whether the submitter is blocking or not
+        Indicator whether the submitter is blocking or not
 
-        Retruns:
-        bool - whether submitter blocks by calling join or not
+        Returns
+        -------
+        bool
+            whether submitter blocks by calling join or not
         """
         raise NotImplementedError
 
@@ -163,15 +165,15 @@ class ASubmitter(object, metaclass=APluginRegister):
         """
         Consumes job objects and starts them
 
-        Parameters:
+        Parameters
         ----------
          jobs: Command
             A list of Job objects that should be submitted
-        dependent: list(Command)
+         dependent: list(Command)
             A list of command objects the Command depend on
 
-        Returns:
-        --------
+        Returns
+        -------
         list(str)
             A list of jobIDs
         """
@@ -183,14 +185,15 @@ class ASubmitter(object, metaclass=APluginRegister):
         Consumes a list of jobIDs and trys to cancel them
 
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         command: Command
             The Command jobejct to cancel
 
-        Returns:
-        --------
-            bool - If job was canceled
+        Returns
+        -------
+        bool
+            If job was canceled
         """
         raise NotImplementedError
 
@@ -199,14 +202,15 @@ class ASubmitter(object, metaclass=APluginRegister):
         """
         Returns the status of the consumed command
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         command: Command
-            The command object whos status is inquired
+            The command object whose status is inquired
 
-        Returns:
-        --------
-        Enum(Status) - The status of the Command
+        Returns
+        -------
+        Enum(Status)
+            The status of the Command
         """
         raise NotImplementedError
 
@@ -376,7 +380,6 @@ class AClusterSubmitter(ASubmitter):
         except Exception as e:
             raise RuntimeError(e)
 
-        # TODO: update db - Delete entry or just update?
         entry = yaml.load(self.db[command.command_id], yaml.RoundTripLoader)
         entry["status"] = EStatus.EXIT
         self.db[command.command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
@@ -465,7 +468,8 @@ class LSFSubmitter(AClusterSubmitter):
         """
         Init function
 
-        Parameters:
+        Parameters
+        ----------
         blocking: bool
             determines whether join() blocks or not
         db_path: str
@@ -588,7 +592,8 @@ class SlurmSubmitter(AClusterSubmitter):
         """
         Init function
 
-        Parameters:
+        Parameters
+        ----------
         blocking: bool
             determines whether join() blocks or not
         db_path: str
@@ -684,9 +689,6 @@ class SlurmSubmitter(AClusterSubmitter):
         print("Split:", stdo.split("\n")[1].split()[4].strip())
         return status_map(stdo.split("\n")[1].split()[4].strip())
 
-
-
-
 ########################################################################################################################
 #
 # Local submitter
@@ -726,14 +728,14 @@ class _Worker(mp.Process):
         """
         local function to submit a job
 
-        Parameters:
-        ----------
+        Parameters
+        ---------
         command: Command
             The Command object to execute
 
         Returns
         -------
-        PId: str
+        str
             The process ID of the command
         """
         try:
@@ -897,14 +899,14 @@ class _Broker(mp.Process):
         """
         local function to monitor a command via assigned pID
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         command: Command
             The Command object
 
-        Returns:
-        --------
-        status: EStatus
+        Returns
+        -------
+        EStatus
             The status of the command
         """
         if command in self.__pending_dict:
@@ -952,8 +954,8 @@ class _Broker(mp.Process):
         """
         updates the status of a command
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         c_id: str
             The Command id
         status: EStatus
@@ -975,7 +977,8 @@ class LocalSubmitter(ASubmitter):
         """
         Init function
 
-        Parameters:
+        Parameter
+        ---------
         blocking: bool
             determines whether join() blocks or not
         db_path: str

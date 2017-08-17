@@ -1,0 +1,1132 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.compare.pdb &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.compare.pdb</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.compare.pdb</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">PDB structure handling based on MMTF format</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="k">import</span> <span class="n">path</span>
+<span class="kn">from</span> <span class="nn">urllib.error</span> <span class="k">import</span> <span class="n">HTTPError</span>
+
+<span class="kn">from</span> <span class="nn">mmtf</span> <span class="k">import</span> <span class="n">fetch</span><span class="p">,</span> <span class="n">parse</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="n">InvalidParameterError</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.constants</span> <span class="k">import</span> <span class="n">AA3_to_AA1</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.helpers</span> <span class="k">import</span> <span class="n">DefaultOrderedDict</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">valid_file</span><span class="p">,</span> <span class="n">ResourceError</span><span class="p">,</span> <span class="n">tempdir</span>
+<span class="p">)</span>
+
+<span class="c1"># Mapping from MMTF secondary structure codes to DSSP symbols</span>
+<span class="n">MMTF_DSSP_CODE_MAP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;I&quot;</span><span class="p">,</span>  <span class="c1"># pi helix</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;S&quot;</span><span class="p">,</span>  <span class="c1"># bend</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span>  <span class="c1"># alpha helix</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span>  <span class="c1"># extended</span>
+    <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;G&quot;</span><span class="p">,</span>  <span class="c1"># 3-10 helix</span>
+    <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span>  <span class="c1"># bridge</span>
+    <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span>  <span class="c1"># turn</span>
+    <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span>  <span class="c1"># coil</span>
+    <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>  <span class="c1"># undefined</span>
+<span class="p">}</span>
+
+<span class="c1"># Reduction to 3-state secondary structure annotation</span>
+<span class="n">DSSP_3_STATE_MAP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;H&quot;</span><span class="p">:</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;G&quot;</span><span class="p">:</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;I&quot;</span><span class="p">:</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;E&quot;</span><span class="p">:</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;B&quot;</span><span class="p">:</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;C&quot;</span><span class="p">:</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;S&quot;</span><span class="p">:</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># format string for PDB ATOM records</span>
+<span class="n">PDB_FORMAT</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;</span><span class="si">{atom:&lt;6s}{atom_id:&gt;5}</span><span class="s2"> &quot;</span>
+    <span class="s2">&quot;</span><span class="si">{atom_name:4s}{alt_loc_ind:1s}{residue_name:&lt;3s}</span><span class="s2"> &quot;</span>
+    <span class="s2">&quot;</span><span class="si">{chain_id:1s}{residue_id:&gt;4}{ins_code:1}</span><span class="s2">   &quot;</span>
+    <span class="s2">&quot;</span><span class="si">{x_coord:&gt;8.3f}{y_coord:&gt;8.3f}{z_coord:&gt;8.3f}</span><span class="s2">&quot;</span>
+    <span class="s2">&quot;</span><span class="si">{occupancy:&gt;6.2f}{temp_factor:&gt;6.2f}</span><span class="s2">          &quot;</span>
+    <span class="s2">&quot;</span><span class="si">{element_symbol:&gt;2}{charge:&gt;2}</span><span class="s2">&quot;</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="Chain"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.Chain">[docs]</a><span class="k">class</span> <span class="nc">Chain</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Container for PDB chain residue and coordinate information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create new PDB chain, indexed by residue coordinate</span>
+<span class="sd">        indeces</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        residues : pandas.DataFrame</span>
+<span class="sd">            List of residues (as computed by PDB.get_chain())</span>
+<span class="sd">        coords : pandas.DataFrame</span>
+<span class="sd">            List of atom coordinates (as computed by</span>
+<span class="sd">            PDB.get_chain())</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">residues</span> <span class="o">=</span> <span class="n">residues</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span>
+
+    <span class="k">def</span> <span class="nf">_update_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update residue identifiers, and remove any</span>
+<span class="sd">        residue that does not have new id. Also</span>
+<span class="sd">        removes corresponding atom coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ids : pandas.Series (or list-like)</span>
+<span class="sd">            New identifiers to be assigned to</span>
+<span class="sd">            residue table. Has to be of same length</span>
+<span class="sd">            in same order as residue table.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Chain</span>
+<span class="sd">            Chain with new residue identifiers</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">residues</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">residues</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">residues</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+
+        <span class="c1"># drop coordinates of residues that were not kept</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">residue_index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">residues</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="c1"># reset atom index to consecutive numbers from 0</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Chain</span><span class="p">(</span><span class="n">residues</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Chain.to_seqres"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.Chain.to_seqres">[docs]</a>    <span class="k">def</span> <span class="nf">to_seqres</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return copy of chain with main index set to</span>
+<span class="sd">        SEQRES numbering. Residues that do not have</span>
+<span class="sd">        a SEQRES id will be dropped.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Chain</span>
+<span class="sd">            Chain with seqres IDs as main index</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_ids</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;seqres_id&quot;</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Chain.filter_atoms"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.Chain.filter_atoms">[docs]</a>    <span class="k">def</span> <span class="nf">filter_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom_name</span><span class="o">=</span><span class="s2">&quot;CA&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filter coordinates of chain, e.g. to</span>
+<span class="sd">        compute C_alpha-C_alpha distances</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        atom_name : str or list-like, optional (default: &quot;CA&quot;)</span>
+<span class="sd">            Name(s) of atoms to keep</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Chain</span>
+<span class="sd">            Chain containing only filtered atoms (and those</span>
+<span class="sd">            residues that have such an atom)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atom_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">sel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">atom_name</span> <span class="o">==</span> <span class="n">atom_name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">atom_name</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">atom_name</span><span class="p">)</span>
+
+        <span class="c1"># update dataframe to rows having the right atom(s)</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># reset atom index to consecutive numbers from 0</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># if there are residues without any atoms, remove</span>
+        <span class="c1"># the entire residue</span>
+        <span class="n">residues</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">residue_index</span><span class="p">)</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">Chain</span><span class="p">(</span><span class="n">residues</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Chain.filter_positions"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.Chain.filter_positions">[docs]</a>    <span class="k">def</span> <span class="nf">filter_positions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positions</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Select a subset of positions from the chain</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        positions : list-like</span>
+<span class="sd">            Set of residues that will be kept</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Chain</span>
+<span class="sd">            Chain containing only the selected residues</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># map all positions to be strings</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">]</span>
+
+        <span class="n">residues</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># drop coordinates of residues that were not kept</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">residue_index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">residues</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="c1"># reset atom index to consecutive numbers from 0</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Chain</span><span class="p">(</span><span class="n">residues</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Chain.remap"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.Chain.remap">[docs]</a>    <span class="k">def</span> <span class="nf">remap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">,</span> <span class="n">source_id</span><span class="o">=</span><span class="s2">&quot;seqres_id&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remap chain into different numbering scheme</span>
+<span class="sd">        (e.g. from seqres to uniprot numbering)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mapping : dict</span>
+<span class="sd">            Mapping of residue identifiers from</span>
+<span class="sd">            source_id (current main index of PDB chain)</span>
+<span class="sd">            to new identifiers.</span>
+
+<span class="sd">            mapping may either be:</span>
+
+<span class="sd">            1. dict(str -&gt; str) to map individual residue</span>
+<span class="sd">               IDs. Keys and values of dictionary will be</span>
+<span class="sd">               typecast to string before the mapping, so it</span>
+<span class="sd">               is possible to pass in integer values too</span>
+<span class="sd">               (if the source or target IDs are numbers)</span>
+
+<span class="sd">            2. dict((int, int) -&gt; (int, int)) to map ranges</span>
+<span class="sd">               of numbers to ranges of numbers. This should</span>
+<span class="sd">               typically be only used with RESSEQ or UniProt</span>
+<span class="sd">               numbering. End index or range is \*inclusive*\</span>
+<span class="sd">               Note that residue IDs in the end will still</span>
+<span class="sd">               be handled as strings when mapping.</span>
+
+<span class="sd">        source_id: {&quot;seqres_id&quot;, &quot;coord_id&quot;, &quot;id&quot;}, optional (default: &quot;seqres_id&quot;)</span>
+<span class="sd">            Residue identifier in chain to map \*from*\</span>
+<span class="sd">            (will be used as key to access mapping)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Chain</span>
+<span class="sd">            Chain with remapped numbering (&quot;id&quot; column</span>
+<span class="sd">            in residues DataFrame)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># get one key to test which type of mapping we have</span>
+        <span class="c1"># (range-based, or individual residues)</span>
+        <span class="n">test_key</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+        <span class="c1"># test for range-based mapping</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_key</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># build up inidividual residue mapping</span>
+            <span class="n">final_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">source_start</span><span class="p">,</span> <span class="n">source_end</span><span class="p">),</span> <span class="p">(</span><span class="n">target_start</span><span class="p">,</span> <span class="n">target_end</span><span class="p">)</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">source</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+                    <span class="nb">str</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">source_start</span><span class="p">,</span> <span class="n">source_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="n">target</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
+                    <span class="nb">str</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">target_start</span><span class="p">,</span> <span class="n">target_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span>
+
+                <span class="n">final_mapping</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">target</span><span class="p">))</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># individual residue mapping, make sure all strings</span>
+            <span class="n">final_mapping</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">):</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+
+        <span class="c1"># remap identifiers using mapping</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">source_id</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="n">final_mapping</span><span class="p">,</span> <span class="n">na_action</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># create remapped chain</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_ids</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Chain.to_file"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.Chain.to_file">[docs]</a>    <span class="k">def</span> <span class="nf">to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fileobj</span><span class="p">,</span> <span class="n">chain_id</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write chain to a file in PDB format (mmCIF not yet</span>
+<span class="sd">        supported).</span>
+<span class="sd">        </span>
+<span class="sd">        Note that PDB files written this function may not </span>
+<span class="sd">        be 100% compliant with the PDB format standards,</span>
+<span class="sd">        in particular:</span>
+
+<span class="sd">        * some HETATM records may turn into ATOM records</span>
+<span class="sd">          when starting from an mmtf file, if the record</span>
+<span class="sd">          has a one-letter code (such as MSE / M).</span>
+
+<span class="sd">        * code does not print TER record at the end of</span>
+<span class="sd">          a peptide chain</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fileobj : file-like object</span>
+<span class="sd">            Write to this file handle</span>
+<span class="sd">        chain_id : str, optional (default: &quot;A&quot;)</span>
+<span class="sd">            Assign this chain name in file (allows to redefine</span>
+<span class="sd">            chain name from whatever chain was originally)</span>
+<span class="sd">        end : bool, optional (default: True)</span>
+<span class="sd">            Print &quot;END&quot; record after chain (signals end of PDB file)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># merge residue-level information and atom-level information</span>
+        <span class="c1"># in one joint table (i.e. the way data is presented in a</span>
+        <span class="c1"># PDB/mmCIF file)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">residues</span><span class="p">,</span> <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;residue_index&quot;</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+        <span class="c1"># write one atom at a time</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="c1"># split residue ID into position and insertion code</span>
+            <span class="n">cid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">cid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">isalpha</span><span class="p">():</span>
+                <span class="n">coord_id</span> <span class="o">=</span> <span class="n">cid</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">ins_code</span> <span class="o">=</span> <span class="n">cid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">coord_id</span> <span class="o">=</span> <span class="n">cid</span>
+                <span class="n">ins_code</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+            <span class="c1"># atom element</span>
+            <span class="n">element</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;element&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+            <span class="c1"># need to split atom name into element and specifier</span>
+            <span class="c1"># (e.g. beta carbon element:C, specifier:B) so we</span>
+            <span class="c1"># can correctly justify in the 4-column atom</span>
+            <span class="c1"># name field: first 2 (right-justified) are</span>
+            <span class="c1"># element, second 2 (left-justified) are specifier</span>
+            <span class="n">src_atom_name</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;atom_name&quot;</span><span class="p">]</span>
+
+            <span class="c1"># to make things more complicated, there are cases like</span>
+            <span class="c1"># HE21 (CNS) or 1HE2 (PDB) which break if assuming</span>
+            <span class="c1"># that atom_element == element. In these cases, we</span>
+            <span class="c1"># just use the full raw string</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">src_atom_name</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">atom_name</span> <span class="o">=</span> <span class="n">src_atom_name</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">atom_element</span> <span class="o">=</span> <span class="n">src_atom_name</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">element</span><span class="p">)]</span>
+                <span class="n">atom_spec</span> <span class="o">=</span> <span class="n">src_atom_name</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">element</span><span class="p">):]</span>
+                <span class="n">atom_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:&gt;2s}{:&lt;2s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">atom_element</span><span class="p">,</span> <span class="n">atom_spec</span><span class="p">)</span>
+
+            <span class="c1"># print charge if we have one (optional)</span>
+            <span class="n">charge</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;charge&quot;</span><span class="p">]</span>
+            <span class="c1"># test &lt; and &gt; to exclude nan values</span>
+            <span class="k">if</span> <span class="n">charge</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">charge</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">charge_sign</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span> <span class="k">if</span> <span class="n">charge</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;+&quot;</span>
+                <span class="n">charge_value</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">charge</span><span class="p">)</span>
+                <span class="n">charge_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">charge_value</span><span class="p">,</span> <span class="n">charge_sign</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">charge_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+            <span class="c1"># format line and write</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">PDB_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">atom</span><span class="o">=</span><span class="s2">&quot;HETATM&quot;</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;hetatm&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;ATOM&quot;</span><span class="p">,</span>
+                <span class="n">atom_id</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;atom_id&quot;</span><span class="p">],</span>
+                <span class="n">atom_name</span><span class="o">=</span><span class="n">atom_name</span><span class="p">,</span>
+                <span class="n">alt_loc_ind</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;alt_loc&quot;</span><span class="p">],</span>
+                <span class="n">residue_name</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;three_letter_code&quot;</span><span class="p">],</span>
+                <span class="n">chain_id</span><span class="o">=</span><span class="n">chain_id</span><span class="p">,</span>
+                <span class="n">residue_id</span><span class="o">=</span><span class="n">coord_id</span><span class="p">,</span>
+                <span class="n">ins_code</span><span class="o">=</span><span class="n">ins_code</span><span class="p">,</span>
+                <span class="n">x_coord</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span>
+                <span class="n">y_coord</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">],</span>
+                <span class="n">z_coord</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">],</span>
+                <span class="n">occupancy</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;occupancy&quot;</span><span class="p">],</span>
+                <span class="n">temp_factor</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;b_factor&quot;</span><span class="p">],</span>
+                <span class="n">element_symbol</span><span class="o">=</span><span class="n">element</span><span class="p">,</span>
+                <span class="n">charge</span><span class="o">=</span><span class="n">charge_str</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">fileobj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">end</span><span class="p">:</span>
+            <span class="n">fileobj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;END&quot;</span> <span class="o">+</span> <span class="mi">77</span> <span class="o">*</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="PDB"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.PDB">[docs]</a><span class="k">class</span> <span class="nc">PDB</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper around PDB MMTF decoder object to access residue and</span>
+<span class="sd">    coordinate information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mmtf</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize by further decoding information in mmtf object.</span>
+
+<span class="sd">        Normally one should use from_file() and from_id() class</span>
+<span class="sd">        methods to create object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mmtf : mmtf.api.mmtf_reader.MMTFDecoder</span>
+<span class="sd">            MMTF decoder object (as returned by fetch or parse</span>
+<span class="sd">            function in mmtf module)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_get_range</span><span class="p">(</span><span class="n">object_counts</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Extract index ranges for chains, residues and atoms</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">last_element</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">object_counts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">first_element</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">),</span> <span class="n">last_element</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">first_element</span><span class="p">,</span> <span class="n">last_element</span>
+
+        <span class="c1"># store raw MMTF decoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span> <span class="o">=</span> <span class="n">mmtf</span>
+
+        <span class="c1"># Step 1: summarize basic information about model</span>
+        <span class="c1"># number of models in structure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_models</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mmtf</span><span class="o">.</span><span class="n">chains_per_model</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_chain_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_chain_index</span> <span class="o">=</span> <span class="n">_get_range</span><span class="p">(</span>
+            <span class="n">mmtf</span><span class="o">.</span><span class="n">chains_per_model</span>
+        <span class="p">)</span>
+
+        <span class="c1"># collect list which chain corresponds to which entity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chain_to_entity</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ent</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mmtf</span><span class="o">.</span><span class="n">entity_list</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ent</span><span class="p">[</span><span class="s2">&quot;chainIndexList&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">chain_to_entity</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+
+        <span class="c1"># Step 2: identify residues and corresponding atom indices</span>
+
+        <span class="c1"># first/last index of residue (aka group) for each chain;</span>
+        <span class="c1"># index these lists with index of chain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_residue_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_residue_index</span> <span class="o">=</span> <span class="n">_get_range</span><span class="p">(</span>
+            <span class="n">mmtf</span><span class="o">.</span><span class="n">groups_per_chain</span>
+        <span class="p">)</span>
+
+        <span class="c1"># store explicit information about composition of residues</span>
+        <span class="k">def</span> <span class="nf">_group_info</span><span class="p">(</span><span class="n">field</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">mmtf</span><span class="o">.</span><span class="n">group_list</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="c1"># three and one letter code names of different groups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_residue_names_3</span> <span class="o">=</span> <span class="n">_group_info</span><span class="p">(</span><span class="s2">&quot;groupName&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_residue_names_1</span> <span class="o">=</span> <span class="n">_group_info</span><span class="p">(</span><span class="s2">&quot;singleLetterCode&quot;</span><span class="p">)</span>
+
+        <span class="c1"># atom types and overall number of atoms in each type of residue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_residue_type_atom_names</span> <span class="o">=</span> <span class="n">_group_info</span><span class="p">(</span><span class="s2">&quot;atomNameList&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_residue_type_elements</span> <span class="o">=</span> <span class="n">_group_info</span><span class="p">(</span><span class="s2">&quot;elementList&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_residue_type_charges</span> <span class="o">=</span> <span class="n">_group_info</span><span class="p">(</span><span class="s2">&quot;formalChargeList&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_residue_type_num_atoms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_residue_type_atom_names</span><span class="p">])</span>
+
+        <span class="c1"># prepare alternative location list as numpy array, with empty strings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alt_loc_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">mmtf</span><span class="o">.</span><span class="n">alt_loc_list</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># compute first and last atom index for each residue/group</span>
+        <span class="c1"># (by fetching corresponding length for each group based on group type)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_residue_num_atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_residue_type_num_atoms</span><span class="p">[</span><span class="n">mmtf</span><span class="o">.</span><span class="n">group_type_list</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_atom_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_atom_index</span> <span class="o">=</span> <span class="n">_get_range</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_residue_num_atoms</span>
+        <span class="p">)</span>
+
+        <span class="c1"># assemble residue ID strings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">residue_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">ins_code</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\x00</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">group_id</span><span class="p">,</span> <span class="n">ins_code</span>
+            <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">mmtf</span><span class="o">.</span><span class="n">group_id_list</span><span class="p">,</span> <span class="n">mmtf</span><span class="o">.</span><span class="n">ins_code_list</span><span class="p">)</span>
+        <span class="p">])</span>
+
+        <span class="c1"># map secondary structure codes into DSSP symbols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sec_struct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">MMTF_DSSP_CODE_MAP</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">mmtf</span><span class="o">.</span><span class="n">sec_struct_list</span><span class="p">]</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="PDB.from_file"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.PDB.from_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize structure from MMTF file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Path of MMTF file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PDB</span>
+<span class="sd">            initialized PDB structure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">parse</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+                <span class="s2">&quot;Could not find file </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span></div>
+
+<div class="viewcode-block" id="PDB.from_id"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.PDB.from_id">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_id</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pdb_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize structure by PDB ID (fetches</span>
+<span class="sd">        structure from RCSB servers)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pdb_id : str</span>
+<span class="sd">            PDB identifier (e.g. 1hzx)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PDB</span>
+<span class="sd">            initialized PDB structure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">fetch</span><span class="p">(</span><span class="n">pdb_id</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">HTTPError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+                <span class="s2">&quot;Could not fetch MMTF data for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pdb_id</span><span class="p">)</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span></div>
+
+<div class="viewcode-block" id="PDB.get_chain"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.PDB.get_chain">[docs]</a>    <span class="k">def</span> <span class="nf">get_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chain</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract residue information and atom coordinates</span>
+<span class="sd">        for a given chain in PDB structure</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chain : str</span>
+<span class="sd">            Name of chain to be extracted (e.g. &quot;A&quot;)</span>
+<span class="sd">        model : int, optional (default: 0)</span>
+<span class="sd">            Index of model to be extracted</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Chain</span>
+<span class="sd">            Chain object containing DataFrames listing residues</span>
+<span class="sd">            and atom coordinates</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">model</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_models</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Illegal model index, can be from 0 up to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">num_models</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># first and last index of chains corresponding to selected model</span>
+        <span class="n">first_chain_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_chain_index</span><span class="p">[</span><span class="n">model</span><span class="p">]</span>
+        <span class="n">last_chain_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_chain_index</span><span class="p">[</span><span class="n">model</span><span class="p">]</span>
+
+        <span class="c1"># which model chains match our target PDB chain?</span>
+        <span class="n">chain_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span><span class="o">.</span><span class="n">chain_name_list</span><span class="p">[</span><span class="n">first_chain_index</span><span class="p">:</span><span class="n">last_chain_index</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># indices of chains that match chain name, in current model</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">first_chain_index</span><span class="p">,</span> <span class="n">last_chain_index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">target_chain_indeces</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="n">chain_names</span> <span class="o">==</span> <span class="n">chain</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_chain_indeces</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;No chains with given name found&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># collect internal indeces of all residues/groups in chain</span>
+        <span class="n">residue_indeces</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first_residue_index</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_residue_index</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">target_chain_indeces</span>
+            <span class="p">])</span>
+        <span class="p">)</span>
+
+        <span class="c1"># chain indeces and identifiers for all residues</span>
+        <span class="c1"># (not to be confused with chain name!);</span>
+        <span class="c1"># maximum length 4 characters according to MMTF spec</span>
+        <span class="n">chain_indeces</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_residue_index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_residue_index</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">i</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span>
+            <span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">target_chain_indeces</span>
+        <span class="p">])</span>
+
+        <span class="n">chain_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span><span class="o">.</span><span class="n">chain_id_list</span><span class="p">)[</span><span class="n">chain_indeces</span><span class="p">]</span>
+
+        <span class="c1"># create dataframe representation of selected chain</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span>
+        <span class="n">group_types</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group_type_list</span><span class="p">[</span><span class="n">residue_indeces</span><span class="p">]</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">residue_ids</span><span class="p">[</span><span class="n">residue_indeces</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;seqres_id&quot;</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">sequence_index_list</span><span class="p">[</span><span class="n">residue_indeces</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;coord_id&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">residue_ids</span><span class="p">[</span><span class="n">residue_indeces</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;one_letter_code&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_residue_names_1</span><span class="p">[</span><span class="n">group_types</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;three_letter_code&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_residue_names_3</span><span class="p">[</span><span class="n">group_types</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;chain_index&quot;</span><span class="p">,</span> <span class="n">chain_indeces</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;chain_id&quot;</span><span class="p">,</span> <span class="n">chain_ids</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;sec_struct&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sec_struct</span><span class="p">[</span><span class="n">residue_indeces</span><span class="p">]),</span>
+        <span class="p">])</span>
+
+        <span class="n">res_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+        <span class="c1"># shift seqres indexing to start at 1;</span>
+        <span class="c1"># However, do not add to positions without sequence index (-1)</span>
+        <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">res_df</span><span class="o">.</span><span class="n">seqres_id</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;seqres_id&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># turn all indeces into strings and create proper NaN values</span>
+        <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;coord_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;coord_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;seqres_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;seqres_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-1&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># copy updated coordinate indeces</span>
+        <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;coord_id&quot;</span><span class="p">]</span>
+
+        <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;one_letter_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;one_letter_code&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;?&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;sec_struct&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;sec_struct&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+        <span class="c1"># reduction to 3-state secondary structure (following Rost &amp; Sander)</span>
+        <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;sec_struct&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">DSSP_3_STATE_MAP</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">na_action</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># proxy for HETATM records - will not work e.g. for MSE,</span>
+        <span class="c1"># which is listed as &quot;M&quot;</span>
+        <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;hetatm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_df</span><span class="o">.</span><span class="n">one_letter_code</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span>
+
+        <span class="c1"># finally, get atom names and coordinates for all residues</span>
+        <span class="n">atom_first</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_atom_index</span><span class="p">[</span><span class="n">residue_indeces</span><span class="p">]</span>
+        <span class="n">atom_last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_atom_index</span><span class="p">[</span><span class="n">residue_indeces</span><span class="p">]</span>
+        <span class="n">atom_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_residue_type_atom_names</span><span class="p">[</span><span class="n">group_types</span><span class="p">])</span>
+        <span class="n">elements</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_residue_type_elements</span><span class="p">[</span><span class="n">group_types</span><span class="p">])</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_residue_type_charges</span><span class="p">[</span><span class="n">group_types</span><span class="p">])</span>
+
+        <span class="n">residue_number</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">res_df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">atom_last</span> <span class="o">-</span> <span class="n">atom_first</span><span class="p">)</span>
+        <span class="n">atom_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first_atom_index</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_atom_index</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">residue_indeces</span>
+        <span class="p">])</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;residue_index&quot;</span><span class="p">,</span> <span class="n">residue_number</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;atom_id&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span><span class="o">.</span><span class="n">atom_id_list</span><span class="p">[</span><span class="n">atom_indices</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;atom_name&quot;</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;element&quot;</span><span class="p">,</span> <span class="n">elements</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;charge&quot;</span><span class="p">,</span> <span class="n">charges</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span><span class="o">.</span><span class="n">x_coord_list</span><span class="p">[</span><span class="n">atom_indices</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span><span class="o">.</span><span class="n">y_coord_list</span><span class="p">[</span><span class="n">atom_indices</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span><span class="o">.</span><span class="n">z_coord_list</span><span class="p">[</span><span class="n">atom_indices</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;alt_loc&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alt_loc_list</span><span class="p">[</span><span class="n">atom_indices</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;occupancy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span><span class="o">.</span><span class="n">occupancy_list</span><span class="p">[</span><span class="n">atom_indices</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;b_factor&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mmtf</span><span class="o">.</span><span class="n">b_factor_list</span><span class="p">[</span><span class="n">atom_indices</span><span class="p">]),</span>
+        <span class="p">])</span>
+
+        <span class="n">coord_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Chain</span><span class="p">(</span><span class="n">res_df</span><span class="p">,</span> <span class="n">coord_df</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ClassicPDB"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.ClassicPDB">[docs]</a><span class="k">class</span> <span class="nc">ClassicPDB</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to handle &quot;classic&quot; PDB and mmCIF formats</span>
+<span class="sd">    (for new mmtf format see PDB class above). Wraps</span>
+<span class="sd">    around Biopython PDB functionality to provide a consistent</span>
+<span class="sd">    interface.</span>
+<span class="sd">    </span>
+<span class="sd">    Unlike the PDB class (based on mmtf), this object will</span>
+<span class="sd">    not be able to extract SEQRES indices corresponding to</span>
+<span class="sd">    ATOM-record residue indices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">structure</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize from Biopython Structure object</span>
+
+<span class="sd">        Normally one should use from_file() class</span>
+<span class="sd">        method to create object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        structure : Bio.PDB.Structure.Structure</span>
+<span class="sd">            Biopython structure object (returned by</span>
+<span class="sd">            PDBParser, MMCIFParser or MMTFParser)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">models</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">m</span><span class="o">.</span><span class="n">get_id</span><span class="p">()</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_to_chains</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">m</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">c</span><span class="o">.</span><span class="n">get_id</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+            <span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span>
+        <span class="p">}</span>
+
+
+<div class="viewcode-block" id="ClassicPDB.from_file"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.ClassicPDB.from_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">file_format</span><span class="o">=</span><span class="s2">&quot;pdb&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize structure from PDB/mmCIF file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Path of file</span>
+<span class="sd">        file_format : {&quot;pdb&quot;, &quot;cif&quot;}, optional (default: &quot;pdb&quot;)</span>
+<span class="sd">            Format of structure (old PDB format or mmCIF)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ClassicPDB</span>
+<span class="sd">            Initialized PDB structure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">file_format</span> <span class="o">==</span> <span class="s2">&quot;pdb&quot;</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">Bio.PDB</span> <span class="k">import</span> <span class="n">PDBParser</span>
+                <span class="n">parser</span> <span class="o">=</span> <span class="n">PDBParser</span><span class="p">(</span><span class="n">QUIET</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">file_format</span> <span class="o">==</span> <span class="s2">&quot;cif&quot;</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">Bio.PDB</span> <span class="k">import</span> <span class="n">FastMMCIFParser</span>
+                <span class="n">parser</span> <span class="o">=</span> <span class="n">FastMMCIFParser</span><span class="p">(</span><span class="n">QUIET</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+                    <span class="s2">&quot;Invalid file_format, valid options are: pdb, cif&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">structure</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_structure</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+                <span class="s2">&quot;Could not find file </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span></div>
+
+<div class="viewcode-block" id="ClassicPDB.from_id"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.ClassicPDB.from_id">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_id</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pdb_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize structure by PDB ID (fetches</span>
+<span class="sd">        structure from RCSB servers)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pdb_id : str</span>
+<span class="sd">            PDB identifier (e.g. 1hzx)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PDB</span>
+<span class="sd">            initialized PDB structure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">urllib.error</span> <span class="k">import</span> <span class="n">URLError</span>
+        <span class="kn">from</span> <span class="nn">Bio.PDB</span> <span class="k">import</span> <span class="n">PDBList</span>
+        <span class="n">pdblist</span> <span class="o">=</span> <span class="n">PDBList</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># download PDB file to temporary directory</span>
+            <span class="n">pdb_file</span> <span class="o">=</span> <span class="n">pdblist</span><span class="o">.</span><span class="n">retrieve_pdb_file</span><span class="p">(</span><span class="n">pdb_id</span><span class="p">,</span> <span class="n">pdir</span><span class="o">=</span><span class="n">tempdir</span><span class="p">())</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">pdb_file</span><span class="p">,</span> <span class="n">file_format</span><span class="o">=</span><span class="s2">&quot;pdb&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">URLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+                <span class="s2">&quot;Could not fetch PDB data for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pdb_id</span><span class="p">)</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span></div>
+
+<div class="viewcode-block" id="ClassicPDB.get_chain"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.ClassicPDB.get_chain">[docs]</a>    <span class="k">def</span> <span class="nf">get_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chain</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract residue information and atom coordinates</span>
+<span class="sd">        for a given chain in PDB structure</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chain : str</span>
+<span class="sd">            Name of chain to be extracted (e.g. &quot;A&quot;)</span>
+<span class="sd">        model : int, optional (default: 0)</span>
+<span class="sd">            Index of model to be extracted</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Chain</span>
+<span class="sd">            Chain object containing DataFrames listing residues</span>
+<span class="sd">            and atom coordinates</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># check requested model is valid</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid model, valid models are: &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">models</span><span class="p">))</span>
+            <span class="p">)</span>
+
+        <span class="c1"># check requested chain is valid</span>
+        <span class="k">if</span> <span class="n">chain</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_to_chains</span><span class="p">[</span><span class="n">model</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid chain, valid chains are: &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_to_chains</span><span class="p">[</span><span class="n">model</span><span class="p">])</span>
+            <span class="p">)</span>
+
+        <span class="c1"># get current chain</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">[</span><span class="n">model</span><span class="p">][</span><span class="n">chain</span><span class="p">]</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">DefaultOrderedDict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">DefaultOrderedDict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+        <span class="c1"># iterate through all residues in chain and</span>
+        <span class="c1"># accumulate information for dataframe building</span>
+        <span class="k">for</span> <span class="n">r_idx</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+            <span class="n">het_flag</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">ins_code</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">get_id</span><span class="p">()</span>
+            <span class="n">ins_code</span> <span class="o">=</span> <span class="n">ins_code</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="c1"># print(&quot;x&quot; + het_flag + &quot;x&quot;, pos, &quot;.&quot; + ins_code + &quot;.&quot;)</span>
+
+            <span class="n">residue_id</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">ins_code</span><span class="p">)</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">residue_id</span><span class="p">)</span>
+            <span class="c1"># we don&#39;t have seqres ID from atom records, unless we</span>
+            <span class="c1"># parsed additional annotation in header / mmCIF dict</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;seqres_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;coord_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">residue_id</span><span class="p">)</span>
+
+            <span class="c1"># residue name in 3- and 1-letter code</span>
+            <span class="n">resname</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">get_resname</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">resname</span> <span class="ow">in</span> <span class="n">AA3_to_AA1</span><span class="p">:</span>
+                <span class="n">resname_one</span> <span class="o">=</span> <span class="n">AA3_to_AA1</span><span class="p">[</span><span class="n">resname</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">resname_one</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;one_letter_code&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resname_one</span><span class="p">)</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;three_letter_code&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get_resname</span><span class="p">())</span>
+
+            <span class="c1"># information that is only straightforward to get from mmtf</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;chain_index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;chain_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;sec_struct&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+            <span class="c1"># at least we can identify easily what the hetatms</span>
+            <span class="c1"># are (as opposed to mmtf)</span>
+            <span class="n">res</span><span class="p">[</span><span class="s2">&quot;hetatm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">het_flag</span> <span class="o">!=</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+
+            <span class="c1"># now iterate through all atoms for current residue</span>
+            <span class="c1"># and accumulate information; unpack atoms</span>
+            <span class="c1"># with multiple locations (altloc)</span>
+            <span class="k">for</span> <span class="n">a_idx</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get_unpacked_list</span><span class="p">()):</span>
+                <span class="c1"># this index links residues to coords</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;residue_index&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r_idx</span><span class="p">)</span>
+                <span class="c1"># atom-specific information</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;atom_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">get_serial_number</span><span class="p">())</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;atom_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">get_name</span><span class="p">())</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;element&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">element</span><span class="p">)</span>
+                <span class="c1"># cannot get charge information from Biopython?</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;charge&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">get_coord</span><span class="p">()</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;alt_loc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">a</span><span class="o">.</span><span class="n">get_altloc</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;occupancy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">get_occupancy</span><span class="p">())</span>
+                <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;b_factor&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">get_bfactor</span><span class="p">())</span>
+
+        <span class="c1"># create residue table</span>
+        <span class="n">res_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+        <span class="c1"># make sure that residue ids are strings</span>
+        <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;coord_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">res_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;coord_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># create coordinate table</span>
+        <span class="n">coord_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Chain</span><span class="p">(</span><span class="n">res_df</span><span class="p">,</span> <span class="n">coord_df</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="load_structures"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.pdb.load_structures">[docs]</a><span class="k">def</span> <span class="nf">load_structures</span><span class="p">(</span><span class="n">pdb_ids</span><span class="p">,</span> <span class="n">structure_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">raise_missing</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load PDB structures from files / web</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pdb_ids : Iterable</span>
+<span class="sd">        List / iterable containing PDB identifiers</span>
+<span class="sd">        to be loaded.</span>
+<span class="sd">    structure_dir : str, optional (default: None)</span>
+<span class="sd">        Path to directory with structures. Structures</span>
+<span class="sd">        filenames must be in the format 5p21.mmtf.</span>
+<span class="sd">        If a file can not be found, will try to fetch</span>
+<span class="sd">        from web instead.</span>
+<span class="sd">    raise_missing : bool, optional (default: True)</span>
+<span class="sd">        Raise a ResourceError exception if any of the</span>
+<span class="sd">        PDB IDs cannot be loaded. If False, missing</span>
+<span class="sd">        entries will be ignored.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    structures : dict(str -&gt; PDB)</span>
+<span class="sd">        Dictionary containing loaded structures.</span>
+<span class="sd">        Keys (PDB identifiers) will be lower-case.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ResourceError</span>
+<span class="sd">        Raised if raise_missing is True and any of the given</span>
+<span class="sd">        PDB IDs cannot be loaded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># collect loaded structures in dict(id -&gt; PDB)</span>
+    <span class="n">structures</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># load structure by structure</span>
+    <span class="k">for</span> <span class="n">pdb_id</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">pdb_ids</span><span class="p">):</span>
+        <span class="n">pdb_id</span> <span class="o">=</span> <span class="n">pdb_id</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="n">has_file</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">structure_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">structure_file</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">structure_dir</span><span class="p">,</span> <span class="n">pdb_id</span> <span class="o">+</span> <span class="s2">&quot;.mmtf&quot;</span><span class="p">)</span>
+            <span class="n">has_file</span> <span class="o">=</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">structure_file</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># see if we can load locally from disk</span>
+            <span class="k">if</span> <span class="n">has_file</span><span class="p">:</span>
+                <span class="n">structures</span><span class="p">[</span><span class="n">pdb_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">PDB</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">structure_file</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># otherwise fetch from web</span>
+                <span class="n">structures</span><span class="p">[</span><span class="n">pdb_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">PDB</span><span class="o">.</span><span class="n">from_id</span><span class="p">(</span><span class="n">pdb_id</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">ResourceError</span><span class="p">,</span> <span class="ne">UnicodeDecodeError</span><span class="p">):</span>
+            <span class="c1"># ResourceError: invalid PDB ID</span>
+            <span class="c1"># UnicodeDecodeError: some random problem with mmtf library</span>
+            <span class="k">if</span> <span class="n">raise_missing</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+    <span class="k">return</span> <span class="n">structures</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

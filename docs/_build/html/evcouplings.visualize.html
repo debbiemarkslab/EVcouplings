@@ -1,0 +1,1143 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.visualize package &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="index.html"/>
+        <link rel="up" title="Alignment" href="evcouplings.html"/>
+        <link rel="next" title="evcouplings.utils package" href="evcouplings.utils.html"/>
+        <link rel="prev" title="evcouplings.fold package" href="evcouplings.fold.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="evcouplings.html#visualization">Visualization</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">evcouplings.visualize package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.visualize.misc">evcouplings.visualize.misc module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.visualize.mutations">evcouplings.visualize.mutations module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.visualize.pairs">evcouplings.visualize.pairs module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.visualize.parameters">evcouplings.visualize.parameters module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.visualize.pymol">evcouplings.visualize.pymol module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="evcouplings.html">Alignment</a> &raquo;</li>
+        
+      <li>evcouplings.visualize package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/evcouplings.visualize.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="evcouplings-visualize-package">
+<h1>evcouplings.visualize package<a class="headerlink" href="#evcouplings-visualize-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-evcouplings.visualize.misc">
+<span id="evcouplings-visualize-misc-module"></span><h2>evcouplings.visualize.misc module<a class="headerlink" href="#module-evcouplings.visualize.misc" title="Permalink to this headline">¶</a></h2>
+<p>Miscellaneous visualization functions</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.visualize.misc.colormap">
+<code class="descclassname">evcouplings.visualize.misc.</code><code class="descname">colormap</code><span class="sig-paren">(</span><em>min_value</em>, <em>max_value</em>, <em>colormap=&lt;matplotlib.colors.LinearSegmentedColormap object&gt;</em>, <em>to_hex=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/misc.html#colormap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.misc.colormap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to create a color mapper</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>min_value</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Minimum value of mapping range
+(corresponding to one end of colormap)</li>
+<li><strong>max_value</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Maximum value of mapping range
+(corresponding to other end of colormap)</li>
+<li><strong>colormap</strong> (<em>matplotlib.colors.LinearSegmentedColormap</em>) – Colormap used to map numbers</li>
+<li><strong>to_hex</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – If True, mapper returns hexadecimal color codes, otherwise
+RGBA tuples</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Function that can be used to map values to colors
+(takes single value argument, returns color)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">function</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.misc.plot_context">
+<code class="descclassname">evcouplings.visualize.misc.</code><code class="descname">plot_context</code><span class="sig-paren">(</span><em>font='Helvetica'</em>, <em>size=12</em>, <em>axis_label_size=12</em>, <em>axis_title_size=14</em>, <em>axis_line_width=1</em>, <em>tick_label_size=12</em>, <em>tick_direction='out'</em>, <em>dpi=300</em>, <em>additional_param_dict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/misc.html#plot_context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.misc.plot_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Syntactic sugar for matplotlib rc_context defaulting
+to values useable for nice figures</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>font</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;Helvetica&quot;</em><em>)</em>) – Default font (make sure this font is added to
+fonts available to matplotlib)</li>
+<li><strong>size</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 12</em><em>)</em>) – Default font size</li>
+<li><strong>axis_label_size</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 12</em><em>)</em>) – Default size of axis labels</li>
+<li><strong>axis_title_size</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 14</em><em>)</em>) – Default size of axis titles</li>
+<li><strong>axis_line_width</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 1</em><em>)</em>) – Default line width</li>
+<li><strong>tick_label_size</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 12</em><em>)</em>) – Default tick label size</li>
+<li><strong>tick_direction</strong> (<em>{&quot;in&quot;</em><em>, </em><em>&quot;out&quot;}</em><em>, </em><em>optional</em><em> (</em><em>default: &quot;out&quot;</em><em>)</em>) – Direction of axis ticks</li>
+<li><strong>dpi</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 300</em><em>)</em>) – Resolution of plot in dpi</li>
+<li><strong>additional_param_dict</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Additional parameters passed to matplotlib.rc_context</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Context for matplotlib plotting</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">matplotlib.rc_context</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.misc.remove_chart_junk">
+<code class="descclassname">evcouplings.visualize.misc.</code><code class="descname">remove_chart_junk</code><span class="sig-paren">(</span><em>ax=None</em>, <em>remove=('top'</em>, <em>'right')</em>, <em>x_ticks_loc='bottom'</em>, <em>y_ticks_loc='left'</em>, <em>hide_x_labels=False</em>, <em>hide_y_labels=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/misc.html#remove_chart_junk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.misc.remove_chart_junk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove unnecessary plot axis, ticks etc.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ax</strong> (<em>matplotlib Axes object</em>) – Remove chart junk from this axis</li>
+<li><strong>remove</strong> (<em>list</em><em>, </em><em>optional</em><em> (</em><em>default:</em><em> [</em><em>&quot;top&quot;</em><em>, </em><em>&quot;right&quot;</em><em>]</em><em>)</em>) – Remove the selected axis. Options:
+[“top”, “bottom”, “right”, “left”]:</li>
+<li><strong>x_ticks_loc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;bottom&quot;</em><em>)</em>) – Location of x-axis ticks. Set “none” to hide
+ticks completely.</li>
+<li><strong>y_ticks_loc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;left&quot;</em><em>)</em>) – Location of y-axis ticks. Set “none” to hide
+ticks completely.</li>
+<li><strong>hide_x_label</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Hide x-tick labels on x-axis</li>
+<li><strong>hide_y_label</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Hide y-tick labels on y-axis</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.misc.rgb2hex">
+<code class="descclassname">evcouplings.visualize.misc.</code><code class="descname">rgb2hex</code><span class="sig-paren">(</span><em>r</em>, <em>g</em>, <em>b</em>, <em>a=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/misc.html#rgb2hex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.misc.rgb2hex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform RGB color into hexadecimal format</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>r</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Red component (0-1)</li>
+<li><strong>g</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Green component (0-1)</li>
+<li><strong>b</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Blue component (0-1)</li>
+<li><strong>a</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Alpha channel, will be ignored
+(exists only for convenient rgba
+tuple unpacking)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Hexadecimal color code (prefixed by #)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.visualize.mutations">
+<span id="evcouplings-visualize-mutations-module"></span><h2>evcouplings.visualize.mutations module<a class="headerlink" href="#module-evcouplings.visualize.mutations" title="Permalink to this headline">¶</a></h2>
+<p>Visualization of mutation effects</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.visualize.mutations.matrix_base_bokeh">
+<code class="descclassname">evcouplings.visualize.mutations.</code><code class="descname">matrix_base_bokeh</code><span class="sig-paren">(</span><em>matrix</em>, <em>positions</em>, <em>substitutions</em>, <em>wildtype_sequence=None</em>, <em>label_size=8</em>, <em>min_value=None</em>, <em>max_value=None</em>, <em>colormap=&lt;matplotlib.colors.LinearSegmentedColormap object&gt;</em>, <em>na_color='#bbbbbb'</em>, <em>title=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/mutations.html#matrix_base_bokeh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.mutations.matrix_base_bokeh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bokeh-based interactive mutation matrix plotting. This is the base
+plotting function, see plot_mutation_matrix() for more convenient access.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>matrix</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>)</em>) – 2D numpy array with values for individual single mutations
+(first axis: position, second axis: substitution)</li>
+<li><strong>positions</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>) or </em><em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – List of positions along x-axis of matrix
+(length has to agree with first dimension of matrix)</li>
+<li><strong>substitutions</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – List of substitutions along y-axis of matrix
+(length has to agree with second dimension of matrix)</li>
+<li><strong>wildtype_sequence</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Sequence of wild-type symbols. If given, will indicate wild-type
+entries in matrix with a dot.</li>
+<li><strong>label_size</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 8</em><em>)</em>) – Font size of x/y-axis labels.</li>
+<li><strong>min_value</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Threshold colormap at this minimum value. If None, defaults to
+minimum value in matrix; if max_value is also None, defaults to
+-max(abs(matrix))</li>
+<li><strong>max_value</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Threshold colormap at this maximum value. If None, defaults to
+maximum value in matrix; if min_value is also None, defaults to
+max(abs(matrix))</li>
+<li><strong>colormap</strong> (<em>matplotlib colormap object</em><em>, </em><em>optional</em><em> (</em><em>default: plt.cm.RdBu_r</em><em>)</em>) – Maps mutation effects to colors of matrix cells.</li>
+<li><strong>na_color</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;#bbbbbb&quot;</em><em>)</em>) – Color for missing values in matrix</li>
+<li><strong>title</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – If given, set title of plot to this value.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Bokeh figure (for displaying or saving)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">bokeh.plotting.figure.Figure</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.mutations.matrix_base_mpl">
+<code class="descclassname">evcouplings.visualize.mutations.</code><code class="descname">matrix_base_mpl</code><span class="sig-paren">(</span><em>matrix</em>, <em>positions</em>, <em>substitutions</em>, <em>conservation=None</em>, <em>secondary_structure=None</em>, <em>wildtype_sequence=None</em>, <em>min_value=None</em>, <em>max_value=None</em>, <em>ax=None</em>, <em>colormap=&lt;matplotlib.colors.LinearSegmentedColormap object&gt;</em>, <em>colormap_conservation=&lt;matplotlib.colors.LinearSegmentedColormap object&gt;</em>, <em>na_color='#bbbbbb'</em>, <em>title=None</em>, <em>position_label_size=8</em>, <em>substitution_label_size=8</em>, <em>show_colorbar=True</em>, <em>colorbar_indicate_bounds=False</em>, <em>show_wt_char=True</em>, <em>label_filter=None</em>, <em>secondary_structure_style=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/mutations.html#matrix_base_mpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.mutations.matrix_base_mpl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Matplotlib-based mutation matrix plotting. This is the base plotting function,
+see plot_mutation_matrix() for more convenient access.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>matrix</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>)</em>) – 2D numpy array with values for individual single mutations
+(first axis: position, second axis: substitution)</li>
+<li><strong>positions</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>) or </em><em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – List of positions along x-axis of matrix
+(length has to agree with first dimension of matrix)</li>
+<li><strong>substitutions</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – List of substitutions along y-axis of matrix
+(length has to agree with second dimension of matrix)</li>
+<li><strong>conservation</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>) or </em><em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>)</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Positional conservation along sequence. Values must range
+between 0 (not conserved) and 1 (fully conserved). If given,
+will plot conservation along bottom of mutation matrix.</li>
+<li><strong>secondary_structure</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Secondary structure for each position along sequence. If given,
+will draw secondary structure cartoon on top of matrix.</li>
+<li><strong>wildtype_sequence</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Sequence of wild-type symbols. If given, will indicate wild-type
+entries in matrix with a dot.</li>
+<li><strong>min_value</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Threshold colormap at this minimum value. If None, defaults to
+minimum value in matrix; if max_value is also None, defaults to
+-max(abs(matrix))</li>
+<li><strong>max_value</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Threshold colormap at this maximum value. If None, defaults to
+maximum value in matrix; if min_value is also None, defaults to
+max(abs(matrix))</li>
+<li><strong>ax</strong> (<em>Matplotlib axes object</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Draw mutation matrix on this axis. If None, new figure and axis
+will be created.</li>
+<li><strong>colormap</strong> (<em>matplotlib colormap object</em><em>, </em><em>optional</em><em> (</em><em>default: plt.cm.RdBu_r</em><em>)</em>) – Maps mutation effects to colors of matrix cells.</li>
+<li><strong>colormap_conservation</strong> (<em>matplotlib colormap object</em><em>, </em><em>optional</em><em> (</em><em>default: plt.cm.Oranges</em><em>)</em>) – Maps sequence conservation to colors of conservation vector plot.</li>
+<li><strong>na_color</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;#bbbbbb&quot;</em><em>)</em>) – Color for missing values in matrix</li>
+<li><strong>title</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – If given, set title of plot to this value.</li>
+<li><strong>position_label_size</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 8</em><em>)</em>) – Font size of x-axis labels.</li>
+<li><strong>substitution_label_size</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 8</em><em>)</em>) – Font size of y-axis labels.</li>
+<li><strong>show_colorbar</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – If True, show colorbar next to matrix.</li>
+<li><strong>colorbar_indicate_bounds</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – If True, add greater-than/less-than signs to limits of colorbar
+to indicate that colors were thresholded at min_value/max_value</li>
+<li><strong>show_wt_char</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Display wild-type symbol in axis labels</li>
+<li><strong>label_filter</strong> (<em>function</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Function with one argument (integer) that determines if a certain position
+label will be printed (if label_filter(pos)==True) or not.</li>
+<li><strong>secondary_structure_style</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Pass on as <a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs to evcouplings.visualize.pairs.secondary_structure_cartoon
+to determine appearance of secondary structure cartoon.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ax</strong> – Axes on which mutation matrix was drawn</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Matplotlib axes object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.mutations.mutation_pymol_script">
+<code class="descclassname">evcouplings.visualize.mutations.</code><code class="descname">mutation_pymol_script</code><span class="sig-paren">(</span><em>mutation_table</em>, <em>output_file</em>, <em>effect_column='prediction_epistatic'</em>, <em>mutant_column='mutant'</em>, <em>agg_func='mean'</em>, <em>cmap=&lt;matplotlib.colors.LinearSegmentedColormap object&gt;</em>, <em>chain=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/mutations.html#mutation_pymol_script"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.mutations.mutation_pymol_script" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Pymol .pml script to visualize single mutation
+effects</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>mutation_table</strong> (<em>pandas.DataFrame</em>) – Table with mutation effects (will be filtered
+for single mutants)</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File path where to store pml script</li>
+<li><strong>effect_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;prediction_epistatic&quot;</em><em>)</em>) – Column in mutation_table that contains mutation effects</li>
+<li><strong>mutant_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;mutant&quot;</em><em>)</em>) – Column in mutation_table that contains mutations
+(in format “A123G”)</li>
+<li><strong>agg_func</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;mean&quot;</em><em>)</em>) – Function used to aggregate single mutations into one
+aggregated effect per position (any pandas aggregation
+operation, including “mean”, “min, “max”)</li>
+<li><strong>cmap</strong> (<em>matplotlib.colors.LinearSegmentedColormap</em><em>, </em><em>optional</em>) – (default: plt.cm.RdBu_r)
+Colormap used to map mutation effects to colors</li>
+<li><strong>chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Use this PDB chain in residue selection</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – If no single mutants contained in mutation_table</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.mutations.plot_mutation_matrix">
+<code class="descclassname">evcouplings.visualize.mutations.</code><code class="descname">plot_mutation_matrix</code><span class="sig-paren">(</span><em>source</em>, <em>mutant_column='mutant'</em>, <em>effect_column='prediction_epistatic'</em>, <em>conservation_column='column_conservation'</em>, <em>order='WFYPMILVAGCSTQNDEHRK'</em>, <em>min_value=None</em>, <em>max_value=None</em>, <em>min_percentile=None</em>, <em>max_percentile=None</em>, <em>show_conservation=False</em>, <em>secondary_structure=None</em>, <em>engine='mpl'</em>, <em>**matrix_style</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/mutations.html#plot_mutation_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.mutations.plot_mutation_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot a single-substitution mutation matrix</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>source</strong> (<em>evcouplings.couplings.CouplingsModel</em><em> or </em><em>pandas.DataFrame</em>) – Plot single mutation matrix predicted using CouplingsModel,
+or effect data for single mutations DataFrame</li>
+<li><strong>mutant_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;mutant&quot;</em><em>)</em>) – If using source dataframe, extract single mutations from this column.
+Mutations have to be in format A100V.</li>
+<li><strong>effect_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;prediction_epistatic&quot;</em><em>)</em>) – If using source dataframe, extract mutation effect from this column.
+Effects must be numeric.</li>
+<li><strong>conservation_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;column_conservation&quot;</em><em>)</em>) – If using source dataframe, extract column conservation information
+from this column. Conservation values must be between 0 and 1. To
+plot conservation, set show_conservation=True.</li>
+<li><strong>order</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>list</em><em>, </em><em>optional</em><em> (</em><em>default: AA_LIST_PROPERTY</em><em>)</em>) – Reorder y-axis (substitutions) according to this parameter. If None,
+substitutions will be inferred from source, and sorted alphabetically
+if source is a DataFrame.</li>
+<li><strong>min_value</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Threshold colormap at this minimum value. If None, defaults to
+minimum value in matrix; if max_value is also None, defaults to
+-max(abs(matrix))</li>
+<li><strong>max_value</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Threshold colormap at this maximum value. If None, defaults to
+maximum value in matrix; if min_value is also None, defaults to
+max(abs(matrix))</li>
+<li><strong>min_percentile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Set min_value to this percentile of the effect distribution. Overrides
+min_value.</li>
+<li><strong>max_percentile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Set max_value to this percentile of the effect distribution. Overrides
+max_value.</li>
+<li><strong>show_conservation</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Plot positional conservation underneath matrix. Only possible for
+engine == “mpl”.</li>
+<li><strong>secondary_structure</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em> or </em><em>pd.DataFrame</em>) – Secondary structure to plot above matrix.
+Can be a dictionary of position (int) to
+secondary structure character (“H”, “E”, “-“/”C”),
+or a DataFrame with columns “id” and “sec_struct_3state”
+(as returned by Chain.residues, and DistanceMap.residues_i
+and DistanceMap.residues_j). Only supported by engine == “mpl”.</li>
+<li><strong>engine</strong> (<em>{&quot;mpl&quot;</em><em>, </em><em>&quot;bokeh&quot;}</em>) – Plot matrix using matplotlib (static, more visualization options)
+or with bokeh (interactive, less visualization options)</li>
+<li><strong>**matrix_style</strong> (<em>kwargs</em>) – Will be passed on to matrix_base_mpl or matrix_base_bokeh as kwargs</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Figure/Axes object. Display bokeh figure using show().</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">matplotlib AxesSuplot or bokeh Figure</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.visualize.pairs">
+<span id="evcouplings-visualize-pairs-module"></span><h2>evcouplings.visualize.pairs module<a class="headerlink" href="#module-evcouplings.visualize.pairs" title="Permalink to this headline">¶</a></h2>
+<p>Visualization of evolutionary couplings (contact maps etc.)</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.ec_lines_pymol_script">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">ec_lines_pymol_script</code><span class="sig-paren">(</span><em>ec_table</em>, <em>output_file</em>, <em>distance_cutoff=5</em>, <em>score_column='cn'</em>, <em>chain=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#ec_lines_pymol_script"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.ec_lines_pymol_script" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Pymol .pml script to visualize ECs on a 3D
+structure</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ec_table</strong> (<em>pandas.DataFrame</em>) – Visualize all EC pairs (columns i, j) in this
+table. If a column “dist” exists and distance_cutoff
+is defined, will assign different colors based on
+the 3D distance of the EC.</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File path where to store pml script</li>
+<li><strong>distance_cutoff</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 5</em><em>)</em>) – Color ECs with distance above this threshold
+as false positives (only possible if a column
+“dist” exists in ec_table). If None, will
+use one color for all ECs.</li>
+<li><strong>score_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cn&quot;</em><em>)</em>) – Use this column in ec_table to adjust radius
+of lines. If None, all lines will be drawn
+at equal radius.</li>
+<li><strong>chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Use this PDB chain in residue selection</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.enrichment_pymol_script">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">enrichment_pymol_script</code><span class="sig-paren">(</span><em>enrichment_table</em>, <em>output_file</em>, <em>sphere_view=True</em>, <em>chain=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#enrichment_pymol_script"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.enrichment_pymol_script" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Pymol .pml script to visualize EC “enrichment”</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>enrichment_table</strong> (<em>pandas.DataFrame</em>) – Mapping of position (column i) to EC enrichment
+(column enrichemnt), as returned by
+evcouplings.couplings.pairs.enrichment()</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File path where to store pml script</li>
+<li><strong>sphere_view</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – If True, create pml that highlights enriched positions
+with spheres and color; if False, create pml
+that highlights enrichment using b-factor and
+“cartoon putty”</li>
+<li><strong>chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Use this PDB chain in residue selection</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.find_boundaries">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">find_boundaries</code><span class="sig-paren">(</span><em>boundaries</em>, <em>ecs</em>, <em>monomer</em>, <em>multimer</em>, <em>symmetric</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#find_boundaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.find_boundaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify axis boundaries for contact map plots</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>boundaries</strong> (<em>{&quot;union&quot;</em><em>, </em><em>&quot;intersection&quot;</em><em>, </em><em>&quot;ecs&quot;</em><em>, </em><em>&quot;structure&quot;}</em><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a>) – <p>or list(tuple, tuple)
+Set axis range (min/max) of contact map as follows:</p>
+<ul>
+<li>”union”: Positions either in ECs or 3D structure</li>
+<li>”intersection”: Positions both in ECs and 3D structure</li>
+<li>”ecs”: Positions in ECs</li>
+<li>”structure”: Positions in 3D structure</li>
+<li>tuple(float, float): Specify upper/lower bound manually</li>
+<li>[(float, float), (float, float)]: Specify upper/lower bounds
+for both x-axis (first tuple) and y-axis (second tuple)</li>
+</ul>
+</li>
+<li><strong>ecs</strong> (<em>pandas.DataFrame</em>) – Table of evolutionary couplings to plot (using columns
+“i” and “j”)</li>
+<li><strong>monomer</strong> (<a class="reference internal" href="evcouplings.compare.html#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap"><em>evcouplings.compare.distances.DistanceMap</em></a>) – Monomer distance map (intra-chain distances)</li>
+<li><strong>multimer</strong> (<a class="reference internal" href="evcouplings.compare.html#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap"><em>evcouplings.compare.distances.DistanceMap</em></a>) – Multimer distance map (multimeric inter-chain distances)</li>
+<li><strong>symmetric</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – Sets if distance maps and ECs are symmetric (intra-chain or homomultimer),
+or not (inter-chain).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>(min_x, max_x)</strong> (<em>(float, float)</em>) – First and last position on x-axis</li>
+<li><strong>(min_y, max_y)</strong> (<em>(float, float)</em>) – First and last position on y-axis</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.find_secondary_structure_segments">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">find_secondary_structure_segments</code><span class="sig-paren">(</span><em>sse_string</em>, <em>offset=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#find_secondary_structure_segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.find_secondary_structure_segments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify segments of secondary structure elements in string</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sse_string</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – String with secondary structure states of sequence
+(“H”, “E”, “-“/”C”)</li>
+<li><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Shift start/end indices of segments by this offset</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>start</strong> (<em>int</em>) – Index of first position (equal to “offset”)</li>
+<li><strong>end</strong> (<em>int</em>) – Index of last position</li>
+<li><strong>segments</strong> (<em>list</em>) – List of tuples with the following elements:<ol class="arabic">
+<li>secondary structure element (str)</li>
+<li>start position of segment (int)</li>
+<li>end position of segment, exlusive (int)</li>
+</ol>
+</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.plot_contact_map">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">plot_contact_map</code><span class="sig-paren">(</span><em>ecs=None</em>, <em>monomer=None</em>, <em>multimer=None</em>, <em>distance_cutoff=5</em>, <em>secondary_structure=None</em>, <em>show_secstruct=True</em>, <em>scale_sizes=True</em>, <em>ec_style={'edgecolor': 'none'</em>, <em>'s': 80</em>, <em>'c': 'black'}</em>, <em>monomer_style={'edgecolor': 'none'</em>, <em>'s': 100</em>, <em>'c': '#b6d4e9'}</em>, <em>multimer_style={'s': 100</em>, <em>'edgecolor': 'none'</em>, <em>'alpha': 0.3</em>, <em>'c': '#fc8c3b'}</em>, <em>secstruct_style={'strand_color': 'k'</em>, <em>'min_sse_length': 2</em>, <em>'helix_color': 'k'</em>, <em>'line_width': 2</em>, <em>'width': 1</em>, <em>'strand_width_factor': 0.5</em>, <em>'coil_color': 'k'</em>, <em>'helix_turn_length': 2}</em>, <em>margin=5</em>, <em>invert_y=True</em>, <em>boundaries='union'</em>, <em>symmetric=True</em>, <em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#plot_contact_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.plot_contact_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper for simple contact map plots with optional
+multimer contacts (can also handle non-symmetric inter-chain
+contacts). For full flexibility, compose your own
+contact map plot using the functions used below.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ecs</strong> (<em>pandas.DataFrame</em>) – Table of evolutionary couplings to plot (using columns
+“i” and “j”). Can contain additional columns “color”
+and “size” to assign these individual properties in the
+plot for each plotted pair (i, j). If all values of
+“size” are &lt;= 1, they will be treated as a fraction
+of the point size defined in ec_style, and rescaled
+if scale_sizes is True.</li>
+<li><strong>monomer</strong> (<a class="reference internal" href="evcouplings.compare.html#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap"><em>evcouplings.compare.distances.DistanceMap</em></a>) – Monomer distance map (intra-chain distances)</li>
+<li><strong>multimer</strong> (<a class="reference internal" href="evcouplings.compare.html#evcouplings.compare.distances.DistanceMap" title="evcouplings.compare.distances.DistanceMap"><em>evcouplings.compare.distances.DistanceMap</em></a>) – Multimer distance map (multimeric inter-chain distances)</li>
+<li><strong>distance_cutoff</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 5</em><em>)</em>) – Pairs with distance &lt;= this cutoff are considered
+residue pair contacts</li>
+<li><strong>secondary_structure</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em> or </em><em>pandas.DataFrame</em>) – Secondary structure to be displayed on both axis
+(if not given, will try to extract from monomer
+distance map). For format of dict or DataFrame,
+see documentation of plot_secondary_structure().
+If symmetric is False, this has to be a two-element
+tuple containing the secondary structures for the
+x-axis and the y-axis, respectively.</li>
+<li><strong>show_secstruct</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Draw secondary structure on both axes (either
+passed in explicitly using secondary_structure,
+or extracted from monomer distancemap)</li>
+<li><strong>scale_sizes</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Rescale sizes of points on scatter plots as well as
+secondery structure plotting width based on
+overall size of protein</li>
+<li><strong>ec_style</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: STYLE_EC</em><em>)</em>) – Style for EC plotting (kwargs to plt.scatter)</li>
+<li><strong>monomer_style</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: STYLE_CONTACT</em><em>)</em>) – Style for monomer contact plotting (kwargs to plt.scatter)</li>
+<li><strong>multimer_style</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: STYLE_CONTACT_MULTIMER</em><em>)</em>) – Style for multimer contact plotting (kwargs to plt.scatter)</li>
+<li><strong>secstruct_style</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: STYLE_SECSTRUCT</em><em>)</em>) – Style for secondary structure plotting
+(kwargs to secondary_structure_cartoon())</li>
+<li><strong>margin</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 5</em><em>)</em>) – Space to add around contact map</li>
+<li><strong>invert_y</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Invert the y axis of the contact map so both sequences
+run from N -to C- terminus starting from top left corner</li>
+<li><strong>boundaries</strong> (<em>{&quot;union&quot;</em><em>, </em><em>&quot;intersection&quot;</em><em>, </em><em>&quot;ecs&quot;</em><em>, </em><em>&quot;structure&quot;}</em><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em> or </em><em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>, </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>)</em><em>, </em><em>optional</em><em> (</em><em>default: &quot;union&quot;</em><em>)</em>) – <p>Set axis range (min/max) of contact map as follows:</p>
+<ul>
+<li>”union”: Positions either in ECs or 3D structure</li>
+<li>”intersection”: Positions both in ECs and 3D structure</li>
+<li>”ecs”: Positions in ECs</li>
+<li>”structure”: Positions in 3D structure</li>
+<li>tuple(float, float): Specify upper/lower bound manually</li>
+<li>[(float, float), (float, float)]: Specify upper/lower bounds
+for both x-axis (first tuple) and y-axis (second tuple)</li>
+</ul>
+</li>
+<li><strong>symmetric</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Sets if distance maps and ECs are symmetric (intra-chain or homomultimer),
+or not (inter-chain).</li>
+<li><strong>ax</strong> (<em>Matplotlib Axes object</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Axes the plot will be drawn on</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.plot_pairs">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">plot_pairs</code><span class="sig-paren">(</span><em>pairs</em>, <em>symmetric=False</em>, <em>ax=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#plot_pairs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.plot_pairs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot list of pairs (ECs/contacts)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pairs</strong> (<em>pandas.DataFrame</em>) – DataFrame with coordinates to plot
+(taken from columns i and j). If there
+are columns “color” and “size”, these
+will be used to assign individual colors
+and sizes to the dots in the scatter plot.
+If sizes are all &lt;= 1 and “s” is present as a
+key in style, values will be treated as fraction
+of “s”.</li>
+<li><strong>symmetric</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – If true, for each pair (i, j) also plot
+pair (j, i). This is for cases where
+the input list pairs does not contain
+both pairs.</li>
+<li><strong>ax</strong> (<em>matplotlib Axes object</em>) – Axes to plot on</li>
+<li><strong>style</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) – Parameters to style pair scatter plot
+(passed as <a href="#id3"><span class="problematic" id="id4">**</span></a>kwargs to matplotlib plt.scatter())</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>paths</strong> – Scatter plot paths drawn by this function</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list of PathCollection</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.plot_secondary_structure">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">plot_secondary_structure</code><span class="sig-paren">(</span><em>secstruct_i</em>, <em>secstruct_j=None</em>, <em>ax=None</em>, <em>style=None</em>, <em>margin=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#plot_secondary_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.plot_secondary_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot secondary structure along contact map.</p>
+<p>Note: this function should only be used <em>after</em> the
+orientation of the axes of the plot has been set.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>secstruct_i</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em> or </em><em>pd.DataFrame</em>) – Secondary structure for x-axis of plot.
+Can be a dictionary of position (int) to
+secondary structure character (“H”, “E”, “C”, “-“),
+or a DataFrame with columns “id” and “sec_struct_3state”
+(as returned by Chain.residues, and DistanceMap.residues_i
+and DistanceMap.residues_j).</li>
+<li><strong>secstruct_j</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em> or </em><em>pd.DataFrame</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Secondary structure for y-axis of plot.
+See secstruct_i for possible values.
+If None, will use secstruct_i for y-axis too
+(assuming symmetric contact map).</li>
+<li><strong>ax</strong> (<em>matplotlib Axes object</em>) – Axis to draw secondary structure on</li>
+<li><strong>style</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Parameters that will be passed on as kwargs
+to secondary structure drawing function</li>
+<li><strong>margin</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Add this much space between contact map
+and secondary structure. If None, defaults
+to the width of secondary structure * 3.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.scale">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">scale</code><span class="sig-paren">(</span><em>style</em>, <em>ax=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#scale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scale size of drawn elements based on size
+of contact map plot</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.secondary_structure_cartoon">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">secondary_structure_cartoon</code><span class="sig-paren">(</span><em>sse</em>, <em>ax=None</em>, <em>sequence_start=0</em>, <em>sequence_end=None</em>, <em>horizontal=True</em>, <em>flip_direction=False</em>, <em>center=0</em>, <em>width=1</em>, <em>helix_turn_length=1</em>, <em>strand_width_factor=0.5</em>, <em>line_width=2</em>, <em>min_sse_length=0</em>, <em>clipping=False</em>, <em>helix_color='k'</em>, <em>strand_color='k'</em>, <em>coil_color='k'</em>, <em>draw_coils=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#secondary_structure_cartoon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.secondary_structure_cartoon" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot a 1D secondary structure cartoon.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>sse</strong> (<em>list</em>) – Secondary structure elements, as returned by
+find_secondary_structure_segments(). Tuples
+in the list have the form (type, start, end),
+where type is either H (helix), E (sheet),
+or C (coil/other)</li>
+<li><strong>ax</strong> (<em>matplotlib Axes object</em>) – Axis to draw cartoon on</li>
+<li><strong>sequence_start</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default:0</em><em>)</em>) – Plot coordinate of first position from which
+cartoon will be drawn</li>
+<li><strong>sequence_end</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Last coordinate up to which cartoon will
+be drawn</li>
+<li><strong>horizontal</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – If True, draw cartoon horizontally, vertically
+otherwise</li>
+<li><strong>flip_direction</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Invert drawing direction (from right to left)</li>
+<li><strong>center</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Center plot coordinate along which cartoon
+will be drawn</li>
+<li><strong>width</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 1</em><em>)</em>) – Width of secondary structure cartoon</li>
+<li><strong>helix_turn_length</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 1</em><em>)</em>) – Length for a full helix turn in plot coordinates
+(number of residues per sine)</li>
+<li><strong>strand_width_factor</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0.5</em><em>)</em>) – Width of strand relative to full width of cartoon</li>
+<li><strong>line_width</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 2</em><em>)</em>) – Line width for drawing</li>
+<li><strong>min_sse_length</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Only draw secondary structure elements with
+length greater than this threshold</li>
+<li><strong>clipping</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Clip drawing at plot axis (must be False
+to draw outside contact map area)</li>
+<li><strong>helix_color</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;k&quot;</em><em>)</em>) – Matplotlib color to be used for helices</li>
+<li><strong>strand_color</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;k&quot;</em><em>)</em>) – Matplotlib color to be used for beta strands</li>
+<li><strong>coil_color</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;k&quot;</em><em>)</em>) – Matplotlib color to be used for all other positions</li>
+<li><strong>draw_coils</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>Default: True</em><em>)</em>) – If true, draw line for coil segments.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pairs.set_range">
+<code class="descclassname">evcouplings.visualize.pairs.</code><code class="descname">set_range</code><span class="sig-paren">(</span><em>pairs=None</em>, <em>symmetric=True</em>, <em>x=None</em>, <em>y=None</em>, <em>ax=None</em>, <em>margin=0</em>, <em>invert_y=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pairs.html#set_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pairs.set_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set axes ranges for contact map based
+on minimal/maximal values in pair list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pairs</strong> (<em>pandas.DataFrame</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – DataFrame with pairs (will be extracted
+from columns named “i” and “j” and
+converted to integer values and used
+to define x- and y-axes, respectively).
+If None, if x and y have to be specified.</li>
+<li><strong>symmetric</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default:True</em><em>)</em>) – If true, will define range on joint set
+of values in columns i and j, resulting
+in a square contact map</li>
+<li><strong>x</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>)</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Set x-axis range with this range (min, max).
+Will be extended by margin, and overrides any
+value for x-axis derived using pairs.</li>
+<li><strong>y</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>)</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Set y-axis range with this range (min, max)
+Will be extended by margin, and overrides any
+value for y-axis derived using pairs.</li>
+<li><strong>ax</strong> (<em>matplotlib Axes object</em>) – Axes for which plot range will be changed</li>
+<li><strong>margin</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Add margin of this size around the actual
+range defined by the data</li>
+<li><strong>invert_y</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Invert y-axis of contact map</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
+<li><strong>x_range</strong> (<em>tuple(int, int)</em>) – Set range for x-axis</li>
+<li><strong>y_range</strong> (<em>tuple(int, int)</em>) – Set range for y-axis</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – If any axis range remains unspecified</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.visualize.parameters">
+<span id="evcouplings-visualize-parameters-module"></span><h2>evcouplings.visualize.parameters module<a class="headerlink" href="#module-evcouplings.visualize.parameters" title="Permalink to this headline">¶</a></h2>
+<p>Visualization of pair model parameters</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.visualize.parameters.evzoom_data">
+<code class="descclassname">evcouplings.visualize.parameters.</code><code class="descname">evzoom_data</code><span class="sig-paren">(</span><em>model</em>, <em>ec_threshold=0.9</em>, <em>freq_threshold=0.01</em>, <em>Jij_threshold=10</em>, <em>score='cn'</em>, <em>reorder='KRHEDNQTSCGAVLIMPYFW'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/parameters.html#evzoom_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.parameters.evzoom_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate data for EVzoom visualization. Use evzoom_json()
+to get final JSON string to use with EVzoom.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model</strong> (<a class="reference internal" href="evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel"><em>evcouplings.couplings.model.CouplingsModel</em></a>) – Parameters of pairwise graphical model</li>
+<li><strong>ec_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0.9</em><em>)</em>) – Only display evolutionary couplings above this
+threshold. If float between 0 and 1, this will be
+interpreted as probability cutoff for mixture model.
+Otherwise, will be interpreted as absolute number of couplings.</li>
+<li><strong>freq_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0.01</em><em>)</em>) – Only display coupling parameters for amino acids with
+at least this frequency in the underlying sequence
+alignment</li>
+<li><strong>Jij_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 10</em><em>)</em>) – Only display coupling parameters above this
+threshold. If float, this number will be interpreted
+as an actual score threshold; if int, this will
+be interpreted as a percentage of the maximum
+absolute score.</li>
+<li><strong>score</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cn&quot;</em><em>)</em>) – Use this score to determine which couplings to display.
+Valid choices are the score columns contained in the
+CouplingsModel.ecs dataframe</li>
+<li><strong>reorder</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;KRHEDNQTSCGAVLIMPYFW&quot;</em><em>)</em>) – Order of amino acids in displayed coupling matrices</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>map_</strong> (<em>dict</em>) – Map containing sequence indices and characters</li>
+<li><strong>logo</strong> (<em>list</em>) – List containing information about sequence logos
+for axes of visualization</li>
+<li><strong>matrix</strong> (<em>dict</em>) – List containing couplings that will be visualized</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.parameters.evzoom_json">
+<code class="descclassname">evcouplings.visualize.parameters.</code><code class="descname">evzoom_json</code><span class="sig-paren">(</span><em>model</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/parameters.html#evzoom_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.parameters.evzoom_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create JSON input for visualizing parameters
+of pairwise graphical model using EVzoom</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model</strong> (<a class="reference internal" href="evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel"><em>evcouplings.couplings.model.CouplingsModel</em></a>) – Parameters of pairwise graphical model</li>
+<li><strong>**kwargs</strong> – See evzoom_data() for options</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">EVzoom-ready JSON input</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.visualize.pymol">
+<span id="evcouplings-visualize-pymol-module"></span><h2>evcouplings.visualize.pymol module<a class="headerlink" href="#module-evcouplings.visualize.pymol" title="Permalink to this headline">¶</a></h2>
+<p>Visualization of properties on 3D structures using
+Pymol pml scripts</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.visualize.pymol.pymol_mapping">
+<code class="descclassname">evcouplings.visualize.pymol.</code><code class="descname">pymol_mapping</code><span class="sig-paren">(</span><em>mapping</em>, <em>output_file</em>, <em>chain=None</em>, <em>atom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pymol.html#pymol_mapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pymol.pymol_mapping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map properties onto individual residues of
+structure using Pymol</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>mapping</strong> (<em>pandas.DataFrame</em>) – <p>Table of properties to map on residues.</p>
+<ul>
+<li>positions in column “i”</li>
+<li>color in column “color” (hexadecimal
+color codes have to start with a “#”,
+and will be converted to Pymol format
+starting with 0x automatically)</li>
+<li>display type in column “show”</li>
+<li>b factor in column “b_factor”</li>
+</ul>
+</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>file-like</em>) – Write Pymol script to this file (filename as string,
+or writeable file handle)</li>
+<li><strong>chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – PDB chain that should be targeted by secondary
+structure assignment. If None, residues will be selected
+py position alone, which may cause wrong assignments
+if multiple chains are present in the structure.</li>
+<li><strong>atom</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Only apply mapping to this atom in each residue</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>cmds</strong> – List of generated pymol commands (written to output_file)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pymol.pymol_pair_lines">
+<code class="descclassname">evcouplings.visualize.pymol.</code><code class="descname">pymol_pair_lines</code><span class="sig-paren">(</span><em>pairs</em>, <em>output_file</em>, <em>chain=None</em>, <em>atom='CA'</em>, <em>pair_prefix='ec'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pymol.html#pymol_pair_lines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pymol.pymol_pair_lines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draw lines between residue pairs on a structure using Pymol</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pairs</strong> (<em>pandas.DataFrame</em>) – Table of pairs to draw (positions in columns i and j).
+If this dataframe contains columns named “color”,
+“dash_radius”, “dash_gap” or “dash_length”, these will
+be used to adjust the corresponding Pymol property of each
+drawn line. Dash parameters should be floats, colors can
+be any of the Pymol color names or a hexademical color code
+(# will be converted to Pymol 0x convention automatically).
+If columns “chain_i” or “chain_j” are present, these will
+define the respective chains for each end of the line, and
+override the chain parameter.</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>file-like</em>) – Write Pymol script to this file (filename as string,
+or writeable file handle)</li>
+<li><strong>chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>(</em><em>str -&gt; str</em><em>)</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – <p>PDB chain(s) that should be targeted by line drawing</p>
+<ul>
+<li>If None, residues will be selected
+py position alone, which may cause wrong assignments
+if multiple chains are present in the structure.</li>
+<li>Different chains can be assigned for each i and j,
+if a dictionary that maps from segment (str) to PDB chain (str)
+is given. In this case, columns “segment_i” and “segment_j”
+must be present in the pairs dataframe.</li>
+</ul>
+</li>
+<li><strong>atom</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;CA&quot;</em><em>)</em>) – Put end of line on this atom in each residue</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>cmds</strong> – List of generated pymol commands (written to output_file)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.visualize.pymol.pymol_secondary_structure">
+<code class="descclassname">evcouplings.visualize.pymol.</code><code class="descname">pymol_secondary_structure</code><span class="sig-paren">(</span><em>residues</em>, <em>output_file</em>, <em>chain=None</em>, <em>sec_struct_column='sec_struct_3state'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/visualize/pymol.html#pymol_secondary_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.visualize.pymol.pymol_secondary_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign predicted secondary structure to 3D structure in Pymol</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>residues</strong> (<em>pandas.DataFrame</em>) – Table with secondary structure prediction/assignment
+(position in column i)</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>file-like</em>) – Write Pymol script to this file (filename as string,
+or writeable file handle)</li>
+<li><strong>chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – PDB chain that should be targeted by secondary
+structure assignment. If None, residues will be selected
+py position alone, which may cause wrong assignments
+if multiple chains are present in the structure.</li>
+<li><strong>sec_struct_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: sec_struct_3state</em><em>)</em>) – Column in residues table that contains the secondary
+structure symbols for each position (convention: helix: H,
+strand: E, other: C)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>cmds</strong> – List of generated pymol commands (written to output_file)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="evcouplings.utils.html" class="btn btn-neutral float-right" title="evcouplings.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="evcouplings.fold.html" class="btn btn-neutral" title="evcouplings.fold package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

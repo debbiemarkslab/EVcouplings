@@ -1,0 +1,1231 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.fold package &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="index.html"/>
+        <link rel="up" title="Alignment" href="evcouplings.html"/>
+        <link rel="next" title="evcouplings.visualize package" href="evcouplings.visualize.html"/>
+        <link rel="prev" title="evcouplings.mutate package" href="evcouplings.mutate.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="evcouplings.html#folding-analysis">Folding Analysis</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">evcouplings.fold package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.fold.cns">evcouplings.fold.cns module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.fold.filter">evcouplings.fold.filter module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.fold.protocol">evcouplings.fold.protocol module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.fold.ranking">evcouplings.fold.ranking module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.fold.restraints">evcouplings.fold.restraints module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.fold.tools">evcouplings.fold.tools module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="evcouplings.html">Alignment</a> &raquo;</li>
+        
+      <li>evcouplings.fold package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/evcouplings.fold.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="evcouplings-fold-package">
+<h1>evcouplings.fold package<a class="headerlink" href="#evcouplings-fold-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-evcouplings.fold.cns">
+<span id="evcouplings-fold-cns-module"></span><h2>evcouplings.fold.cns module<a class="headerlink" href="#module-evcouplings.fold.cns" title="Permalink to this headline">¶</a></h2>
+<p>Functions for structure prediction using CNSsolve 1.21</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.fold.cns.cns_dgsa_fold">
+<code class="descclassname">evcouplings.fold.cns.</code><code class="descname">cns_dgsa_fold</code><span class="sig-paren">(</span><em>residues</em>, <em>ec_pairs</em>, <em>prefix</em>, <em>config_file=None</em>, <em>secstruct_column='sec_struct_3state'</em>, <em>num_structures=20</em>, <em>min_cycles=5</em>, <em>log_level=None</em>, <em>binary='cns'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/cns.html#cns_dgsa_fold"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.cns.cns_dgsa_fold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict 3D structure coordinates using distance geometry
+and simulated annealing-based folding protocol</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>residues</strong> (<em>pandas.DataFrame</em>) – Table containing positions (column i), residue
+type (column A_i), and secondary structure for
+each position</li>
+<li><strong>ec_pairs</strong> (<em>pandas.DataFrame</em>) – Table with EC pairs that will be turned
+into distance restraints
+(with columns i, j, A_i, A_j)</li>
+<li><strong>prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Prefix for output files (can include directories).
+Folders will be created automatically.</li>
+<li><strong>config_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Path to config file with folding settings. If None,
+will use default settings included in package
+(restraints.yml)</li>
+<li><strong>secstruct_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: sec_struct_3state</em><em>)</em>) – Column name in residues dataframe from which secondary
+structure will be extracted (has to be H, E, or C).</li>
+<li><strong>num_structures</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 20</em><em>)</em>) – Number of trial structures to generate</li>
+<li><strong>min_cycles</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 5</em><em>)</em>) – Number of minimization cycles at end of protocol</li>
+<li><strong>log_level</strong> (<em>{None</em><em>, </em><em>&quot;quiet&quot;</em><em>, </em><em>&quot;verbose&quot;}</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Don’t keep CNS log files, or switch to different degrees
+of verbosity (“verbose” needed to obtain violation information)</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cns&quot;</em><em>)</em>) – Path of CNS binary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>final_models</strong> – Mapping from model name to path of model</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.cns.cns_dgsa_inp">
+<code class="descclassname">evcouplings.fold.cns.</code><code class="descname">cns_dgsa_inp</code><span class="sig-paren">(</span><em>pdb_infile</em>, <em>mtf_infile</em>, <em>outfile_prefix</em>, <em>ec_pair_tbl_infile</em>, <em>ss_dist_tbl_infile</em>, <em>ss_angle_tbl_infile</em>, <em>num_structures=20</em>, <em>log_level='quiet'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/cns.html#cns_dgsa_inp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.cns.cns_dgsa_inp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create CNS iput script (.inp) to fold extended PDB file
+using distance geometry and simulated annealing with
+distance and dihedral angle constraints</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pdb_infile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to extended PDB structure that will be folded</li>
+<li><strong>mtf_infile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to molecular topology file corresponding to
+pdb_infile</li>
+<li><strong>outfile_prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Prefix of output files</li>
+<li><strong>ec_pair_tbl_infile</strong> – Path to .tbl file with distance restraints for
+EC pairs</li>
+<li><strong>ss_dist_tbl_infile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to .tbl file with distance restraints for
+secondary structure</li>
+<li><strong>ss_angle_tbl_infile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to .tbl file with dihedral angle restraints
+for secondary structure</li>
+<li><strong>num_structures</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 20</em><em>)</em>) – Number of trial structures to generate</li>
+<li><strong>log_level</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;quiet&quot;</em><em>)</em>) – Log output level of CNS. Set to “verbose” to obtain
+information about restraint violations.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Input script</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.cns.cns_dihedral_restraint">
+<code class="descclassname">evcouplings.fold.cns.</code><code class="descname">cns_dihedral_restraint</code><span class="sig-paren">(</span><em>resid_i</em>, <em>atom_i</em>, <em>resid_j</em>, <em>atom_j</em>, <em>resid_k</em>, <em>atom_k</em>, <em>resid_l</em>, <em>atom_l</em>, <em>energy_constant</em>, <em>degrees</em>, <em>range</em>, <em>exponent</em>, <em>comment=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/cns.html#cns_dihedral_restraint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.cns.cns_dihedral_restraint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a CNS dihedral angle restraint string</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>resid_i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of first residue</li>
+<li><strong>atom_i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of selected atom in first residue</li>
+<li><strong>resid_j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of second residue</li>
+<li><strong>atom_j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of selected atom in second residue</li>
+<li><strong>resid_k</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of third residue</li>
+<li><strong>atom_k</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of selected atom in third residue</li>
+<li><strong>resid_l</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of fourth residue</li>
+<li><strong>atom_l</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of selected atom in fourth residue</li>
+<li><strong>energy_constant</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Energy constant for restraint</li>
+<li><strong>degrees</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Restrain angle to this value</li>
+<li><strong>range</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Acceptable range around angle</li>
+<li><strong>exponent</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Exponent of dihedral angle energy</li>
+<li><strong>comment</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Print comment at the end of restraint line</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>r</strong> – Dihedral angle restraint</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.cns.cns_dist_restraint">
+<code class="descclassname">evcouplings.fold.cns.</code><code class="descname">cns_dist_restraint</code><span class="sig-paren">(</span><em>resid_i</em>, <em>atom_i</em>, <em>resid_j</em>, <em>atom_j</em>, <em>dist</em>, <em>lower</em>, <em>upper</em>, <em>weight=None</em>, <em>comment=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/cns.html#cns_dist_restraint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.cns.cns_dist_restraint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a CNS distance restraint string</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>resid_i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of first residue</li>
+<li><strong>atom_i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of selected atom in first residue</li>
+<li><strong>resid_j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of second residue</li>
+<li><strong>atom_j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of selected atom in second residue</li>
+<li><strong>dist</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Restrain distance between residues to this value</li>
+<li><strong>lower</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Lower bound delta on distance</li>
+<li><strong>upper</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Upper bound delta on distance</li>
+<li><strong>weight</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Weight for distance restraint</li>
+<li><strong>comment</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Print comment at the end of restraint line</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>r</strong> – Distance restraint</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.cns.cns_extended_inp">
+<code class="descclassname">evcouplings.fold.cns.</code><code class="descname">cns_extended_inp</code><span class="sig-paren">(</span><em>mtf_infile</em>, <em>pdb_outfile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/cns.html#cns_extended_inp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.cns.cns_extended_inp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create CNS iput script (.inp) to create extended PDB file
+from molecular topology file (.mtf)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>mtf_infile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to .mtf topology file</li>
+<li><strong>pdb_outfile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path where extended .pdb file will be stored</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Input script</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.cns.cns_generate_easy_inp">
+<code class="descclassname">evcouplings.fold.cns.</code><code class="descname">cns_generate_easy_inp</code><span class="sig-paren">(</span><em>pdb_infile</em>, <em>pdb_outfile</em>, <em>mtf_outfile</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/cns.html#cns_generate_easy_inp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.cns.cns_generate_easy_inp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create CNS input script (.inp) to run generate_easy
+protocol (here, to add hydrogen bonds to models)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pdb_infile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to 3D structure to which hydrogens will be added</li>
+<li><strong>pdb_outfile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path where to to store updated structure</li>
+<li><strong>mtf_outfile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path where to store molecular topology file corresponding
+to updated structure</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Input script</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.cns.cns_minimize_inp">
+<code class="descclassname">evcouplings.fold.cns.</code><code class="descname">cns_minimize_inp</code><span class="sig-paren">(</span><em>pdb_infile</em>, <em>mtf_infile</em>, <em>pdb_outfile</em>, <em>num_cycles=5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/cns.html#cns_minimize_inp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.cns.cns_minimize_inp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create CNS input script (.inp) to minimize model</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pdb_infile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to PDB structure that should be minimized
+(created using generate_easy protocol)</li>
+<li><strong>mtf_infile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to corresponding .mtf topology file of
+PDB structure (created using generate_easy protocol)</li>
+<li><strong>pdb_outfile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path where minimized structure will be stored</li>
+<li><strong>num_cycles</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 5</em><em>)</em>) – Number of minimization cycles</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Input script</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.cns.cns_mtf_inp">
+<code class="descclassname">evcouplings.fold.cns.</code><code class="descname">cns_mtf_inp</code><span class="sig-paren">(</span><em>seq_infile</em>, <em>mtf_outfile</em>, <em>first_index=1</em>, <em>disulfide_bridges=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/cns.html#cns_mtf_inp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.cns.cns_mtf_inp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create CNS input script (.inp) to create molecular
+topology file (.mtf) from sequence (.seq file)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>seq_infile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to .seq input file (create using cns_seq_file())</li>
+<li><strong>mtf_outfile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path where generated .mtf file should be stored</li>
+<li><strong>first_index</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 1</em><em>)</em>) – Index of first residue in sequence</li>
+<li><strong>disulfide_bridges</strong> (<em>list</em><em> or </em><em>pandas.DataFrame</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – <p>Position pairs that should be linked by a disulfide
+bridge. Can be:</p>
+<ul>
+<li>list of tuples (i, j)</li>
+<li>dataframe with columns i and j for positions, and A_i and A_j
+for amino acid symbols. Will automatically select those pairs
+(i, j) where A_i and A_j are ‘C’.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Input script</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.cns.cns_seq_file">
+<code class="descclassname">evcouplings.fold.cns.</code><code class="descname">cns_seq_file</code><span class="sig-paren">(</span><em>sequence</em>, <em>output_file=None</em>, <em>residues_per_line=16</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/cns.html#cns_seq_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.cns.cns_seq_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a CNS .seq file for a given protein sequence</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sequence</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Amino acid sequence in one-letter code</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Save 3-letter code sequence to this file
+(if None, will create temporary file)</li>
+<li><strong>residues_per_line</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 16</em><em>)</em>) – Print this many residues on each line
+of .seq file</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>output_file</strong> – Path to file with sequence
+(useful if temporary file was
+generated)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">InvalidParameterError</span></code> – If sequence contains invalid symbol</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.fold.filter">
+<span id="evcouplings-fold-filter-module"></span><h2>evcouplings.fold.filter module<a class="headerlink" href="#module-evcouplings.fold.filter" title="Permalink to this headline">¶</a></h2>
+<p>Functions for detecting ECs that should not be
+included in 3D structure prediction</p>
+<p>Most functions in this module are rewritten from
+older pipeline code in choose_CNS_constraint_set.m</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.fold.filter.detect_secstruct_clash">
+<code class="descclassname">evcouplings.fold.filter.</code><code class="descname">detect_secstruct_clash</code><span class="sig-paren">(</span><em>i</em>, <em>j</em>, <em>secstruct</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/filter.html#detect_secstruct_clash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.filter.detect_secstruct_clash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detect if an EC pair (i, j) is geometrically
+impossible given a predicted secondary structure</p>
+<p>Based on direct port of the logic implemented in
+choose_CNS_constraint_set.m from original pipeline,
+lines 351-407.</p>
+<p>Use secstruct_clashes() to annotate an entire
+table of ECs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of first position</li>
+<li><strong>j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of second position</li>
+<li><strong>secstruct</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) – Mapping from position (int) to secondary
+structure (“H”, “E”, “C”)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>clashes</strong> – True if (i, j) clashes with secondary
+structure</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)">bool</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.filter.disulfide_clashes">
+<code class="descclassname">evcouplings.fold.filter.</code><code class="descname">disulfide_clashes</code><span class="sig-paren">(</span><em>ec_pairs</em>, <em>output_column='cys_clash'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/filter.html#disulfide_clashes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.filter.disulfide_clashes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add disulfide bridge clashes to EC table (i.e. if
+any cysteine residue is coupled to another cysteine).
+This flag is necessary if disulfide bridges are created
+during folding, since only one bridge is possible per
+cysteine.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ec_pairs</strong> (<em>pandas.DataFrame</em>) – Table with EC pairs that will be tested
+for the occurrence of multiple cys-cys
+pairings (with columns i, j, A_i, A_j)</li>
+<li><strong>output_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cys_clash&quot;</em><em>)</em>) – Target column indicating if pair is in a
+clash or not</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Annotated EC table with clashes</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.filter.secstruct_clashes">
+<code class="descclassname">evcouplings.fold.filter.</code><code class="descname">secstruct_clashes</code><span class="sig-paren">(</span><em>ec_pairs</em>, <em>residues</em>, <em>output_column='ss_clash'</em>, <em>secstruct_column='sec_struct_3state'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/filter.html#secstruct_clashes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.filter.secstruct_clashes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add secondary structure clashes to EC table</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ec_pairs</strong> (<em>pandas.DataFrame</em>) – Table with EC pairs that will be tested
+for clashes with secondary structure
+(with columns i, j)</li>
+<li><strong>residues</strong> (<em>pandas.DataFrame</em>) – Table with residues in sequence and their
+secondary structure (columns i, ss_pred).</li>
+<li><strong>output_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;secstruct_clash&quot;</em><em>)</em>) – Target column indicating if pair is in a
+clash or not</li>
+<li><strong>secstruct_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;sec_struct_3state&quot;</em><em>)</em>) – Source column in ec_pairs with secondary structure
+states (H, E, C)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Annotated EC table with clashes</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.fold.protocol">
+<span id="evcouplings-fold-protocol-module"></span><h2>evcouplings.fold.protocol module<a class="headerlink" href="#module-evcouplings.fold.protocol" title="Permalink to this headline">¶</a></h2>
+<p>Protocols for predicting protein 3D structure from ECs</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.fold.protocol.compare_models_maxcluster">
+<code class="descclassname">evcouplings.fold.protocol.</code><code class="descname">compare_models_maxcluster</code><span class="sig-paren">(</span><em>experiments</em>, <em>predictions</em>, <em>norm_by_intersection=True</em>, <em>distance_cutoff=None</em>, <em>binary='maxcluster'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/protocol.html#compare_models_maxcluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.protocol.compare_models_maxcluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare predicted models to a set of experimental structures
+using maxcluster</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>experiments</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – Paths to files with experimental structures</li>
+<li><strong>predictions</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – Paths to files with predicted structures</li>
+<li><strong>norm_by_intersection</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – If True, use the number of positions that exist
+in both experiment and predictions for normalizing
+TM scores (assumes all predicted structures have the
+same positions). If False, use length of experimental
+structure.</li>
+<li><strong>distance_cutoff</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Distance cutoff for MaxSub search (-d option of maxcluster).
+If None, will use maxcluster auto-calibration.</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;maxcluster&quot;</em><em>)</em>) – Path to maxcluster binary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>full_result</strong> (<em>pandas.DataFrame</em>) – Comparison results across all experimental structures</li>
+<li><strong>single_results</strong> (<em>dict</em>) – Mapping from experimental structure filename to
+a pandas.DataFrame containing the comparison
+result for that particular structure.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.protocol.maxcluster_clustering_table">
+<code class="descclassname">evcouplings.fold.protocol.</code><code class="descname">maxcluster_clustering_table</code><span class="sig-paren">(</span><em>structures</em>, <em>binary</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/protocol.html#maxcluster_clustering_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.protocol.maxcluster_clustering_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create table of clustering results for all possible
+maxcluster clustering modes</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>structures</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – List of structure files</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;maxcluster&quot;</em><em>)</em>) – Path to maxcluster binary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Table with clustering results for all structures</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.protocol.run">
+<code class="descclassname">evcouplings.fold.protocol.</code><code class="descname">run</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/protocol.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.protocol.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run folding protocol</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – protocol: Folding protocol to run
+prefix: Output prefix for all generated files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of stage
+(see individual protocol for fields)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.protocol.secondary_structure">
+<code class="descclassname">evcouplings.fold.protocol.</code><code class="descname">secondary_structure</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/protocol.html#secondary_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.protocol.secondary_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict or load secondary structure for an
+input sequence</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – See list below in code where calling check_required</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>residues</strong> – Table with sequence and secondary structure
+in columns i, A_i and sec_struct_3state</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pandas.DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.protocol.standard">
+<code class="descclassname">evcouplings.fold.protocol.</code><code class="descname">standard</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/protocol.html#standard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.protocol.standard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Protocol:
+Predict 3D structure from evolutionary couplings</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – See list below in code where calling check_required</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of the pipeline, including
+the following fields:<ul class="simple">
+<li>sec_struct_file</li>
+<li>folding_ec_file</li>
+<li>folded_structure_files</li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.fold.ranking">
+<span id="evcouplings-fold-ranking-module"></span><h2>evcouplings.fold.ranking module<a class="headerlink" href="#module-evcouplings.fold.ranking" title="Permalink to this headline">¶</a></h2>
+<p>Functions for detecting ECs that should not be
+included in 3D structure prediction</p>
+<p>Most functions in this module are rewritten from
+older pipeline code in choose_CNS_constraint_set.m</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.fold.ranking.dihedral_ranking">
+<code class="descclassname">evcouplings.fold.ranking.</code><code class="descname">dihedral_ranking</code><span class="sig-paren">(</span><em>structure_files</em>, <em>residues</em>, <em>chain=None</em>, <em>sec_struct_column='sec_struct_3state'</em>, <em>model=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/ranking.html#dihedral_ranking"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.ranking.dihedral_ranking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assess quality of a set of structure models by
+twist of predicted alpha-helices and beta-sheets.</p>
+<p>This function re-implements the final score table
+computed in make_alpha_beta_score_table.m from
+the original pipeline. Some of the implementation
+details where however modified, possibly leading
+to differences in the final computed ranking scores.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>structure_files</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – Paths to PDB files that will be ranked
+(have to be in .pdb format)</li>
+<li><strong>residues</strong> (<em>pandas.DataFrame</em>) – Residue table with secondary structure predictions
+(columns i, A_i and secondary structure column)</li>
+<li><strong>chain</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Use this chain in each structure for the calculation.
+If None, will pick the only existing chain (if there
+are multiple chains, an InvalidParameterError will be
+raised).</li>
+<li><strong>sec_struct_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: sec_struct_3state</em><em>)</em>) – Column in residues dataframe that contains predicted
+secondary structure (H, E, C)</li>
+<li><strong>model</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0</em><em>)</em>) – Use this model from each PDB structure</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Table with final ranking scores (column ranking_score)
+and alpha and beta dihedral scores, as well
+as well as possible maximum score (equal to the number
+of computed dihedrals).</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">pandas.DataFrame</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">InvalidParameterError</span></code> – If chain is None but multiple chains exist in any
+of the structures</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.ranking.dihedral_ranking_score">
+<code class="descclassname">evcouplings.fold.ranking.</code><code class="descname">dihedral_ranking_score</code><span class="sig-paren">(</span><em>structure</em>, <em>residues</em>, <em>sec_struct_column='sec_struct_3state'</em>, <em>original=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/ranking.html#dihedral_ranking_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.ranking.dihedral_ranking_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assess quality of structure model by twist of
+predicted alpha-helices and beta-sheets.</p>
+<p>This function re-implements the functionality of
+make_alpha_beta_score_table.m from the original
+pipeline.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>structure</strong> (<a class="reference internal" href="evcouplings.compare.html#evcouplings.compare.pdb.Chain" title="evcouplings.compare.pdb.Chain"><em>evcouplings.compare.pdb.Chain</em></a>) – Chain with 3D structure coordinates to evaluate</li>
+<li><strong>residues</strong> (<em>pandas.DataFrame</em>) – Residue table with secondary structure predictions
+(columns i, A_i and secondary structure column)</li>
+<li><strong>sec_struct_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: sec_struct_3state</em><em>)</em>) – Column in residues dataframe that contains predicted
+secondary structure (H, E, C)</li>
+<li><strong>original</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em><em>:</em>) – Use exact implementation of 2011 ranking protocol</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><em>int</em> – Number of alpha dihedrals computed</li>
+<li><em>float</em> – Alpha dihedral score (unnormalized)</li>
+<li><em>int</em> – Number of beta dihedrals computed</li>
+<li><em>float</em> – Beta dihedral score (unnormalized)</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.fold.restraints">
+<span id="evcouplings-fold-restraints-module"></span><h2>evcouplings.fold.restraints module<a class="headerlink" href="#module-evcouplings.fold.restraints" title="Permalink to this headline">¶</a></h2>
+<p>Functions for generating distance restraints from
+evolutionary couplings and secondary structure predictions</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.fold.restraints.ec_dist_restraints">
+<code class="descclassname">evcouplings.fold.restraints.</code><code class="descname">ec_dist_restraints</code><span class="sig-paren">(</span><em>ec_pairs</em>, <em>output_file</em>, <em>restraint_formatter</em>, <em>config_file=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/restraints.html#ec_dist_restraints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.restraints.ec_dist_restraints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create .tbl file with distance restraints
+based on evolutionary couplings</p>
+<p>Logic based on choose_CNS_constraint_set.m,
+lines 449-515</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ec_pairs</strong> (<em>pandas.DataFrame</em>) – Table with EC pairs that will be turned
+into distance restraints
+(with columns i, j, A_i, A_j)</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to file in which restraints will be saved</li>
+<li><strong>restraint_formatter</strong> (<em>function</em>) – Function called to create string representation of restraint</li>
+<li><strong>config_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Path to config file with folding settings. If None,
+will use default settings included in package
+(restraints.yml).</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.restraints.secstruct_angle_restraints">
+<code class="descclassname">evcouplings.fold.restraints.</code><code class="descname">secstruct_angle_restraints</code><span class="sig-paren">(</span><em>residues</em>, <em>output_file</em>, <em>restraint_formatter</em>, <em>config_file=None</em>, <em>secstruct_column='sec_struct_3state'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/restraints.html#secstruct_angle_restraints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.restraints.secstruct_angle_restraints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create .tbl file with dihedral angle restraints
+based on secondary structure prediction</p>
+<p>Logic based on make_cns_angle_constraints.pl</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>residues</strong> (<em>pandas.DataFrame</em>) – Table containing positions (column i), residue
+type (column A_i), and secondary structure for
+each position</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to file in which restraints will be saved</li>
+<li><strong>restraint_formatter</strong> (<em>function</em><em>, </em><em>optional</em>) – Function called to create string representation of restraint</li>
+<li><strong>config_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Path to config file with folding settings. If None,
+will use default settings included in package
+(restraints.yml).</li>
+<li><strong>secstruct_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: sec_struct_3state</em><em>)</em>) – Column name in residues dataframe from which secondary
+structure will be extracted (has to be H, E, or C).</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.restraints.secstruct_dist_restraints">
+<code class="descclassname">evcouplings.fold.restraints.</code><code class="descname">secstruct_dist_restraints</code><span class="sig-paren">(</span><em>residues</em>, <em>output_file</em>, <em>restraint_formatter</em>, <em>config_file=None</em>, <em>secstruct_column='sec_struct_3state'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/restraints.html#secstruct_dist_restraints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.restraints.secstruct_dist_restraints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create .tbl file with distance restraints
+based on secondary structure prediction</p>
+<p>Logic based on choose_CNS_constraint_set.m,
+lines 519-1162</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>residues</strong> (<em>pandas.DataFrame</em>) – Table containing positions (column i), residue
+type (column A_i), and secondary structure for
+each position</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to file in which restraints will be saved</li>
+<li><strong>restraint_formatter</strong> (<em>function</em>) – Function called to create string representation of restraint</li>
+<li><strong>config_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Path to config file with folding settings. If None,
+will use default settings included in package
+(restraints.yml).</li>
+<li><strong>secstruct_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: sec_struct_3state</em><em>)</em>) – Column name in residues dataframe from which secondary
+structure will be extracted (has to be H, E, or C).</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.fold.tools">
+<span id="evcouplings-fold-tools-module"></span><h2>evcouplings.fold.tools module<a class="headerlink" href="#module-evcouplings.fold.tools" title="Permalink to this headline">¶</a></h2>
+<p>Wrappers for tools for 3D structure prediction
+from evolutionary couplings</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.fold.tools.parse_maxcluster_clustering">
+<code class="descclassname">evcouplings.fold.tools.</code><code class="descname">parse_maxcluster_clustering</code><span class="sig-paren">(</span><em>clustering_output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/tools.html#parse_maxcluster_clustering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.tools.parse_maxcluster_clustering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse maxcluster clustering output into a DataFrame</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>clustering_output</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – stdout output from maxcluster after clustering</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Parsed result table (columns: filename, cluster, cluster_size)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pandas.DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.tools.parse_maxcluster_comparison">
+<code class="descclassname">evcouplings.fold.tools.</code><code class="descname">parse_maxcluster_comparison</code><span class="sig-paren">(</span><em>comparison_output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/tools.html#parse_maxcluster_comparison"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.tools.parse_maxcluster_comparison" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse maxcluster output into a DataFrame</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>comparison_output</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – stdout output from maxcluster after comparison</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Parsed result table (columns: filename, num_pairs,
+rmsd, maxsub, tm, msi), refer to maxcluster documentation
+for explanation of the score fields.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pandas.DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.tools.read_psipred_prediction">
+<code class="descclassname">evcouplings.fold.tools.</code><code class="descname">read_psipred_prediction</code><span class="sig-paren">(</span><em>filename</em>, <em>first_index=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/tools.html#read_psipred_prediction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.tools.read_psipred_prediction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a psipred secondary structure prediction file
+in horizontal or vertical format (auto-detected).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to prediction output file</li>
+<li><strong>first_index</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 1</em><em>)</em>) – Index of first position in predicted sequence</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p><strong>pred</strong> – Table containing secondary structure prediction,
+with the following columns:</p>
+<ul class="simple">
+<li>i: position</li>
+<li>A_i: amino acid</li>
+<li>sec_struct_3state: prediction (H, E, C)</li>
+</ul>
+<p>If reading vformat, also contains columns
+for the individual (score_coil/helix/strand)</p>
+<p>If reading hformat, also contains confidence
+score between 1 and 9 (sec_struct_conf)</p>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.tools.run_cns">
+<code class="descclassname">evcouplings.fold.tools.</code><code class="descname">run_cns</code><span class="sig-paren">(</span><em>inp_script=None</em>, <em>inp_file=None</em>, <em>log_file=None</em>, <em>binary='cns'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/tools.html#run_cns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.tools.run_cns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run CNSsolve 1.21 (without worrying about environment setup)</p>
+<p>Note that the user is responsible for verifying the output products
+of CNS, since their paths are determined by .inp scripts and
+hard to check automatically and in a general way.</p>
+<p>Either input_script or input_file has to be specified.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inp_script</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – CNS “.inp” input script (actual commands, not file)</li>
+<li><strong>inp_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Path to .inp input script file. Will override
+inp_script if also specified.</li>
+<li><strong>log_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Save CNS stdout output to this file</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cns&quot;</em><em>)</em>) – Absolute path of CNS binary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">ExternalToolError</span></code> – If call to CNS fails</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">InvalidParameterError</span></code> – If no input script (file or string) given</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.tools.run_cns_13">
+<code class="descclassname">evcouplings.fold.tools.</code><code class="descname">run_cns_13</code><span class="sig-paren">(</span><em>inp_script=None</em>, <em>inp_file=None</em>, <em>log_file=None</em>, <em>source_script=None</em>, <em>binary='cns'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/tools.html#run_cns_13"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.tools.run_cns_13" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run CNSsolve 1.3</p>
+<p>Note that the user is responsible for verifying the output products
+of CNS, since their paths are determined by .inp scripts and
+hard to check automatically and in a general way.</p>
+<p>Either input_script or input_file has to be specified.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inp_script</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – CNS “.inp” input script (actual commands, not file)</li>
+<li><strong>inp_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Path to .inp input script file. Will override
+inp_script if also specified.</li>
+<li><strong>log_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Save CNS stdout output to this file</li>
+<li><strong>source_script</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Script to set CNS environment variables.
+This should typically point to .cns_solve_env_sh
+in the CNS installation main directory (the
+shell script itself needs to be edited to
+contain the path of the installation)</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cns&quot;</em><em>)</em>) – Name of CNS binary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">ExternalToolError</span></code> – If call to CNS fails</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">InvalidParameterError</span></code> – If no input script (file or string) given</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.tools.run_maxcluster_cluster">
+<code class="descclassname">evcouplings.fold.tools.</code><code class="descname">run_maxcluster_cluster</code><span class="sig-paren">(</span><em>predictions</em>, <em>method='average'</em>, <em>rmsd=True</em>, <em>clustering_threshold=None</em>, <em>binary='maxcluster'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/tools.html#run_maxcluster_cluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.tools.run_maxcluster_cluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare a set of predicted structures to an experimental structure
+using maxcluster.</p>
+<p>For clustering functionality, use run_maxcluster_clustering() function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>predictions</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – List of PDB files that should be compared against experiment</li>
+<li><strong>method</strong> (<em>{&quot;single&quot;</em><em>, </em><em>&quot;average&quot;</em><em>, </em><em>&quot;maximum&quot;</em><em>, </em><em>&quot;pairs_min&quot;</em><em>, </em><em>&quot;pairs_abs&quot;}</em><em>, </em><em>optional</em><em> (</em><em>default: &quot;average&quot;</em><em>)</em>) – Clustering method (single / average / maximum linkage,
+or min / absolute size neighbour pairs</li>
+<li><strong>clustering_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em> (</em><em>optional</em><em>, </em><em>default: None</em><em>)</em>) – Initial clustering threshold (maxcluster -T option)</li>
+<li><strong>rmsd</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Use RMSD-based clustering (faster)</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;maxcluster&quot;</em><em>)</em>) – Path to maxcluster binary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Clustering result table (see parse_maxcluster_clustering
+for more detailed explanation)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.tools.run_maxcluster_compare">
+<code class="descclassname">evcouplings.fold.tools.</code><code class="descname">run_maxcluster_compare</code><span class="sig-paren">(</span><em>predictions</em>, <em>experiment</em>, <em>normalization_length=None</em>, <em>distance_cutoff=None</em>, <em>binary='maxcluster'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/tools.html#run_maxcluster_compare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.tools.run_maxcluster_compare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare a set of predicted structures to an experimental structure
+using maxcluster.</p>
+<p>For clustering functionality, use run_maxcluster_clustering() function.</p>
+<p>For a high-level wrapper around this function that removes
+problematic atoms and compares multiple models, please look at
+evcouplings.fold.protocol.compare_models_maxcluster().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>predictions</strong> (<em>list</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – List of PDB files that should be compared against experiment</li>
+<li><strong>experiment</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path of experimental structure PDB file. Note that the numbering
+and residues in this file must agree with the predicted structure,
+and that the structure may not contain duplicate atoms (multiple
+models, or alternative locations for the same atom).</li>
+<li><strong>normalization_length</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Use this length to normalize the Template Modeling (TM)
+score (-N option of maxcluster). If None, will normalize
+by length of experiment.</li>
+<li><strong>distance_cutoff</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Distance cutoff for MaxSub search (-d option of maxcluster).
+If None, will use maxcluster auto-calibration.</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;maxcluster&quot;</em><em>)</em>) – Path to maxcluster binary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Comparison result table (see parse_maxcluster_comparison
+for more detailed explanation)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.fold.tools.run_psipred">
+<code class="descclassname">evcouplings.fold.tools.</code><code class="descname">run_psipred</code><span class="sig-paren">(</span><em>fasta_file</em>, <em>output_dir</em>, <em>binary='runpsipred'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/fold/tools.html#run_psipred"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.fold.tools.run_psipred" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run psipred secondary structure prediction</p>
+<p>psipred output file convention: run_psipred creates
+output files &lt;rootname&gt;.ss2 and &lt;rootname2&gt;.horiz
+in the current working directory, where &lt;rootname&gt;
+is extracted from the basename of the input file
+(e.g. /home/test/&lt;rootname&gt;.fa)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fasta_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Input sequence file in FASTA format</li>
+<li><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Directory in which output will be saved</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cns&quot;</em><em>)</em>) – Path of psipred executable (runpsipred)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
+<li><strong>ss2_file</strong> (<em>str</em>) – Absolute path to prediction output in “VFORMAT”</li>
+<li><strong>horiz_file</strong> (<em>str</em>) – Absolute path to prediction output in “HFORMAT”</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ExternalToolError</span></code> – If call to psipred fails</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="evcouplings.visualize.html" class="btn btn-neutral float-right" title="evcouplings.visualize package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="evcouplings.mutate.html" class="btn btn-neutral" title="evcouplings.mutate package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

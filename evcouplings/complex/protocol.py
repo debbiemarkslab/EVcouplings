@@ -29,7 +29,10 @@ def genome_distance(**kwargs):
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-        (TODO: explain meaning of parameters in detail).
+
+        .. todo::
+
+            Explain meaning of parameters in detail.
 
     Returns
     -------
@@ -37,23 +40,28 @@ def genome_distance(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        # TODO: this is the full list normally returned
-        # by alignment protocol, decide which ones
-        # to keep. Mandatory:
-        # alignment_file, focus_sequence, focus_mode, segments
+        .. todo::
 
-        alignment_file
-        [raw_alignment_file]
-        statistics_file
-        target_sequence_file
-        sequence_file
-        [annotation_file]
-        frequencies_file
-        identities_file
-        [hittable_file]
-        focus_mode
-        focus_sequence
-        segments
+            this is the full list normally returned by alignment protocol, decide which ones to keep.
+            Mandatory:
+
+            * alignment_file
+            * focus_sequence
+            * focus_mode
+            * segments
+
+        * alignment_file
+        * [raw_alignment_file]
+        * statistics_file
+        * target_sequence_file
+        * sequence_file
+        * [annotation_file]
+        * frequencies_file
+        * identities_file
+        * [hittable_file]
+        * focus_mode
+        * focus_sequence
+        * segments
     """
     check_required(
         kwargs,
@@ -141,16 +149,18 @@ def run(**kwargs):
     -------
     outcfg : dict
         Output configuration of concatenation stage
-        Dictionary with results in following fields:
-        (in brackets: not mandatory)
+        Dictionary with results in following fields (in brackets: not mandatory):
 
-        # TODO: to be finalized after implementing protocols
-        alignment_file
-        focus_mode
-        focus_sequence
-        segments
-        num_sites
-        num_sequences
+        .. todo::
+
+            to be finalized after implementing protocols
+
+        * alignment_file
+        * focus_mode
+        * focus_sequence
+        * segments
+        * num_sites
+        * num_sequences
     """
     check_required(kwargs, ["protocol"])
 

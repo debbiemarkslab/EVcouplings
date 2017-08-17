@@ -1,0 +1,1819 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.couplings package &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="index.html"/>
+        <link rel="up" title="Alignment" href="evcouplings.html"/>
+        <link rel="next" title="evcouplings.mutate package" href="evcouplings.mutate.html"/>
+        <link rel="prev" title="evcouplings.complex package" href="evcouplings.complex.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html">Alignment</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="evcouplings.html#couplings-analysis">Couplings Analysis</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.compare.html">evcouplings.compare package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.complex.html">evcouplings.complex package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">evcouplings.couplings package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.couplings.mapping">evcouplings.couplings.mapping module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.couplings.mean_field">evcouplings.couplings.mean_field module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.couplings.model">evcouplings.couplings.model module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.couplings.pairs">evcouplings.couplings.pairs module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.couplings.protocol">evcouplings.couplings.protocol module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.couplings.tools">evcouplings.couplings.tools module</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.mutate.html">evcouplings.mutate package</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="evcouplings.html">Alignment</a> &raquo;</li>
+        
+      <li>evcouplings.couplings package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/evcouplings.couplings.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="evcouplings-couplings-package">
+<h1>evcouplings.couplings package<a class="headerlink" href="#evcouplings-couplings-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-evcouplings.couplings.mapping">
+<span id="evcouplings-couplings-mapping-module"></span><h2>evcouplings.couplings.mapping module<a class="headerlink" href="#module-evcouplings.couplings.mapping" title="Permalink to this headline">¶</a></h2>
+<p>Mapping indices for complexes / multi-domain sequences to
+internal model numbering.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.couplings.mapping.Segment">
+<em class="property">class </em><code class="descclassname">evcouplings.couplings.mapping.</code><code class="descname">Segment</code><span class="sig-paren">(</span><em>segment_type</em>, <em>sequence_id</em>, <em>region_start</em>, <em>region_end</em>, <em>positions=None</em>, <em>segment_id='A'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mapping.html#Segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mapping.Segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Represents a continuous stretch of sequence in a sequence
+alignment to infer evolutionary couplings (e.g. multiple domains,
+or monomers in a concatenated complex alignment)</p>
+<dl class="classmethod">
+<dt id="evcouplings.couplings.mapping.Segment.from_list">
+<em class="property">classmethod </em><code class="descname">from_list</code><span class="sig-paren">(</span><em>segment</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mapping.html#Segment.from_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mapping.Segment.from_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a segment object from list representation
+(e.g. from config).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>segment</strong> (<em>list</em>) – List representation of segment, with the following items:
+segment_id (str), segment_type (str), sequence_id (str),
+region_start (int), region_end (int), positions (list(int))</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">New Segment instance from list</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.couplings.mapping.Segment" title="evcouplings.couplings.mapping.Segment">Segment</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mapping.Segment.to_list">
+<code class="descname">to_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mapping.html#Segment.to_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mapping.Segment.to_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represent segment as list (for storing in configs)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">List representation of segment, with the following items:
+segment_id (str), segment_type (str), sequence_id (str),
+region_start (int), region_end (int), positions (list(int))</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.couplings.mapping.SegmentIndexMapper">
+<em class="property">class </em><code class="descclassname">evcouplings.couplings.mapping.</code><code class="descname">SegmentIndexMapper</code><span class="sig-paren">(</span><em>focus_mode</em>, <em>first_index</em>, <em>*segments</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mapping.html#SegmentIndexMapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mapping.SegmentIndexMapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Map indices of one or more sequence segments into
+CouplingsModel internal numbering space. Can also
+be used to (trivially) remap indices for a single sequence.</p>
+<dl class="method">
+<dt id="evcouplings.couplings.mapping.SegmentIndexMapper.patch_model">
+<code class="descname">patch_model</code><span class="sig-paren">(</span><em>model</em>, <em>inplace=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mapping.html#SegmentIndexMapper.patch_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mapping.SegmentIndexMapper.patch_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change numbering of CouplingModel object
+so that it uses segment-based numbering</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model</strong> (<a class="reference internal" href="#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel"><em>CouplingsModel</em></a>) – Model that will be updated to segment-
+based numbering</li>
+<li><strong>inplace</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – If True, change passed model; otherwise
+returnnew object</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Model with updated numbering
+(if inplace is False, this will
+point to original model)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel">CouplingsModel</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – If segment mapping does not match
+internal model numbering</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mapping.SegmentIndexMapper.to_model">
+<code class="descname">to_model</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mapping.html#SegmentIndexMapper.to_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mapping.SegmentIndexMapper.to_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map target index to model index</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>x</strong> (<em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>)</em><em>, or </em><em>list of</em><em> (</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>)</em>) – Indices in target indexing
+(segment_id, index_in_segment)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Monomer indices mapped into couplings object numbering</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)">int</a>, or list of int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mapping.SegmentIndexMapper.to_target">
+<code class="descname">to_target</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mapping.html#SegmentIndexMapper.to_target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mapping.SegmentIndexMapper.to_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map model index to target index</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>x</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, or </em><em>list of ints</em>) – Indices in model numbering</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Indices mapped into target numbering.
+Tuples are (segment_id, index_in_segment)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a>, <a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)">int</a>), or list of (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a>, <a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)">int</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.couplings.mapping.segment_map_ecs">
+<code class="descclassname">evcouplings.couplings.mapping.</code><code class="descname">segment_map_ecs</code><span class="sig-paren">(</span><em>ecs</em>, <em>mapper</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mapping.html#segment_map_ecs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mapping.segment_map_ecs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map EC dataframe in model numbering into
+segment numbering</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ecs</strong> (<em>pandas.DataFrame</em>) – EC table (with columns i and j)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Mapped EC table (with columns i and j
+mapped, and additional columns
+segment_i and segment_j)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pandas.DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.couplings.mean_field">
+<span id="evcouplings-couplings-mean-field-module"></span><h2>evcouplings.couplings.mean_field module<a class="headerlink" href="#module-evcouplings.couplings.mean_field" title="Permalink to this headline">¶</a></h2>
+<p>Inference of evolutionary couplings
+from sequence alignments using
+mean field approximation.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Sophia F. Mersmann</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.couplings.mean_field.MeanFieldCouplingsModel">
+<em class="property">class </em><code class="descclassname">evcouplings.couplings.mean_field.</code><code class="descname">MeanFieldCouplingsModel</code><span class="sig-paren">(</span><em>alignment</em>, <em>index_list</em>, <em>regularized_f_i</em>, <em>regularized_f_ij</em>, <em>h_i</em>, <em>J_ij</em>, <em>theta</em>, <em>pseudo_count</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldCouplingsModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldCouplingsModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel"><code class="xref py py-class docutils literal"><span class="pre">evcouplings.couplings.model.CouplingsModel</span></code></a></p>
+<p>Mean field DCA specific model class that stores the
+parameters inferred using mean field approximation
+and calculates mutual and direct information as
+well as fn and cn scores.</p>
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.MeanFieldCouplingsModel.di_scores">
+<code class="descname">di_scores</code><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldCouplingsModel.di_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>L x L numpy matrix with DI (direct information) scores</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mean_field.MeanFieldCouplingsModel.tilde_fields">
+<code class="descname">tilde_fields</code><span class="sig-paren">(</span><em>i</em>, <em>j</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldCouplingsModel.tilde_fields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldCouplingsModel.tilde_fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute h_tilde fields of the two-site model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>i</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – First position.</li>
+<li><strong>j</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Second position.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">h_tilde fields of position i and j -
+both arrays of size 1 x num_symbols</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array, np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mean_field.MeanFieldCouplingsModel.to_raw_ec_file">
+<code class="descname">to_raw_ec_file</code><span class="sig-paren">(</span><em>couplings_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldCouplingsModel.to_raw_ec_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldCouplingsModel.to_raw_ec_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write mutual and direct information to the EC file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>couplings_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Output path for file with evolutionary couplings.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA">
+<em class="property">class </em><code class="descclassname">evcouplings.couplings.mean_field.</code><code class="descname">MeanFieldDCA</code><span class="sig-paren">(</span><em>alignment</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldDCA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Class that provides the functionality
+to infer evolutionary couplings from a given
+sequence alignment using mean field
+approximation.</p>
+<p>Important:
+The input alignment should be an a2m
+alignment with lower / upper columns
+and the target sequence as the first
+record.</p>
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA._raw_alignment">
+<code class="descname">_raw_alignment</code><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA._raw_alignment" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Alignment</em> – The input alignment. This should be an
+a2m alignment with lower / upper columns
+and the target sequence as first record.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.index_list">
+<code class="descname">index_list</code><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.index_list" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.array</em> – List of UniProt numbers of the target
+sequence (only upper case characters).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.alignment">
+<code class="descname">alignment</code><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.alignment" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Alignment</em> – A processed version of the given alignment
+(_raw_alignment) that is then used to
+infer evolutionary couplings using DCA.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.N">
+<code class="descname">N</code><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.N" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>int</em> – The number of sequences (of the processed
+alignment).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.L">
+<code class="descname">L</code><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.L" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>int</em> – The width of the alignment (again, this
+refers to the processed alignment).</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.num_symbols">
+<code class="descname">num_symbols</code><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.num_symbols" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>int</em> – The number of symbols of the alphabet used.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.covariance_matrix">
+<code class="descname">covariance_matrix</code><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.covariance_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.array</em> – Matrix of size (L * (num_symbols-1)) x (L * (num_symbols-1))
+containing the co-variation of each character pair
+in any positions.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.covariance_matrix_inv">
+<code class="descname">covariance_matrix_inv</code><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.covariance_matrix_inv" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>np.array</em> – Inverse of covariance_matrix.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.compute_covariance_matrix">
+<code class="descname">compute_covariance_matrix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldDCA.compute_covariance_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.compute_covariance_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the covariance matrix.</p>
+<p>This method sets the attribute self.covariance_matrix
+and returns a reference to it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Reference to attribute self.convariance_matrix</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.fields">
+<code class="descname">fields</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldDCA.fields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute fields.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Matrix of size L x num_symbols
+containing single-site fields.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>theta=0.8</em>, <em>pseudo_count=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldDCA.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run mean field direct couplings analysis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0.8</em><em>)</em>) – Sequences with pairwise identity &gt;= theta
+will be clustered and their sequence weights
+downweighted as 1 / num_cluster_members.</li>
+<li><strong>pseudo_count</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0.5</em><em>)</em>) – Applied to frequency counts to regularize
+in the case of insufficient data availability.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Model object that holds the inferred
+fields (h_i) and couplings (J_ij).</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.couplings.mean_field.MeanFieldCouplingsModel" title="evcouplings.couplings.mean_field.MeanFieldCouplingsModel">MeanFieldCouplingsModel</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.regularize_frequencies">
+<code class="descname">regularize_frequencies</code><span class="sig-paren">(</span><em>pseudo_count=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldDCA.regularize_frequencies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.regularize_frequencies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns/calculates single-site frequencies
+regularized by a pseudo-count of symbols
+in alignment.</p>
+<p>This method sets the attribute
+self.regularized_frequencies
+and returns a reference to it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pseudo_count</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0.5</em><em>)</em>) – The value to be added as pseudo-count.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Matrix of size L x num_symbols containing
+relative column frequencies of all symbols
+regularized by a pseudo-count.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.regularize_pair_frequencies">
+<code class="descname">regularize_pair_frequencies</code><span class="sig-paren">(</span><em>pseudo_count=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldDCA.regularize_pair_frequencies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.regularize_pair_frequencies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add pseudo-count to pairwise frequencies
+to regularize in the case of insufficient
+data availability.</p>
+<p>This method sets the attribute
+self.regularized_pair_frequencies
+and returns a reference to it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pseudo_count</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0.5</em><em>)</em>) – The value to be added as pseudo-count.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Matrix of size L x L x num_symbols x num_symbols
+containing relative pairwise frequencies of all
+symbols regularized by a pseudo-count.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.mean_field.MeanFieldDCA.reshape_invC_to_4d">
+<code class="descname">reshape_invC_to_4d</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#MeanFieldDCA.reshape_invC_to_4d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.MeanFieldDCA.reshape_invC_to_4d" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Un-flatten” inverse of the covariance
+matrix to allow easy access to couplings
+using position and symbol indices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Matrix of size L x L x
+num_symbols x num_symbols.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.compute_covariance_matrix">
+<code class="descclassname">evcouplings.couplings.mean_field.</code><code class="descname">compute_covariance_matrix</code><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#compute_covariance_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.compute_covariance_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the covariance matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>f_i</strong> (<em>np.array</em>) – Matrix of size L x num_symbols
+containing column frequencies.</li>
+<li><strong>f_ij</strong> (<em>np.array</em>) – Matrix of size L x L x num_symbols x
+num_symbols containing pair frequencies.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Matrix of size L x (num_symbols-1) x
+L x (num_symbols-1) containing
+covariance values.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.direct_information">
+<code class="descclassname">evcouplings.couplings.mean_field.</code><code class="descname">direct_information</code><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#direct_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.direct_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate direct information.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>J_ij</strong> (<em>np.array</em>) – Matrix of size num_symbols x num_symbols
+containing all coupling strengths of
+position pair (i, j).</li>
+<li><strong>f_i</strong> (<em>np.array</em>) – Matrix of size L x num_symbols
+containing column frequencies.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Matrix of size L x L
+containing direct information.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.fields">
+<code class="descclassname">evcouplings.couplings.mean_field.</code><code class="descname">fields</code><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#fields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute fields.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>J_ij</strong> (<em>np.array</em>) – Matrix of size L x L x num_symbols x
+num_symbols containing coupling parameters.</li>
+<li><strong>f_i</strong> (<em>np.array</em>) – Matrix of size L x num_symbols
+containing column frequencies.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Matrix of size L x num_symbols
+containing single-site fields.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.reshape_invC_to_4d">
+<code class="descclassname">evcouplings.couplings.mean_field.</code><code class="descname">reshape_invC_to_4d</code><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#reshape_invC_to_4d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.reshape_invC_to_4d" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Un-flatten” inverse of the covariance
+matrix to allow easy access to couplings
+using position and symbol indices.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inv_cov_matrix</strong> (<em>np.array</em>) – The inverse of the covariance matrix.</li>
+<li><strong>L</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Model length.</li>
+<li><strong>num_symbols</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Number of characters in the alphabet.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Matrix of size L x L x
+num_symbols x num_symbols.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.mean_field.tilde_fields">
+<code class="descclassname">evcouplings.couplings.mean_field.</code><code class="descname">tilde_fields</code><a class="reference internal" href="_modules/evcouplings/couplings/mean_field.html#tilde_fields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.mean_field.tilde_fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute h_tilde fields of the two-site model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>J_ij</strong> (<em>np.array</em>) – Matrix of size num_symbols x num_symbols
+containing all coupling strengths of
+position pair (i, j).</li>
+<li><strong>f_i</strong> (<em>np.array</em>) – Row i of single-site frequencies.</li>
+<li><strong>f_j</strong> (<em>np.array</em>) – Row j of single-site frequencies.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">h_tilde fields of position i and j -
+both arrays of size 1 x num_symbols</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array, np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.couplings.model">
+<span id="evcouplings-couplings-model-module"></span><h2>evcouplings.couplings.model module<a class="headerlink" href="#module-evcouplings.couplings.model" title="Permalink to this headline">¶</a></h2>
+<p>Class to store parameters of undirected graphical model of
+sequences and perform calculations using the model
+(statistical energies, coupling scores).</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.couplings.model.CouplingsModel">
+<em class="property">class </em><code class="descclassname">evcouplings.couplings.model.</code><code class="descname">CouplingsModel</code><span class="sig-paren">(</span><em>filename</em>, <em>precision='float32'</em>, <em>file_format='plmc_v2'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Class to store parameters of pairwise undirected graphical model of sequences
+and compute evolutionary couplings, sequence statistical energies, etc.</p>
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.Jij">
+<code class="descname">Jij</code><span class="sig-paren">(</span><em>i=None</em>, <em>j=None</em>, <em>A_i=None</em>, <em>A_j=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.Jij"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.Jij" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quick access to J_ij matrix with automatic index mapping.
+See __4d_access for explanation of parameters.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.couplings.model.CouplingsModel.apc">
+<em class="property">classmethod </em><code class="descname">apc</code><span class="sig-paren">(</span><em>matrix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.apc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.apc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply average product correction (Dunn et al., Bioinformatics, 2008)
+to matrix</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>matrix</strong> (<em>np.array</em>) – Symmetric L x L matrix which should be corrected by APC</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Symmetric L x L matrix with APC correction applied</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.cn">
+<code class="descname">cn</code><span class="sig-paren">(</span><em>i=None</em>, <em>j=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.cn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.cn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quick access to cn_scores matrix with automatic index mapping.
+See __2d_access_score_matrix for explanation of parameters.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.cn_scores">
+<code class="descname">cn_scores</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.cn_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>L x L numpy matrix with CN (corrected norm) scores</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.convert_sequences">
+<code class="descname">convert_sequences</code><span class="sig-paren">(</span><em>sequences</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.convert_sequences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.convert_sequences" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts sequences in string format into internal symbol representation
+according to alphabet of model</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sequences</strong> (<em>list of str</em>) – List of sequences (must have same length and correspond to
+model states)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Matrix of size len(sequences) x L of sequences converted to
+integer symbols</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.delta_hamiltonian">
+<code class="descname">delta_hamiltonian</code><span class="sig-paren">(</span><em>substitutions</em>, <em>verify_mutants=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.delta_hamiltonian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.delta_hamiltonian" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate difference in statistical energy relative to
+self.target_seq by changing sequence according to list of
+substitutions</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>substitutions</strong> (<em>list of tuple</em><em>(</em><em>pos</em><em>, </em><em>subs_from</em><em>, </em><em>subs_to</em><em>)</em>) – Substitutions to be applied to target sequence</li>
+<li><strong>verify_mutants</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em>) – Test if subs_from is consistent with self.target_seq</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Vector of length 3 with 1) total delta Hamiltonian,
+2) delta J_ij, 3) delta h_i</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.dmm">
+<code class="descname">dmm</code><span class="sig-paren">(</span><em>i=None</em>, <em>j=None</em>, <em>A_i=None</em>, <em>A_j=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.dmm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.dmm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Access delta_Hamiltonian matrix of double mutants of target sequence</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>i</strong> (<em>Iterable</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>) or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Position(s) of first substitution(s)</li>
+<li><strong>j</strong> (<em>Iterable</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>) or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Position(s) of second substitution(s)</li>
+<li><strong>A_i</strong> (<em>Iterable</em><em>(</em><em>char</em><em>) or </em><em>char</em>) – Substitution(s) to first position</li>
+<li><strong>A_j</strong> (<em>Iterable</em><em>(</em><em>char</em><em>) or </em><em>char</em>) – Substitution(s) to second position</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">4D matrix containing energy differences for slices along both
+axes of double mutation matrix (axes 1/2: position, axis 3/4:
+substitutions).</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array(<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.double_mut_mat">
+<code class="descname">double_mut_mat</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.double_mut_mat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hamiltonian difference for all possible double mutant variants</p>
+<p>L x L x num_symbol x num_symbol matrix containing delta Hamiltonians
+for all possible double mutants of target sequence</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.ecs">
+<code class="descname">ecs</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.ecs" title="Permalink to this definition">¶</a></dt>
+<dd><p>DataFrame with evolutionary couplings, sorted by CN score
+(all scores: CN, FN, MI)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.fi">
+<code class="descname">fi</code><span class="sig-paren">(</span><em>i=None</em>, <em>A_i=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.fi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.fi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quick access to f_i matrix with automatic index mapping.
+See __2d_access for explanation of parameters.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.fij">
+<code class="descname">fij</code><span class="sig-paren">(</span><em>i=None</em>, <em>j=None</em>, <em>A_i=None</em>, <em>A_j=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.fij"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.fij" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quick access to f_ij matrix with automatic index mapping.
+See __4d_access for explanation of parameters.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.fn">
+<code class="descname">fn</code><span class="sig-paren">(</span><em>i=None</em>, <em>j=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quick access to fn_scores matrix with automatic index mapping.
+See __2d_access_score_matrix for explanation of parameters.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.fn_scores">
+<code class="descname">fn_scores</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.fn_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>L x L numpy matrix with FN (Frobenius norm) scores</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.hamiltonians">
+<code class="descname">hamiltonians</code><span class="sig-paren">(</span><em>sequences</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.hamiltonians"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.hamiltonians" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the Hamiltonians of the global probability distribution P(A_1, …, A_L)
+for the given sequences A_1,…,A_L from J_ij and h_i parameters</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sequences</strong> (<em>list of str</em>) – List of sequences for which Hamiltonian will be computed,
+or converted np.array obtained using convert_sequences method</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Float matrix of size len(sequences) x 3, where each row corresponds to the
+1) total Hamiltonian of sequence and the 2) J_ij and 3) h_i sub-sums</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.hi">
+<code class="descname">hi</code><span class="sig-paren">(</span><em>i=None</em>, <em>A_i=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.hi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.hi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quick access to h_i matrix with automatic index mapping.
+See __2d_access for explanation of parameters.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.index_list">
+<code class="descname">index_list</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.index_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Target/Focus sequence of model used for delta_hamiltonian
+calculations (including single and double mutation matrices)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.itu">
+<code class="descname">itu</code><span class="sig-paren">(</span><em>i=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.itu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.itu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Legacy method for backwards compatibility. See self.sn for explanation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.mi_apc">
+<code class="descname">mi_apc</code><span class="sig-paren">(</span><em>i=None</em>, <em>j=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.mi_apc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.mi_apc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quick access to mi_scores_apc matrix with automatic index mapping.
+See __2d_access_score_matrix for explanation of parameters.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.mi_raw">
+<code class="descname">mi_raw</code><span class="sig-paren">(</span><em>i=None</em>, <em>j=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.mi_raw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.mi_raw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quick access to mi_scores_raw matrix with automatic index mapping.
+See __2d_access_score_matrix for explanation of parameters.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.mi_scores_apc">
+<code class="descname">mi_scores_apc</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.mi_scores_apc" title="Permalink to this definition">¶</a></dt>
+<dd><p>L x L numpy matrix with MI (mutual information) scores
+with APC correction</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.mi_scores_raw">
+<code class="descname">mi_scores_raw</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.mi_scores_raw" title="Permalink to this definition">¶</a></dt>
+<dd><p>L x L numpy matrix with MI (mutual information) scores
+without APC correction</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.mn">
+<code class="descname">mn</code><span class="sig-paren">(</span><em>i=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.mn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.mn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map model numbering to internal numbering</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>i</strong> (<em>Iterable</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>) or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Position(s) to be mapped from model numbering space
+into internal numbering space</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Remapped position(s)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Iterable(<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)">int</a>) or <a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.mui">
+<code class="descname">mui</code><span class="sig-paren">(</span><em>i=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.mui"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.mui" title="Permalink to this definition">¶</a></dt>
+<dd><p>Legacy method for backwards compatibility. See self.mn for explanation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.seq">
+<code class="descname">seq</code><span class="sig-paren">(</span><em>i=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.seq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Access target sequence of model</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>i</strong> (<em>Iterable</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>) or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Position(s) for which symbol should be retrieved</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Sequence symbols</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Iterable(char) or char</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.single_mut_mat">
+<code class="descname">single_mut_mat</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.single_mut_mat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hamiltonian difference for all possible single-site variants</p>
+<p>L x num_symbol matrix (np.array) containing delta Hamiltonians
+for all possible single mutants of target sequence.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.single_mut_mat_full">
+<code class="descname">single_mut_mat_full</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.single_mut_mat_full" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hamiltonian difference for all possible single-site variants</p>
+<p>L x num_symbol x 3 matrix (np.array) containing delta Hamiltonians
+for all possible single mutants of target sequence.
+Third dimension: 1) full Hamiltonian, 2) J_ij, 3) h_i</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.smm">
+<code class="descname">smm</code><span class="sig-paren">(</span><em>i=None</em>, <em>A_i=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.smm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.smm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Access delta_Hamiltonian matrix of single mutants of target sequence</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>i</strong> (<em>Iterable</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>) or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Position(s) for which energy difference should be retrieved</li>
+<li><strong>A_i</strong> (<em>Iterable</em><em>(</em><em>char</em><em>) or </em><em>char</em>) – Substitutions for which energy difference should be retrieved</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">2D matrix containing energy differences for slices along both
+axes of single mutation matrix (first axis: position, second
+axis: substitution).</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array(<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.sn">
+<code class="descname">sn</code><span class="sig-paren">(</span><em>i=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.sn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.sn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map internal numbering to sequence numbering</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>i</strong> (<em>Iterable</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>) or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Position(s) to be mapped from internal numbering space
+into sequence numbering space.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Remapped position(s)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Iterable(<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)">int</a>) or <a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)">int</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.model.CouplingsModel.target_seq">
+<code class="descname">target_seq</code><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.target_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Target/Focus sequence of model used for delta_hamiltonian
+calculations (including single and double mutation matrices)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.to_file">
+<code class="descname">to_file</code><span class="sig-paren">(</span><em>out_file</em>, <em>precision='float32'</em>, <em>file_format='plmc_v1'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the potentially modified model again to binary file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>out_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – A string specifying the path to a file</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.model.CouplingsModel.to_independent_model">
+<code class="descname">to_independent_model</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/model.html#CouplingsModel.to_independent_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.model.CouplingsModel.to_independent_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimate parameters of a single-site model using
+Gaussian prior/L2 regularization.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>N</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Effective (reweighted) number of sequences</li>
+<li><strong>lambda_h</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Strength of L2 regularization on h_i parameters</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Copy of object turned into independent model</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel">CouplingsModel</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.couplings.pairs">
+<span id="evcouplings-couplings-pairs-module"></span><h2>evcouplings.couplings.pairs module<a class="headerlink" href="#module-evcouplings.couplings.pairs" title="Permalink to this headline">¶</a></h2>
+<p>Functions for handling evolutionary couplings data.</p>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<ol class="last arabic simple">
+<li>clean up</li>
+<li>add Pompom score</li>
+<li>add mapping tools (multidomain, complexes)</li>
+<li>ECs to matrix</li>
+<li>APC on subsets of positions (e.g. for complexes)</li>
+</ol>
+</div>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf
+Agnes Toth-Petroczy (original mixture model code)
+John Ingraham (skew normal mixture model)</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.couplings.pairs.LegacyScoreMixtureModel">
+<em class="property">class </em><code class="descclassname">evcouplings.couplings.pairs.</code><code class="descname">LegacyScoreMixtureModel</code><span class="sig-paren">(</span><em>x</em>, <em>clamp_mu=False</em>, <em>max_fun=10000</em>, <em>max_iter=1000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#LegacyScoreMixtureModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.LegacyScoreMixtureModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Assign to each EC score the probability of being in the
+lognormal tail of a normal-lognormal mixture model.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">this is the original version of the score mixture model
+with a normal distribution noise component, this has been
+superseded by a model using a skew normal distribution</p>
+</div>
+<dl class="method">
+<dt id="evcouplings.couplings.pairs.LegacyScoreMixtureModel.probability">
+<code class="descname">probability</code><span class="sig-paren">(</span><em>x</em>, <em>plot=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#LegacyScoreMixtureModel.probability"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.LegacyScoreMixtureModel.probability" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate posterior probability of EC pair to
+be located in positive (lognormal) tail of the
+distribution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>np.array</em><em> (or </em><em>list-like</em><em>)</em>) – List of scores</li>
+<li><strong>plot</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Plot score distribution and probabilities</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>posterior</strong> – Posterior probability of being in signal
+component of mixture model</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array(<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.couplings.pairs.ScoreMixtureModel">
+<em class="property">class </em><code class="descclassname">evcouplings.couplings.pairs.</code><code class="descname">ScoreMixtureModel</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#ScoreMixtureModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.ScoreMixtureModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Assign to each EC score the probability of being in the
+lognormal tail of a skew normal-lognormal mixture model.</p>
+<dl class="classmethod">
+<dt id="evcouplings.couplings.pairs.ScoreMixtureModel.lognorm_pdf">
+<em class="property">classmethod </em><code class="descname">lognorm_pdf</code><span class="sig-paren">(</span><em>x</em>, <em>logmu</em>, <em>logsig</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#ScoreMixtureModel.lognorm_pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.ScoreMixtureModel.lognorm_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Probability density of lognormal distribution
+(signal component)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>)</em>) – Data for which probability density should be calculated</li>
+<li><strong>logmu</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Location of lognormal distribution (signal component)</li>
+<li><strong>logsig</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Scale parameter of lognormal distribution (signal component)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>density</strong> – Probability density for input array x</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array(<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.couplings.pairs.ScoreMixtureModel.mixture_pdf">
+<em class="property">classmethod </em><code class="descname">mixture_pdf</code><span class="sig-paren">(</span><em>x</em>, <em>p</em>, <em>scale</em>, <em>skew</em>, <em>logmu</em>, <em>logsig</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#ScoreMixtureModel.mixture_pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.ScoreMixtureModel.mixture_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute mixture probability</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>)</em>) – Data for which probability density should be calculated</li>
+<li><strong>p</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Mixing fraction between components for noise component
+(signal component will be 1-p)</li>
+<li><strong>scale</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Scale parameter of skew normal distribution (noise component)</li>
+<li><strong>skew</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Skew parameter of skew normal distribution (noise component)</li>
+<li><strong>logmu</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Location of lognormal distribution (signal component)</li>
+<li><strong>logsig</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Scale parameter of lognormal distribution (signal component)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>density</strong> – Probability density for input array x</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array(<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.couplings.pairs.ScoreMixtureModel.posterior_signal">
+<em class="property">classmethod </em><code class="descname">posterior_signal</code><span class="sig-paren">(</span><em>x</em>, <em>p</em>, <em>scale</em>, <em>skew</em>, <em>logmu</em>, <em>logsig</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#ScoreMixtureModel.posterior_signal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.ScoreMixtureModel.posterior_signal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute posterior probability of being in signal component</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>)</em>) – Data for which probability density should be calculated</li>
+<li><strong>p</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Mixing fraction between components for noise component
+(signal component will be 1-p)</li>
+<li><strong>scale</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Scale parameter of skew normal distribution (noise component)</li>
+<li><strong>skew</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Skew parameter of skew normal distribution (noise component)</li>
+<li><strong>logmu</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Location of lognormal distribution (signal component)</li>
+<li><strong>logsig</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Scale parameter of lognormal distribution (signal component)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>posterior</strong> – Posterior probability of being in signal component
+for input array x</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array(<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.couplings.pairs.ScoreMixtureModel.probability">
+<code class="descname">probability</code><span class="sig-paren">(</span><em>x</em>, <em>plot=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#ScoreMixtureModel.probability"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.ScoreMixtureModel.probability" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate posterior probability of EC pair to
+be located in positive (lognormal) tail of the
+distribution.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>x</strong> (<em>np.array</em><em> (or </em><em>list-like</em><em>)</em>) – List of scores</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>posterior</strong> – Posterior probability of being in signal
+component of mixture model</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.array(<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.couplings.pairs.ScoreMixtureModel.skewnorm_constraint">
+<em class="property">classmethod </em><code class="descname">skewnorm_constraint</code><span class="sig-paren">(</span><em>scale</em>, <em>skew</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#ScoreMixtureModel.skewnorm_constraint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.ScoreMixtureModel.skewnorm_constraint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given scale and skew, returns location parameter to yield mean zero</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>scale</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Scale parameter of skew normal distribution</li>
+<li><strong>skew</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Skew parameter of skew normal distribution</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>location</strong> – Location parameter of skew normal distribution s.t.
+mean of distribution is equal to 0</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.couplings.pairs.ScoreMixtureModel.skewnorm_pdf">
+<em class="property">classmethod </em><code class="descname">skewnorm_pdf</code><span class="sig-paren">(</span><em>x</em>, <em>location</em>, <em>scale</em>, <em>skew</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#ScoreMixtureModel.skewnorm_pdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.ScoreMixtureModel.skewnorm_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Probability density of skew normal distribution
+(noise component)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>)</em>) – Data for which probability density should be calculated</li>
+<li><strong>location</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Location parameter of skew normal distribution</li>
+<li><strong>scale</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Scale parameter of skew normal distribution</li>
+<li><strong>skew</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Skew parameter of skew normal distribution</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>density</strong> – Probability density for input array x</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array(<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.couplings.pairs.add_mixture_probability">
+<code class="descclassname">evcouplings.couplings.pairs.</code><code class="descname">add_mixture_probability</code><span class="sig-paren">(</span><em>ecs</em>, <em>model='skewnormal'</em>, <em>score='cn'</em>, <em>clamp_mu=False</em>, <em>plot=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#add_mixture_probability"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.add_mixture_probability" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add lognormal mixture model probability to EC table.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ecs</strong> (<em>pd.DataFrame</em>) – EC table with scores</li>
+<li><strong>model</strong> (<em>{&quot;skewnormal&quot;</em><em>, </em><em>&quot;normal&quot;}</em><em>, </em><em>optional</em><em> (</em><em>default: skewnormal</em><em>)</em>) – Use model with skew-normal or normal distribution
+for the noise component of mixture model</li>
+<li><strong>score</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;cn&quot;</em><em>)</em>) – Score on which mixture model will be based</li>
+<li><strong>clamp_mu</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Fix mean of Gaussian component to 0 instead of
+fitting it based on data</li>
+<li><strong>plot</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Plot score distribution and probabilities</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ec_prob</strong> – EC table with additional column “probability”
+that for each EC contains the posterior
+probability of belonging to the lognormal
+tail of the distribution.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pd.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.couplings.pairs.enrichment">
+<code class="descclassname">evcouplings.couplings.pairs.</code><code class="descname">enrichment</code><span class="sig-paren">(</span><em>ecs</em>, <em>num_pairs=1.0</em>, <em>score='cn'</em>, <em>min_seqdist=6</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#enrichment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.enrichment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate EC “enrichment” as first described in
+Hopf et al., Cell, 2012.</p>
+<div class="admonition-todo admonition" id="index-1">
+<p class="first admonition-title">Todo</p>
+<p class="last">Make this handle segments if they are in EC table</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ecs</strong> (<em>pd.DataFrame</em>) – Dataframe containing couplings</li>
+<li><strong>num_pairs</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 1.0</em><em>)</em>) – Number of ECs to use for enrichment calculation.
+- If float, will be interpreted as fraction of the
+length of the sequence (e.g. 1.0*L)
+- If int, will be interpreted as
+absolute number of pairs</li>
+<li><strong>score</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: cn</em><em>)</em>) – Pair coupling score used for calculation</li>
+<li><strong>min_seqdist</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 6</em><em>)</em>) – Minimum sequence distance of couplings that will
+be included in the calculation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>enrichment_table</strong> – Sorted table with enrichment values for each
+position in the sequence</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pd.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.couplings.pairs.read_raw_ec_file">
+<code class="descclassname">evcouplings.couplings.pairs.</code><code class="descname">read_raw_ec_file</code><span class="sig-paren">(</span><em>filename</em>, <em>sort=True</em>, <em>score='cn'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/pairs.html#read_raw_ec_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.pairs.read_raw_ec_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a raw EC file (e.g. from plmc) and sort
+by scores</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File containing evolutionary couplings</li>
+<li><strong>sort</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – If True, sort pairs by coupling score in
+descending order</li>
+<li><strong>score_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Score column to be used for sorting</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ecs</strong> – Table of evolutionary couplings</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pd.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.couplings.protocol">
+<span id="evcouplings-couplings-protocol-module"></span><h2>evcouplings.couplings.protocol module<a class="headerlink" href="#module-evcouplings.couplings.protocol" title="Permalink to this headline">¶</a></h2>
+<p>Evolutionary couplings calculation protocols/workflows.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.couplings.protocol.mean_field">
+<code class="descclassname">evcouplings.couplings.protocol.</code><code class="descname">mean_field</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/protocol.html#mean_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.protocol.mean_field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Protocol:</p>
+<p>Infer ECs from alignment using mean field direct coupling analysis.</p>
+<p>For now, mean field DCA can only be run in focus mode, gaps
+included.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – See list below in code where calling check_required.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of the pipeline, including
+the following fields:<ul class="simple">
+<li>raw_ec_file</li>
+<li>model_file</li>
+<li>num_sites</li>
+<li>num_sequences</li>
+<li>effective_sequences</li>
+<li>focus_mode (passed through)</li>
+<li>focus_sequence (passed through)</li>
+<li>segments (passed through)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.couplings.protocol.run">
+<code class="descclassname">evcouplings.couplings.protocol.</code><code class="descname">run</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/protocol.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.protocol.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run inference protocol to calculate ECs from
+input sequence alignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – protocol: EC protocol to run
+prefix: Output prefix for all generated files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of couplings stage
+Dictionary with results in following fields (in brackets: not mandatory):<blockquote>
+<div><ul class="simple">
+<li>ec_file</li>
+<li>effective_sequences</li>
+<li>[enrichment_file]</li>
+<li>focus_mode</li>
+<li>focus_sequence</li>
+<li>model_file</li>
+<li>num_sequences</li>
+<li>num_sites</li>
+<li>raw_ec_file</li>
+<li>region_start</li>
+<li>segments</li>
+</ul>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.couplings.protocol.standard">
+<code class="descclassname">evcouplings.couplings.protocol.</code><code class="descname">standard</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/protocol.html#standard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.protocol.standard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Protocol:</p>
+<p>Infer ECs from alignment using plmc.</p>
+<div class="admonition-todo admonition" id="index-2">
+<p class="first admonition-title">Todo</p>
+<ol class="last arabic simple">
+<li>make EC enrichment calculation segment-ready</li>
+<li>explain meaning of parameters in detail.</li>
+</ol>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – See list below in code where calling check_required</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of the pipeline, including
+the following fields:<p>raw_ec_file
+model_file
+num_sites
+num_sequences
+effective_sequences</p>
+<p>focus_mode (passed through)
+focus_sequence (passed through)
+segments (passed through)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.couplings.tools">
+<span id="evcouplings-couplings-tools-module"></span><h2>evcouplings.couplings.tools module<a class="headerlink" href="#module-evcouplings.couplings.tools" title="Permalink to this headline">¶</a></h2>
+<p>Wrappers for tools for calculation of evolutionary
+couplings from sequence alignments.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.couplings.tools.PlmcResult">
+<em class="property">class </em><code class="descclassname">evcouplings.couplings.tools.</code><code class="descname">PlmcResult</code><span class="sig-paren">(</span><em>couplings_file</em>, <em>param_file</em>, <em>iteration_table</em>, <em>focus_seq_index</em>, <em>num_valid_seqs</em>, <em>num_total_seqs</em>, <em>num_valid_sites</em>, <em>num_total_sites</em>, <em>region_start</em>, <em>effective_samples</em>, <em>optimization_status</em><span class="sig-paren">)</span><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.couplings_file">
+<code class="descname">couplings_file</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.couplings_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.effective_samples">
+<code class="descname">effective_samples</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.effective_samples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 9</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.focus_seq_index">
+<code class="descname">focus_seq_index</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.focus_seq_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.iteration_table">
+<code class="descname">iteration_table</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.iteration_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.num_total_seqs">
+<code class="descname">num_total_seqs</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.num_total_seqs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.num_total_sites">
+<code class="descname">num_total_sites</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.num_total_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 7</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.num_valid_seqs">
+<code class="descname">num_valid_seqs</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.num_valid_seqs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.num_valid_sites">
+<code class="descname">num_valid_sites</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.num_valid_sites" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 6</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.optimization_status">
+<code class="descname">optimization_status</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.optimization_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 10</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.param_file">
+<code class="descname">param_file</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.param_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.couplings.tools.PlmcResult.region_start">
+<code class="descname">region_start</code><a class="headerlink" href="#evcouplings.couplings.tools.PlmcResult.region_start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 8</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.couplings.tools.parse_plmc_log">
+<code class="descclassname">evcouplings.couplings.tools.</code><code class="descname">parse_plmc_log</code><span class="sig-paren">(</span><em>log</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/tools.html#parse_plmc_log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.tools.parse_plmc_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse plmc stderr text output into structured data</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>log</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – stderr output from plmc</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>iter_df</strong> (<em>pd.DataFrame</em>) – Table with iteration statistics</li>
+<li><strong>focus_index</strong> (<em>int</em>) – Index of focus sequence in alignment</li>
+<li><strong>valid_seqs</strong> (<em>int</em>) – Number of valid sequences in alignment</li>
+<li><strong>total_seqs</strong> (<em>int</em>) – Number of total sequences in alignment</li>
+<li><strong>valid_sites</strong> (<em>int</em>) – Analyzed number of sites in alignment/focus sequence</li>
+<li><strong>total_sites</strong> (<em>int</em>) – Total number of sites in alignment/focus sequence</li>
+<li><strong>region_start</strong> (<em>int</em>) – Index of first position in aligment</li>
+<li><strong>eff_samples</strong> (<em>float</em>) – Effective number of samples in alignment</li>
+<li><strong>opt_status</strong> (<em>str</em>) – End status of iterative optimization</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.couplings.tools.run_plmc">
+<code class="descclassname">evcouplings.couplings.tools.</code><code class="descname">run_plmc</code><span class="sig-paren">(</span><em>alignment</em>, <em>couplings_file</em>, <em>param_file=None</em>, <em>focus_seq=None</em>, <em>alphabet=None</em>, <em>theta=None</em>, <em>scale=None</em>, <em>ignore_gaps=False</em>, <em>iterations=None</em>, <em>lambda_h=None</em>, <em>lambda_J=None</em>, <em>lambda_g=None</em>, <em>cpu=None</em>, <em>binary='plmc'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/couplings/tools.html#run_plmc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.couplings.tools.run_plmc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run plmc on sequence alignment and store
+files with model parameters and pair couplings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>alignment</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to input sequence alignment</li>
+<li><strong>couplings_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Output path for file with evolutionary couplings
+(folder will be created)</li>
+<li><strong>param_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Output path for binary file containing model
+parameters (folder will be created)</li>
+<li><strong>focus_seq</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Name of focus sequence, if None, non-focus mode
+will be used</li>
+<li><strong>alphabet</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Alphabet for model inference. If None, standard
+amino acid alphabet including gap will be used.
+First character in string corresponds to gap
+character (relevant for ignore_gaps).</li>
+<li><strong>theta</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Sequences with pairwise identity &gt;= theta
+will be clustered and their sequence weights
+downweighted as 1 / num_cluster_members.
+Important: Note that plmc will be parametrized using
+1 - theta. If None, default value in plmc will be used,
+which corresponds to theta=0.8 (plmc setting 0.2).</li>
+<li><strong>scale</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Scale weights of clusters by this value.
+If None, default value in plmc (1.0) will be used</li>
+<li><strong>ignore_gaps</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Exclude gaps from parameter inference. Gap
+character is first character of alphabet
+parameter.</li>
+<li><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Maximum iterations for optimization.</li>
+<li><strong>lambda_h</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – l2 regularization strength on fields.
+If None, plmc default will be used.</li>
+<li><strong>lambda_J</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – l2-regularization strength on couplings.
+If None, plmc default will be used</li>
+<li><strong>lambda_g</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – group l1-regularization strength on couplings
+If None, plmc default will be used.</li>
+<li><strong>cpu</strong> (<em>Number of cores to use for running plmc.</em>) – Note that plmc has to be compiled in openmp
+mode to runnable with multiple cores.
+Can also be set to “max”.</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: &quot;plmc&quot;</em><em>)</em>) – Path to plmc binary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">namedtuple containing output files and
+parsed fields from console output of plmc</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.couplings.tools.PlmcResult" title="evcouplings.couplings.tools.PlmcResult">PlmcResult</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ExternalToolError</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="evcouplings.mutate.html" class="btn btn-neutral float-right" title="evcouplings.mutate package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="evcouplings.complex.html" class="btn btn-neutral" title="evcouplings.complex package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

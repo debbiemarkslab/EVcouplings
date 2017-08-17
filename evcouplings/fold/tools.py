@@ -253,8 +253,11 @@ def read_psipred_prediction(filename, first_index=1):
     pred : pandas.DataFrame
         Table containing secondary structure prediction,
         with the following columns:
+
         * i: position
+
         * A_i: amino acid
+
         * sec_struct_3state: prediction (H, E, C)
 
         If reading vformat, also contains columns

@@ -1,0 +1,991 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.compare.sifts &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.compare.sifts</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.compare.sifts</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Uniprot to PDB structure identification and</span>
+<span class="sd">index mapping using the SIFTS database</span>
+<span class="sd">(https://www.ebi.ac.uk/pdbe/docs/sifts/)</span>
+
+<span class="sd">This functionality is centered around the</span>
+<span class="sd">pdb_chain_uniprot.csv table available from SIFTS.</span>
+<span class="sd">(ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz)</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">os</span> <span class="k">import</span> <span class="n">path</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.align.alignment</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">Alignment</span><span class="p">,</span> <span class="n">read_fasta</span><span class="p">,</span> <span class="n">parse_header</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.align.protocol</span> <span class="k">import</span> <span class="n">jackhmmer_search</span>
+<span class="kn">from</span> <span class="nn">evcouplings.align.tools</span> <span class="k">import</span> <span class="n">read_hmmer_domtbl</span>
+<span class="kn">from</span> <span class="nn">evcouplings.compare.mapping</span> <span class="k">import</span> <span class="n">alignment_index_mapping</span><span class="p">,</span> <span class="n">map_indices</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">get_urllib</span><span class="p">,</span> <span class="n">ResourceError</span><span class="p">,</span> <span class="n">valid_file</span><span class="p">,</span> <span class="n">tempdir</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="n">parse_config</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.helpers</span> <span class="k">import</span> <span class="n">range_overlap</span>
+
+<span class="n">UNIPROT_MAPPING_URL</span> <span class="o">=</span> <span class="s2">&quot;http://www.uniprot.org/mapping/&quot;</span>
+<span class="n">SIFTS_URL</span> <span class="o">=</span> <span class="s2">&quot;ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz&quot;</span>
+<span class="n">SIFTS_REST_API</span> <span class="o">=</span> <span class="s2">&quot;http://www.ebi.ac.uk/pdbe/api/mappings/uniprot_segments/</span><span class="si">{}</span><span class="s2">&quot;</span>
+
+<span class="c1"># TODO: make this default parametrization more explicit (e.g. a config file in repository)</span>
+<span class="c1"># these parameters are fed as a default into SIFTS.by_alignment so that the method can be</span>
+<span class="c1"># easily used without a configuration file/any further setup</span>
+<span class="n">JACKHMMER_CONFIG</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">prefix:</span>
+<span class="s2">sequence_id:</span>
+<span class="s2">sequence_file:</span>
+<span class="s2">region:</span>
+<span class="s2">first_index: 1</span>
+
+<span class="s2">use_bitscores: True</span>
+<span class="s2">domain_threshold: 0.5</span>
+<span class="s2">sequence_threshold: 0.5</span>
+<span class="s2">iterations: 1</span>
+<span class="s2">database: sequence_database</span>
+
+<span class="s2">extract_annotation: False</span>
+<span class="s2">cpu: 1</span>
+<span class="s2">nobias: False</span>
+<span class="s2">reuse_alignment: False</span>
+<span class="s2">checkpoints_hmm: False</span>
+<span class="s2">checkpoints_ali: False</span>
+
+<span class="s2"># database</span>
+<span class="s2">jackhmmer: jackhmmer</span>
+<span class="s2">sequence_database:</span>
+<span class="s2">sequence_download_url: http://www.uniprot.org/uniprot/</span><span class="si">{}</span><span class="s2">.fasta</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="fetch_uniprot_mapping"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.sifts.fetch_uniprot_mapping">[docs]</a><span class="k">def</span> <span class="nf">fetch_uniprot_mapping</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">from_</span><span class="o">=</span><span class="s2">&quot;ACC&quot;</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="s2">&quot;ACC&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;fasta&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fetch data from UniProt ID mapping service</span>
+<span class="sd">    (e.g. download set of sequences)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ids : list(str)</span>
+<span class="sd">        List of UniProt identifiers for which to</span>
+<span class="sd">        retrieve mapping</span>
+<span class="sd">    from_ : str, optional (default: &quot;ACC&quot;)</span>
+<span class="sd">        Source identifier (i.e. contained in &quot;ids&quot; list)</span>
+<span class="sd">    to : str, optional (default: &quot;ACC&quot;)</span>
+<span class="sd">        Target identifier (to which source should be mapped)</span>
+<span class="sd">    format : str, optional (default: &quot;fasta&quot;)</span>
+<span class="sd">        Output format to request from Uniprot server</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str:</span>
+<span class="sd">        Response from UniProt server</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="n">from_</span><span class="p">,</span>
+        <span class="s2">&quot;to&quot;</span><span class="p">:</span> <span class="n">to</span><span class="p">,</span>
+        <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="nb">format</span><span class="p">,</span>
+        <span class="s2">&quot;query&quot;</span><span class="p">:</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">UNIPROT_MAPPING_URL</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid status code (</span><span class="si">{}</span><span class="s2">) for URL: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">url</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span></div>
+
+
+<div class="viewcode-block" id="find_homologs_jackhmmer"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.sifts.find_homologs_jackhmmer">[docs]</a><span class="k">def</span> <span class="nf">find_homologs_jackhmmer</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify homologs using jackhmmer</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Passed into jackhmmer_search protocol</span>
+<span class="sd">        (see documentation for available options)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ali : evcouplings.align.Alignment</span>
+<span class="sd">        Alignment of homologs of query sequence</span>
+<span class="sd">        in sequence database</span>
+<span class="sd">    hits : pandas.DataFrame</span>
+<span class="sd">        Tabular representation of hits</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># load default configuration</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">parse_config</span><span class="p">(</span><span class="n">JACKHMMER_CONFIG</span><span class="p">)</span>
+
+    <span class="c1"># update with overrides from kwargs</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">config</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="c1"># create temporary output if no prefix is given</span>
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">(),</span> <span class="s2">&quot;compare&quot;</span><span class="p">)</span>
+
+    <span class="c1"># run jackhmmer against sequence database</span>
+    <span class="n">ar</span> <span class="o">=</span> <span class="n">jackhmmer_search</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">ar</span><span class="p">[</span><span class="s2">&quot;raw_alignment_file&quot;</span><span class="p">])</span> <span class="k">as</span> <span class="n">a</span><span class="p">:</span>
+        <span class="n">ali</span> <span class="o">=</span> <span class="n">Alignment</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s2">&quot;stockholm&quot;</span><span class="p">)</span>
+
+    <span class="c1"># write alignment as FASTA file for easier checking by hand,</span>
+    <span class="c1"># if necessary</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_raw.fasta&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">ali</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="c1"># read hmmer hittable and simplify</span>
+    <span class="n">hits</span> <span class="o">=</span> <span class="n">read_hmmer_domtbl</span><span class="p">(</span><span class="n">ar</span><span class="p">[</span><span class="s2">&quot;hittable_file&quot;</span><span class="p">])</span>
+
+    <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;uniprot_ac&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;target_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;uniprot_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;target_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">)[</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="n">hits</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;domain_score&quot;</span><span class="p">:</span> <span class="s2">&quot;bitscore&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;domain_i_Evalue&quot;</span><span class="p">:</span> <span class="s2">&quot;e_value&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ali_from&quot;</span><span class="p">:</span> <span class="s2">&quot;alignment_start&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ali_to&quot;</span><span class="p">:</span> <span class="s2">&quot;alignment_end&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;alignment_start&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">hits</span><span class="o">.</span><span class="n">alignment_start</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;alignment_end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">hits</span><span class="o">.</span><span class="n">alignment_end</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;alignment_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">hits</span><span class="o">.</span><span class="n">target_name</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span>
+        <span class="n">hits</span><span class="o">.</span><span class="n">alignment_start</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">+</span>
+        <span class="n">hits</span><span class="o">.</span><span class="n">alignment_end</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">hits</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="p">:,</span> <span class="p">[</span><span class="s2">&quot;alignment_id&quot;</span><span class="p">,</span> <span class="s2">&quot;uniprot_ac&quot;</span><span class="p">,</span> <span class="s2">&quot;uniprot_id&quot;</span><span class="p">,</span> <span class="s2">&quot;alignment_start&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;alignment_end&quot;</span><span class="p">,</span> <span class="s2">&quot;bitscore&quot;</span><span class="p">,</span> <span class="s2">&quot;e_value&quot;</span><span class="p">]</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">ali</span><span class="p">,</span> <span class="n">hits</span></div>
+
+
+<div class="viewcode-block" id="SIFTSResult"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.sifts.SIFTSResult">[docs]</a><span class="k">class</span> <span class="nc">SIFTSResult</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Store results of SIFTS structure/mapping identification.</span>
+
+<span class="sd">    (Full class defined for easify modification of fields)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hits</span><span class="p">,</span> <span class="n">mapping</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create new SIFTS structure / mapping record.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hits : pandas.DataFrame</span>
+<span class="sd">            Table with identified PDB chains</span>
+<span class="sd">        mapping : dict</span>
+<span class="sd">            Mapping from seqres to Uniprot numbering</span>
+<span class="sd">            for each PDB chain</span>
+<span class="sd">            (index by mapping_index column in hits</span>
+<span class="sd">            dataframe)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hits</span> <span class="o">=</span> <span class="n">hits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mapping</span> <span class="o">=</span> <span class="n">mapping</span></div>
+
+
+<div class="viewcode-block" id="SIFTS"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.sifts.SIFTS">[docs]</a><span class="k">class</span> <span class="nc">SIFTS</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Provide Uniprot to PDB mapping data and functions</span>
+<span class="sd">    starting from SIFTS mapping table.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sifts_table_file</span><span class="p">,</span> <span class="n">sequence_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create new SIFTS mapper from mapping table.</span>
+
+<span class="sd">        Note that creation of the mapping files, if not existing,</span>
+<span class="sd">        takes a while.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sifts_table_file : str</span>
+<span class="sd">            Path to *corrected* SIFTS pdb_chain_uniprot.csv</span>
+<span class="sd">            To generate this file, point to an empty file path.</span>
+<span class="sd">        sequence_file : str, optional (default: None)</span>
+<span class="sd">            Path to file containing all UniProt sequences</span>
+<span class="sd">            in SIFTS (used for homology-based identification</span>
+<span class="sd">            of structures).</span>
+<span class="sd">            Note: This file can be created using the</span>
+<span class="sd">            create_sequence_file() method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># test if table exists, if not, download and modify</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">sifts_table_file</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_mapping_table</span><span class="p">(</span><span class="n">sifts_table_file</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">sifts_table_file</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># final table has still some entries where lengths do not match,</span>
+        <span class="c1"># remove thlse</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="s2">&quot;(resseq_end - resseq_start) == (uniprot_end - uniprot_start)&quot;</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequence_file</span> <span class="o">=</span> <span class="n">sequence_file</span>
+
+        <span class="c1"># if path for sequence file given, but not there, create</span>
+        <span class="k">if</span> <span class="n">sequence_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">sequence_file</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">create_sequence_file</span><span class="p">(</span><span class="n">sequence_file</span><span class="p">)</span>
+
+        <span class="c1"># add Uniprot ID column if we have sequence mapping</span>
+        <span class="c1"># from FASTA file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_uniprot_ids</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_create_mapping_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sifts_table_file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create modified SIFTS mapping table (based on</span>
+<span class="sd">        file at SIFTS_URL). For some of the entries,</span>
+<span class="sd">        the Uniprot sequence ranges do not map to a.</span>
+<span class="sd">        SEQRES sequence range of the same length. These</span>
+<span class="sd">        PDB IDs will be entirely replaced by a segment-</span>
+<span class="sd">        based mapping extracted from the SIFTS REST API.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sifts_table_file : str</span>
+<span class="sd">            Path where computed table will be stored</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">extract_rows</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">pdb_id</span><span class="p">):</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="n">M</span> <span class="o">=</span> <span class="n">M</span><span class="p">[</span><span class="n">pdb_id</span><span class="o">.</span><span class="n">lower</span><span class="p">()][</span><span class="s2">&quot;UniProt&quot;</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">uniprot_ac</span><span class="p">,</span> <span class="n">Ms</span> <span class="ow">in</span> <span class="n">M</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">Ms</span><span class="p">[</span><span class="s2">&quot;mappings&quot;</span><span class="p">]:</span>
+                    <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                        <span class="s2">&quot;pdb_id&quot;</span><span class="p">:</span> <span class="n">pdb_id</span><span class="p">,</span>
+                        <span class="s2">&quot;pdb_chain&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;chain_id&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;uniprot_ac&quot;</span><span class="p">:</span> <span class="n">uniprot_ac</span><span class="p">,</span>
+                        <span class="s2">&quot;resseq_start&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">][</span><span class="s2">&quot;residue_number&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;resseq_end&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">][</span><span class="s2">&quot;residue_number&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;coord_start&quot;</span><span class="p">:</span> <span class="p">(</span>
+                            <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">][</span><span class="s2">&quot;author_residue_number&quot;</span><span class="p">])</span> <span class="o">+</span>
+                            <span class="n">x</span><span class="p">[</span><span class="s2">&quot;start&quot;</span><span class="p">][</span><span class="s2">&quot;author_insertion_code&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                        <span class="p">),</span>
+                        <span class="s2">&quot;coord_end&quot;</span><span class="p">:</span> <span class="p">(</span>
+                            <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">][</span><span class="s2">&quot;author_residue_number&quot;</span><span class="p">])</span> <span class="o">+</span>
+                            <span class="n">x</span><span class="p">[</span><span class="s2">&quot;end&quot;</span><span class="p">][</span><span class="s2">&quot;author_insertion_code&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                        <span class="p">),</span>
+                        <span class="s2">&quot;uniprot_start&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;unp_start&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;uniprot_end&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;unp_end&quot;</span><span class="p">],</span>
+                    <span class="p">})</span>
+
+            <span class="k">return</span> <span class="n">res</span>
+
+        <span class="n">get_urllib</span><span class="p">(</span><span class="n">SIFTS_URL</span><span class="p">,</span> <span class="n">sifts_table_file</span><span class="p">)</span>
+
+        <span class="c1"># load table and rename columns for internal use, if SIFTS</span>
+        <span class="c1"># ever decided to rename theirs</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">sifts_table_file</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">,</span>
+            <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;gzip&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;PDB&quot;</span><span class="p">:</span> <span class="s2">&quot;pdb_id&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;CHAIN&quot;</span><span class="p">:</span> <span class="s2">&quot;pdb_chain&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;SP_PRIMARY&quot;</span><span class="p">:</span> <span class="s2">&quot;uniprot_ac&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;RES_BEG&quot;</span><span class="p">:</span> <span class="s2">&quot;resseq_start&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;RES_END&quot;</span><span class="p">:</span> <span class="s2">&quot;resseq_end&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;PDB_BEG&quot;</span><span class="p">:</span> <span class="s2">&quot;coord_start&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;PDB_END&quot;</span><span class="p">:</span> <span class="s2">&quot;coord_end&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;SP_BEG&quot;</span><span class="p">:</span> <span class="s2">&quot;uniprot_start&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;SP_END&quot;</span><span class="p">:</span> <span class="s2">&quot;uniprot_end&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="c1"># identify problematic PDB IDs</span>
+        <span class="n">problematic_ids</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="s2">&quot;(resseq_end - resseq_start) != (uniprot_end - uniprot_start)&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">pdb_id</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+
+        <span class="c1"># collect new mappings from segment based REST API</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pdb_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">problematic_ids</span><span class="p">):</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">SIFTS_REST_API</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pdb_id</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+            <span class="p">)</span>
+            <span class="n">mapping</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+            <span class="n">res</span> <span class="o">+=</span> <span class="n">extract_rows</span><span class="p">(</span><span class="n">mapping</span><span class="p">,</span> <span class="n">pdb_id</span><span class="p">)</span>
+
+        <span class="c1"># remove bad PDB IDs from table and add new mapping</span>
+        <span class="n">new_table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">table</span><span class="o">.</span><span class="n">pdb_id</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">problematic_ids</span><span class="p">)]</span>
+        <span class="n">new_table</span> <span class="o">=</span> <span class="n">new_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">res</span><span class="p">)</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># save for later reuse</span>
+        <span class="n">new_table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">sifts_table_file</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_uniprot_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add Uniprot ID column to SIFTS table based on</span>
+<span class="sd">        AC to ID mapping extracted from sequence database</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># iterate through headers in sequence file and store</span>
+        <span class="c1"># AC to ID mapping</span>
+        <span class="n">ac_to_id</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">seq_id</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">read_fasta</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">ac</span><span class="p">,</span> <span class="n">id_</span> <span class="o">=</span> <span class="n">seq_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">)</span>
+                <span class="n">ac_to_id</span><span class="p">[</span><span class="n">ac</span><span class="p">]</span> <span class="o">=</span> <span class="n">id_</span>
+
+        <span class="c1"># add column to dataframe</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;uniprot_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;uniprot_ac&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">ac_to_id</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SIFTS.create_sequence_file"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.sifts.SIFTS.create_sequence_file">[docs]</a>    <span class="k">def</span> <span class="nf">create_sequence_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create FASTA sequence file containing all UniProt</span>
+<span class="sd">        sequences of proteins in SIFTS. This file is required</span>
+<span class="sd">        for homology-based structure identification and</span>
+<span class="sd">        index remapping.</span>
+<span class="sd">        This function will also automatically associate</span>
+<span class="sd">        the sequence file with the SIFTS object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_file : str</span>
+<span class="sd">            Path at which to store sequence file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">uniprot_ac</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="n">CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="n">chunks</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">CHUNK_SIZE</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="n">CHUNK_SIZE</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">:</span>
+                <span class="c1"># fetch sequence chunk</span>
+                <span class="n">seqs</span> <span class="o">=</span> <span class="n">fetch_uniprot_mapping</span><span class="p">(</span><span class="n">ch</span><span class="p">)</span>
+
+                <span class="c1"># then store to FASTA file</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">seqs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequence_file</span> <span class="o">=</span> <span class="n">output_file</span>
+
+        <span class="c1"># add Uniprot ID column to SIFTS table</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_add_uniprot_ids</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_create_sequence_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create FASTA sequence file containing all UniProt</span>
+<span class="sd">        sequences of proteins in SIFTS. This file is required</span>
+<span class="sd">        for homology-based structure identification and</span>
+<span class="sd">        index remapping.</span>
+<span class="sd">        This function will also automatically associate</span>
+<span class="sd">        the sequence file with the SIFTS object.</span>
+
+<span class="sd">        Note: this would be the nicer function, but unfortunately</span>
+<span class="sd">        the UniProt server frequently closes the connection running it</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_file : str</span>
+<span class="sd">            Path at which to store sequence file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># fetch all the sequences</span>
+        <span class="n">seqs</span> <span class="o">=</span> <span class="n">fetch_uniprot_mapping</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">uniprot_ac</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="c1"># then store to FASTA file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">seqs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequence_file</span> <span class="o">=</span> <span class="n">output_file</span>
+
+    <span class="k">def</span> <span class="nf">_finalize_hits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hit_segments</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create final hit/mapping record from</span>
+<span class="sd">        table of segments in PDB chains in</span>
+<span class="sd">        SIFTS file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        hit_segments : pd.DataFrame</span>
+<span class="sd">            Subset of self.table that will be</span>
+<span class="sd">            turned into final mapping record</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SIFTSResult</span>
+<span class="sd">            Identified hits plus index mappings</span>
+<span class="sd">            to Uniprot</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># compile final set of hits</span>
+        <span class="n">hits</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># compile mapping from Uniprot to seqres for</span>
+        <span class="c1"># each final hit</span>
+        <span class="n">mappings</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># go through all SIFTS segments per PDB chain</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">((</span><span class="n">pdb_id</span><span class="p">,</span> <span class="n">pdb_chain</span><span class="p">),</span> <span class="n">chain_grp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+            <span class="n">hit_segments</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">,</span> <span class="s2">&quot;pdb_chain&quot;</span><span class="p">])</span>
+        <span class="p">):</span>
+            <span class="c1"># put segments together in one segment-based</span>
+            <span class="c1"># mapping for chain; this will be used by pdb.Chain.remap()</span>
+            <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;resseq_start&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;resseq_end&quot;</span><span class="p">]):</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;uniprot_start&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;uniprot_end&quot;</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">chain_grp</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+            <span class="p">}</span>
+
+            <span class="c1"># append current hit and mapping</span>
+            <span class="n">hits</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">pdb_id</span><span class="p">,</span> <span class="n">pdb_chain</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
+            <span class="n">mappings</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapping</span>
+
+        <span class="c1"># create final hit representation as DataFrame</span>
+        <span class="n">hits_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">hits</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">,</span> <span class="s2">&quot;pdb_chain&quot;</span><span class="p">,</span> <span class="s2">&quot;mapping_index&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">SIFTSResult</span><span class="p">(</span><span class="n">hits_df</span><span class="p">,</span> <span class="n">mappings</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SIFTS.by_pdb_id"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.sifts.SIFTS.by_pdb_id">[docs]</a>    <span class="k">def</span> <span class="nf">by_pdb_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdb_id</span><span class="p">,</span> <span class="n">pdb_chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">uniprot_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find structures and mapping by PDB id</span>
+<span class="sd">        and chain name</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pdb_id : str</span>
+<span class="sd">            4-letter PDB identifier</span>
+<span class="sd">        pdb_chain : str, optional (default: None)</span>
+<span class="sd">            PDB chain name (if not given, all</span>
+<span class="sd">            chains for PDB entry will be returned)</span>
+<span class="sd">        uniprot_id : str, optional (default: None)</span>
+<span class="sd">            Filter to keep only this Uniprot accession</span>
+<span class="sd">            number or identifier (necessary for chimeras,</span>
+<span class="sd">            or multi-chain complexes with different proteins)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SIFTSResult</span>
+<span class="sd">            Identified hits plus index mappings</span>
+<span class="sd">            to Uniprot</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If selected segments in PDB file do</span>
+<span class="sd">            not unambigously map to one Uniprot</span>
+<span class="sd">            entry</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pdb_id</span> <span class="o">=</span> <span class="n">pdb_id</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;pdb_id == @pdb_id&quot;</span>
+
+        <span class="c1"># filter by PDB chain if selected</span>
+        <span class="k">if</span> <span class="n">pdb_chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s2">&quot; and pdb_chain == @pdb_chain&quot;</span>
+
+        <span class="c1"># filter by UniProt AC/ID if selected</span>
+        <span class="c1"># (to remove chimeras)</span>
+        <span class="k">if</span> <span class="n">uniprot_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;uniprot_id&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="n">query</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot; and (uniprot_ac == @uniprot_id or &quot;</span>
+                          <span class="s2">&quot;uniprot_id == @uniprot_id)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">query</span> <span class="o">+=</span> <span class="s2">&quot; and uniprot_ac == @uniprot_id&quot;</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+
+        <span class="c1"># check we only have one protein (might not</span>
+        <span class="c1"># be the case with multiple chains, or with</span>
+        <span class="c1"># chimeras)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">uniprot_ac</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">id_list</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">uniprot_ac</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="s2">&quot;uniprot_id&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="n">id_list</span> <span class="o">+=</span> <span class="s2">&quot; or &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">uniprot_id</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Multiple Uniprot sequences on chains, &quot;</span>
+                <span class="s2">&quot;please disambiguate using uniprot_id &quot;</span>
+                <span class="s2">&quot;parameter: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_list</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># create hit and mapping result</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finalize_hits</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SIFTS.by_uniprot_id"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.sifts.SIFTS.by_uniprot_id">[docs]</a>    <span class="k">def</span> <span class="nf">by_uniprot_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uniprot_id</span><span class="p">,</span> <span class="n">reduce_chains</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find structures and mapping by Uniprot</span>
+<span class="sd">        access number.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uniprot_ac : str</span>
+<span class="sd">            Find PDB structures for this Uniprot accession</span>
+<span class="sd">            number. If sequence_file was given while creating</span>
+<span class="sd">            the SIFTS object, Uniprot identifiers can also be</span>
+<span class="sd">            used.</span>
+<span class="sd">        reduce_chains : bool, optional (Default: True)</span>
+<span class="sd">            If true, keep only first chain per PDB ID</span>
+<span class="sd">            (i.e. remove redundant occurrences of same</span>
+<span class="sd">            protein in PDB structures). Should be set to</span>
+<span class="sd">            False to identify homomultimeric contacts.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SIFTSResult</span>
+<span class="sd">            Record of hits and mappings found for this</span>
+<span class="sd">            Uniprot protein. See by_pdb_id() for detailed</span>
+<span class="sd">            explanation of fields.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s2">&quot;uniprot_ac == @uniprot_id&quot;</span>
+
+        <span class="k">if</span> <span class="s2">&quot;uniprot_id&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s2">&quot; or uniprot_id == @uniprot_id&quot;</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+
+        <span class="n">hit_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finalize_hits</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># only retain one chain if this option is active</span>
+        <span class="k">if</span> <span class="n">reduce_chains</span><span class="p">:</span>
+            <span class="n">hit_table</span><span class="o">.</span><span class="n">hits</span> <span class="o">=</span> <span class="n">hit_table</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+                <span class="s2">&quot;pdb_id&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">hit_table</span></div>
+
+<div class="viewcode-block" id="SIFTS.by_alignment"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.sifts.SIFTS.by_alignment">[docs]</a>    <span class="k">def</span> <span class="nf">by_alignment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_overlap</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">reduce_chains</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find structures by sequence alignment between</span>
+<span class="sd">        query sequence and sequences in PDB.</span>
+
+<span class="sd">        # TODO: offer option to start from HMM profile for this</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        min_overlap : int, optional (default: 20)</span>
+<span class="sd">            Require at least this many aligned positions</span>
+<span class="sd">            with the target structure</span>
+<span class="sd">        reduce_chains : bool, optional (Default: True)</span>
+<span class="sd">            If true, keep only first chain per PDB ID</span>
+<span class="sd">            (i.e. remove redundant occurrences of same</span>
+<span class="sd">            protein in PDB structures). Should be set to</span>
+<span class="sd">            False to identify homomultimeric contacts.</span>
+<span class="sd">        **kwargs</span>
+<span class="sd">            Passed into jackhmmer_search protocol</span>
+<span class="sd">            (see documentation for available options).</span>
+<span class="sd">            Additionally, if &quot;prefix&quot; is given, individual</span>
+<span class="sd">            mappings will be saved to files suffixed by</span>
+<span class="sd">            the respective key in mapping table.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SIFTSResult</span>
+<span class="sd">            Record of hits and mappings found for this</span>
+<span class="sd">            query sequence by alignment. See by_pdb_id()</span>
+<span class="sd">            for detailed explanation of fields.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_create_mapping</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">query_start</span><span class="p">,</span> <span class="n">query_end</span> <span class="o">=</span> <span class="n">parse_header</span><span class="p">(</span><span class="n">ali</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c1"># create mapping from query into PDB Uniprot sequence</span>
+            <span class="c1"># A_i will be query sequence indices, A_j Uniprot sequence indices</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">map_indices</span><span class="p">(</span>
+                <span class="n">ali</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">query_start</span><span class="p">,</span> <span class="n">query_end</span><span class="p">,</span>
+                <span class="n">ali</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;alignment_id&quot;</span><span class="p">]],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;alignment_start&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;alignment_end&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="c1"># create mapping from PDB Uniprot into seqres numbering</span>
+            <span class="c1"># j will be Uniprot sequence index, k seqres index</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;j&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;uniprot_start&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;uniprot_end&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
+                    <span class="s2">&quot;k&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;resseq_start&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;resseq_end&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+            <span class="c1"># need to convert to strings since other mapping has indices as strings</span>
+            <span class="n">n</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;j&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+            <span class="n">n</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span><span class="o">.</span><span class="n">k</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+
+            <span class="c1"># join over Uniprot indices (i.e. j);</span>
+            <span class="c1"># get rid of any position that is not aligned</span>
+            <span class="n">mn</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+
+            <span class="c1"># extract final mapping from seqres (k) to query (i)</span>
+            <span class="n">map_</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="nb">zip</span><span class="p">(</span><span class="n">mn</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">mn</span><span class="o">.</span><span class="n">i</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">map_</span><span class="p">,</span> <span class="n">mn</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Need to have SIFTS sequence file. &quot;</span>
+                <span class="s2">&quot;Create using create_sequence_file() &quot;</span>
+                <span class="s2">&quot;method or constructor.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">ali</span><span class="p">,</span> <span class="n">hits</span> <span class="o">=</span> <span class="n">find_homologs_jackhmmer</span><span class="p">(</span>
+            <span class="n">sequence_database</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_file</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+        <span class="c1"># merge with internal table to identify overlap of</span>
+        <span class="c1"># aligned regions and regions with structural coverage</span>
+        <span class="n">hits</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;uniprot_ac&quot;</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># add 1 to end of range since overlap function treats</span>
+        <span class="c1"># ends as exclusive, while ends here are inclusive</span>
+        <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;overlap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">range_overlap</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;uniprot_start&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;uniprot_end&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;alignment_start&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;alignment_end&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">hits</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+        <span class="p">]</span>
+
+        <span class="c1"># collect complete index mappings in here...</span>
+        <span class="n">mappings</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># ... as well as dataframe rows for assignment of hit to mapping</span>
+        <span class="n">mapping_rows</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># complication: if there are multiple segments per hit and chain, we should</span>
+        <span class="c1"># reduce these into a single mapping (even though split mappings</span>
+        <span class="c1"># are possible in principle) so we can count unique number of hits etc.</span>
+        <span class="n">hit_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;alignment_id&quot;</span><span class="p">,</span> <span class="s2">&quot;pdb_id&quot;</span><span class="p">,</span> <span class="s2">&quot;pdb_chain&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">hit</span><span class="p">,</span> <span class="n">grp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+            <span class="n">hits</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">hit_columns</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">agg_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">agg_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+            <span class="c1"># go through each segment</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">grp</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                <span class="c1"># compute mapping for that particular segment</span>
+                <span class="n">map_j</span><span class="p">,</span> <span class="n">map_j_df</span> <span class="o">=</span> <span class="n">_create_mapping</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+
+                <span class="c1"># add to overall mapping dictionary for this hit</span>
+                <span class="n">agg_mapping</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">map_j</span><span class="p">)</span>
+                <span class="n">agg_df</span> <span class="o">=</span> <span class="n">agg_df</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">map_j_df</span><span class="p">)</span>
+
+            <span class="c1"># store assignment of group to mapping index</span>
+            <span class="n">mapping_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="nb">list</span><span class="p">(</span><span class="n">hit</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">grp</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="n">mappings</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">agg_mapping</span>
+
+            <span class="c1"># store index mappings if filename prefix is given</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">agg_df</span> <span class="o">=</span> <span class="n">agg_df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+                    <span class="n">columns</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s2">&quot;j&quot;</span><span class="p">:</span> <span class="s2">&quot;uniprot_of_pdb_index&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;A_j&quot;</span><span class="p">:</span> <span class="s2">&quot;uniprot_of_pdb_residue&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;k&quot;</span><span class="p">:</span> <span class="s2">&quot;pdb_seqres_index&quot;</span><span class="p">,</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+
+                <span class="n">agg_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_mapping</span><span class="si">{}</span><span class="s2">.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">)</span>
+
+        <span class="c1"># create dataframe from mapping rows</span>
+        <span class="n">mapping_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">mapping_rows</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">hit_columns</span> <span class="o">+</span> <span class="p">[</span>
+                <span class="s2">&quot;mapping_index&quot;</span><span class="p">,</span> <span class="s2">&quot;grouped_segments&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># now group again, to aggregate full hit dataframe</span>
+        <span class="k">def</span> <span class="nf">_agg_type</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="s2">&quot;overlap&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;sum&quot;</span>
+            <span class="k">elif</span> <span class="n">x</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_start&quot;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="s2">&quot;min&quot;</span>
+            <span class="k">elif</span> <span class="n">x</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;end&quot;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="s2">&quot;max&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">&quot;first&quot;</span>
+
+        <span class="n">agg_types</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="p">[(</span><span class="n">c</span><span class="p">,</span> <span class="n">_agg_type</span><span class="p">(</span><span class="n">c</span><span class="p">))</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">hits</span><span class="o">.</span><span class="n">columns</span>
+             <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">hit_columns</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">hits_grouped</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+            <span class="n">hit_columns</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">agg_types</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+        <span class="c1"># join with mapping information</span>
+        <span class="n">hits_grouped</span> <span class="o">=</span> <span class="n">hits_grouped</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+            <span class="n">mapping_df</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="n">hit_columns</span>
+        <span class="p">)</span>
+
+        <span class="c1"># remove hits with too little residue coverage</span>
+        <span class="n">hits_grouped</span> <span class="o">=</span> <span class="n">hits_grouped</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;overlap &gt;= @min_overlap&quot;</span><span class="p">)</span>
+
+        <span class="n">hits_grouped</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;bitscore&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span>
+            <span class="n">hits_grouped</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;bitscore&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span>
+        <span class="p">)</span>
+        <span class="n">hits_grouped</span> <span class="o">=</span> <span class="n">hits_grouped</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;bitscore&quot;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># if requested, only keep one chain per PDB;</span>
+        <span class="c1"># sort by score before this to keep best hit</span>
+        <span class="k">if</span> <span class="n">reduce_chains</span><span class="p">:</span>
+            <span class="n">hits_grouped</span> <span class="o">=</span> <span class="n">hits_grouped</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+            <span class="c1"># sort again, just to be sure...</span>
+            <span class="n">hits_grouped</span> <span class="o">=</span> <span class="n">hits_grouped</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;bitscore&quot;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># remove any zombie mappings we did not keep in table</span>
+        <span class="n">mappings</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">idx</span><span class="p">:</span> <span class="n">map_</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">map_</span> <span class="ow">in</span> <span class="n">mappings</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">hits_grouped</span><span class="o">.</span><span class="n">mapping_index</span><span class="o">.</span><span class="n">values</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">SIFTSResult</span><span class="p">(</span><span class="n">hits_grouped</span><span class="p">,</span> <span class="n">mappings</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

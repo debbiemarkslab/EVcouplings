@@ -116,10 +116,11 @@ def read_stockholm(fileobj, read_annotation=False):
     Generator function to read Stockholm format alignment
     file (e.g. from hmmer).
 
-    Notes:
-    Generator iterates over different alignments in the
-    same file (but not over individual sequences, which makes
-    little sense due to wrapped Stockholm alignments).
+    .. note::
+
+        Generator iterates over different alignments in the
+        same file (but not over individual sequences, which makes
+        little sense due to wrapped Stockholm alignments).
 
 
     Parameters
@@ -214,9 +215,13 @@ def read_a3m(fileobj, inserts="first"):
     Read an alignment in compressed a3m format and expand
     into a2m format.
 
-    Note: this function is currently not able to keep inserts
-    in all the sequences
-    # TODO: implement this
+    .. note::
+
+        this function is currently not able to keep inserts in all the sequences
+
+    ..todo::
+
+        implement this
 
     Parameters
     ----------
@@ -466,21 +471,25 @@ class Alignment:
     """
     Container to store and manipulate multiple sequence alignments.
 
-    Important:
-    (1) Sequence annotation currently is not transformed when
-    selecting subsets of columns or positions (e.g. affects GR and GC
-    lines in Stockholm alignments)
-    (2) Sequence ranges in IDs are not adjusted when selecting
-    subsets of positions
+    .. note::
+
+        Important:
+
+        1. Sequence annotation currently is not transformed when
+           selecting subsets of columns or positions (e.g. affects GR and GC
+           lines in Stockholm alignments)
+        2. Sequence ranges in IDs are not adjusted when selecting
+           subsets of positions
     """
     def __init__(self, sequence_matrix, sequence_ids=None, annotation=None,
                  alphabet=ALPHABET_PROTEIN):
         """
         Create new alignment object from ready-made components.
 
-        Note:
-        Use factory method Alignment.from_file to create alignment from file,
-        or Alignment.from_dict from dictionary of sequences.
+        .. note::
+
+            Use factory method Alignment.from_file to create alignment from file,
+            or Alignment.from_dict from dictionary of sequences.
 
         Parameters
         ----------
@@ -625,8 +634,9 @@ class Alignment:
 
     def __getitem__(self, index):
         """
-        # TODO: eventually this should allow fancy indexing
-        and offer the functionality of select()
+        .. todo::
+
+            eventually this should allow fancy indexing and offer the functionality of select()
         """
         if index in self.id_to_index:
             return self.matrix[self.id_to_index[index], :]
@@ -645,8 +655,10 @@ class Alignment:
         Count occurrences of a character in the sequence
         alignment.
 
-        Note that these counts are raw counts not adjusted for
-        sequence redundancy.
+        .. note::
+
+            The counts are raw counts not adjusted for
+            sequence redundancy.
 
         Parameters
         ----------
@@ -685,9 +697,11 @@ class Alignment:
         Create a sub-alignment that contains a subset of
         sequences and/or columns.
 
-        Note: This does currently not adjust the indices
-        of the sequences. Annotation in the original alignment
-        will be lost and not passed on to the new object.
+        .. note::
+
+            This does currently not adjust the indices
+            of the sequences. Annotation in the original alignment
+            will be lost and not passed on to the new object.
 
         Parameters
         ----------
@@ -833,13 +847,15 @@ class Alignment:
         clustering all sequences with sequence identity
         greater or equal to the given threshold.
 
-        Note that this method sets self.weights.
-        After this method was called, methods/attributes such as
-        self.frequencies or self.conservation()
-        will make use of sequence weights.
+        .. note::
 
-        (Implementation note: cannot use property here
-        since we need identity threshold as a parameter....)
+            This method sets self.weights. After this method was called, methods/attributes such as
+            self.frequencies or self.conservation()
+            will make use of sequence weights.
+
+        .. note::
+
+            (Implementation: cannot use property here since we need identity threshold as a parameter....)
 
         Parameters
         ----------

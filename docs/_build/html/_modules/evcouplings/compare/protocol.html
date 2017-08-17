@@ -1,0 +1,688 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.compare.protocol &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.compare.protocol</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.compare.protocol</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">EC to 3D structure comparison protocols/workflows.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">ceil</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.align.alignment</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">read_fasta</span><span class="p">,</span> <span class="n">parse_header</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">check_required</span><span class="p">,</span> <span class="n">InvalidParameterError</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">create_prefix_folders</span><span class="p">,</span> <span class="n">insert_dir</span><span class="p">,</span> <span class="n">verify_resources</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.compare.pdb</span> <span class="k">import</span> <span class="n">load_structures</span>
+<span class="kn">from</span> <span class="nn">evcouplings.compare.distances</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">intra_dists</span><span class="p">,</span> <span class="n">multimer_dists</span><span class="p">,</span> <span class="n">remap_chains</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.compare.sifts</span> <span class="k">import</span> <span class="n">SIFTS</span><span class="p">,</span> <span class="n">SIFTSResult</span>
+<span class="kn">from</span> <span class="nn">evcouplings.compare.ecs</span> <span class="k">import</span> <span class="n">coupling_scores_compared</span>
+<span class="kn">from</span> <span class="nn">evcouplings.visualize</span> <span class="k">import</span> <span class="n">pairs</span><span class="p">,</span> <span class="n">misc</span>
+
+
+<span class="k">def</span> <span class="nf">_identify_structures</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify set of 3D structures for comparison</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        See check_required in code below</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    SIFTSResult</span>
+<span class="sd">        Identified structures and residue index mappings</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_filter_by_id</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">id_list</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">hits</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">pdb_id</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">id_list</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;pdb_ids&quot;</span><span class="p">,</span> <span class="s2">&quot;compare_multimer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;max_num_hits&quot;</span><span class="p">,</span> <span class="s2">&quot;max_num_structures&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pdb_mmtf_dir&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sifts_mapping_table&quot;</span><span class="p">,</span> <span class="s2">&quot;sifts_sequence_db&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;by_alignment&quot;</span><span class="p">,</span> <span class="s2">&quot;alignment_min_overlap&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sequence_id&quot;</span><span class="p">,</span> <span class="s2">&quot;sequence_file&quot;</span><span class="p">,</span> <span class="s2">&quot;region&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;use_bitscores&quot;</span><span class="p">,</span> <span class="s2">&quot;domain_threshold&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sequence_threshold&quot;</span><span class="p">,</span> <span class="s2">&quot;jackhmmer&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># get SIFTS mapping object/sequence DB</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">SIFTS</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sifts_mapping_table&quot;</span><span class="p">],</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sifts_sequence_db&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">reduce_chains</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;compare_multimer&quot;</span><span class="p">]</span>
+
+    <span class="c1"># determine if we need to find structures</span>
+    <span class="c1"># by sequence search or just fetching</span>
+    <span class="c1"># based on Uniprot/PDB identifier</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;by_alignment&quot;</span><span class="p">]:</span>
+        <span class="n">sifts_map</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">by_alignment</span><span class="p">(</span>
+            <span class="n">reduce_chains</span><span class="o">=</span><span class="n">reduce_chains</span><span class="p">,</span>
+            <span class="n">min_overlap</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alignment_min_overlap&quot;</span><span class="p">],</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sifts_map</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">by_uniprot_id</span><span class="p">(</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_id&quot;</span><span class="p">],</span> <span class="n">reduce_chains</span><span class="o">=</span><span class="n">reduce_chains</span>
+        <span class="p">)</span>
+
+    <span class="n">sifts_map_full</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">sifts_map</span><span class="p">)</span>
+
+    <span class="c1"># filter ID list down to manually selected PDB entries</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;pdb_ids&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pdb_ids</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;pdb_ids&quot;</span><span class="p">]</span>
+
+        <span class="c1"># make sure we have a list of PDB IDs</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pdb_ids</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">pdb_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">pdb_ids</span><span class="p">]</span>
+
+        <span class="n">pdb_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pdb_ids</span><span class="p">]</span>
+
+        <span class="n">sifts_map</span> <span class="o">=</span> <span class="n">_filter_by_id</span><span class="p">(</span><span class="n">sifts_map</span><span class="p">,</span> <span class="n">pdb_ids</span><span class="p">)</span>
+
+    <span class="c1"># limit number of hits and structures</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;max_num_hits&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sifts_map</span><span class="o">.</span><span class="n">hits</span> <span class="o">=</span> <span class="n">sifts_map</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;max_num_hits&quot;</span><span class="p">]]</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;max_num_structures&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">keep_ids</span> <span class="o">=</span> <span class="n">sifts_map</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">pdb_id</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+        <span class="n">keep_ids</span> <span class="o">=</span> <span class="n">keep_ids</span><span class="p">[:</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;max_num_structures&quot;</span><span class="p">]]</span>
+        <span class="n">sifts_map</span> <span class="o">=</span> <span class="n">_filter_by_id</span><span class="p">(</span><span class="n">sifts_map</span><span class="p">,</span> <span class="n">keep_ids</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sifts_map</span><span class="p">,</span> <span class="n">sifts_map_full</span>
+
+
+<span class="k">def</span> <span class="nf">_make_contact_maps</span><span class="p">(</span><span class="n">ec_table</span><span class="p">,</span> <span class="n">d_intra</span><span class="p">,</span> <span class="n">d_multimer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot contact maps with all ECs above a certain probability threshold,</span>
+<span class="sd">    or a given count of ECs</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ec_table : pandas.DataFrame</span>
+<span class="sd">        Full set of evolutionary couplings (all pairs)</span>
+<span class="sd">    d_intra : DistanceMap</span>
+<span class="sd">        Computed residue-residue distances inside chain</span>
+<span class="sd">    d_multimer : DistanceMap</span>
+<span class="sd">        Computed residue-residue distances between homomultimeric</span>
+<span class="sd">        chains</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Further plotting parameters, see check_required in code</span>
+<span class="sd">        for necessary values.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cm_files : list(str)</span>
+<span class="sd">        Paths of generated contact map files</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">plot_cm</span><span class="p">(</span><span class="n">ecs</span><span class="p">,</span> <span class="n">output_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simple wrapper for contact map plotting</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">misc</span><span class="o">.</span><span class="n">plot_context</span><span class="p">(</span><span class="s2">&quot;Arial&quot;</span><span class="p">):</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;scale_sizes&quot;</span><span class="p">]:</span>
+                <span class="n">ecs</span> <span class="o">=</span> <span class="n">ecs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">ecs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ecs</span><span class="o">.</span><span class="n">cn</span><span class="o">.</span><span class="n">values</span> <span class="o">/</span> <span class="n">ecs</span><span class="o">.</span><span class="n">cn</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+            <span class="n">pairs</span><span class="o">.</span><span class="n">plot_contact_map</span><span class="p">(</span>
+                <span class="n">ecs</span><span class="p">,</span> <span class="n">d_intra</span><span class="p">,</span> <span class="n">d_multimer</span><span class="p">,</span>
+                <span class="n">distance_cutoff</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;distance_cutoff&quot;</span><span class="p">],</span>
+                <span class="n">show_secstruct</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;draw_secondary_structure&quot;</span><span class="p">],</span>
+                <span class="n">margin</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                <span class="n">boundaries</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;boundaries&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> evolutionary couplings&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ecs</span><span class="p">)),</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">output_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;plot_probability_cutoffs&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;boundaries&quot;</span><span class="p">,</span> <span class="s2">&quot;plot_lowest_count&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;plot_highest_count&quot;</span><span class="p">,</span> <span class="s2">&quot;plot_increase&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;draw_secondary_structure&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="n">cm_files</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">ecs_longrange</span> <span class="o">=</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="s2">&quot;abs(i - j) &gt;= </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">])</span>
+    <span class="p">)</span>
+
+    <span class="c1"># based on significance cutoff</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;plot_probability_cutoffs&quot;</span><span class="p">]:</span>
+        <span class="n">cutoffs</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;plot_probability_cutoffs&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cutoffs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">cutoffs</span> <span class="o">=</span> <span class="p">[</span><span class="n">cutoffs</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cutoffs</span><span class="p">:</span>
+            <span class="n">ec_set</span> <span class="o">=</span> <span class="n">ecs_longrange</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;probability &gt;= @c&quot;</span><span class="p">)</span>
+            <span class="c1"># only can plot if we have any significant ECs above threshold</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ec_set</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">output_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_significant_ECs_</span><span class="si">{}</span><span class="s2">.pdf&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+                <span class="n">plot_cm</span><span class="p">(</span><span class="n">ec_set</span><span class="p">,</span> <span class="n">output_file</span><span class="o">=</span><span class="n">output_file</span><span class="p">)</span>
+                <span class="n">cm_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+
+    <span class="c1"># based on number of long-range ECs</span>
+
+    <span class="c1"># identify number of sites in EC model</span>
+    <span class="n">num_sites</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+        <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ec_table</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">unique</span><span class="p">()),</span> <span class="nb">set</span><span class="p">(</span><span class="n">ec_table</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
+    <span class="p">)</span>
+
+    <span class="c1"># transform fraction of number of sites into discrete number of ECs</span>
+    <span class="k">def</span> <span class="nf">_discrete_count</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">ceil</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">num_sites</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="c1"># range of plots to make</span>
+    <span class="n">lowest</span> <span class="o">=</span> <span class="n">_discrete_count</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;plot_lowest_count&quot;</span><span class="p">])</span>
+    <span class="n">highest</span> <span class="o">=</span> <span class="n">_discrete_count</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;plot_highest_count&quot;</span><span class="p">])</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">_discrete_count</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;plot_increase&quot;</span><span class="p">])</span>
+
+    <span class="c1"># create individual plots</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">lowest</span><span class="p">,</span> <span class="n">highest</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+        <span class="n">ec_set</span> <span class="o">=</span> <span class="n">ecs_longrange</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">c</span><span class="p">]</span>
+        <span class="n">output_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_</span><span class="si">{}</span><span class="s2">_ECs.pdf&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="n">plot_cm</span><span class="p">(</span><span class="n">ec_set</span><span class="p">,</span> <span class="n">output_file</span><span class="o">=</span><span class="n">output_file</span><span class="p">)</span>
+        <span class="n">cm_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+
+    <span class="c1"># give back list of all contact map file names</span>
+    <span class="k">return</span> <span class="n">cm_files</span>
+
+
+<div class="viewcode-block" id="standard"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.protocol.standard">[docs]</a><span class="k">def</span> <span class="nf">standard</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Protocol:</span>
+<span class="sd">    Compare ECs for single proteins (or domains)</span>
+<span class="sd">    to 3D structure information</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        See list below in code where calling check_required</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of the pipeline, including</span>
+<span class="sd">        the following fields:</span>
+
+<span class="sd">        * ec_file_compared_all</span>
+<span class="sd">        * ec_file_compared_all_longrange</span>
+<span class="sd">        * pdb_structure_hits</span>
+<span class="sd">        * distmap_monomer</span>
+<span class="sd">        * distmap_multimer</span>
+<span class="sd">        * contact_map_files</span>
+<span class="sd">        * remapped_pdb_files</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;ec_file&quot;</span><span class="p">,</span> <span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pdb_mmtf_dir&quot;</span><span class="p">,</span> <span class="s2">&quot;atom_filter&quot;</span><span class="p">,</span> <span class="s2">&quot;compare_multimer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;distance_cutoff&quot;</span><span class="p">,</span> <span class="s2">&quot;target_sequence_file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;scale_sizes&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;ec_compared_all_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_CouplingScoresCompared_all.csv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ec_compared_longrange_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_CouplingScoresCompared_longrange.csv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;pdb_structure_hits_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_structure_hits.csv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;pdb_structure_hits_unfiltered_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_structure_hits_unfiltered.csv&quot;</span><span class="p">,</span>
+        <span class="c1"># cannot have the distmap files end with &quot;_file&quot; because there are</span>
+        <span class="c1"># two files (.npy and .csv), which would cause problems with automatic</span>
+        <span class="c1"># checking if those files exist</span>
+        <span class="s2">&quot;distmap_monomer&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_distance_map_monomer&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;distmap_multimer&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_distance_map_multimer&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="c1"># make sure EC file exists</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;EC file does not exist&quot;</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;ec_file&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># store auxiliary files here (too much for average user)</span>
+    <span class="n">aux_prefix</span> <span class="o">=</span> <span class="n">insert_dir</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="s2">&quot;aux&quot;</span><span class="p">,</span> <span class="n">rootname_subdir</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">aux_prefix</span><span class="p">)</span>
+
+    <span class="c1"># Step 1: Identify 3D structures for comparison</span>
+    <span class="n">sifts_map</span><span class="p">,</span> <span class="n">sifts_map_full</span> <span class="o">=</span> <span class="n">_identify_structures</span><span class="p">(</span><span class="o">**</span><span class="p">{</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="s2">&quot;prefix&quot;</span><span class="p">:</span> <span class="n">aux_prefix</span><span class="p">,</span>
+    <span class="p">})</span>
+
+    <span class="c1"># save selected PDB hits</span>
+    <span class="n">sifts_map</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;pdb_structure_hits_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1"># also save full list of hits</span>
+    <span class="n">sifts_map_full</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;pdb_structure_hits_unfiltered_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Step 2: Compute distance maps</span>
+
+    <span class="c1"># load all structures at once</span>
+    <span class="n">structures</span> <span class="o">=</span> <span class="n">load_structures</span><span class="p">(</span>
+        <span class="n">sifts_map</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">pdb_id</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;pdb_mmtf_dir&quot;</span><span class="p">],</span>
+        <span class="n">raise_missing</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1"># compute distance maps and save</span>
+    <span class="c1"># (but only if we found some structure)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sifts_map</span><span class="o">.</span><span class="n">hits</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">d_intra</span> <span class="o">=</span> <span class="n">intra_dists</span><span class="p">(</span>
+            <span class="n">sifts_map</span><span class="p">,</span> <span class="n">structures</span><span class="p">,</span> <span class="n">atom_filter</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;atom_filter&quot;</span><span class="p">],</span>
+            <span class="n">output_prefix</span><span class="o">=</span><span class="n">aux_prefix</span> <span class="o">+</span> <span class="s2">&quot;_distmap_intra&quot;</span>
+        <span class="p">)</span>
+        <span class="n">d_intra</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;distmap_monomer&quot;</span><span class="p">])</span>
+
+        <span class="c1"># save contacts to separate file</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;monomer_contacts_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_contacts_monomer.csv&quot;</span>
+        <span class="n">d_intra</span><span class="o">.</span><span class="n">contacts</span><span class="p">(</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;distance_cutoff&quot;</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;monomer_contacts_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+        <span class="c1"># compute multimer distances, if requested;</span>
+        <span class="c1"># note that d_multimer can be None if there</span>
+        <span class="c1"># are no structures with multiple chains</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;compare_multimer&quot;</span><span class="p">]:</span>
+            <span class="n">d_multimer</span> <span class="o">=</span> <span class="n">multimer_dists</span><span class="p">(</span>
+                <span class="n">sifts_map</span><span class="p">,</span> <span class="n">structures</span><span class="p">,</span> <span class="n">atom_filter</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;atom_filter&quot;</span><span class="p">],</span>
+                <span class="n">output_prefix</span><span class="o">=</span><span class="n">aux_prefix</span> <span class="o">+</span> <span class="s2">&quot;_distmap_multimer&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d_multimer</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># if we have a multimer contact mapin the end, save it</span>
+        <span class="k">if</span> <span class="n">d_multimer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">d_multimer</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;distmap_multimer&quot;</span><span class="p">])</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;multimer_contacts_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_contacts_multimer.csv&quot;</span>
+
+            <span class="c1"># save contacts to separate file</span>
+            <span class="n">d_multimer</span><span class="o">.</span><span class="n">contacts</span><span class="p">(</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;distance_cutoff&quot;</span><span class="p">]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+                <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;multimer_contacts_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;distmap_multimer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># at this point, also create remapped structures (e.g. for</span>
+        <span class="c1"># later comparison of folding results)</span>
+        <span class="n">verify_resources</span><span class="p">(</span>
+            <span class="s2">&quot;Target sequence file does not exist&quot;</span><span class="p">,</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;target_sequence_file&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># create target sequence map for remapping structure</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;target_sequence_file&quot;</span><span class="p">])</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">header</span><span class="p">,</span> <span class="n">seq</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">read_fasta</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+
+        <span class="n">seq_id</span><span class="p">,</span> <span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span> <span class="o">=</span> <span class="n">parse_header</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+        <span class="n">seqmap</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">seq_start</span><span class="p">,</span> <span class="n">seq_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">seq</span><span class="p">))</span>
+
+        <span class="c1"># remap structures, swap mapping index and filename in</span>
+        <span class="c1"># dictionary so we have a list of files in the dict keys</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;remapped_pdb_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">filename</span><span class="p">:</span> <span class="n">mapping_index</span> <span class="k">for</span> <span class="n">mapping_index</span><span class="p">,</span> <span class="n">filename</span> <span class="ow">in</span>
+            <span class="n">remap_chains</span><span class="p">(</span><span class="n">sifts_map</span><span class="p">,</span> <span class="n">aux_prefix</span><span class="p">,</span> <span class="n">seqmap</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># if no structures, can not compute distance maps</span>
+        <span class="n">d_intra</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">d_multimer</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;distmap_monomer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;distmap_multimer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;remapped_pdb_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Step 3: Compare ECs to distance maps</span>
+
+    <span class="n">ec_table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;ec_file&quot;</span><span class="p">])</span>
+
+    <span class="c1"># identify number of sites in EC model</span>
+    <span class="n">num_sites</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+        <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ec_table</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">unique</span><span class="p">()),</span> <span class="nb">set</span><span class="p">(</span><span class="n">ec_table</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">out_file</span><span class="p">,</span> <span class="n">min_seq_dist</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;ec_compared_longrange_file&quot;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">]),</span>
+        <span class="p">(</span><span class="s2">&quot;ec_compared_all_file&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">]:</span>
+        <span class="c1"># compare ECs only if we minimally have intra distance map</span>
+        <span class="k">if</span> <span class="n">d_intra</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">coupling_scores_compared</span><span class="p">(</span>
+                <span class="n">ec_table</span><span class="p">,</span> <span class="n">d_intra</span><span class="p">,</span> <span class="n">d_multimer</span><span class="p">,</span>
+                <span class="n">dist_cutoff</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;distance_cutoff&quot;</span><span class="p">],</span>
+                <span class="n">output_file</span><span class="o">=</span><span class="n">outcfg</span><span class="p">[</span><span class="n">out_file</span><span class="p">],</span>
+                <span class="n">score</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">,</span>
+                <span class="n">min_sequence_dist</span><span class="o">=</span><span class="n">min_seq_dist</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="n">out_file</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># also create line-drawing script if we made the csv</span>
+    <span class="k">if</span> <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_compared_longrange_file&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ecs_longrange</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_compared_longrange_file&quot;</span><span class="p">])</span>
+
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_lines_compared_pml_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_draw_ec_lines_compared.pml&quot;</span>
+        <span class="n">pairs</span><span class="o">.</span><span class="n">ec_lines_pymol_script</span><span class="p">(</span>
+            <span class="n">ecs_longrange</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">num_sites</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_lines_compared_pml_file&quot;</span><span class="p">],</span>
+            <span class="n">distance_cutoff</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;distance_cutoff&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Step 4: Make contact map plots</span>
+    <span class="c1"># if no structures available, defaults to EC-only plot</span>
+
+    <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;contact_map_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_make_contact_maps</span><span class="p">(</span>
+        <span class="n">ec_table</span><span class="p">,</span> <span class="n">d_intra</span><span class="p">,</span> <span class="n">d_multimer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outcfg</span></div>
+
+
+<span class="c1"># list of available EC comparison protocols</span>
+<span class="n">PROTOCOLS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># standard monomer comparison protocol</span>
+    <span class="s2">&quot;standard&quot;</span><span class="p">:</span> <span class="n">standard</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.protocol.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run inference protocol to calculate ECs from</span>
+<span class="sd">    input sequence alignment.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        protocol: EC protocol to run</span>
+<span class="sd">        prefix: Output prefix for all generated files</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of stage</span>
+<span class="sd">        (see individual protocol for fields)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PROTOCOLS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid protocol selection: &quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">. Valid protocols are: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">],</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PROTOCOLS</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">PROTOCOLS</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]](</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
