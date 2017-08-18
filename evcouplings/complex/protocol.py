@@ -243,55 +243,44 @@ def genome_distance(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    def _load_monomer_information(alignment, uniprot_to_embl_filename, genome_location_filename):
+    def _load_monomer_information(alignment, genome_location_filename):
         seq_ids_ali, id_to_header = retrieve_sequence_ids(open(alignment))
 
-        uniprot_to_embl = load_uniprot_to_embl(uniprot_to_embl_filename)
+        gene_location_table = pd.read_csv(genome_location_filename,header=0)
 
-        embl_to_annotation = load_embl_to_annotation(genome_location_filename)
-
-        return seq_ids_ali, id_to_header, uniprot_to_embl, embl_to_annotation
+        return seq_ids_ali, id_to_header, gene_location_table
 
     # load the information for each monomer alignment
     alignment_1 = kwargs["first_alignment_file"]
     alignment_2 = kwargs["second_alignment_file"]
 
-    uniprot_to_embl_filename_1 = kwargs["first_embl_mapping_file"]
-    uniprot_to_embl_filename_2 = kwargs["second_embl_mapping_file"]
-
     genome_location_filename_1 = kwargs["first_genome_location_file"]
     genome_location_filename_2 = kwargs["second_genome_location_file"]
 
-    seq_ids_ali_1, id_to_header_1, uniprot_to_embl_1, embl_to_annotation_1 = \
+    seq_ids_ali_1, id_to_header_1, gene_location_table_1 = \
         _load_monomer_information(
             alignment_1,
-            uniprot_to_embl_filename_1,
             genome_location_filename_1
         )
 
-    seq_ids_ali_2, id_to_header_2, uniprot_to_embl_2, embl_to_annotation_2 = \
+    seq_ids_ali_2, id_to_header_2, gene_location_table_2 = \
         _load_monomer_information(
             alignment_2,
-            uniprot_to_embl_filename_2,
             genome_location_filename_2
         )
 
     id_to_header_1[kwargs["first_focus_sequence"]] = [kwargs["first_focus_sequence"]]
     id_to_header_2[kwargs["second_focus_sequence"]] = [kwargs["second_focus_sequence"]]
 
-    uniprot_to_embl = {**uniprot_to_embl_1, **uniprot_to_embl_2}
-    embl_to_annotation = {**embl_to_annotation_1, **embl_to_annotation_2}
-
     # find all possible matches
     possible_partners = find_possible_partners(
         seq_ids_ali_1,
         seq_ids_ali_2,
-        uniprot_to_embl,
-        embl_to_annotation
+        gene_location_table_1,
+        gene_location_table_2
     )
 
     # find the best reciprocal matches
-
     id_pairing_unfiltered, id_pair_to_distance = best_reciprocal_matching(possible_partners)
 
     # filter best reciprocal matches by genome distance threshold

@@ -1139,21 +1139,16 @@ def complex(**kwargs):
             annotation_data.to_csv(outcfg["annotation_file"])
 
     # extract uniprot to EMBL ID mapping
-    uniprot_to_embl_filename = prefix + "_uniprot_embl.csv"
-
-    extract_uniprot_to_embl(
+    uniprot_to_embl = extract_uniprot_to_embl(
         outcfg["alignment_file"],
-        kwargs["uniprot_to_embl_table"],
-        uniprot_to_embl_filename
+        kwargs["uniprot_to_embl_table"]
     )
-
-    outcfg["embl_mapping_file"] = uniprot_to_embl_filename
 
     # extract EMBL ID to genome location information from ENA
     genome_location_filename = prefix + "_genome_location.csv"
 
     extract_embl_annotation(
-        uniprot_to_embl_filename,
+        uniprot_to_embl,
         kwargs["ena_genome_location_table"],
         genome_location_filename
     )

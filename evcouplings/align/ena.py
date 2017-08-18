@@ -13,7 +13,7 @@ import os
 from operator import itemgetter
 from collections import defaultdict
 from evcouplings.align.ids import retrieve_sequence_ids
-
+import pandas as pd
 
 def _split_annotation_string(annotation_string):
     # reformat the ena string as a list of tuples
@@ -26,8 +26,7 @@ def _split_annotation_string(annotation_string):
     return full_annotation
 
 def extract_uniprot_to_embl(alignment_file,
-                            uniprot_to_embl_table,
-                            uniprot_to_embl_filename):
+                            uniprot_to_embl_table):
     """
     Extracts mapping from set of Uniprot IDs to EMBL IDs
     from precomputed ID mapping table. The file generated
@@ -73,7 +72,7 @@ def extract_uniprot_to_embl(alignment_file,
             if len(uniprot_to_embl[uniprot_ac]) == 0:
                 del uniprot_to_embl[uniprot_ac]
 
-         return uniprot_to_embl
+        return uniprot_to_embl
 
     # extract identifiers from sequence alignment
     with open(alignment_file) as f:
@@ -96,57 +95,24 @@ def extract_uniprot_to_embl(alignment_file,
     uniprot_to_embl = _remove_redundant_reads(uniprot_to_embl)
 
     # store mapping information for alignment to file
-    with open(uniprot_to_embl_filename, "w") as of:
-        for key, value in uniprot_to_embl.items():
-            value_to_write = (';').join([(':').join(x) for x in value])
-            of.write(
-                "{},{}\n".format(key, value_to_write)
-            )
-
-
-def load_uniprot_to_embl(uniprot_to_embl_filename):
-    """
-    Load a previously extracted Uniprot ID to EMBL ID
-    mapping file and exclude inconsistent mappings
-    
-    Parameters
-    ----------
-    uniprot_to_embl_filename : str
-        Path to Uniprot to EMBL mapping file
-
-    Returns
-    -------
-    uniprot_to_embl : dict of tuple
-        Mapping from Uniprot AC to ENA genomes
-        and CDSs {uniprot_ac: [(ena_genome, ena_cds)]}
-    """ 
-
-    # reads the csv file uniprot_to_embl_filename
-    # info a dictionary in the format uniprot_ac: annotation_string
-
-    uniprot_to_embl = {}
-
-    with open(uniprot_to_embl_filename) as inf:
-        for line in inf:
-            ac, annotation_string = line.rstrip().split(",")
-            annotation = _split_annotation_string(annotation_string)
-            uniprot_to_embl[ac] = annotation
-
     return uniprot_to_embl
 
-
-def extract_embl_annotation(uniprot_to_embl_filename,
+def extract_embl_annotation(uniprot_to_embl,
                             ena_genome_location_table,
                             genome_location_filename):
     """
-    Reads CDS genomic location information for all entries mapped
-    from Uniprot to EMBL; writes that information to a csv file 
-    with the following columns:
-    cds_id, genome_id, uniprot_ac, genome_start, genome_end
+    Reads coding DNA sequence (CDS) genomic location information
+    for all entries mapped from Uniprot to EMBL; writes that
+    information to a csv file with the following columns:
+
+    cds_id, genome_id, uniprot_ac, gene_start, gene_end
+
+    Each row is a unique CDS. Uniprot ACs may be repeated if one
+    Uniprot AC hits multiple CDS.
     
     Parameters
     ----------
-    uniprot_to_embl_filename : str
+    uniprot_to_embl: str
         Path to Uniprot to EMBL mapping file
     ena_genome_location_table : str
         Path to ENA genome location database table which is a 
@@ -161,66 +127,28 @@ def extract_embl_annotation(uniprot_to_embl_filename,
     embl_cds_to_annotation: dict of tuple (str,str,int,int)
         {cds_id:(genome_id,uniprot_ac,genome_start,genome_end)}
     """
-    uniprot_to_embl = load_uniprot_to_embl(
-        uniprot_to_embl_filename
-    )
 
     # initialize values
     cds_target_ids = set(
         sum(uniprot_to_embl.values(), [])
     )
-    embl_cds_to_annotation = {}
+    embl_cds_to_annotation = []
 
     # extract the annotation
     with open(ena_genome_location_table) as inf:
         for line in inf:
-            cds_id, read_id, uniprot_id, start, end = (
+            cds_id, genome_id, uniprot_id, start, end = (
                 line.rstrip().split("\t")
             )
 
             if cds_id in cds_target_ids:
-                embl_cds_to_annotation[cds_id] = (
-                    read_id, uniprot_id, start, end
-                )
+                embl_cds_to_annotation.append([
+                    cds_id, genome_id, uniprot_id, start, end
+                ])
+
+    genome_location_table = pd.DataFrame(embl_cds_to_annotation,columns=[
+        'cds','genome_id','uniprot_ac','gene_start','gene_end'
+    ])
 
     # write the annotation
-    with open(genome_location_filename, "w") as of:
-        for key, value in embl_cds_to_annotation.items():
-            of.write(
-                key + "," + ",".join(value) + "\n"
-            )
-
-
-def load_embl_to_annotation(embl_cds_filename):
-    """
-    Read genomic location information for a set
-    of EMBL CDSs
-
-    Parameters
-    ----------
-    embl_cds_filename : str
-        Path to file containing target CDS information 
-        n tab-separated format (columns: cds_id, 
-        genome_id, uniprot_ac, genome_start, genome_end)
-    
-    Returns
-    -------
-    embl_cds_to_annotation : dict of tuple(str, str ,int, int)
-        Mapping dictionary of the form 
-        {cds_id: (genome_id, uniprot_ac, genome_start, genome_end)}
-
-    """
-
-    embl_cds_to_annotation = {}
-
-    with open(embl_cds_filename) as inf:
-        for line in inf:
-            cds_id, read_id, uniprot_id, start, end = (
-                line.rstrip().split(",")
-            )
-
-            embl_cds_to_annotation[cds_id] = (
-                read_id, uniprot_id, int(start), int(end)
-            )
-            
-    return embl_cds_to_annotation
+    genome_location_table.to_csv(genome_location_filename)
