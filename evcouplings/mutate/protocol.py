@@ -40,8 +40,8 @@ def standard(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        mutation_matrix_file
-        [mutation_dataset_predicted_file]
+        * mutation_matrix_file
+        * [mutation_dataset_predicted_file]
     """
     check_required(
         kwargs,

@@ -1,0 +1,1412 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.compare.distances &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.compare.distances</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.compare.distances</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Distance calculations on PDB 3D coordinates</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Counter</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">combinations</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">itemgetter</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.compare.pdb</span> <span class="k">import</span> <span class="n">load_structures</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.constants</span> <span class="k">import</span> <span class="n">AA1_to_AA3</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="n">create_prefix_folders</span>
+
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_distances</span><span class="p">(</span><span class="n">residues_i</span><span class="p">,</span> <span class="n">coords_i</span><span class="p">,</span> <span class="n">residues_j</span><span class="p">,</span> <span class="n">coords_j</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute minimum atom distances between residues. If used on</span>
+<span class="sd">    a single atom per residue, this function can e.g. also compute</span>
+<span class="sd">    C_alpha distances.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    residues_i : np.array</span>
+<span class="sd">        Matrix of size N_i x 2, where N_i = number of residues</span>
+<span class="sd">        in PDB chain used for first axis. Each row of this</span>
+<span class="sd">        matrix contains the first and last (inclusive) index</span>
+<span class="sd">        of the atoms comprising this residue in the coords_i</span>
+<span class="sd">        matrix</span>
+<span class="sd">    coords_i : np.array</span>
+<span class="sd">        N_a x 3 matrix containing 3D coordinates of all atoms</span>
+<span class="sd">        (where N_a is total number of atoms in chain)</span>
+<span class="sd">    residues_j : np.array</span>
+<span class="sd">        Like residues_i, but for chain used on second axis</span>
+<span class="sd">    coords_j : np.array</span>
+<span class="sd">        Like coords_j, but for chain used on second axis</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dists : np.array</span>
+<span class="sd">        Matrix of size N_i x N_j containing minimum atom</span>
+<span class="sd">        distance between residue i and j in dists[i, j]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">LARGE_DIST</span> <span class="o">=</span> <span class="mi">1000000</span>
+
+    <span class="n">N_i</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">residues_i</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">N_j</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">residues_j</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># matrix to hold final distances</span>
+    <span class="n">dists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N_i</span><span class="p">,</span> <span class="n">N_j</span><span class="p">))</span>
+
+    <span class="c1"># iterate all pairs of residues</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_i</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_j</span><span class="p">):</span>
+            <span class="c1"># limit computation in symmetric case and</span>
+            <span class="c1"># use previously calculated distance</span>
+            <span class="k">if</span> <span class="n">symmetric</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="n">j</span><span class="p">:</span>
+                <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">dists</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">range_i</span> <span class="o">=</span> <span class="n">residues_i</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">range_j</span> <span class="o">=</span> <span class="n">residues_j</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">min_dist</span> <span class="o">=</span> <span class="n">LARGE_DIST</span>
+
+                <span class="c1"># iterate all pairs of atoms for residue pair;</span>
+                <span class="c1"># end of coord range is inclusive, so have to add 1</span>
+                <span class="k">for</span> <span class="n">a_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">range_i</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">range_i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">a_j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">range_j</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">range_j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                        <span class="c1"># compute Euclidean distance between atom pair</span>
+                        <span class="n">cur_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                                <span class="p">(</span><span class="n">coords_i</span><span class="p">[</span><span class="n">a_i</span><span class="p">]</span> <span class="o">-</span> <span class="n">coords_j</span><span class="p">[</span><span class="n">a_j</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="c1"># store if this is a smaller distance</span>
+                        <span class="n">min_dist</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">min_dist</span><span class="p">,</span> <span class="n">cur_dist</span><span class="p">)</span>
+
+                <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">min_dist</span>
+
+    <span class="k">return</span> <span class="n">dists</span>
+
+
+<div class="viewcode-block" id="DistanceMap"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.DistanceMap">[docs]</a><span class="k">class</span> <span class="nc">DistanceMap</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute, store and accesss pairwise residue</span>
+<span class="sd">    distances in PDB 3D structures</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">residues_i</span><span class="p">,</span> <span class="n">residues_j</span><span class="p">,</span> <span class="n">dist_matrix</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create new distance map object</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        residues_i : pandas.DataFrame</span>
+<span class="sd">            Table containing residue annotation for</span>
+<span class="sd">            first axis of distance matrix</span>
+<span class="sd">        residues_j : pandas.DataFrame</span>
+<span class="sd">            Table containing residue annotation for</span>
+<span class="sd">            second axis of distance matrix</span>
+<span class="sd">        dist_matrix : np.array</span>
+<span class="sd">            2D matrix containing residue distances</span>
+<span class="sd">            (of size len(residues_i) x len(residues_j))</span>
+<span class="sd">        symmetric : bool</span>
+<span class="sd">            Indicates if distance matrix is symmetric</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">residues_i</span> <span class="o">=</span> <span class="n">residues_i</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">residues_j</span> <span class="o">=</span> <span class="n">residues_j</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dist_matrix</span> <span class="o">=</span> <span class="n">dist_matrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symmetric</span> <span class="o">=</span> <span class="n">symmetric</span>
+
+        <span class="c1"># create mappings from identifier to entry in distance matrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_map_i</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">id_</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">id_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residues_i</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_map_j</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">id_</span><span class="p">:</span> <span class="n">j</span> <span class="k">for</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">id_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residues_j</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="p">}</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_extract_coords</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepare coordinates as suitable input</span>
+<span class="sd">        for _distances() function</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coords : pandas.DataFrame</span>
+<span class="sd">            Atom coordinates for PDB chain</span>
+<span class="sd">            (.coords property of Chain object)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        atom_ranges : np.array</span>
+<span class="sd">            Matrix of size N_i x 2, where N_i = number</span>
+<span class="sd">            of residues in PDB chain. Each row of this matrix</span>
+<span class="sd">            contains the first and last (inclusive) index of</span>
+<span class="sd">            the atoms comprising this residue in the xyz_coords</span>
+<span class="sd">            matrix</span>
+<span class="sd">        xyz_coords : np.array</span>
+<span class="sd">            N_a x 3 matrix containing 3D coordinates</span>
+<span class="sd">            of all atoms (where N_a is total number of</span>
+<span class="sd">            atoms in chain)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># First, reset index and drop because indices might</span>
+        <span class="c1"># be discontinuous after removal of atoms (we need that</span>
+        <span class="c1"># indices correspond to boundaries of each residue in</span>
+        <span class="c1"># raw numpy array).</span>
+        <span class="c1"># Second, move index into column,</span>
+        <span class="c1"># so we can access values after groupby</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+        <span class="c1"># matrix of 3D coordinates</span>
+        <span class="n">xyz_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">C</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">C</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># extract what the first and last atom index</span>
+        <span class="c1"># of each residue is</span>
+        <span class="n">C_grp</span> <span class="o">=</span> <span class="n">C</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;residue_index&quot;</span><span class="p">)</span>
+        <span class="n">atom_ranges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">C_grp</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;index&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+             <span class="n">C_grp</span><span class="o">.</span><span class="n">last</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;index&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="k">return</span> <span class="n">atom_ranges</span><span class="p">,</span> <span class="n">xyz_coords</span>
+
+<div class="viewcode-block" id="DistanceMap.from_coords"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.DistanceMap.from_coords">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_coords</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">chain_i</span><span class="p">,</span> <span class="n">chain_j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute distance matrix from PDB chain</span>
+<span class="sd">        coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        chain_i : Chain</span>
+<span class="sd">            PDB chain to be used for first axis of matrix</span>
+<span class="sd">        chain_j : Chain, optional (default: None)</span>
+<span class="sd">            PDB chain to be used for second axis of matrix.</span>
+<span class="sd">            If not given, will be set to chain_i, resulting</span>
+<span class="sd">            in a symmetric distance matrix</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        DistanceMap</span>
+<span class="sd">            Distance map computed from given</span>
+<span class="sd">            coordinates</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ranges_i</span><span class="p">,</span> <span class="n">coords_i</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_extract_coords</span><span class="p">(</span><span class="n">chain_i</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+
+        <span class="c1"># if no second chain given, compute a symmetric distance</span>
+        <span class="c1"># matrix (mainly relevant for intra-chain contacts)</span>
+        <span class="k">if</span> <span class="n">chain_j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">symmetric</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">chain_j</span> <span class="o">=</span> <span class="n">chain_i</span>
+            <span class="n">ranges_j</span><span class="p">,</span> <span class="n">coords_j</span> <span class="o">=</span> <span class="n">ranges_i</span><span class="p">,</span> <span class="n">coords_i</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">symmetric</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">ranges_j</span><span class="p">,</span> <span class="n">coords_j</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_extract_coords</span><span class="p">(</span><span class="n">chain_j</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+
+        <span class="c1"># compute distances using jit-compiled function</span>
+        <span class="n">dists</span> <span class="o">=</span> <span class="n">_distances</span><span class="p">(</span>
+            <span class="n">ranges_i</span><span class="p">,</span> <span class="n">coords_i</span><span class="p">,</span>
+            <span class="n">ranges_j</span><span class="p">,</span> <span class="n">coords_j</span><span class="p">,</span>
+            <span class="n">symmetric</span>
+        <span class="p">)</span>
+
+        <span class="c1"># create distance matrix object</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">chain_i</span><span class="o">.</span><span class="n">residues</span><span class="p">,</span> <span class="n">chain_j</span><span class="o">.</span><span class="n">residues</span><span class="p">,</span>
+            <span class="n">dists</span><span class="p">,</span> <span class="n">symmetric</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistanceMap.from_file"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.DistanceMap.from_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load existing distance map from file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Path to distance map file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        DistanceMap</span>
+<span class="sd">            Loaded distance map</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">residues</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.csv&quot;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;seqres_id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;coord_id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="s2">&quot;chain_index&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="n">dist_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;axis&quot;</span> <span class="ow">in</span> <span class="n">residues</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">symmetric</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">residues_i</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;axis == &#39;i&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;axis&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">residues_j</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;axis == &#39;j&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s2">&quot;axis&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">symmetric</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">residues_i</span> <span class="o">=</span> <span class="n">residues</span>
+            <span class="n">residues_j</span> <span class="o">=</span> <span class="n">residues</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">residues_i</span><span class="p">,</span> <span class="n">residues_j</span><span class="p">,</span> <span class="n">dist_matrix</span><span class="p">,</span> <span class="n">symmetric</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistanceMap.to_file"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.DistanceMap.to_file">[docs]</a>    <span class="k">def</span> <span class="nf">to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Store distance map in file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Prefix of distance map files</span>
+<span class="sd">            (will create .csv and .npy file)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_add_axis</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;axis&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">axis</span>
+            <span class="k">return</span> <span class="n">res</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetric</span><span class="p">:</span>
+            <span class="n">residues</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues_i</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res_i</span> <span class="o">=</span> <span class="n">_add_axis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residues_i</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">)</span>
+            <span class="n">res_j</span> <span class="o">=</span> <span class="n">_add_axis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residues_j</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">)</span>
+            <span class="n">residues</span> <span class="o">=</span> <span class="n">res_i</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res_j</span><span class="p">)</span>
+
+        <span class="c1"># save residue table</span>
+        <span class="n">residues</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.csv&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># save distance matrix</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_matrix</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistanceMap.dist"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.DistanceMap.dist">[docs]</a>    <span class="k">def</span> <span class="nf">dist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">raise_na</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return distance of residue pair</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int or str</span>
+<span class="sd">            Identifier of position on first axis</span>
+<span class="sd">        j : int or str</span>
+<span class="sd">            Identifier of position on second axis</span>
+<span class="sd">        raise_na : bool, optional (default: True)</span>
+<span class="sd">            Raise error if i or j is not</span>
+<span class="sd">            contained in either axis. If False,</span>
+<span class="sd">            returns np.nan for undefined entries.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.float</span>
+<span class="sd">            Distance of pair (i, j). If raise_na</span>
+<span class="sd">            is False and identifiers are not valid,</span>
+<span class="sd">            distance will be np.nan</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            If index i or j is not a valid identifier</span>
+<span class="sd">            for respective chain</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># internally all identifiers are handled</span>
+        <span class="c1"># as strings, so convert</span>
+        <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+        <span class="c1"># check if identifiers are valid for either axis</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_map_i</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">raise_na</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> not contained in first axis of &quot;</span>
+                    <span class="s2">&quot;distance map&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="k">if</span> <span class="n">j</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_map_j</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">raise_na</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> not contained in second axis of &quot;</span>
+                    <span class="s2">&quot;distance map&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="c1"># if valid, return distance of pair</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_matrix</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_map_i</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">id_map_j</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+        <span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifiers</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        index : tuple(str, str) or tuple(int, int)</span>
+<span class="sd">            Identifiers of residues on first and</span>
+<span class="sd">            second chain</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        -------</span>
+<span class="sd">        KeyError</span>
+<span class="sd">            If either residue identifier not valid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">identifiers</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">raise_na</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DistanceMap.contacts"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.DistanceMap.contacts">[docs]</a>    <span class="k">def</span> <span class="nf">contacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_dist</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">min_dist</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return list of pairs below distance threshold</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        max_dist : float, optional (default: 5.0)</span>
+<span class="sd">            Maximum distance for any pair to be</span>
+<span class="sd">            considered a contact</span>
+<span class="sd">        min_dist : float, optional (default: None)</span>
+<span class="sd">            Minimum distance of any pair to be</span>
+<span class="sd">            returned (may be useful if extracting</span>
+<span class="sd">            different distance ranges from matrix).</span>
+<span class="sd">            Distance has to be &gt; min_dist, (not &gt;=).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        contacts : pandas.DataFrame</span>
+<span class="sd">            Table with residue-residue contacts, with the</span>
+<span class="sd">            following columns:</span>
+
+<span class="sd">            1. id_i: identifier of residue in chain i</span>
+<span class="sd">            2. id_j: identifier of residue in chain j</span>
+<span class="sd">            3. dist: pair distance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># find which entries of matrix fulfill</span>
+        <span class="c1"># distance criteria</span>
+        <span class="k">if</span> <span class="n">min_dist</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cond</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_matrix</span> <span class="o">&lt;=</span> <span class="n">max_dist</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cond</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_matrix</span> <span class="o">&lt;=</span> <span class="n">max_dist</span><span class="p">)</span> <span class="o">&amp;</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dist_matrix</span> <span class="o">&gt;</span> <span class="n">min_dist</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">i_all</span><span class="p">,</span> <span class="n">j_all</span> <span class="o">=</span> <span class="n">cond</span>
+
+        <span class="c1"># exclude diagonal entries of matrix since</span>
+        <span class="c1"># they always have distance 0</span>
+        <span class="n">nodiag</span> <span class="o">=</span> <span class="n">i_all</span> <span class="o">!=</span> <span class="n">j_all</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">i_all</span><span class="p">[</span><span class="n">nodiag</span><span class="p">]</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">j_all</span><span class="p">[</span><span class="n">nodiag</span><span class="p">]</span>
+
+        <span class="c1"># extract residue ids and distances for all contacts</span>
+        <span class="n">contacts</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">contacts</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;i&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues_i</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">contacts</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;j&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues_j</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">contacts</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;dist&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">contacts</span></div>
+
+<div class="viewcode-block" id="DistanceMap.transpose"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.DistanceMap.transpose">[docs]</a>    <span class="k">def</span> <span class="nf">transpose</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transpose distance map (i.e. swap axes)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        DistanceMap</span>
+<span class="sd">            Transposed copy of distance map</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">DistanceMap</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">residues_j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">residues_i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist_matrix</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetric</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistanceMap.aggregate"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.DistanceMap.aggregate">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">aggregate</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">matrices</span><span class="p">,</span> <span class="n">intersect</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">agg_func</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Aggregate with other distance map(s). Secondary structure will</span>
+<span class="sd">        be aggregated by assigning the most frequent state across</span>
+<span class="sd">        all distance matrices; if there are equal counts, H (helix) will</span>
+<span class="sd">        be chosen over E (strand) over C (coil).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ``*matrices`` : DistanceMap</span>
+<span class="sd">            ``*args-style`` list of DistanceMaps that</span>
+<span class="sd">            will be aggregated.</span>
+
+<span class="sd">            .. note::</span>
+
+<span class="sd">                The id column of each axis may only</span>
+<span class="sd">                contain numeric residue ids (and no characters</span>
+<span class="sd">                such as insertion codes)</span>
+
+<span class="sd">        intersect : bool, optional (default: False)</span>
+<span class="sd">            If True, intersect indices of the given</span>
+<span class="sd">            distance maps. Otherwise, union of indices</span>
+<span class="sd">            will be used.</span>
+<span class="sd">        agg_func : function (default: numpy.nanmin)</span>
+<span class="sd">            Function that will be used to aggregate</span>
+<span class="sd">            distance matrices. Needs to take a</span>
+<span class="sd">            parameter &quot;axis&quot; to aggregate over</span>
+<span class="sd">            all matrices.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        DistanceMap</span>
+<span class="sd">            Aggregated distance map</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If residue identifiers are not numeric, or</span>
+<span class="sd">            if intersect is True, but positions on</span>
+<span class="sd">            axis do not overlap.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_sse_count</span><span class="p">(</span><span class="n">secstruct_elements</span><span class="p">):</span>
+            <span class="c1"># obtain counts for each secondary structure element;</span>
+            <span class="c1"># do not count nan entries</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">secstruct_elements</span><span class="o">.</span><span class="n">dropna</span><span class="p">())</span>
+
+            <span class="c1"># sort items by count (first) and secondary structure (second);</span>
+            <span class="c1"># this way, most frequent element at the end of list, and</span>
+            <span class="c1"># prioritizing H over E over C</span>
+            <span class="n">sorted_sse</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+            <span class="c1"># if no elements, make nan entry</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sorted_sse</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">sorted_sse</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">_merge_sse</span><span class="p">(</span><span class="n">new_axis</span><span class="p">,</span> <span class="n">distance_maps</span><span class="p">):</span>
+            <span class="n">new_axis</span> <span class="o">=</span> <span class="n">new_axis</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="c1"># merge secondary structure assignments over</span>
+            <span class="c1"># axis tables in multiple distance maps</span>
+            <span class="n">merger_df</span> <span class="o">=</span> <span class="n">new_axis</span>
+
+            <span class="c1"># first join all into big table for easier counting</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">distance_maps</span><span class="p">):</span>
+                <span class="k">if</span> <span class="s2">&quot;sec_struct_3state&quot;</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="n">merger_df</span> <span class="o">=</span> <span class="n">merger_df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                        <span class="n">m</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">]],</span>
+                        <span class="n">on</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># then identify all the columns we ended up with</span>
+            <span class="n">sse_cols</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">merger_df</span><span class="o">.</span><span class="n">columns</span>
+                <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">)</span>
+            <span class="p">]</span>
+
+            <span class="c1"># if we have any columns, identify most frequent</span>
+            <span class="c1"># secondary structure character</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sse_cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">new_sse</span> <span class="o">=</span> <span class="n">merger_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+                    <span class="p">:,</span> <span class="n">sse_cols</span>
+                <span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_sse_count</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="c1"># assign to dataframe</span>
+                <span class="n">new_axis</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_sse</span>
+
+            <span class="k">return</span> <span class="n">new_axis</span>
+
+        <span class="k">def</span> <span class="nf">_merge_axis</span><span class="p">(</span><span class="n">axis</span><span class="p">):</span>
+            <span class="c1"># extract residue dataframes along axis</span>
+            <span class="c1"># for all given distance maps</span>
+            <span class="n">dm</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matrices</span>
+            <span class="p">]</span>
+
+            <span class="c1"># create set of residue identifiers along axis</span>
+            <span class="c1"># for each distance map. Note that identifiers</span>
+            <span class="c1"># have to be numeric for easy sorting, so</span>
+            <span class="c1"># cast to int first</span>
+            <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">dm</span>
+            <span class="p">]</span>
+
+            <span class="c1"># turn series into sets</span>
+            <span class="n">id_sets</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">id_list</span><span class="p">)</span> <span class="k">for</span> <span class="n">id_list</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">]</span>
+
+            <span class="c1"># then create final set of identifiers along axis</span>
+            <span class="c1"># either as union or intersection</span>
+            <span class="k">if</span> <span class="n">intersect</span><span class="p">:</span>
+                <span class="n">new_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="o">*</span><span class="n">id_sets</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Intersection of positions on axis &quot;</span>
+                        <span class="s2">&quot;is empty, try intersect=False instead &quot;</span>
+                        <span class="s2">&quot;or remove non-overlapping DistanceMap(s).&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="o">*</span><span class="n">id_sets</span><span class="p">)</span>
+
+            <span class="c1"># create new axis index object for final distance map</span>
+            <span class="n">new_axis_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">new_ids</span><span class="p">),</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+
+            <span class="c1"># create mapping from one distance matrix into the other</span>
+            <span class="c1"># by aligning indices from 0 in either matrix through</span>
+            <span class="c1"># join on their residue id</span>
+            <span class="n">new_axis_map</span> <span class="o">=</span> <span class="n">new_axis_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+            <span class="n">mappings</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">new_axis_map</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                    <span class="n">id_list</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(),</span>
+                    <span class="n">on</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
+                    <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;_agg&quot;</span><span class="p">,</span> <span class="s2">&quot;_src&quot;</span><span class="p">)</span>
+                <span class="p">)</span> <span class="k">for</span> <span class="n">id_list</span> <span class="ow">in</span> <span class="n">ids</span>
+            <span class="p">]</span>
+
+            <span class="c1"># turn residue ids back into strings</span>
+            <span class="n">new_axis_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_axis_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+
+            <span class="c1"># merge secondary structure assignments by identifying</span>
+            <span class="c1"># most frequent assignment. If there are equal counts,</span>
+            <span class="c1"># prefer H over E over C.</span>
+            <span class="n">new_axis_df</span> <span class="o">=</span> <span class="n">_merge_sse</span><span class="p">(</span><span class="n">new_axis_df</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">new_axis_df</span><span class="p">,</span> <span class="n">mappings</span>
+
+        <span class="c1"># make sure all matrices are either symmetric or non-symmetric</span>
+        <span class="n">symmetries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">m</span><span class="o">.</span><span class="n">symmetric</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matrices</span><span class="p">])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">symmetries</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">symmetries</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;DistanceMaps are mixed symmetric/non-symmetric.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># create new axes of distance map</span>
+        <span class="n">new_res_i</span><span class="p">,</span> <span class="n">maps_i</span> <span class="o">=</span> <span class="n">_merge_axis</span><span class="p">(</span><span class="s2">&quot;residues_i&quot;</span><span class="p">)</span>
+        <span class="n">new_res_j</span><span class="p">,</span> <span class="n">maps_j</span> <span class="o">=</span> <span class="n">_merge_axis</span><span class="p">(</span><span class="s2">&quot;residues_j&quot;</span><span class="p">)</span>
+
+        <span class="c1"># this is used to collected distance matrices for</span>
+        <span class="c1"># later aggregtation</span>
+        <span class="n">new_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">matrices</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_res_i</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_res_j</span><span class="p">)),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="p">)</span>
+
+        <span class="c1"># put individual matrices into new indexing system</span>
+        <span class="c1"># of merged distance map</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">matrices</span><span class="p">):</span>
+            <span class="n">i_src</span><span class="p">,</span> <span class="n">j_src</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+                <span class="n">maps_i</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">index_src</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                <span class="n">maps_j</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">index_src</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span>
+            <span class="p">)</span>
+
+            <span class="n">i_agg</span><span class="p">,</span> <span class="n">j_agg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+                <span class="n">maps_i</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">index_agg</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                <span class="n">maps_j</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">index_agg</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># check we have valid indices (otherwise</span>
+            <span class="c1"># will crash on empty distance matrices)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">i_agg</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">j_agg</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">i_src</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">j_src</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Trying to aggregate distance matrices on empty set of positions.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">new_mat</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i_agg</span><span class="p">,</span> <span class="n">j_agg</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">dist_matrix</span><span class="p">[</span><span class="n">i_src</span><span class="p">,</span> <span class="n">j_src</span><span class="p">]</span>
+
+        <span class="c1"># aggregate</span>
+        <span class="n">agg_mat</span> <span class="o">=</span> <span class="n">agg_func</span><span class="p">(</span><span class="n">new_mat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">DistanceMap</span><span class="p">(</span>
+            <span class="n">new_res_i</span><span class="p">,</span> <span class="n">new_res_j</span><span class="p">,</span> <span class="n">agg_mat</span><span class="p">,</span> <span class="n">symmetries</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_prepare_structures</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span> <span class="n">pdb_id_list</span><span class="p">,</span> <span class="n">raise_missing</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get structures ready for distance calculation</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    structures : str or dict</span>
+<span class="sd">        See intra_dists function for explanation</span>
+<span class="sd">    pdb_id_list:</span>
+<span class="sd">        List of PDB entries to load</span>
+<span class="sd">    raise_missing : bool, optional (default: True)</span>
+<span class="sd">        Raise a ResourceError if any of the input structures can</span>
+<span class="sd">        not be loaded; otherwise, ignore missing entries.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        dictionary with lower-case PDB ids as keys</span>
+<span class="sd">        and PDB objects as value</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># load structures if not yet done so</span>
+    <span class="k">if</span> <span class="n">structures</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">structures</span> <span class="o">=</span> <span class="n">load_structures</span><span class="p">(</span>
+            <span class="n">pdb_id_list</span><span class="p">,</span> <span class="n">structures</span><span class="p">,</span> <span class="n">raise_missing</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">structures</span>
+
+
+<span class="k">def</span> <span class="nf">_prepare_chain</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span> <span class="n">pdb_id</span><span class="p">,</span> <span class="n">pdb_chain</span><span class="p">,</span>
+                   <span class="n">atom_filter</span><span class="p">,</span> <span class="n">mapping</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prepare PDB chain for distance calculation</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    structures : dict</span>
+<span class="sd">        Dictionary containing loaded PDB objects</span>
+<span class="sd">    pdb_id : str</span>
+<span class="sd">        ID of structure to extract chain from</span>
+<span class="sd">    pdb_chain: str</span>
+<span class="sd">        Chain ID to extract</span>
+<span class="sd">    atom_filter : str</span>
+<span class="sd">        Filter for this type of atom. Set to None</span>
+<span class="sd">        if no filtering should be applied</span>
+<span class="sd">    mapping : dict</span>
+<span class="sd">        Seqres to Uniprot mapping that will be applied</span>
+<span class="sd">        to Chain object</span>
+<span class="sd">    model : int, optional (default: 0)</span>
+<span class="sd">        Use this model from PDB structure</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Chain</span>
+<span class="sd">        Chain prepared for distance calculation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># get chain from structure</span>
+    <span class="n">chain</span> <span class="o">=</span> <span class="n">structures</span><span class="p">[</span><span class="n">pdb_id</span><span class="p">]</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">pdb_chain</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+
+    <span class="c1"># filter atoms if option selected</span>
+    <span class="k">if</span> <span class="n">atom_filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">chain</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">filter_atoms</span><span class="p">(</span><span class="n">atom_filter</span><span class="p">)</span>
+
+    <span class="c1"># remap chain to Uniprot</span>
+    <span class="n">chain</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">remap</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">chain</span>
+
+
+<div class="viewcode-block" id="intra_dists"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.intra_dists">[docs]</a><span class="k">def</span> <span class="nf">intra_dists</span><span class="p">(</span><span class="n">sifts_result</span><span class="p">,</span> <span class="n">structures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">atom_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">intersect</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">raise_missing</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute intra-chain distances in PDB files.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sifts_result : SIFTSResult</span>
+<span class="sd">        Input structures and mapping to use</span>
+<span class="sd">        for distance map calculation</span>
+<span class="sd">    structures : str or dict, optional (default: None)</span>
+<span class="sd">        If str: Load structures from directory this string</span>
+<span class="sd">        points to. Missing structures will be fetched</span>
+<span class="sd">        from web.</span>
+
+<span class="sd">        If dict: dictionary with lower-case PDB ids as keys</span>
+<span class="sd">        and PDB objects as values. This dictionary has to</span>
+<span class="sd">        contain all necessary structures, missing ones will</span>
+<span class="sd">        not be fetched. This dictionary can be created using</span>
+<span class="sd">        pdb.load_structures.</span>
+<span class="sd">    atom_filter : str, optional (default: None)</span>
+<span class="sd">        Filter coordinates to contain only these atoms. E.g.</span>
+<span class="sd">        set to &quot;CA&quot; to compute C_alpha - C_alpha distances</span>
+<span class="sd">        instead of minimum atom distance over all atoms in</span>
+<span class="sd">        both residues.</span>
+<span class="sd">    intersect : bool, optional (default: False)</span>
+<span class="sd">        If True, intersect indices of the given</span>
+<span class="sd">        distance maps. Otherwise, union of indices</span>
+<span class="sd">        will be used.</span>
+<span class="sd">    output_prefix : str, optional (default: None)</span>
+<span class="sd">        If given, save individual and final contact maps</span>
+<span class="sd">        to files prefixed with this string. The appended</span>
+<span class="sd">        file suffixes map to row index in sifts_results.hits</span>
+<span class="sd">    model : int, optional (default: 0)</span>
+<span class="sd">        Index of model in PDB structure that should be used</span>
+<span class="sd">    raise_missing : bool, optional (default: True)</span>
+<span class="sd">        Raise a ResourceError if any of the input structures can</span>
+<span class="sd">        not be loaded; otherwise, ignore missing entries.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    DistanceMap</span>
+<span class="sd">        Computed aggregated distance map</span>
+<span class="sd">        across all input structures</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If sifts_result is empty (no structure hits)</span>
+<span class="sd">    ResourceError</span>
+<span class="sd">        If any structure could not be loaded and raise_missing is True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sifts_result</span><span class="o">.</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;sifts_result is empty (no structure hits, but at least one required)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># if no structures given, or path to files, load first</span>
+    <span class="n">structures</span> <span class="o">=</span> <span class="n">_prepare_structures</span><span class="p">(</span>
+        <span class="n">structures</span><span class="p">,</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">pdb_id</span><span class="p">,</span> <span class="n">raise_missing</span>
+    <span class="p">)</span>
+
+    <span class="c1"># aggegrated distance map</span>
+    <span class="n">agg_distmap</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># create output folder if necessary</span>
+    <span class="k">if</span> <span class="n">output_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">output_prefix</span><span class="p">)</span>
+
+    <span class="c1"># compute individual distance maps and aggregate</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="c1"># skip missing structures</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">raise_missing</span> <span class="ow">and</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">structures</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># extract and remap PDB chain</span>
+        <span class="n">chain</span> <span class="o">=</span> <span class="n">_prepare_chain</span><span class="p">(</span>
+            <span class="n">structures</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_chain&quot;</span><span class="p">],</span>
+            <span class="n">atom_filter</span><span class="p">,</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">mapping</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;mapping_index&quot;</span><span class="p">]],</span>
+            <span class="n">model</span>
+        <span class="p">)</span>
+
+        <span class="c1"># skip empty chains</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># compute distance map</span>
+        <span class="n">distmap</span> <span class="o">=</span> <span class="n">DistanceMap</span><span class="o">.</span><span class="n">from_coords</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+
+        <span class="c1"># save individual distance map</span>
+        <span class="k">if</span> <span class="n">output_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">distmap</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_prefix</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+
+        <span class="c1"># aggregate</span>
+        <span class="k">if</span> <span class="n">agg_distmap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">agg_distmap</span> <span class="o">=</span> <span class="n">distmap</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">agg_distmap</span> <span class="o">=</span> <span class="n">DistanceMap</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span>
+                <span class="n">agg_distmap</span><span class="p">,</span> <span class="n">distmap</span><span class="p">,</span> <span class="n">intersect</span><span class="o">=</span><span class="n">intersect</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">agg_distmap</span></div>
+
+
+<div class="viewcode-block" id="multimer_dists"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.multimer_dists">[docs]</a><span class="k">def</span> <span class="nf">multimer_dists</span><span class="p">(</span><span class="n">sifts_result</span><span class="p">,</span> <span class="n">structures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">atom_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">intersect</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                   <span class="n">raise_missing</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute homomultimer distances (between repeated copies of the</span>
+<span class="sd">    same entity) in PDB file. Resulting distance matrix will be</span>
+<span class="sd">    symmetric by minimization over upper and lower triangle of matrix,</span>
+<span class="sd">    even if the complex structure is not symmetric.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sifts_result : SIFTSResult</span>
+<span class="sd">        Input structures and mapping to use</span>
+<span class="sd">        for distance map calculation</span>
+<span class="sd">    structures : str or dict, optional (default: None)</span>
+<span class="sd">        If str: Load structures from directory this string</span>
+<span class="sd">        points to. Missing structures will be fetched</span>
+<span class="sd">        from web.</span>
+
+<span class="sd">        If dict: dictionary with lower-case PDB ids as keys</span>
+<span class="sd">        and PDB objects as values. This dictionary has to</span>
+<span class="sd">        contain all necessary structures, missing ones will</span>
+<span class="sd">        not be fetched. This dictionary can be created using</span>
+<span class="sd">        pdb.load_structures.</span>
+<span class="sd">    atom_filter : str, optional (default: None)</span>
+<span class="sd">        Filter coordinates to contain only these atoms. E.g.</span>
+<span class="sd">        set to &quot;CA&quot; to compute C_alpha - C_alpha distances</span>
+<span class="sd">        instead of minimum atom distance over all atoms in</span>
+<span class="sd">        both residues.</span>
+<span class="sd">    intersect : bool, optional (default: False)</span>
+<span class="sd">        If True, intersect indices of the given</span>
+<span class="sd">        distance maps. Otherwise, union of indices</span>
+<span class="sd">        will be used.</span>
+<span class="sd">    output_prefix : str, optional (default: None)</span>
+<span class="sd">        If given, save individual and final contact maps</span>
+<span class="sd">        to files prefixed with this string. The appended</span>
+<span class="sd">        file suffixes map to row index in sifts_results.hits</span>
+<span class="sd">    model : int, optional (default: 0)</span>
+<span class="sd">        Index of model in PDB structure that should be used</span>
+<span class="sd">    raise_missing : bool, optional (default: True)</span>
+<span class="sd">        Raise a ResourceError if any of the input structures can</span>
+<span class="sd">        not be loaded; otherwise, ignore missing entries.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    DistanceMap</span>
+<span class="sd">        Computed aggregated distance map</span>
+<span class="sd">        across all input structures</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If sifts_result is empty (no structure hits)</span>
+<span class="sd">    ResourceError</span>
+<span class="sd">        If any structure could not be loaded and raise_missing is True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sifts_result</span><span class="o">.</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;sifts_result is empty (no structure hits, but at least one required)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># if no structures given, or path to files, load first</span>
+    <span class="n">structures</span> <span class="o">=</span> <span class="n">_prepare_structures</span><span class="p">(</span>
+        <span class="n">structures</span><span class="p">,</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">pdb_id</span><span class="p">,</span> <span class="n">raise_missing</span>
+    <span class="p">)</span>
+
+    <span class="c1"># aggegrated distance map</span>
+    <span class="n">agg_distmap</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># create output folder if necessary</span>
+    <span class="k">if</span> <span class="n">output_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">output_prefix</span><span class="p">)</span>
+
+    <span class="c1"># go through each structure</span>
+    <span class="k">for</span> <span class="n">pdb_id</span><span class="p">,</span> <span class="n">grp</span> <span class="ow">in</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">):</span>
+        <span class="c1"># skip missing structures</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">raise_missing</span> <span class="ow">and</span> <span class="n">pdb_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">structures</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># extract all chains for this structure</span>
+        <span class="n">chains</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span>
+                <span class="n">r</span><span class="p">[</span><span class="s2">&quot;index&quot;</span><span class="p">],</span>
+                <span class="n">_prepare_chain</span><span class="p">(</span>
+                    <span class="n">structures</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_chain&quot;</span><span class="p">],</span>
+                    <span class="n">atom_filter</span><span class="p">,</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">mapping</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;mapping_index&quot;</span><span class="p">]],</span>
+                    <span class="n">model</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">grp</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+        <span class="p">]</span>
+
+        <span class="c1"># compare all possible pairs of chains</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">index_i</span><span class="p">,</span> <span class="n">ch_i</span><span class="p">),</span> <span class="p">(</span><span class="n">index_j</span><span class="p">,</span> <span class="n">ch_j</span><span class="p">)</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">chains</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="c1"># skip empty chains (e.g. residues lost during remapping)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_i</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">ch_j</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">distmap</span> <span class="o">=</span> <span class="n">DistanceMap</span><span class="o">.</span><span class="n">from_coords</span><span class="p">(</span><span class="n">ch_i</span><span class="p">,</span> <span class="n">ch_j</span><span class="p">)</span>
+
+            <span class="c1"># symmetrize matrix (for ECs we are only interested if a pair</span>
+            <span class="c1"># is close in some combination)</span>
+            <span class="n">distmap_sym</span> <span class="o">=</span> <span class="n">DistanceMap</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span>
+                <span class="n">distmap</span><span class="p">,</span> <span class="n">distmap</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">intersect</span><span class="o">=</span><span class="n">intersect</span>
+            <span class="p">)</span>
+            <span class="n">distmap_sym</span><span class="o">.</span><span class="n">symmetric</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="c1"># save individual distance map</span>
+            <span class="k">if</span> <span class="n">output_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">distmap_sym</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">output_prefix</span><span class="p">,</span> <span class="n">index_i</span><span class="p">,</span> <span class="n">index_j</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="c1"># aggregate with other chain combinations</span>
+            <span class="k">if</span> <span class="n">agg_distmap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">agg_distmap</span> <span class="o">=</span> <span class="n">distmap_sym</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">agg_distmap</span> <span class="o">=</span> <span class="n">DistanceMap</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span>
+                    <span class="n">agg_distmap</span><span class="p">,</span> <span class="n">distmap_sym</span><span class="p">,</span> <span class="n">intersect</span><span class="o">=</span><span class="n">intersect</span>
+                <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">agg_distmap</span></div>
+
+
+<div class="viewcode-block" id="inter_dists"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.inter_dists">[docs]</a><span class="k">def</span> <span class="nf">inter_dists</span><span class="p">(</span><span class="n">sifts_result_i</span><span class="p">,</span> <span class="n">sifts_result_j</span><span class="p">,</span> <span class="n">structures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">atom_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">intersect</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">raise_missing</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute inter-chain distances (between different entities)</span>
+<span class="sd">    in PDB file. Resulting distance map is typically not</span>
+<span class="sd">    symmetric, with either axis corresponding to either chain.</span>
+<span class="sd">    Inter-distances are calculated on all combinations of chains</span>
+<span class="sd">    that have the same PDB id in sifts_result_i and sifts_result_j.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sifts_result_i : SIFTSResult</span>
+<span class="sd">        Input structures and mapping to use</span>
+<span class="sd">        for first axis of computed distance map</span>
+<span class="sd">    sifts_result_j : SIFTSResult</span>
+<span class="sd">        Input structures and mapping to use</span>
+<span class="sd">        for second axis of computed distance map</span>
+<span class="sd">    structures : str or dict, optional (default: None)</span>
+
+<span class="sd">        * If str: Load structures from directory this string</span>
+<span class="sd">          points to. Missing structures will be fetched</span>
+<span class="sd">          from web.</span>
+
+<span class="sd">        * If dict: dictionary with lower-case PDB ids as keys</span>
+<span class="sd">          and PDB objects as values. This dictionary has to</span>
+<span class="sd">          contain all necessary structures, missing ones will</span>
+<span class="sd">          not be fetched. This dictionary can be created using</span>
+<span class="sd">          pdb.load_structures.</span>
+
+<span class="sd">    atom_filter : str, optional (default: None)</span>
+<span class="sd">        Filter coordinates to contain only these atoms. E.g.</span>
+<span class="sd">        set to &quot;CA&quot; to compute C_alpha - C_alpha distances</span>
+<span class="sd">        instead of minimum atom distance over all atoms in</span>
+<span class="sd">        both residues.</span>
+<span class="sd">    intersect : bool, optional (default: False)</span>
+<span class="sd">        If True, intersect indices of the given</span>
+<span class="sd">        distance maps. Otherwise, union of indices</span>
+<span class="sd">        will be used.</span>
+<span class="sd">    output_prefix : str, optional (default: None)</span>
+<span class="sd">        If given, save individual and final contact maps</span>
+<span class="sd">        to files prefixed with this string. The appended</span>
+<span class="sd">        file suffixes map to row index in sifts_results.hits</span>
+<span class="sd">    model : int, optional (default: 0)</span>
+<span class="sd">        Index of model in PDB structure that should be used</span>
+<span class="sd">    raise_missing : bool, optional (default: True)</span>
+<span class="sd">        Raise a ResourceError if any of the input structures can</span>
+<span class="sd">        not be loaded; otherwise, ignore missing entries.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    DistanceMap</span>
+<span class="sd">        Computed aggregated distance map</span>
+<span class="sd">        across all input structures</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If sifts_result_i or sifts_result_j is empty</span>
+<span class="sd">        (no structure hits)</span>
+<span class="sd">    ResourceError</span>
+<span class="sd">        If any structure could not be loaded and raise_missing is True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_get_chains</span><span class="p">(</span><span class="n">sifts_result</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">i</span><span class="p">:</span> <span class="n">_prepare_chain</span><span class="p">(</span>
+                <span class="n">structures</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_chain&quot;</span><span class="p">],</span>
+                <span class="n">atom_filter</span><span class="p">,</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">mapping</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;mapping_index&quot;</span><span class="p">]],</span>
+                <span class="n">model</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">raise_missing</span> <span class="ow">or</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">structures</span>
+        <span class="p">}</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sifts_result_i</span><span class="o">.</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">sifts_result_j</span><span class="o">.</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;sifts_result_i or sifts_result_j is empty &quot;</span>
+            <span class="s2">&quot;(no structure hits, but at least one required)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># if no structures given, or path to files, load first</span>
+    <span class="n">structures</span> <span class="o">=</span> <span class="n">_prepare_structures</span><span class="p">(</span>
+        <span class="n">structures</span><span class="p">,</span>
+        <span class="n">sifts_result_i</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">pdb_id</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">sifts_result_j</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">pdb_id</span>
+        <span class="p">),</span>
+        <span class="n">raise_missing</span>
+    <span class="p">)</span>
+
+    <span class="c1"># aggegrated distance map</span>
+    <span class="n">agg_distmap</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># create output folder if necessary</span>
+    <span class="k">if</span> <span class="n">output_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">output_prefix</span><span class="p">)</span>
+
+    <span class="c1"># determine which combinations of chains to look at</span>
+    <span class="c1"># (anything that has same PDB identifier)</span>
+    <span class="n">combis</span> <span class="o">=</span> <span class="n">sifts_result_i</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+        <span class="n">sifts_result_j</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(),</span>
+        <span class="n">on</span><span class="o">=</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;_i&quot;</span><span class="p">,</span> <span class="s2">&quot;_j&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># extract chains for each subunit</span>
+    <span class="n">chains_i</span> <span class="o">=</span> <span class="n">_get_chains</span><span class="p">(</span><span class="n">sifts_result_i</span><span class="p">)</span>
+    <span class="n">chains_j</span> <span class="o">=</span> <span class="n">_get_chains</span><span class="p">(</span><span class="n">sifts_result_j</span><span class="p">)</span>
+
+    <span class="c1"># go through all chain combinations</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">combis</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="c1"># skip missing structures</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">raise_missing</span> <span class="ow">and</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">structures</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">index_i</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;index_i&quot;</span><span class="p">]</span>
+        <span class="n">index_j</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;index_j&quot;</span><span class="p">]</span>
+
+        <span class="c1"># skip empty chains</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chains_i</span><span class="p">[</span><span class="n">index_i</span><span class="p">]</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">chains_j</span><span class="p">[</span><span class="n">index_j</span><span class="p">]</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># compute distance map for current chain pair</span>
+        <span class="n">distmap</span> <span class="o">=</span> <span class="n">DistanceMap</span><span class="o">.</span><span class="n">from_coords</span><span class="p">(</span>
+            <span class="n">chains_i</span><span class="p">[</span><span class="n">index_i</span><span class="p">],</span>
+            <span class="n">chains_j</span><span class="p">[</span><span class="n">index_j</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># save individual distance map</span>
+        <span class="k">if</span> <span class="n">output_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">distmap</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">output_prefix</span><span class="p">,</span> <span class="n">index_i</span><span class="p">,</span> <span class="n">index_j</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># aggregate with other chain combinations</span>
+        <span class="k">if</span> <span class="n">agg_distmap</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">agg_distmap</span> <span class="o">=</span> <span class="n">distmap</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">agg_distmap</span> <span class="o">=</span> <span class="n">DistanceMap</span><span class="o">.</span><span class="n">aggregate</span><span class="p">(</span>
+                <span class="n">agg_distmap</span><span class="p">,</span> <span class="n">distmap</span><span class="p">,</span> <span class="n">intersect</span><span class="o">=</span><span class="n">intersect</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">agg_distmap</span></div>
+
+
+<div class="viewcode-block" id="remap_chains"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.distances.remap_chains">[docs]</a><span class="k">def</span> <span class="nf">remap_chains</span><span class="p">(</span><span class="n">sifts_result</span><span class="p">,</span> <span class="n">output_prefix</span><span class="p">,</span> <span class="n">sequence</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">structures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">atom_filter</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;N&quot;</span><span class="p">,</span> <span class="s2">&quot;CA&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;O&quot;</span><span class="p">),</span>
+                 <span class="n">model</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">raise_missing</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remap a set of PDB chains into the numbering scheme (and</span>
+<span class="sd">    amino acid sequence) of a target sequence (a.k.a. the poorest</span>
+<span class="sd">    homology model possible).</span>
+<span class="sd">    </span>
+<span class="sd">    (This function is placed here because of close relationship</span>
+<span class="sd">    to intra_dists and reusing functionality for it).</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sifts_result : SIFTSResult</span>
+<span class="sd">        Input structures and mapping to use</span>
+<span class="sd">        for remapping</span>
+<span class="sd">    output_prefix : str</span>
+<span class="sd">        Save remapped structures to files prefixed with this string</span>
+<span class="sd">    sequence : dict, optional (default: None)</span>
+<span class="sd">        Mapping from sequence position (int or str) to residue.</span>
+<span class="sd">        If this parameter is given, residues in the output </span>
+<span class="sd">        structures will be renamed to the residues in this</span>
+<span class="sd">        mapping.</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            if side-chain residues are not taken off using atom_filter, this will e.g. happily label</span>
+<span class="sd">            an actual glutamate as an alanine).</span>
+
+<span class="sd">    structures : str or dict, optional (default: None)</span>
+
+<span class="sd">        * If str: Load structures from directory this string</span>
+<span class="sd">          points to. Missing structures will be fetched</span>
+<span class="sd">          from web.</span>
+
+<span class="sd">        * If dict: dictionary with lower-case PDB ids as keys</span>
+<span class="sd">          and PDB objects as values. This dictionary has to</span>
+<span class="sd">          contain all necessary structures, missing ones will</span>
+<span class="sd">          not be fetched. This dictionary can be created using</span>
+<span class="sd">          pdb.load_structures.</span>
+
+<span class="sd">    atom_filter : str, optional (default: (&quot;N&quot;, &quot;CA&quot;, &quot;C&quot;, &quot;O&quot;))</span>
+<span class="sd">        Filter coordinates to contain only these atoms. If None,</span>
+<span class="sd">        will retain all atoms; the default value will only keep</span>
+<span class="sd">        backbone atoms.</span>
+<span class="sd">    model : int, optional (default: 0)</span>
+<span class="sd">        Index of model in PDB structure that should be used</span>
+<span class="sd">    raise_missing : bool, optional (default: True)</span>
+<span class="sd">        Raise a ResourceError if any of the input structures can</span>
+<span class="sd">        not be loaded; otherwise, ignore missing entries.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ------</span>
+<span class="sd">    remapped : dict</span>
+<span class="sd">        Mapping from index of each structure hit in sifts_results.hits</span>
+<span class="sd">        to filename of stored remapped structure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># if no structures given, or path to files, load first</span>
+    <span class="n">structures</span> <span class="o">=</span> <span class="n">_prepare_structures</span><span class="p">(</span>
+        <span class="n">structures</span><span class="p">,</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">pdb_id</span><span class="p">,</span> <span class="n">raise_missing</span>
+    <span class="p">)</span>
+
+    <span class="c1"># create output folder if necessary</span>
+    <span class="k">if</span> <span class="n">output_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">output_prefix</span><span class="p">)</span>
+
+    <span class="c1"># collect remapped chains</span>
+    <span class="n">remapped</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># make sure keys in sequence map are strings,</span>
+    <span class="c1"># since indices in structures are stored as strings</span>
+    <span class="k">if</span> <span class="n">sequence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sequence</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+    <span class="c1"># go through each structure</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="c1"># skip missing structures</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">raise_missing</span> <span class="ow">and</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">structures</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># extract and remap PDB chain</span>
+        <span class="n">chain</span> <span class="o">=</span> <span class="n">_prepare_chain</span><span class="p">(</span>
+            <span class="n">structures</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_chain&quot;</span><span class="p">],</span>
+            <span class="n">atom_filter</span><span class="p">,</span> <span class="n">sifts_result</span><span class="o">.</span><span class="n">mapping</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;mapping_index&quot;</span><span class="p">]],</span>
+            <span class="n">model</span>
+        <span class="p">)</span>
+
+        <span class="c1"># if a map from sequence index to residue is given,</span>
+        <span class="c1"># use it to rename the residues to the target sequence</span>
+        <span class="k">if</span> <span class="n">sequence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># change one letter code</span>
+            <span class="n">chain</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+                <span class="p">:,</span> <span class="s2">&quot;one_letter_code&quot;</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+
+            <span class="c1"># and three letter code</span>
+            <span class="n">chain</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+                <span class="p">:,</span> <span class="s2">&quot;three_letter_code&quot;</span>
+            <span class="p">]</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">one_letter_code</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">AA1_to_AA3</span><span class="p">)</span>
+
+            <span class="c1"># drop anything we could not map</span>
+            <span class="n">chain</span><span class="o">.</span><span class="n">residues</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span>
+                <span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;one_letter_code&quot;</span><span class="p">,</span> <span class="s2">&quot;three_letter_code&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="c1"># save model coordinates to .pdb file</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.pdb&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">output_prefix</span><span class="p">,</span>
+            <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_id&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pdb_chain&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;mapping_index&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># save to file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">chain</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># typecast index so it is regular python type, not numpy</span>
+        <span class="c1"># (important for yaml dump)</span>
+        <span class="n">remapped</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="o">=</span> <span class="n">filename</span>
+
+    <span class="k">return</span> <span class="n">remapped</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

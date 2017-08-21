@@ -1,0 +1,1002 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.couplings.mean_field &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.couplings.mean_field</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.couplings.mean_field</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Inference of evolutionary couplings</span>
+<span class="sd">from sequence alignments using</span>
+<span class="sd">mean field approximation.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Sophia F. Mersmann</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numba</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.align</span> <span class="k">import</span> <span class="n">parse_header</span>
+<span class="kn">from</span> <span class="nn">evcouplings.couplings</span> <span class="k">import</span> <span class="n">CouplingsModel</span>
+
+
+<span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_flatten_index</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Map position and symbol to index in</span>
+<span class="sd">    the covariance matrix.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    i : int, np.array of int</span>
+<span class="sd">        The alignment column(s).</span>
+<span class="sd">    alpha : int, np.array of int</span>
+<span class="sd">        The symbol(s).</span>
+<span class="sd">    num_symbols : int</span>
+<span class="sd">        The number of symbols of the</span>
+<span class="sd">        alphabet used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_symbols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">alpha</span>
+
+
+<div class="viewcode-block" id="MeanFieldDCA"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldDCA">[docs]</a><span class="k">class</span> <span class="nc">MeanFieldDCA</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class that provides the functionality</span>
+<span class="sd">    to infer evolutionary couplings from a given</span>
+<span class="sd">    sequence alignment using mean field</span>
+<span class="sd">    approximation.</span>
+
+<span class="sd">    Important:</span>
+<span class="sd">    The input alignment should be an a2m</span>
+<span class="sd">    alignment with lower / upper columns</span>
+<span class="sd">    and the target sequence as the first</span>
+<span class="sd">    record.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    _raw_alignment : Alignment</span>
+<span class="sd">        The input alignment. This should be an</span>
+<span class="sd">        a2m alignment with lower / upper columns</span>
+<span class="sd">        and the target sequence as first record.</span>
+<span class="sd">    index_list : np.array</span>
+<span class="sd">        List of UniProt numbers of the target</span>
+<span class="sd">        sequence (only upper case characters).</span>
+<span class="sd">    alignment : Alignment</span>
+<span class="sd">        A processed version of the given alignment</span>
+<span class="sd">        (_raw_alignment) that is then used to</span>
+<span class="sd">        infer evolutionary couplings using DCA.</span>
+<span class="sd">    N : int</span>
+<span class="sd">        The number of sequences (of the processed</span>
+<span class="sd">        alignment).</span>
+<span class="sd">    L : int</span>
+<span class="sd">        The width of the alignment (again, this</span>
+<span class="sd">        refers to the processed alignment).</span>
+<span class="sd">    num_symbols : int</span>
+<span class="sd">        The number of symbols of the alphabet used.</span>
+<span class="sd">    covariance_matrix : np.array</span>
+<span class="sd">        Matrix of size (L * (num_symbols-1)) x (L * (num_symbols-1))</span>
+<span class="sd">        containing the co-variation of each character pair</span>
+<span class="sd">        in any positions.</span>
+<span class="sd">    covariance_matrix_inv : np.array</span>
+<span class="sd">        Inverse of covariance_matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alignment</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize direct couplings analysis by</span>
+<span class="sd">        processing the given alignment.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        alignment : Alignment</span>
+<span class="sd">            Alignment with lower / upper columns</span>
+<span class="sd">            and the target sequence as first record.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># input alignment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raw_alignment</span> <span class="o">=</span> <span class="n">alignment</span>
+
+        <span class="c1"># the first sequence of an a2m alignment</span>
+        <span class="c1"># in focus mode is the target sequence</span>
+        <span class="n">target_seq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_alignment</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># select focus columns as alignment columns</span>
+        <span class="c1"># that are non-gapped and a upper</span>
+        <span class="c1"># character in the target sequence</span>
+        <span class="n">focus_cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">isupper</span><span class="p">()</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_raw_alignment</span><span class="o">.</span><span class="n">_match_gap</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_raw_alignment</span><span class="o">.</span><span class="n">_insert_gap</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">target_seq</span>
+        <span class="p">])</span>
+
+        <span class="c1"># extract focus alignment</span>
+        <span class="n">focus_ali</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw_alignment</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="n">focus_cols</span>
+        <span class="p">)</span>
+
+        <span class="c1"># extract index list of the target sequence</span>
+        <span class="c1"># (only focus columns)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="o">=</span> <span class="n">parse_header</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_raw_alignment</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">[</span><span class="n">focus_cols</span><span class="p">]</span>
+
+        <span class="c1"># find sequences that are valid,</span>
+        <span class="c1"># i.e. contain only alphabet symbols</span>
+        <span class="n">np_alphabet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">focus_ali</span><span class="o">.</span><span class="n">alphabet</span><span class="p">))</span>
+        <span class="n">valid_sequences</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">in1d</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">np_alphabet</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">focus_ali</span><span class="o">.</span><span class="n">matrix</span>
+        <span class="p">])</span>
+
+        <span class="c1"># remove invalid sequences</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span> <span class="o">=</span> <span class="n">focus_ali</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+            <span class="n">sequences</span><span class="o">=</span><span class="n">valid_sequences</span>
+        <span class="p">)</span>
+
+        <span class="c1"># reset pre-calculated sequence weigths</span>
+        <span class="c1"># and frequencies of the alignment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset pre-computed sequence weights and</span>
+<span class="sd">        alignment frequencies as well as the</span>
+<span class="sd">        covariance matrix and its inverse.</span>
+
+<span class="sd">        Resetting becomes important, when the</span>
+<span class="sd">        fit function is called more than once.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># reset theta-specific weights</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># also reset frequencies since these</span>
+        <span class="c1"># were based on the weights (and the</span>
+        <span class="c1"># given pseudo-count)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">_frequencies</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">_pair_frequencies</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularized_frequencies</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularized_pair_frequencies</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># reset covariance matrix and its inverse</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">covariance_matrix</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">covariance_matrix_inv</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="MeanFieldDCA.fit"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldDCA.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">pseudo_count</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run mean field direct couplings analysis.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : float, optional (default: 0.8)</span>
+<span class="sd">            Sequences with pairwise identity &gt;= theta</span>
+<span class="sd">            will be clustered and their sequence weights</span>
+<span class="sd">            downweighted as 1 / num_cluster_members.</span>
+<span class="sd">        pseudo_count : float, optional (default: 0.5)</span>
+<span class="sd">            Applied to frequency counts to regularize</span>
+<span class="sd">            in the case of insufficient data availability.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        MeanFieldCouplingsModel</span>
+<span class="sd">            Model object that holds the inferred</span>
+<span class="sd">            fields (h_i) and couplings (J_ij).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset</span><span class="p">()</span>
+
+        <span class="c1"># compute sequence weights</span>
+        <span class="c1"># using the given theta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">set_weights</span><span class="p">(</span><span class="n">identity_threshold</span><span class="o">=</span><span class="n">theta</span><span class="p">)</span>
+
+        <span class="c1"># compute column frequencies regularized by a pseudo-count</span>
+        <span class="c1"># (this implicitly calculates the raw frequencies as well)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularize_frequencies</span><span class="p">(</span><span class="n">pseudo_count</span><span class="o">=</span><span class="n">pseudo_count</span><span class="p">)</span>
+
+        <span class="c1"># compute pairwise frequencies regularized by a pseudo-count</span>
+        <span class="c1"># (this implicitly calculates the raw frequencies as well)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularize_pair_frequencies</span><span class="p">(</span><span class="n">pseudo_count</span><span class="o">=</span><span class="n">pseudo_count</span><span class="p">)</span>
+
+        <span class="c1"># compute the covariance matrix from</span>
+        <span class="c1"># the column and pair frequencies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_covariance_matrix</span><span class="p">()</span>
+
+        <span class="c1"># coupling parameters are inferred</span>
+        <span class="c1"># by inverting the covariance matrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">covariance_matrix_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">covariance_matrix</span>
+        <span class="p">)</span>
+
+        <span class="c1"># reshape the inverse of the covariance matrix</span>
+        <span class="c1"># to make eijs easily accessible</span>
+        <span class="n">J_ij</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reshape_invC_to_4d</span><span class="p">()</span>
+
+        <span class="c1"># compute fields</span>
+        <span class="n">h_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">MeanFieldCouplingsModel</span><span class="p">(</span>
+            <span class="n">alignment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="p">,</span>
+            <span class="n">index_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">,</span>
+            <span class="n">regularized_f_i</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">regularized_frequencies</span><span class="p">,</span>
+            <span class="n">regularized_f_ij</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">regularized_pair_frequencies</span><span class="p">,</span>
+            <span class="n">h_i</span><span class="o">=</span><span class="n">h_i</span><span class="p">,</span> <span class="n">J_ij</span><span class="o">=</span><span class="n">J_ij</span><span class="p">,</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">pseudo_count</span><span class="o">=</span><span class="n">pseudo_count</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MeanFieldDCA.regularize_frequencies"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldDCA.regularize_frequencies">[docs]</a>    <span class="k">def</span> <span class="nf">regularize_frequencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pseudo_count</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns/calculates single-site frequencies</span>
+<span class="sd">        regularized by a pseudo-count of symbols</span>
+<span class="sd">        in alignment.</span>
+
+<span class="sd">        This method sets the attribute</span>
+<span class="sd">        self.regularized_frequencies</span>
+<span class="sd">        and returns a reference to it.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pseudo_count : float, optional (default: 0.5)</span>
+<span class="sd">            The value to be added as pseudo-count.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Matrix of size L x num_symbols containing</span>
+<span class="sd">            relative column frequencies of all symbols</span>
+<span class="sd">            regularized by a pseudo-count.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_symbols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">num_symbols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularized_frequencies</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">pseudo_count</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">frequencies</span> <span class="o">+</span>
+            <span class="p">(</span><span class="n">pseudo_count</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">regularized_frequencies</span></div>
+
+<div class="viewcode-block" id="MeanFieldDCA.regularize_pair_frequencies"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldDCA.regularize_pair_frequencies">[docs]</a>    <span class="k">def</span> <span class="nf">regularize_pair_frequencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pseudo_count</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add pseudo-count to pairwise frequencies</span>
+<span class="sd">        to regularize in the case of insufficient</span>
+<span class="sd">        data availability.</span>
+
+<span class="sd">        This method sets the attribute</span>
+<span class="sd">        self.regularized_pair_frequencies</span>
+<span class="sd">        and returns a reference to it.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pseudo_count : float, optional (default: 0.5)</span>
+<span class="sd">            The value to be added as pseudo-count.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Matrix of size L x L x num_symbols x num_symbols</span>
+<span class="sd">            containing relative pairwise frequencies of all</span>
+<span class="sd">            symbols regularized by a pseudo-count.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># add a pseudo-count to the frequencies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularized_pair_frequencies</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">pseudo_count</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">pair_frequencies</span> <span class="o">+</span>
+            <span class="p">(</span><span class="n">pseudo_count</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">num_symbols</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="p">)</span>
+
+        <span class="c1"># again, set the &quot;pair frequency&quot; of two identical</span>
+        <span class="c1"># symbols in the same position to the respective</span>
+        <span class="c1"># single-site frequency (and all other entries</span>
+        <span class="c1"># in matrices concerning position pair (i, i) to zero)</span>
+        <span class="n">id_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">alpha</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">beta</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">regularized_pair_frequencies</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">pseudo_count</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">pair_frequencies</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span> <span class="o">+</span>
+                        <span class="p">(</span><span class="n">pseudo_count</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)</span> <span class="o">*</span> <span class="n">id_matrix</span><span class="p">[</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span>
+                    <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">regularized_pair_frequencies</span></div>
+
+<div class="viewcode-block" id="MeanFieldDCA.compute_covariance_matrix"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldDCA.compute_covariance_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">compute_covariance_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the covariance matrix.</span>
+
+<span class="sd">        This method sets the attribute self.covariance_matrix</span>
+<span class="sd">        and returns a reference to it.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Reference to attribute self.convariance_matrix</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">covariance_matrix</span> <span class="o">=</span> <span class="n">compute_covariance_matrix</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regularized_frequencies</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regularized_pair_frequencies</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">covariance_matrix</span></div>
+
+<div class="viewcode-block" id="MeanFieldDCA.reshape_invC_to_4d"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldDCA.reshape_invC_to_4d">[docs]</a>    <span class="k">def</span> <span class="nf">reshape_invC_to_4d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        &quot;Un-flatten&quot; inverse of the covariance</span>
+<span class="sd">        matrix to allow easy access to couplings</span>
+<span class="sd">        using position and symbol indices.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Matrix of size L x L x</span>
+<span class="sd">            num_symbols x num_symbols.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">reshape_invC_to_4d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">covariance_matrix_inv</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">L</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alignment</span><span class="o">.</span><span class="n">num_symbols</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MeanFieldDCA.fields"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldDCA.fields">[docs]</a>    <span class="k">def</span> <span class="nf">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute fields.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Matrix of size L x num_symbols</span>
+<span class="sd">            containing single-site fields.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">fields</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reshape_invC_to_4d</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regularized_frequencies</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MeanFieldCouplingsModel"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldCouplingsModel">[docs]</a><span class="k">class</span> <span class="nc">MeanFieldCouplingsModel</span><span class="p">(</span><span class="n">CouplingsModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mean field DCA specific model class that stores the</span>
+<span class="sd">    parameters inferred using mean field approximation</span>
+<span class="sd">    and calculates mutual and direct information as</span>
+<span class="sd">    well as fn and cn scores.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alignment</span><span class="p">,</span> <span class="n">index_list</span><span class="p">,</span> <span class="n">regularized_f_i</span><span class="p">,</span>
+                 <span class="n">regularized_f_ij</span><span class="p">,</span> <span class="n">h_i</span><span class="p">,</span> <span class="n">J_ij</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span>
+                 <span class="n">pseudo_count</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the model with the results of a</span>
+<span class="sd">        mean field inference.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        alignment : Alignment</span>
+<span class="sd">            The alignment that was used inferring</span>
+<span class="sd">            model parameters using mean field approximation.</span>
+<span class="sd">        index_list : np.array</span>
+<span class="sd">            Array of UniProt numbers of the target</span>
+<span class="sd">            sequence (only upper case characters).</span>
+<span class="sd">        regularized_f_i : np.array</span>
+<span class="sd">            Matrix of size L x num_symbols</span>
+<span class="sd">            containing column frequencies</span>
+<span class="sd">            corrected by pseudo-count.</span>
+<span class="sd">        regularized_f_ij : np.array</span>
+<span class="sd">            Matrix of size L x L x num_symbols x</span>
+<span class="sd">            num_symbols containing pair</span>
+<span class="sd">            frequencies corrected by pseudo-count.</span>
+<span class="sd">        h_i : np.array</span>
+<span class="sd">            Matrix of size L x num_symbols</span>
+<span class="sd">            containing single-site fields.</span>
+<span class="sd">        J_ij : np.array</span>
+<span class="sd">            Matrix of size L x L x num_symbols x</span>
+<span class="sd">            num_symbols containing couplings.</span>
+<span class="sd">        theta : float</span>
+<span class="sd">            The theta used to compute sequence</span>
+<span class="sd">            weights in mean field DCA.</span>
+<span class="sd">        pseudo_count : float</span>
+<span class="sd">            The pseudo-count that was just to</span>
+<span class="sd">            adjust single and pairwise frequencies</span>
+<span class="sd">            in mean field DCA.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># model length, number of symbols</span>
+        <span class="c1"># and number of valid sequences</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">L</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">num_symbols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_valid</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">N</span>
+
+        <span class="c1"># if sequence weights are not set,</span>
+        <span class="c1"># assume equal weight for every sequence</span>
+        <span class="k">if</span> <span class="n">alignment</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">alignment</span><span class="o">.</span><span class="n">N</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">weights</span>
+
+        <span class="c1"># number of effective sequences</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_eff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="c1"># alphabet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">alignment</span><span class="o">.</span><span class="n">alphabet</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span><span class="p">)}</span>
+
+        <span class="c1"># in a focus alignment, the target sequence</span>
+        <span class="c1"># is the first record in the alignment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">alignment</span><span class="o">.</span><span class="n">matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># set plmc-specific parameters to arbitrary value</span>
+        <span class="c1"># (cannot be set to None, but must be set to a</span>
+        <span class="c1"># numerical value for the to_file method to work properly)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_h</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_J</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_group</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># raw single and pair frequencies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f_i</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">frequencies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">pair_frequencies</span>
+
+        <span class="c1"># raw single and pair frequencies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularized_f_i</span> <span class="o">=</span> <span class="n">regularized_f_i</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regularized_f_ij</span> <span class="o">=</span> <span class="n">regularized_f_ij</span>
+
+        <span class="c1"># fields and couplings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_i</span> <span class="o">=</span> <span class="n">h_i</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span> <span class="o">=</span> <span class="n">J_ij</span>
+
+        <span class="c1"># parameters used in mean field inference</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pseudo_count</span> <span class="o">=</span> <span class="n">pseudo_count</span>
+
+        <span class="c1"># mapping</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span> <span class="o">=</span> <span class="n">index_list</span>
+
+        <span class="c1"># for now, the number of invalid sequences</span>
+        <span class="c1"># is set to zero since __read_plmc_v2() in</span>
+        <span class="c1"># couplings.model reads in the weights of</span>
+        <span class="c1"># valid and invalid sequences but here only</span>
+        <span class="c1"># weights of the valid sequences are used -</span>
+        <span class="c1"># so, the number of invalid sequences must be</span>
+        <span class="c1"># zero to prevent reading the model file</span>
+        <span class="c1"># from crashing</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_invalid</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset_precomputed</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_reset_precomputed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Delete precomputed values (e.g. mutation matrices)</span>
+
+<span class="sd">        This method overrides its respective parent method</span>
+<span class="sd">        in CouplingsModel. It additionally resets DI scores.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MeanFieldCouplingsModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_reset_precomputed</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_di_scores</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_ecs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates FN and CN scores as defined in</span>
+<span class="sd">        Ekeberg et al., Phys Rev E, 2013,</span>
+<span class="sd">        as well as MI and DI scores.</span>
+
+<span class="sd">        This method overrides its respective parent method</span>
+<span class="sd">        in CouplingsModel.</span>
+<span class="sd">        First, the parent method is called to calculate</span>
+<span class="sd">        FN, CN and MI scores. Then, DI scores are</span>
+<span class="sd">        additionally calculated and added to the resulting</span>
+<span class="sd">        data frame.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            ECs data frame with columns i, A_i, j, A_j,</span>
+<span class="sd">            seqdist, mi_raw, mi_apc, fn, cn, di</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># calculates FN, CN as well as MI scores</span>
+        <span class="c1"># and stores in ECs data frame</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MeanFieldCouplingsModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_calculate_ecs</span><span class="p">()</span>
+
+        <span class="c1"># calculate DI scores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_di_scores</span> <span class="o">=</span> <span class="n">direct_information</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">regularized_f_i</span>
+        <span class="p">)</span>
+
+        <span class="c1"># add DI scores to EC data frame</span>
+        <span class="n">di</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                <span class="n">di</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_di_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ecs</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ecs</span><span class="p">[</span><span class="s2">&quot;di&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">di</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecs</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span>
+            <span class="n">by</span><span class="o">=</span><span class="s2">&quot;di&quot;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="MeanFieldCouplingsModel.tilde_fields"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldCouplingsModel.tilde_fields">[docs]</a>    <span class="k">def</span> <span class="nf">tilde_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute h_tilde fields of the two-site model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            First position.</span>
+<span class="sd">        j : int</span>
+<span class="sd">            Second position.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array, np.array</span>
+<span class="sd">            h_tilde fields of position i and j -</span>
+<span class="sd">            both arrays of size 1 x num_symbols</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">tilde_fields</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regularized_f_i</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">regularized_f_ij</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">di_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        L x L numpy matrix with DI (direct information) scores</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_di_scores</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_ecs</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_di_scores</span>
+
+<div class="viewcode-block" id="MeanFieldCouplingsModel.to_raw_ec_file"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.MeanFieldCouplingsModel.to_raw_ec_file">[docs]</a>    <span class="k">def</span> <span class="nf">to_raw_ec_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">couplings_file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write mutual and direct information to the EC file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        couplings_file : str</span>
+<span class="sd">            Output path for file with evolutionary couplings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">couplings_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="p">[</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+                        <span class="s2">&quot;</span><span class="si">{0:.6f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mi_scores_raw</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]),</span>
+                        <span class="s2">&quot;</span><span class="si">{0:.6f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">di_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+                    <span class="p">]))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="tilde_fields"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.tilde_fields">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">tilde_fields</span><span class="p">(</span><span class="n">J_ij</span><span class="p">,</span> <span class="n">f_i</span><span class="p">,</span> <span class="n">f_j</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute h_tilde fields of the two-site model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    J_ij : np.array</span>
+<span class="sd">        Matrix of size num_symbols x num_symbols</span>
+<span class="sd">        containing all coupling strengths of</span>
+<span class="sd">        position pair (i, j).</span>
+<span class="sd">    f_i : np.array</span>
+<span class="sd">        Row i of single-site frequencies.</span>
+<span class="sd">    f_j : np.array</span>
+<span class="sd">        Row j of single-site frequencies.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array, np.array</span>
+<span class="sd">        h_tilde fields of position i and j -</span>
+<span class="sd">        both arrays of size 1 x num_symbols</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_EPSILON</span> <span class="o">=</span> <span class="mf">1e-4</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="n">num_symbols</span> <span class="o">=</span> <span class="n">f_i</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">h_tilde_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">),</span> <span class="mi">1</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">))</span>
+    <span class="n">h_tilde_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">),</span> <span class="mi">1</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">))</span>
+
+    <span class="k">while</span> <span class="n">diff</span> <span class="o">&gt;</span> <span class="n">_EPSILON</span><span class="p">:</span>
+        <span class="n">tmp_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">h_tilde_j</span><span class="p">,</span> <span class="n">J_ij</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">tmp_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">h_tilde_i</span><span class="p">,</span> <span class="n">J_ij</span><span class="p">)</span>
+
+        <span class="n">h_tilde_i_updated</span> <span class="o">=</span> <span class="n">f_i</span> <span class="o">/</span> <span class="n">tmp_1</span>
+        <span class="n">h_tilde_i_updated</span> <span class="o">/=</span> <span class="n">h_tilde_i_updated</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="n">h_tilde_j_updated</span> <span class="o">=</span> <span class="n">f_j</span> <span class="o">/</span> <span class="n">tmp_2</span>
+        <span class="n">h_tilde_j_updated</span> <span class="o">/=</span> <span class="n">h_tilde_j_updated</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+        <span class="n">diff</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">h_tilde_i_updated</span> <span class="o">-</span> <span class="n">h_tilde_i</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">h_tilde_j_updated</span> <span class="o">-</span> <span class="n">h_tilde_j</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="n">h_tilde_i</span> <span class="o">=</span> <span class="n">h_tilde_i_updated</span>
+        <span class="n">h_tilde_j</span> <span class="o">=</span> <span class="n">h_tilde_j_updated</span>
+
+    <span class="k">return</span> <span class="n">h_tilde_i</span><span class="p">,</span> <span class="n">h_tilde_j</span></div>
+
+
+<div class="viewcode-block" id="direct_information"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.direct_information">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">direct_information</span><span class="p">(</span><span class="n">J_ij</span><span class="p">,</span> <span class="n">f_i</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate direct information.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    J_ij : np.array</span>
+<span class="sd">        Matrix of size num_symbols x num_symbols</span>
+<span class="sd">        containing all coupling strengths of</span>
+<span class="sd">        position pair (i, j).</span>
+<span class="sd">    f_i : np.array</span>
+<span class="sd">        Matrix of size L x num_symbols</span>
+<span class="sd">        containing column frequencies.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Matrix of size L x L</span>
+<span class="sd">        containing direct information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span> <span class="o">=</span> <span class="n">f_i</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">di</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">L</span><span class="p">):</span>
+            <span class="c1"># extract couplings relevant to</span>
+            <span class="c1"># position pair (i, j)</span>
+            <span class="n">J</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+
+            <span class="c1"># compute two-site model</span>
+            <span class="n">h_tilde_i</span><span class="p">,</span> <span class="n">h_tilde_j</span> <span class="o">=</span> <span class="n">tilde_fields</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">f_i</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">f_i</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            <span class="n">p_di_ij</span> <span class="o">=</span> <span class="n">J</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">h_tilde_i</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">h_tilde_j</span><span class="p">)</span>
+            <span class="n">p_di_ij</span> <span class="o">=</span> <span class="n">p_di_ij</span> <span class="o">/</span> <span class="n">p_di_ij</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+            <span class="c1"># dot product of single-site frequencies</span>
+            <span class="c1"># of columns i and j</span>
+            <span class="n">f_ij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+                <span class="n">f_i</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">))</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                <span class="n">f_i</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">))</span>
+            <span class="p">)</span>
+
+            <span class="c1"># finally, compute direct information as</span>
+            <span class="c1"># mutual information associated to p_di_ij</span>
+            <span class="n">_TINY</span> <span class="o">=</span> <span class="mf">1.0e-100</span>
+            <span class="n">di</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">di</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+                    <span class="n">p_di_ij</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">((</span><span class="n">p_di_ij</span> <span class="o">+</span> <span class="n">_TINY</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">f_ij</span> <span class="o">+</span> <span class="n">_TINY</span><span class="p">))</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">di</span></div>
+
+
+<div class="viewcode-block" id="compute_covariance_matrix"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.compute_covariance_matrix">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">compute_covariance_matrix</span><span class="p">(</span><span class="n">f_i</span><span class="p">,</span> <span class="n">f_ij</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the covariance matrix.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    f_i : np.array</span>
+<span class="sd">        Matrix of size L x num_symbols</span>
+<span class="sd">        containing column frequencies.</span>
+<span class="sd">    f_ij : np.array</span>
+<span class="sd">        Matrix of size L x L x num_symbols x</span>
+<span class="sd">        num_symbols containing pair frequencies.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Matrix of size L x (num_symbols-1) x</span>
+<span class="sd">        L x (num_symbols-1) containing</span>
+<span class="sd">        covariance values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span> <span class="o">=</span> <span class="n">f_i</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># The covariance values concerning the last symbol</span>
+    <span class="c1"># are required to equal zero and are not represented</span>
+    <span class="c1"># in the covariance matrix (important for taking the</span>
+    <span class="c1"># inverse) - resulting in a matrix of size</span>
+    <span class="c1"># (L * (num_symbols-1)) x (L * (num_symbols-1))</span>
+    <span class="c1"># rather than (L * num_symbols) x (L * num_symbols).</span>
+    <span class="n">covariance_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span>
+        <span class="n">L</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_symbols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">L</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_symbols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">alpha</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_symbols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">beta</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_symbols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">covariance_matrix</span><span class="p">[</span>
+                        <span class="n">_flatten_index</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">),</span>
+                        <span class="n">_flatten_index</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">),</span>
+                    <span class="p">]</span> <span class="o">=</span> <span class="n">f_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span> <span class="o">-</span> <span class="n">f_i</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">alpha</span><span class="p">]</span> <span class="o">*</span> <span class="n">f_i</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">covariance_matrix</span></div>
+
+
+<div class="viewcode-block" id="reshape_invC_to_4d"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.reshape_invC_to_4d">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">reshape_invC_to_4d</span><span class="p">(</span><span class="n">inv_cov_matrix</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;Un-flatten&quot; inverse of the covariance</span>
+<span class="sd">    matrix to allow easy access to couplings</span>
+<span class="sd">    using position and symbol indices.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inv_cov_matrix : np.array</span>
+<span class="sd">        The inverse of the covariance matrix.</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Model length.</span>
+<span class="sd">    num_symbols : int</span>
+<span class="sd">        Number of characters in the alphabet.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Matrix of size L x L x</span>
+<span class="sd">        num_symbols x num_symbols.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">J_ij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">alpha</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_symbols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">beta</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_symbols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">]</span> <span class="o">=</span> <span class="n">inv_cov_matrix</span><span class="p">[</span>
+                        <span class="n">_flatten_index</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">),</span>
+                        <span class="n">_flatten_index</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">)</span>
+                    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">J_ij</span></div>
+
+
+<div class="viewcode-block" id="fields"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.mean_field.fields">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">fields</span><span class="p">(</span><span class="n">J_ij</span><span class="p">,</span> <span class="n">f_i</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute fields.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    J_ij : np.array</span>
+<span class="sd">        Matrix of size L x L x num_symbols x</span>
+<span class="sd">        num_symbols containing coupling parameters.</span>
+<span class="sd">    f_i : np.array</span>
+<span class="sd">        Matrix of size L x num_symbols</span>
+<span class="sd">        containing column frequencies.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Matrix of size L x num_symbols</span>
+<span class="sd">        containing single-site fields.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span> <span class="o">=</span> <span class="n">f_i</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+        <span class="n">log_fi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">f_i</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">f_i</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">num_symbols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">J_ij_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">:</span>
+                <span class="c1"># extract couplings relevant to position pair (i, j)</span>
+                <span class="n">J</span> <span class="o">=</span> <span class="o">-</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+
+                <span class="c1"># some eij values over all j</span>
+                <span class="n">J_ij_sum</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+                    <span class="n">J</span><span class="p">,</span> <span class="n">f_i</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">hi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_fi</span> <span class="o">-</span> <span class="n">J_ij_sum</span>
+
+    <span class="k">return</span> <span class="n">hi</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

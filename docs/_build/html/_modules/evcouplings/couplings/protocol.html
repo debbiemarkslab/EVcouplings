@@ -1,0 +1,777 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.couplings.protocol &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.couplings.protocol</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.couplings.protocol</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Evolutionary couplings calculation protocols/workflows.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.couplings</span> <span class="k">import</span> <span class="n">tools</span> <span class="k">as</span> <span class="n">ct</span>
+<span class="kn">from</span> <span class="nn">evcouplings.couplings</span> <span class="k">import</span> <span class="n">pairs</span><span class="p">,</span> <span class="n">mapping</span>
+<span class="kn">from</span> <span class="nn">evcouplings.couplings.mean_field</span> <span class="k">import</span> <span class="n">MeanFieldDCA</span>
+<span class="kn">from</span> <span class="nn">evcouplings.couplings.model</span> <span class="k">import</span> <span class="n">CouplingsModel</span>
+<span class="kn">from</span> <span class="nn">evcouplings.visualize.parameters</span> <span class="k">import</span> <span class="n">evzoom_json</span>
+<span class="kn">from</span> <span class="nn">evcouplings.visualize.pairs</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">ec_lines_pymol_script</span><span class="p">,</span> <span class="n">enrichment_pymol_script</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.align.alignment</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">read_fasta</span><span class="p">,</span> <span class="n">ALPHABET_PROTEIN</span><span class="p">,</span> <span class="n">ALPHABET_DNA</span><span class="p">,</span>
+    <span class="n">ALPHABET_RNA</span><span class="p">,</span> <span class="n">Alignment</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">check_required</span><span class="p">,</span> <span class="n">InvalidParameterError</span><span class="p">,</span>
+    <span class="n">read_config_file</span><span class="p">,</span> <span class="n">write_config_file</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">create_prefix_folders</span><span class="p">,</span> <span class="n">valid_file</span><span class="p">,</span>
+    <span class="n">verify_resources</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">ALPHABET_MAP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;aa&quot;</span><span class="p">:</span> <span class="n">ALPHABET_PROTEIN</span><span class="p">,</span>
+    <span class="s2">&quot;dna&quot;</span><span class="p">:</span> <span class="n">ALPHABET_DNA</span><span class="p">,</span>
+    <span class="s2">&quot;rna&quot;</span><span class="p">:</span> <span class="n">ALPHABET_RNA</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="standard"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.protocol.standard">[docs]</a><span class="k">def</span> <span class="nf">standard</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Protocol:</span>
+
+<span class="sd">    Infer ECs from alignment using plmc.</span>
+
+<span class="sd">    .. todo::</span>
+
+<span class="sd">        1. make EC enrichment calculation segment-ready</span>
+<span class="sd">        2. explain meaning of parameters in detail.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        See list below in code where calling check_required</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of the pipeline, including</span>
+<span class="sd">        the following fields:</span>
+
+<span class="sd">        raw_ec_file</span>
+<span class="sd">        model_file</span>
+<span class="sd">        num_sites</span>
+<span class="sd">        num_sequences</span>
+<span class="sd">        effective_sequences</span>
+
+<span class="sd">        focus_mode (passed through)</span>
+<span class="sd">        focus_sequence (passed through)</span>
+<span class="sd">        segments (passed through)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;alignment_file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;focus_mode&quot;</span><span class="p">,</span> <span class="s2">&quot;focus_sequence&quot;</span><span class="p">,</span> <span class="s2">&quot;theta&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;alphabet&quot;</span><span class="p">,</span> <span class="s2">&quot;segments&quot;</span><span class="p">,</span> <span class="s2">&quot;ignore_gaps&quot;</span><span class="p">,</span> <span class="s2">&quot;iterations&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;lambda_h&quot;</span><span class="p">,</span> <span class="s2">&quot;lambda_J&quot;</span><span class="p">,</span> <span class="s2">&quot;lambda_group&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;scale_clusters&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="s2">&quot;plmc&quot;</span><span class="p">,</span> <span class="s2">&quot;reuse_ecs&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">,</span> <span class="c1"># &quot;save_model&quot;,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="c1"># for now disable option to not save model, since</span>
+    <span class="c1"># otherwise mutate stage will crash. To remove model</span>
+    <span class="c1"># file at end, use delete option in management section.</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    if kwargs[&quot;save_model&quot;]:</span>
+<span class="sd">        model = prefix + &quot;.model&quot;</span>
+<span class="sd">    else:</span>
+<span class="sd">        model = None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.model&quot;</span>
+
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;model_file&quot;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span>
+        <span class="s2">&quot;raw_ec_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_ECs.txt&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ec_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_CouplingScores.csv&quot;</span><span class="p">,</span>
+        <span class="c1"># TODO: the following are passed through stage...</span>
+        <span class="c1"># keep this or unnecessary?</span>
+        <span class="s2">&quot;focus_mode&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;focus_mode&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;focus_sequence&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;focus_sequence&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;segments&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
+
+    <span class="c1"># make sure input alignment exists</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Input alignment does not exist&quot;</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alignment_file&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># regularization strength on couplings J_ij</span>
+    <span class="n">lambda_J</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;lambda_J&quot;</span><span class="p">]</span>
+
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">segments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">segments</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">mapping</span><span class="o">.</span><span class="n">Segment</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">segments</span>
+        <span class="p">]</span>
+
+    <span class="c1"># first determine size of alphabet;</span>
+    <span class="c1"># default is amino acid alphabet</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alphabet&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">alphabet</span> <span class="o">=</span> <span class="n">ALPHABET_PROTEIN</span>
+        <span class="n">alphabet_setting</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">alphabet</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alphabet&quot;</span><span class="p">]</span>
+
+        <span class="c1"># allow shortcuts for protein, DNA, RNA</span>
+        <span class="k">if</span> <span class="n">alphabet</span> <span class="ow">in</span> <span class="n">ALPHABET_MAP</span><span class="p">:</span>
+            <span class="n">alphabet</span> <span class="o">=</span> <span class="n">ALPHABET_MAP</span><span class="p">[</span><span class="n">alphabet</span><span class="p">]</span>
+
+        <span class="c1"># if we have protein alphabet, do not set</span>
+        <span class="c1"># as plmc parameter since default parameter,</span>
+        <span class="c1"># has some implementation advantages for focus mode</span>
+        <span class="k">if</span> <span class="n">alphabet</span> <span class="o">==</span> <span class="n">ALPHABET_PROTEIN</span><span class="p">:</span>
+            <span class="n">alphabet_setting</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">alphabet_setting</span> <span class="o">=</span> <span class="n">alphabet</span>
+
+    <span class="c1"># scale lambda_J to proportionally compensate</span>
+    <span class="c1"># for higher number of J_ij compared to h_i?</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;lambda_J_times_Lq&quot;</span><span class="p">]:</span>
+        <span class="n">num_symbols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">alphabet</span><span class="p">)</span>
+
+        <span class="c1"># if we ignore gaps, there is one character less</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;ignore_gaps&quot;</span><span class="p">]:</span>
+            <span class="n">num_symbols</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="c1"># second, determine number of uppercase positions</span>
+        <span class="c1"># that are included in the calculation</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alignment_file&quot;</span><span class="p">])</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">seq_id</span><span class="p">,</span> <span class="n">seq</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">read_fasta</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+
+        <span class="c1"># gap character is by convention first char in alphabet</span>
+        <span class="n">gap</span> <span class="o">=</span> <span class="n">alphabet</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">uppercase</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">seq</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="n">c</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">or</span> <span class="n">c</span> <span class="o">==</span> <span class="n">gap</span>
+        <span class="p">]</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">uppercase</span><span class="p">)</span>
+
+        <span class="c1"># finally, scale lambda_J</span>
+        <span class="n">lambda_J</span> <span class="o">*=</span> <span class="p">(</span><span class="n">num_symbols</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># run plmc... or reuse pre-exisiting results from previous run</span>
+    <span class="n">plm_outcfg_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.couplings_standard_plmc.outcfg&quot;</span>
+
+    <span class="c1"># determine if to rerun, only possible if previous results</span>
+    <span class="c1"># were stored in ali_outcfg_file</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;reuse_ecs&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">plm_outcfg_file</span><span class="p">):</span>
+        <span class="n">plmc_result</span> <span class="o">=</span> <span class="n">read_config_file</span><span class="p">(</span><span class="n">plm_outcfg_file</span><span class="p">)</span>
+
+        <span class="c1"># check if the EC/parameter files are there</span>
+        <span class="n">required_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;raw_ec_file&quot;</span><span class="p">]]</span>
+
+        <span class="k">if</span> <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">required_files</span> <span class="o">+=</span> <span class="p">[</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">]]</span>
+
+        <span class="n">verify_resources</span><span class="p">(</span>
+            <span class="s2">&quot;Tried to reuse ECs, but empty or &quot;</span>
+            <span class="s2">&quot;does not exist&quot;</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">required_files</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># run plmc binary</span>
+        <span class="n">plmc_result</span> <span class="o">=</span> <span class="n">ct</span><span class="o">.</span><span class="n">run_plmc</span><span class="p">(</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alignment_file&quot;</span><span class="p">],</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;raw_ec_file&quot;</span><span class="p">],</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">],</span>
+            <span class="n">focus_seq</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;focus_sequence&quot;</span><span class="p">],</span>
+            <span class="n">alphabet</span><span class="o">=</span><span class="n">alphabet_setting</span><span class="p">,</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;theta&quot;</span><span class="p">],</span>
+            <span class="n">scale</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;scale_clusters&quot;</span><span class="p">],</span>
+            <span class="n">ignore_gaps</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;ignore_gaps&quot;</span><span class="p">],</span>
+            <span class="n">iterations</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;iterations&quot;</span><span class="p">],</span>
+            <span class="n">lambda_h</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;lambda_h&quot;</span><span class="p">],</span>
+            <span class="n">lambda_J</span><span class="o">=</span><span class="n">lambda_J</span><span class="p">,</span>
+            <span class="n">lambda_g</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;lambda_group&quot;</span><span class="p">],</span>
+            <span class="n">cpu</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">],</span>
+            <span class="n">binary</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;plmc&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># save iteration table to file</span>
+        <span class="n">iter_table_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_iteration_table.csv&quot;</span>
+        <span class="n">plmc_result</span><span class="o">.</span><span class="n">iteration_table</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+            <span class="n">iter_table_file</span>
+        <span class="p">)</span>
+
+        <span class="c1"># turn namedtuple into dictionary to make</span>
+        <span class="c1"># restarting code nicer</span>
+        <span class="n">plmc_result</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">plmc_result</span><span class="o">.</span><span class="n">_asdict</span><span class="p">())</span>
+
+        <span class="c1"># then replace table with filename so</span>
+        <span class="c1"># we can store results in config file</span>
+        <span class="n">plmc_result</span><span class="p">[</span><span class="s2">&quot;iteration_table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iter_table_file</span>
+
+        <span class="c1"># save results of search for possible restart</span>
+        <span class="n">write_config_file</span><span class="p">(</span><span class="n">plm_outcfg_file</span><span class="p">,</span> <span class="n">plmc_result</span><span class="p">)</span>
+
+    <span class="c1"># store useful information about model in outcfg</span>
+    <span class="n">outcfg</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+        <span class="s2">&quot;num_sites&quot;</span><span class="p">:</span> <span class="n">plmc_result</span><span class="p">[</span><span class="s2">&quot;num_valid_sites&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;num_sequences&quot;</span><span class="p">:</span> <span class="n">plmc_result</span><span class="p">[</span><span class="s2">&quot;num_valid_seqs&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;effective_sequences&quot;</span><span class="p">:</span> <span class="n">plmc_result</span><span class="p">[</span><span class="s2">&quot;effective_samples&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;region_start&quot;</span><span class="p">:</span> <span class="n">plmc_result</span><span class="p">[</span><span class="s2">&quot;region_start&quot;</span><span class="p">],</span>
+    <span class="p">})</span>
+
+    <span class="c1"># read and sort ECs</span>
+    <span class="n">ecs</span> <span class="o">=</span> <span class="n">pairs</span><span class="o">.</span><span class="n">read_raw_ec_file</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;raw_ec_file&quot;</span><span class="p">])</span>
+
+    <span class="c1"># add mixture model probability</span>
+    <span class="n">ecs</span> <span class="o">=</span> <span class="n">pairs</span><span class="o">.</span><span class="n">add_mixture_probability</span><span class="p">(</span><span class="n">ecs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">segments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># and (len(segments) &gt; 1 or not kwargs[&quot;focus_mode&quot;]):</span>
+        <span class="c1"># create index mapping</span>
+        <span class="n">seg_mapper</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">SegmentIndexMapper</span><span class="p">(</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;focus_mode&quot;</span><span class="p">],</span> <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;region_start&quot;</span><span class="p">],</span> <span class="o">*</span><span class="n">segments</span>
+        <span class="p">)</span>
+
+        <span class="c1"># apply to EC table</span>
+        <span class="n">ecs</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">segment_map_ecs</span><span class="p">(</span><span class="n">ecs</span><span class="p">,</span> <span class="n">seg_mapper</span><span class="p">)</span>
+
+    <span class="c1"># write updated table to csv file</span>
+    <span class="n">ecs</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># also store longrange ECs as convenience output</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_longrange_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_CouplingScores_longrange.csv&quot;</span>
+        <span class="n">ecs_longrange</span> <span class="o">=</span> <span class="n">ecs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="s2">&quot;abs(i - j) &gt;= </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">ecs_longrange</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_longrange_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># also create line-drawing script (for now, only for single segments)</span>
+        <span class="k">if</span> <span class="n">segments</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_lines_pml_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_draw_ec_lines.pml&quot;</span>
+            <span class="n">L</span> <span class="o">=</span> <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;num_sites&quot;</span><span class="p">]</span>
+            <span class="n">ec_lines_pymol_script</span><span class="p">(</span>
+                <span class="n">ecs_longrange</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">L</span><span class="p">,</span> <span class="p">:],</span>
+                <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_lines_pml_file&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+    <span class="c1"># compute EC enrichment (for now, for single segments</span>
+    <span class="c1"># only since enrichment code cannot handle multiple segments)</span>
+    <span class="k">if</span> <span class="n">segments</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;enrichment_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_enrichment.csv&quot;</span>
+        <span class="n">ecs_enriched</span> <span class="o">=</span> <span class="n">pairs</span><span class="o">.</span><span class="n">enrichment</span><span class="p">(</span><span class="n">ecs</span><span class="p">)</span>
+        <span class="n">ecs_enriched</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;enrichment_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># create corresponding enrichment pymol scripts</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;enrichment_pml_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sphere_view</span><span class="p">,</span> <span class="n">pml_suffix</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;_enrichment_spheres.pml&quot;</span><span class="p">),</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;_enrichment_sausage.pml&quot;</span><span class="p">)</span>
+        <span class="p">]:</span>
+            <span class="n">pml_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">pml_suffix</span>
+            <span class="n">enrichment_pymol_script</span><span class="p">(</span><span class="n">ecs_enriched</span><span class="p">,</span> <span class="n">pml_file</span><span class="p">,</span> <span class="n">sphere_view</span><span class="o">=</span><span class="n">sphere_view</span><span class="p">)</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;enrichment_pml_files&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pml_file</span><span class="p">)</span>
+
+    <span class="c1"># output EVzoom JSON file if we have stored model file</span>
+    <span class="k">if</span> <span class="n">outcfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;model_file&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;evzoom_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_evzoom.json&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;evzoom_file&quot;</span><span class="p">],</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="c1"># load parameters</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">CouplingsModel</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">])</span>
+
+            <span class="c1"># create JSON output and write to file</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="n">evzoom_json</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># dump output config to YAML file for debugging/logging</span>
+    <span class="n">write_config_file</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.couplings_standard.outcfg&quot;</span><span class="p">,</span> <span class="n">outcfg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outcfg</span></div>
+
+
+<div class="viewcode-block" id="mean_field"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.protocol.mean_field">[docs]</a><span class="k">def</span> <span class="nf">mean_field</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Protocol:</span>
+
+<span class="sd">    Infer ECs from alignment using mean field direct coupling analysis.</span>
+
+<span class="sd">    For now, mean field DCA can only be run in focus mode, gaps</span>
+<span class="sd">    included.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        See list below in code where calling check_required.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of the pipeline, including</span>
+<span class="sd">        the following fields:</span>
+
+<span class="sd">        * raw_ec_file</span>
+<span class="sd">        * model_file</span>
+<span class="sd">        * num_sites</span>
+<span class="sd">        * num_sequences</span>
+<span class="sd">        * effective_sequences</span>
+
+<span class="sd">        * focus_mode (passed through)</span>
+<span class="sd">        * focus_sequence (passed through)</span>
+<span class="sd">        * segments (passed through)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;alignment_file&quot;</span><span class="p">,</span> <span class="s2">&quot;segments&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;focus_mode&quot;</span><span class="p">,</span> <span class="s2">&quot;focus_sequence&quot;</span><span class="p">,</span> <span class="s2">&quot;theta&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pseudo_count&quot;</span><span class="p">,</span> <span class="s2">&quot;alphabet&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">,</span> <span class="c1"># &quot;save_model&quot;,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;focus_mode&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;For now, mean field DCA can only be run in focus mode.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="c1"># option to save model disabled</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    if kwargs[&quot;save_model&quot;]:</span>
+<span class="sd">        model = prefix + &quot;.model&quot;</span>
+<span class="sd">    else:</span>
+<span class="sd">        model = None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.model&quot;</span>
+
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;model_file&quot;</span><span class="p">:</span> <span class="n">model</span><span class="p">,</span>
+        <span class="s2">&quot;raw_ec_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_ECs.txt&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ec_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_CouplingScores.csv&quot;</span><span class="p">,</span>
+        <span class="c1"># TODO: the following are passed through stage...</span>
+        <span class="c1"># keep this or unnecessary?</span>
+        <span class="s2">&quot;focus_mode&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;focus_mode&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;focus_sequence&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;focus_sequence&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;segments&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
+
+    <span class="c1"># make sure input alignment exists</span>
+    <span class="n">alignment_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alignment_file&quot;</span><span class="p">]</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Input alignment does not exist&quot;</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alignment_file&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">segments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">segments</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">mapping</span><span class="o">.</span><span class="n">Segment</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">segments</span>
+        <span class="p">]</span>
+
+    <span class="c1"># determine alphabet</span>
+    <span class="c1"># default is protein</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alphabet&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">alphabet</span> <span class="o">=</span> <span class="n">ALPHABET_PROTEIN</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">alphabet</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;alphabet&quot;</span><span class="p">]</span>
+
+        <span class="c1"># allow shortcuts for protein, DNA, RNA</span>
+        <span class="k">if</span> <span class="n">alphabet</span> <span class="ow">in</span> <span class="n">ALPHABET_MAP</span><span class="p">:</span>
+            <span class="n">alphabet</span> <span class="o">=</span> <span class="n">ALPHABET_MAP</span><span class="p">[</span><span class="n">alphabet</span><span class="p">]</span>
+
+    <span class="c1"># read in a2m alignment</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">alignment_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">input_alignment</span> <span class="o">=</span> <span class="n">Alignment</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
+            <span class="n">f</span><span class="p">,</span> <span class="n">alphabet</span><span class="o">=</span><span class="n">alphabet</span><span class="p">,</span>
+            <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;fasta&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># init mean field direct coupling analysis</span>
+    <span class="n">mf_dca</span> <span class="o">=</span> <span class="n">MeanFieldDCA</span><span class="p">(</span><span class="n">input_alignment</span><span class="p">)</span>
+
+    <span class="c1"># run mean field approximation</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">mf_dca</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;theta&quot;</span><span class="p">],</span>
+        <span class="n">pseudo_count</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;pseudo_count&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># write ECs to file</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">to_raw_ec_file</span><span class="p">(</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;raw_ec_file&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># write model file</span>
+    <span class="k">if</span> <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">],</span>
+            <span class="n">file_format</span><span class="o">=</span><span class="s2">&quot;plmc_v2&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># store useful information about model in outcfg</span>
+    <span class="n">outcfg</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+        <span class="s2">&quot;num_sites&quot;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">L</span><span class="p">,</span>
+        <span class="s2">&quot;num_sequences&quot;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">N_valid</span><span class="p">,</span>
+        <span class="s2">&quot;effective_sequences&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">N_eff</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+        <span class="s2">&quot;region_start&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">index_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+    <span class="p">})</span>
+
+    <span class="c1"># read and sort ECs</span>
+    <span class="n">ecs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;raw_ec_file&quot;</span><span class="p">],</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span>
+        <span class="c1"># for now, call the last two columns</span>
+        <span class="c1"># &quot;fn&quot; and &quot;cn&quot; to prevent compare</span>
+        <span class="c1"># stage from crashing</span>
+        <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;A_i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;A_j&quot;</span><span class="p">,</span> <span class="s2">&quot;fn&quot;</span><span class="p">,</span> <span class="s2">&quot;cn&quot;</span><span class="p">]</span>
+        <span class="c1"># names=[&quot;i&quot;, &quot;A_i&quot;, &quot;j&quot;, &quot;A_j&quot;, &quot;mi&quot;, &quot;di&quot;]</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span>
+        <span class="n">by</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">,</span>
+        <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1"># write the sorted ECs table to csv file</span>
+    <span class="n">ecs</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># also store longrange ECs as convenience output</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_longrange_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_CouplingScores_longrange.csv&quot;</span>
+        <span class="n">ecs_longrange</span> <span class="o">=</span> <span class="n">ecs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="s2">&quot;abs(i - j) &gt;= </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;min_sequence_distance&quot;</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">ecs_longrange</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_longrange_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># also create line-drawing script (for now, only for single segments)</span>
+        <span class="k">if</span> <span class="n">segments</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_lines_pml_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_draw_ec_lines.pml&quot;</span>
+            <span class="n">L</span> <span class="o">=</span> <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;num_sites&quot;</span><span class="p">]</span>
+            <span class="n">ec_lines_pymol_script</span><span class="p">(</span>
+                <span class="n">ecs_longrange</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">L</span><span class="p">,</span> <span class="p">:],</span>
+                <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;ec_lines_pml_file&quot;</span><span class="p">],</span>
+                <span class="n">score_column</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span>  <span class="c1"># &quot;di</span>
+            <span class="p">)</span>
+
+    <span class="c1"># compute EC enrichment (for now, for single segments</span>
+    <span class="c1"># only since enrichment code cannot handle multiple segments)</span>
+    <span class="k">if</span> <span class="n">segments</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;enrichment_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_enrichment.csv&quot;</span>
+        <span class="n">ecs_enriched</span> <span class="o">=</span> <span class="n">pairs</span><span class="o">.</span><span class="n">enrichment</span><span class="p">(</span><span class="n">ecs</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">)</span>  <span class="c1"># &quot;di&quot;</span>
+        <span class="n">ecs_enriched</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;enrichment_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># create corresponding enrichment pymol scripts</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;enrichment_pml_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sphere_view</span><span class="p">,</span> <span class="n">pml_suffix</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;_enrichment_spheres.pml&quot;</span><span class="p">),</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;_enrichment_sausage.pml&quot;</span><span class="p">)</span>
+        <span class="p">]:</span>
+            <span class="n">pml_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">pml_suffix</span>
+            <span class="n">enrichment_pymol_script</span><span class="p">(</span><span class="n">ecs_enriched</span><span class="p">,</span> <span class="n">pml_file</span><span class="p">,</span> <span class="n">sphere_view</span><span class="o">=</span><span class="n">sphere_view</span><span class="p">)</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;enrichment_pml_files&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pml_file</span><span class="p">)</span>
+
+    <span class="c1"># output EVzoom JSON file if we have stored model file</span>
+    <span class="k">if</span> <span class="n">outcfg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;model_file&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;evzoom_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_evzoom.json&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;evzoom_file&quot;</span><span class="p">],</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="c1"># create JSON output and write to file</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="n">evzoom_json</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># dump output config to YAML file for debugging/logging</span>
+    <span class="n">write_config_file</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.couplings_standard.outcfg&quot;</span><span class="p">,</span> <span class="n">outcfg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outcfg</span></div>
+
+
+<span class="c1"># list of available EC inference protocols</span>
+<span class="n">PROTOCOLS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># standard plmc inference protocol</span>
+    <span class="s2">&quot;standard&quot;</span><span class="p">:</span> <span class="n">standard</span><span class="p">,</span>
+
+    <span class="c1"># inference protocol using mean field approximation</span>
+    <span class="s2">&quot;mean_field&quot;</span><span class="p">:</span> <span class="n">mean_field</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.protocol.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run inference protocol to calculate ECs from</span>
+<span class="sd">    input sequence alignment.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        protocol: EC protocol to run</span>
+<span class="sd">        prefix: Output prefix for all generated files</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of couplings stage</span>
+<span class="sd">        Dictionary with results in following fields (in brackets: not mandatory):</span>
+
+<span class="sd">         * ec_file</span>
+<span class="sd">         * effective_sequences</span>
+<span class="sd">         * [enrichment_file]</span>
+<span class="sd">         * focus_mode</span>
+<span class="sd">         * focus_sequence</span>
+<span class="sd">         * model_file</span>
+<span class="sd">         * num_sequences</span>
+<span class="sd">         * num_sites</span>
+<span class="sd">         * raw_ec_file</span>
+<span class="sd">         * region_start</span>
+<span class="sd">         * segments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PROTOCOLS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid protocol selection: &quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">. Valid protocols are: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">],</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PROTOCOLS</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">PROTOCOLS</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]](</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

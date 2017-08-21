@@ -10,6 +10,7 @@ import pickle, json, csv, os, shutil
 from os import path
 import jinja2
 
+
 class PersistentDict(dict):
     ''' Persistent dictionary with an API compatible with shelve and anydbm.
 
@@ -22,7 +23,7 @@ class PersistentDict(dict):
     Output file format is selectable between pickle, json, and csv.
     All three serialization formats are backed by fast C implementations.
 
-    https: // code.activestate.com / recipes / 576642 /
+    https://code.activestate.com/recipes/576642/
     '''
 
     def __init__(self, filename, flag='c', mode=None, format='json', *args, **kwds):
@@ -127,7 +128,10 @@ def range_overlap(a, b):
     """
     Source: http://stackoverflow.com/questions/2953967/
             built-in-function-for-computing-overlap-in-python
-    Note that ends of range are not inclusive
+
+    .. note::
+
+        Ends of range are not inclusive
 
     Parameters
     ----------

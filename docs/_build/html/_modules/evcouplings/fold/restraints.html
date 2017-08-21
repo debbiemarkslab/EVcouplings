@@ -1,0 +1,506 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.fold.restraints &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.fold.restraints</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.fold.restraints</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for generating distance restraints from</span>
+<span class="sd">evolutionary couplings and secondary structure predictions</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="k">import</span> <span class="n">resource_filename</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="n">read_config_file</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.constants</span> <span class="k">import</span> <span class="n">AA1_to_AA3</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="n">verify_resources</span>
+
+
+<span class="k">def</span> <span class="nf">_folding_config</span><span class="p">(</span><span class="n">config_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load CNS folding configuration</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    config_file: str, optional (default: None)</span>
+<span class="sd">        Path to configuration file. If None,</span>
+<span class="sd">        loads default configuration included</span>
+<span class="sd">        with package.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Loaded configuration</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">config_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># get path of config within package</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">resource_filename</span><span class="p">(</span>
+            <span class="vm">__name__</span><span class="p">,</span> <span class="s2">&quot;cns_templates/restraints.yml&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># check if config file exists and read</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Folding config file does not exist or is empty&quot;</span><span class="p">,</span> <span class="n">config_file</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">read_config_file</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="secstruct_dist_restraints"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.restraints.secstruct_dist_restraints">[docs]</a><span class="k">def</span> <span class="nf">secstruct_dist_restraints</span><span class="p">(</span><span class="n">residues</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span>
+                              <span class="n">restraint_formatter</span><span class="p">,</span> <span class="n">config_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">secstruct_column</span><span class="o">=</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create .tbl file with distance restraints</span>
+<span class="sd">    based on secondary structure prediction</span>
+
+<span class="sd">    Logic based on choose_CNS_constraint_set.m,</span>
+<span class="sd">    lines 519-1162</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    residues : pandas.DataFrame</span>
+<span class="sd">        Table containing positions (column i), residue</span>
+<span class="sd">        type (column A_i), and secondary structure for</span>
+<span class="sd">        each position</span>
+<span class="sd">    output_file : str</span>
+<span class="sd">        Path to file in which restraints will be saved</span>
+<span class="sd">    restraint_formatter : function</span>
+<span class="sd">        Function called to create string representation of restraint</span>
+<span class="sd">    config_file : str, optional (default: None)</span>
+<span class="sd">        Path to config file with folding settings. If None,</span>
+<span class="sd">        will use default settings included in package</span>
+<span class="sd">        (restraints.yml).</span>
+<span class="sd">    secstruct_column : str, optional (default: sec_struct_3state)</span>
+<span class="sd">        Column name in residues dataframe from which secondary</span>
+<span class="sd">        structure will be extracted (has to be H, E, or C).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_range_equal</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">char</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if secondary structure substring consists</span>
+<span class="sd">        of one secondary structure state</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">range_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">secstruct</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">range_str</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">range_str</span><span class="p">)</span> <span class="o">*</span> <span class="n">char</span>
+
+    <span class="c1"># get configuration (default or user-supplied)</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">_folding_config</span><span class="p">(</span><span class="n">config_file</span><span class="p">)[</span><span class="s2">&quot;secstruct_distance_restraints&quot;</span><span class="p">]</span>
+
+    <span class="c1"># extract amino acids and secondary structure into dictionary</span>
+    <span class="n">secstruct</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="n">residues</span><span class="p">[</span><span class="n">secstruct_column</span><span class="p">]))</span>
+    <span class="n">aa</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="n">residues</span><span class="o">.</span><span class="n">A_i</span><span class="p">))</span>
+
+    <span class="n">i_min</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">i_max</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="c1"># go through secondary structure elements</span>
+        <span class="k">for</span> <span class="n">sse</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="s2">&quot;strand&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;helix&quot;</span><span class="p">)]:</span>
+            <span class="c1"># get distance restraint subconfig for current</span>
+            <span class="c1"># secondary structure state</span>
+            <span class="n">sse_cfg</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+            <span class="c1"># define distance constraints based on increasing</span>
+            <span class="c1"># sequence distance, and test if the secondary structure</span>
+            <span class="c1"># element reaches out that far. Specific distance restraints</span>
+            <span class="c1"># are defined in config file for each sequence_dist</span>
+            <span class="k">for</span> <span class="n">seq_dist</span><span class="p">,</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">sse_cfg</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="c1"># now look at each position and the secondary</span>
+                <span class="c1"># structure upstream to define the appropriate restraints</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i_min</span><span class="p">,</span> <span class="n">i_max</span> <span class="o">-</span> <span class="n">seq_dist</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">j</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">seq_dist</span>
+                    <span class="c1"># test if upstream residues all have the</span>
+                    <span class="c1"># same secondary structure state</span>
+                    <span class="k">if</span> <span class="n">_range_equal</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">sse</span><span class="p">):</span>
+                        <span class="c1"># go through all atom pairs and put constraints on them</span>
+                        <span class="k">for</span> <span class="p">(</span><span class="n">atom1</span><span class="p">,</span> <span class="n">atom2</span><span class="p">),</span> <span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">range_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">atoms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="c1"># can&#39;t put CB restraint if residue is a glycine</span>
+                            <span class="k">if</span> <span class="p">((</span><span class="n">atom1</span> <span class="o">==</span> <span class="s2">&quot;CB&quot;</span> <span class="ow">and</span> <span class="n">aa</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;G&quot;</span><span class="p">)</span> <span class="ow">or</span>
+                                    <span class="p">(</span><span class="n">atom2</span> <span class="o">==</span> <span class="s2">&quot;CB&quot;</span> <span class="ow">and</span> <span class="n">aa</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;G&quot;</span><span class="p">)):</span>
+                                <span class="k">continue</span>
+
+                            <span class="c1"># write distance restraint</span>
+                            <span class="n">r</span> <span class="o">=</span> <span class="n">restraint_formatter</span><span class="p">(</span>
+                                <span class="n">i</span><span class="p">,</span> <span class="n">atom1</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">atom2</span><span class="p">,</span>
+                                <span class="n">dist</span><span class="o">=</span><span class="n">dist</span><span class="p">,</span>
+                                <span class="n">lower</span><span class="o">=</span><span class="n">range_</span><span class="p">,</span>
+                                <span class="n">upper</span><span class="o">=</span><span class="n">range_</span><span class="p">,</span>
+                                <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">,</span>
+                                <span class="n">comment</span><span class="o">=</span><span class="n">AA1_to_AA3</span><span class="p">[</span><span class="n">aa</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">AA1_to_AA3</span><span class="p">[</span><span class="n">aa</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+                            <span class="p">)</span>
+                            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="secstruct_angle_restraints"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.restraints.secstruct_angle_restraints">[docs]</a><span class="k">def</span> <span class="nf">secstruct_angle_restraints</span><span class="p">(</span><span class="n">residues</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span>
+                               <span class="n">restraint_formatter</span><span class="p">,</span> <span class="n">config_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">secstruct_column</span><span class="o">=</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create .tbl file with dihedral angle restraints</span>
+<span class="sd">    based on secondary structure prediction</span>
+
+<span class="sd">    Logic based on make_cns_angle_constraints.pl</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    residues : pandas.DataFrame</span>
+<span class="sd">        Table containing positions (column i), residue</span>
+<span class="sd">        type (column A_i), and secondary structure for</span>
+<span class="sd">        each position</span>
+<span class="sd">    output_file : str</span>
+<span class="sd">        Path to file in which restraints will be saved</span>
+<span class="sd">    restraint_formatter : function, optional</span>
+<span class="sd">        Function called to create string representation of restraint</span>
+<span class="sd">    config_file : str, optional (default: None)</span>
+<span class="sd">        Path to config file with folding settings. If None,</span>
+<span class="sd">        will use default settings included in package</span>
+<span class="sd">        (restraints.yml).</span>
+<span class="sd">    secstruct_column : str, optional (default: sec_struct_3state)</span>
+<span class="sd">        Column name in residues dataframe from which secondary</span>
+<span class="sd">        structure will be extracted (has to be H, E, or C).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_phi</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">sse</span><span class="p">):</span>
+        <span class="n">sse_cfg</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="n">sse</span><span class="p">][</span><span class="s2">&quot;phi&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">restraint_formatter</span><span class="p">(</span>
+            <span class="n">pos</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span>
+            <span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">,</span>
+            <span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;CA&quot;</span><span class="p">,</span>
+            <span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">sse_cfg</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_psi</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">sse</span><span class="p">):</span>
+        <span class="n">sse_cfg</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="n">sse</span><span class="p">][</span><span class="s2">&quot;psi&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">restraint_formatter</span><span class="p">(</span>
+            <span class="n">pos</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">,</span>
+            <span class="n">pos</span><span class="p">,</span> <span class="s2">&quot;CA&quot;</span><span class="p">,</span>
+            <span class="n">pos</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span>
+            <span class="n">pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">sse_cfg</span>
+        <span class="p">)</span>
+
+    <span class="c1"># get configuration (default or user-supplied)</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">_folding_config</span><span class="p">(</span><span class="n">config_file</span><span class="p">)[</span><span class="s2">&quot;secstruct_angle_restraints&quot;</span><span class="p">]</span>
+
+    <span class="c1"># extract amino acids and secondary structure into dictionary</span>
+    <span class="n">secstruct</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="n">residues</span><span class="p">[</span><span class="n">secstruct_column</span><span class="p">]))</span>
+    <span class="n">aa</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="n">residues</span><span class="o">.</span><span class="n">A_i</span><span class="p">))</span>
+
+    <span class="n">i_min</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">i_max</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="c1"># go through all positions</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i_min</span><span class="p">,</span> <span class="n">i_max</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="c1"># check if two subsequent identical secondary structure states</span>
+            <span class="c1"># helix</span>
+            <span class="k">if</span> <span class="n">secstruct</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span> <span class="ow">and</span> <span class="n">secstruct</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_phi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;helix&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;helix&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># strand</span>
+            <span class="k">elif</span> <span class="n">secstruct</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;E&quot;</span> <span class="ow">and</span> <span class="n">secstruct</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;E&quot;</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_phi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;strand&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_psi</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;strand&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ec_dist_restraints"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.restraints.ec_dist_restraints">[docs]</a><span class="k">def</span> <span class="nf">ec_dist_restraints</span><span class="p">(</span><span class="n">ec_pairs</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span>
+                       <span class="n">restraint_formatter</span><span class="p">,</span> <span class="n">config_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create .tbl file with distance restraints</span>
+<span class="sd">    based on evolutionary couplings</span>
+
+<span class="sd">    Logic based on choose_CNS_constraint_set.m,</span>
+<span class="sd">    lines 449-515</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ec_pairs : pandas.DataFrame</span>
+<span class="sd">        Table with EC pairs that will be turned</span>
+<span class="sd">        into distance restraints</span>
+<span class="sd">        (with columns i, j, A_i, A_j)</span>
+<span class="sd">    output_file : str</span>
+<span class="sd">        Path to file in which restraints will be saved</span>
+<span class="sd">    restraint_formatter : function</span>
+<span class="sd">        Function called to create string representation of restraint</span>
+<span class="sd">    config_file : str, optional (default: None)</span>
+<span class="sd">        Path to config file with folding settings. If None,</span>
+<span class="sd">        will use default settings included in package</span>
+<span class="sd">        (restraints.yml).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># get configuration (default or user-supplied)</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">_folding_config</span><span class="p">(</span><span class="n">config_file</span><span class="p">)[</span><span class="s2">&quot;pair_distance_restraints&quot;</span><span class="p">]</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="c1"># create distance restraints per EC row in table</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">ec</span> <span class="ow">in</span> <span class="n">ec_pairs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">aa_i</span><span class="p">,</span> <span class="n">aa_j</span> <span class="o">=</span> <span class="n">ec</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">],</span> <span class="n">ec</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">],</span> <span class="n">ec</span><span class="p">[</span><span class="s2">&quot;A_i&quot;</span><span class="p">],</span> <span class="n">ec</span><span class="p">[</span><span class="s2">&quot;A_j&quot;</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">type_</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;c_alpha&quot;</span><span class="p">,</span> <span class="s2">&quot;c_beta&quot;</span><span class="p">,</span> <span class="s2">&quot;tertiary_atom&quot;</span><span class="p">]:</span>
+                <span class="n">tcfg</span> <span class="o">=</span> <span class="n">cfg</span><span class="p">[</span><span class="n">type_</span><span class="p">]</span>
+
+                <span class="c1"># check if we want this type of restraint first</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">tcfg</span><span class="p">[</span><span class="s2">&quot;use&quot;</span><span class="p">]:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># restraint weighting: currently only support none,</span>
+                <span class="c1"># or fixed numerical value</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tcfg</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="c1"># TODO: implement restraint weighting functions eventually</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                        <span class="s2">&quot;Restraint weighting functions not yet implemented: &quot;</span> <span class="o">+</span>
+                        <span class="n">tcfg</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">weight</span> <span class="o">=</span> <span class="n">tcfg</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span>
+
+                <span class="c1"># determine which atoms to put restraint on</span>
+                <span class="c1"># can be residue-type specific dict or fixed value</span>
+                <span class="n">atoms</span> <span class="o">=</span> <span class="n">tcfg</span><span class="p">[</span><span class="s2">&quot;atoms&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">atom_i</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="n">aa_i</span><span class="p">]</span>
+                    <span class="n">atom_j</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="n">aa_j</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">atom_i</span> <span class="o">=</span> <span class="n">atoms</span>
+                    <span class="n">atom_j</span> <span class="o">=</span> <span class="n">atoms</span>
+
+                <span class="c1"># skip if we would put a CB restraint on glycine residues;</span>
+                <span class="c1"># this should be generalized to skip any invalid selection eventually</span>
+                <span class="k">if</span> <span class="p">((</span><span class="n">aa_i</span> <span class="o">==</span> <span class="s2">&quot;G&quot;</span> <span class="ow">and</span> <span class="n">atom_i</span> <span class="o">==</span> <span class="s2">&quot;CB&quot;</span><span class="p">)</span> <span class="ow">or</span>
+                        <span class="p">(</span><span class="n">aa_j</span> <span class="o">==</span> <span class="s2">&quot;G&quot;</span> <span class="ow">and</span> <span class="n">atom_j</span> <span class="o">==</span> <span class="s2">&quot;CB&quot;</span><span class="p">)):</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># write restraint</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">restraint_formatter</span><span class="p">(</span>
+                    <span class="n">i</span><span class="p">,</span> <span class="n">atom_i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">atom_j</span><span class="p">,</span>
+                    <span class="n">dist</span><span class="o">=</span><span class="n">tcfg</span><span class="p">[</span><span class="s2">&quot;dist&quot;</span><span class="p">],</span>
+                    <span class="n">lower</span><span class="o">=</span><span class="n">tcfg</span><span class="p">[</span><span class="s2">&quot;lower&quot;</span><span class="p">],</span>
+                    <span class="n">upper</span><span class="o">=</span><span class="n">tcfg</span><span class="p">[</span><span class="s2">&quot;upper&quot;</span><span class="p">],</span>
+                    <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">,</span>
+                    <span class="n">comment</span><span class="o">=</span><span class="n">AA1_to_AA3</span><span class="p">[</span><span class="n">aa_i</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">AA1_to_AA3</span><span class="p">[</span><span class="n">aa_j</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

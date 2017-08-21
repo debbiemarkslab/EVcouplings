@@ -45,14 +45,15 @@ def standard(**kwargs):
 
     Infer ECs from alignment using plmc.
 
-    # TODO:
-    (1) make EC enrichment calculation segment-ready
+    .. todo::
+
+        1. make EC enrichment calculation segment-ready
+        2. explain meaning of parameters in detail.
 
     Parameters
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-        (TODO: explain meaning of parameters in detail).
 
     Returns
     -------
@@ -60,15 +61,14 @@ def standard(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        raw_ec_file
-        model_file
-        num_sites
-        num_sequences
-        effective_sequences
-
-        focus_mode (passed through)
-        focus_sequence (passed through)
-        segments (passed through)
+        * raw_ec_file
+        * model_file
+        * num_sites
+        * num_sequences
+        * effective_sequences
+        * focus_mode (passed through)
+        * focus_sequence (passed through)
+        * segments (passed through)
     """
     check_required(
         kwargs,
@@ -322,15 +322,15 @@ def mean_field(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        raw_ec_file
-        model_file
-        num_sites
-        num_sequences
-        effective_sequences
+        * raw_ec_file
+        * model_file
+        * num_sites
+        * num_sequences
+        * effective_sequences
 
-        focus_mode (passed through)
-        focus_sequence (passed through)
-        segments (passed through)
+        * focus_mode (passed through)
+        * focus_sequence (passed through)
+        * segments (passed through)
     """
     check_required(
         kwargs,
@@ -522,20 +522,19 @@ def run(**kwargs):
     -------
     outcfg : dict
         Output configuration of couplings stage
-        Dictionary with results in following fields:
-        (in brackets: not mandatory)
+        Dictionary with results in following fields (in brackets: not mandatory):
 
-         ec_file
-         effective_sequences
-         [enrichment_file]
-         focus_mode
-         focus_sequence
-         model_file
-         num_sequences
-         num_sites
-         raw_ec_file
-         region_start
-         segments
+         * ec_file
+         * effective_sequences
+         * [enrichment_file]
+         * focus_mode
+         * focus_sequence
+         * model_file
+         * num_sequences
+         * num_sites
+         * raw_ec_file
+         * region_start
+         * segments
     """
     check_required(kwargs, ["protocol"])
 

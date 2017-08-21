@@ -1,12 +1,13 @@
 """
 Functions for handling evolutionary couplings data.
 
-TODO:
-(1) clean up
-(2) add Pompom score
-(3) add mapping tools (multidomain, complexes)
-(4) ECs to matrix
-(5) APC on subsets of positions (e.g. for complexes)
+.. todo::
+
+    1. clean up
+    2. add Pompom score
+    3. add mapping tools (multidomain, complexes)
+    4. ECs to matrix
+    5. APC on subsets of positions (e.g. for complexes)
 
 Authors:
   Thomas A. Hopf
@@ -63,8 +64,9 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     Calculate EC "enrichment" as first described in
     Hopf et al., Cell, 2012.
 
-    # TODO: make this handle segments if they are in
-            EC table
+    .. todo::
+
+        Make this handle segments if they are in EC table
 
     Parameters
     ----------
@@ -137,14 +139,15 @@ class LegacyScoreMixtureModel:
     Assign to each EC score the probability of being in the
     lognormal tail of a normal-lognormal mixture model.
 
-    Note: this is the original version of the score mixture model
-    with a normal distribution noise component, this has been
-    superseded by a model using a skew normal distribution
+    .. note::
+        this is the original version of the score mixture model
+        with a normal distribution noise component, this has been
+        superseded by a model using a skew normal distribution
     """
     def __init__(self, x, clamp_mu=False, max_fun=10000, max_iter=1000):
         """
         Mixture model of evolutionary coupling scores to
-        determine signifcant scores that are in high-scoring,
+        determine significant scores that are in high-scoring,
         positive tail of distribution.
 
         Parameters

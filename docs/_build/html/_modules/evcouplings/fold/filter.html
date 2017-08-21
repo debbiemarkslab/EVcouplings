@@ -1,0 +1,423 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.fold.filter &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.fold.filter</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.fold.filter</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for detecting ECs that should not be</span>
+<span class="sd">included in 3D structure prediction</span>
+
+<span class="sd">Most functions in this module are rewritten from</span>
+<span class="sd">older pipeline code in choose_CNS_constraint_set.m</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">xor</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+
+
+<div class="viewcode-block" id="detect_secstruct_clash"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.filter.detect_secstruct_clash">[docs]</a><span class="k">def</span> <span class="nf">detect_secstruct_clash</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">secstruct</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Detect if an EC pair (i, j) is geometrically</span>
+<span class="sd">    impossible given a predicted secondary structure</span>
+
+<span class="sd">    Based on direct port of the logic implemented in</span>
+<span class="sd">    choose_CNS_constraint_set.m from original pipeline,</span>
+<span class="sd">    lines 351-407.</span>
+
+<span class="sd">    Use secstruct_clashes() to annotate an entire</span>
+<span class="sd">    table of ECs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    i : int</span>
+<span class="sd">        Index of first position</span>
+<span class="sd">    j : int</span>
+<span class="sd">        Index of second position</span>
+<span class="sd">    secstruct : dict</span>
+<span class="sd">        Mapping from position (int) to secondary</span>
+<span class="sd">        structure (&quot;H&quot;, &quot;E&quot;, &quot;C&quot;)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    clashes : bool</span>
+<span class="sd">        True if (i, j) clashes with secondary</span>
+<span class="sd">        structure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># extract a secondary structure substring</span>
+    <span class="c1"># start and end are inclusive</span>
+    <span class="k">def</span> <span class="nf">_get_range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">secstruct</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_all_equal</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">char</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">string</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">string</span><span class="p">)</span> <span class="o">*</span> <span class="n">char</span>
+
+    <span class="c1"># get bigger and smaller of the two positions</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+
+    <span class="c1"># if pair too distant in primary sequence, do</span>
+    <span class="c1"># not consider for clash</span>
+    <span class="k">if</span> <span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">&gt;=</span> <span class="mi">15</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># get secondary structure in range between pairs</span>
+    <span class="n">secstruct_string</span> <span class="o">=</span> <span class="n">_get_range</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+    <span class="c1"># part 1: check for clashes based on alpha helices</span>
+    <span class="c1"># first check for helix between them, or both in a helix</span>
+    <span class="c1"># (or either one directly next to helix)</span>
+    <span class="k">if</span> <span class="n">_all_equal</span><span class="p">(</span><span class="n">_get_range</span><span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;H&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="c1"># of if just one of them is in a helix</span>
+    <span class="k">elif</span> <span class="n">xor</span><span class="p">(</span><span class="n">secstruct</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="n">secstruct</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span><span class="p">):</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="s2">&quot;H&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">h3</span> <span class="o">=</span> <span class="s2">&quot;H&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">h2</span> <span class="ow">in</span> <span class="n">secstruct_string</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">6</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">h3</span> <span class="ow">in</span> <span class="n">secstruct_string</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">11</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="c1"># part 2: check for clashes based on beta strands</span>
+    <span class="k">if</span> <span class="n">_all_equal</span><span class="p">(</span><span class="n">_get_range</span><span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;E&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="n">_all_equal</span><span class="p">(</span><span class="n">_get_range</span><span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span> <span class="s2">&quot;E&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">xor</span><span class="p">(</span><span class="n">secstruct</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="n">secstruct</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;E&quot;</span><span class="p">):</span>
+        <span class="n">e2</span> <span class="o">=</span> <span class="s2">&quot;E&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">e3</span> <span class="o">=</span> <span class="s2">&quot;E&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">e4</span> <span class="o">=</span> <span class="s2">&quot;E&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">-</span> <span class="mi">3</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">e2</span> <span class="ow">in</span> <span class="n">secstruct_string</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">e3</span> <span class="ow">in</span> <span class="n">secstruct_string</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">e4</span> <span class="ow">in</span> <span class="n">secstruct_string</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">b</span> <span class="o">-</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="secstruct_clashes"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.filter.secstruct_clashes">[docs]</a><span class="k">def</span> <span class="nf">secstruct_clashes</span><span class="p">(</span><span class="n">ec_pairs</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="s2">&quot;ss_clash&quot;</span><span class="p">,</span>
+                      <span class="n">secstruct_column</span><span class="o">=</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add secondary structure clashes to EC table</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ec_pairs : pandas.DataFrame</span>
+<span class="sd">        Table with EC pairs that will be tested</span>
+<span class="sd">        for clashes with secondary structure</span>
+<span class="sd">        (with columns i, j)</span>
+<span class="sd">    residues : pandas.DataFrame</span>
+<span class="sd">        Table with residues in sequence and their</span>
+<span class="sd">        secondary structure (columns i, ss_pred).</span>
+<span class="sd">    output_column : str, optional (default: &quot;secstruct_clash&quot;)</span>
+<span class="sd">        Target column indicating if pair is in a</span>
+<span class="sd">        clash or not</span>
+<span class="sd">    secstruct_column : str, optional (default: &quot;sec_struct_3state&quot;)</span>
+<span class="sd">        Source column in ec_pairs with secondary structure</span>
+<span class="sd">        states (H, E, C)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Annotated EC table with clashes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ec_pairs</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">ec_pairs</span><span class="p">)</span>
+    <span class="n">secstruct</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="n">residues</span><span class="p">[</span><span class="n">secstruct_column</span><span class="p">]))</span>
+
+    <span class="n">ec_pairs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">output_column</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">detect_secstruct_clash</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">],</span> <span class="n">secstruct</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">ec_pairs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">ec_pairs</span></div>
+
+
+<div class="viewcode-block" id="disulfide_clashes"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.filter.disulfide_clashes">[docs]</a><span class="k">def</span> <span class="nf">disulfide_clashes</span><span class="p">(</span><span class="n">ec_pairs</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="s2">&quot;cys_clash&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add disulfide bridge clashes to EC table (i.e. if</span>
+<span class="sd">    any cysteine residue is coupled to another cysteine).</span>
+<span class="sd">    This flag is necessary if disulfide bridges are created</span>
+<span class="sd">    during folding, since only one bridge is possible per</span>
+<span class="sd">    cysteine.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ec_pairs : pandas.DataFrame</span>
+<span class="sd">        Table with EC pairs that will be tested</span>
+<span class="sd">        for the occurrence of multiple cys-cys</span>
+<span class="sd">        pairings (with columns i, j, A_i, A_j)</span>
+<span class="sd">    output_column : str, optional (default: &quot;cys_clash&quot;)</span>
+<span class="sd">        Target column indicating if pair is in a</span>
+<span class="sd">        clash or not</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Annotated EC table with clashes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ec_pairs</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">ec_pairs</span><span class="p">)</span>
+
+    <span class="c1"># find all cys-cys pairs</span>
+    <span class="n">cys_pairs</span> <span class="o">=</span> <span class="n">ec_pairs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;A_i == &#39;C&#39; and A_j == &#39;C&#39;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># detect multiple occurrences of cysteine residues in</span>
+    <span class="c1"># cys-cys bridges</span>
+
+    <span class="n">paired</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">clashes</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># go through all cys-cys ECs</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cys_pairs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;j&quot;</span><span class="p">]</span>
+        <span class="c1"># have we seen either residue as paired before?</span>
+        <span class="c1"># if so, flag as a clash</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">paired</span> <span class="ow">or</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">paired</span><span class="p">:</span>
+            <span class="n">clashes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+
+        <span class="c1"># store that we have seen both residues in</span>
+        <span class="c1"># a pair</span>
+        <span class="n">paired</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">paired</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+
+    <span class="c1"># initialize output to no clash for all</span>
+    <span class="n">ec_pairs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">output_column</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># then set clash flag for detected clashes</span>
+    <span class="n">ec_pairs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">clashes</span><span class="p">,</span> <span class="n">output_column</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">ec_pairs</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

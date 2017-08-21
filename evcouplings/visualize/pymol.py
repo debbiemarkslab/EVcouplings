@@ -116,13 +116,16 @@ def pymol_pair_lines(pairs, output_file, chain=None, atom="CA", pair_prefix="ec"
         or writeable file handle)
     chain : str or dict(str -> str), optional (default: None)
         PDB chain(s) that should be targeted by line drawing
-        - If None, residues will be selected
+
+        * If None, residues will be selected
           py position alone, which may cause wrong assignments
           if multiple chains are present in the structure.
-        - Different chains can be assigned for each i and j,
+
+        * Different chains can be assigned for each i and j,
           if a dictionary that maps from segment (str) to PDB chain (str)
           is given. In this case, columns "segment_i" and "segment_j"
           must be present in the pairs dataframe.
+
     atom : str, optional (default: "CA")
         Put end of line on this atom in each residue
 
@@ -201,13 +204,18 @@ def pymol_mapping(mapping, output_file, chain=None, atom=None):
     ----------
     mapping : pandas.DataFrame
         Table of properties to map on residues.
+
         * positions in column "i"
+
         * color in column "color" (hexadecimal
-        color codes have to start with a "#",
-        and will be converted to Pymol format
-        starting with 0x automatically)
+          color codes have to start with a "#",
+          and will be converted to Pymol format
+          starting with 0x automatically)
+
         * display type in column "show"
+
         * b factor in column "b_factor"
+
     output_file : str or file-like
         Write Pymol script to this file (filename as string,
         or writeable file handle)

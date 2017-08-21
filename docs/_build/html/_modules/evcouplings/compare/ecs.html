@@ -1,0 +1,379 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.compare.ecs &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.compare.ecs</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.compare.ecs</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Compare evolutionary couplings to distances in 3D structures</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="add_distances"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.ecs.add_distances">[docs]</a><span class="k">def</span> <span class="nf">add_distances</span><span class="p">(</span><span class="n">ec_table</span><span class="p">,</span> <span class="n">dist_map</span><span class="p">,</span> <span class="n">target_column</span><span class="o">=</span><span class="s2">&quot;dist&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add pair distances to EC score table</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ec_table : pandas.DataFrame</span>
+<span class="sd">        List of evolutionary couplings, with pair</span>
+<span class="sd">        positions in columns i and j</span>
+<span class="sd">    dist_map : DistanceMap</span>
+<span class="sd">        Distance map that will be used to annotate</span>
+<span class="sd">        distances in ec_table</span>
+<span class="sd">    target_column : str</span>
+<span class="sd">        Name of column in which distances will be stored</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Couplings table with added distances</span>
+<span class="sd">        in target_column. Pairs where no distance</span>
+<span class="sd">        information is available will be np.nan</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ec_table</span> <span class="o">=</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">ec_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">target_column</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">dist_map</span><span class="o">.</span><span class="n">dist</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">raise_na</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ec_table</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">j</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">ec_table</span></div>
+
+
+<div class="viewcode-block" id="add_precision"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.ecs.add_precision">[docs]</a><span class="k">def</span> <span class="nf">add_precision</span><span class="p">(</span><span class="n">ec_table</span><span class="p">,</span> <span class="n">dist_cutoff</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">,</span>
+                  <span class="n">min_sequence_dist</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">target_column</span><span class="o">=</span><span class="s2">&quot;precision&quot;</span><span class="p">,</span>
+                  <span class="n">dist_column</span><span class="o">=</span><span class="s2">&quot;dist&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute precision of evolutionary couplings as predictor</span>
+<span class="sd">    of 3D structure contacts</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ec_table : pandas.DataFrame</span>
+<span class="sd">        List of evolutionary couplings</span>
+<span class="sd">    dist_cutoff : float, optional (default: 5)</span>
+<span class="sd">        Upper distance cutoff (in Angstrom) for a</span>
+<span class="sd">        pair to be considered a true positive contact</span>
+<span class="sd">    score : str, optional (default: &quot;cn&quot;)</span>
+<span class="sd">        Column which contains coupling score. Table will</span>
+<span class="sd">        be sorted in descending order by this score.</span>
+<span class="sd">    min_sequence_dist : int, optional (default: 6)</span>
+<span class="sd">        Minimal distance in primary sequence for an EC to</span>
+<span class="sd">        be included in precision calculation</span>
+<span class="sd">    target_column : str, optional (default: &quot;precision&quot;)</span>
+<span class="sd">        Name of column in which precision will be stored</span>
+<span class="sd">    dist_column : str, optional (default: &quot;dist&quot;)</span>
+<span class="sd">        Name of column which contains pair distances</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        EC table with added precision values as a</span>
+<span class="sd">        function of EC rank (returned table will be</span>
+<span class="sd">        sorted by score column)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># make sure list is sorted by score</span>
+    <span class="n">ec_table</span> <span class="o">=</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="n">score</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">min_sequence_dist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ec_table</span> <span class="o">=</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;abs(i - j) &gt;= @min_sequence_dist&quot;</span><span class="p">)</span>
+
+    <span class="n">ec_table</span> <span class="o">=</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># number of true positive contacts</span>
+    <span class="n">true_pos_count</span> <span class="o">=</span> <span class="p">(</span><span class="n">ec_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">dist_column</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">dist_cutoff</span><span class="p">)</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+
+    <span class="c1"># total number of contacts with specified distance</span>
+    <span class="n">pos_count</span> <span class="o">=</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">dist_column</span><span class="p">]</span><span class="o">.</span><span class="n">notnull</span><span class="p">()</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+
+    <span class="n">ec_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">target_column</span><span class="p">]</span> <span class="o">=</span> <span class="n">true_pos_count</span> <span class="o">/</span> <span class="n">pos_count</span>
+    <span class="k">return</span> <span class="n">ec_table</span></div>
+
+
+<div class="viewcode-block" id="coupling_scores_compared"><a class="viewcode-back" href="../../../evcouplings.compare.html#evcouplings.compare.ecs.coupling_scores_compared">[docs]</a><span class="k">def</span> <span class="nf">coupling_scores_compared</span><span class="p">(</span><span class="n">ec_table</span><span class="p">,</span> <span class="n">dist_map</span><span class="p">,</span> <span class="n">dist_map_multimer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                             <span class="n">dist_cutoff</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">output_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">,</span>
+                             <span class="n">min_sequence_dist</span><span class="o">=</span><span class="mi">6</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility function to create &quot;CouplingScores.csv&quot;-style</span>
+<span class="sd">    table</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ec_table : pandas.DataFrame</span>
+<span class="sd">        List of evolutionary couplings</span>
+<span class="sd">    dist_map : DistanceMap</span>
+<span class="sd">        Distance map that will be used to annotate</span>
+<span class="sd">        distances in ec_table</span>
+<span class="sd">    dist_map_multimer : DistanceMap, optional (default: None)</span>
+<span class="sd">        Additional multimer distance map. If given,</span>
+<span class="sd">        the distance for any EC pair will be the minimum</span>
+<span class="sd">        out of the monomer and multimer distances.</span>
+<span class="sd">    dist_cutoff : float, optional (default: 5)</span>
+<span class="sd">        Upper distance cutoff (in Angstrom) for a</span>
+<span class="sd">        pair to be considered a true positive contact</span>
+<span class="sd">    output_file : str, optional (default: None)</span>
+<span class="sd">        Store final table to this file</span>
+<span class="sd">    score : str, optional (default: &quot;cn&quot;)</span>
+<span class="sd">        Column which contains coupling score. Table will</span>
+<span class="sd">        be sorted in descending order by this score.</span>
+<span class="sd">    min_sequence_dist : int, optional (default: 6)</span>
+<span class="sd">        Minimal distance in primary sequence for an EC to</span>
+<span class="sd">        be included in precision calculation</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        EC table with added distances, and precision</span>
+<span class="sd">        if dist_cutoff is given.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dist_map_multimer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">add_distances</span><span class="p">(</span><span class="n">ec_table</span><span class="p">,</span> <span class="n">dist_map</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">add_distances</span><span class="p">(</span><span class="n">ec_table</span><span class="p">,</span> <span class="n">dist_map</span><span class="p">,</span> <span class="s2">&quot;dist_intra&quot;</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">add_distances</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dist_map_multimer</span><span class="p">,</span> <span class="s2">&quot;dist_multimer&quot;</span><span class="p">)</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;dist&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fmin</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">dist_intra</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dist_multimer</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">min_sequence_dist</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;abs(i - j) &gt;= @min_sequence_dist&quot;</span><span class="p">)</span>
+
+    <span class="c1"># if distance cutoff is given, add precision</span>
+    <span class="k">if</span> <span class="n">dist_cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">add_precision</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">dist_cutoff</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="n">score</span><span class="p">,</span>
+            <span class="n">min_sequence_dist</span><span class="o">=</span><span class="n">min_sequence_dist</span>
+        <span class="p">)</span>
+
+    <span class="c1"># also save to file if path is given</span>
+    <span class="k">if</span> <span class="n">output_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">x</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

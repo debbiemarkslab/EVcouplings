@@ -1,0 +1,402 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.complex.protocol &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.complex.protocol</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.complex.protocol</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Protocols for matching putatively interacting sequences</span>
+<span class="sd">in protein complexes to create a concatenated sequence</span>
+<span class="sd">alignment</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">  Anna G. Green</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.couplings.mapping</span> <span class="k">import</span> <span class="n">Segment</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">check_required</span><span class="p">,</span> <span class="n">InvalidParameterError</span><span class="p">,</span>
+    <span class="n">read_config_file</span><span class="p">,</span> <span class="n">write_config_file</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">create_prefix_folders</span><span class="p">,</span> <span class="n">valid_file</span><span class="p">,</span>
+    <span class="n">verify_resources</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="genome_distance"><a class="viewcode-back" href="../../../evcouplings.complex.html#evcouplings.complex.protocol.genome_distance">[docs]</a><span class="k">def</span> <span class="nf">genome_distance</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Protocol:</span>
+
+<span class="sd">    Concatenate alignments based on genomic distance</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        See list below in code where calling check_required</span>
+
+<span class="sd">        .. todo::</span>
+
+<span class="sd">            Explain meaning of parameters in detail.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of the pipeline, including</span>
+<span class="sd">        the following fields:</span>
+
+<span class="sd">        .. todo::</span>
+
+<span class="sd">            this is the full list normally returned by alignment protocol, decide which ones to keep.</span>
+<span class="sd">            Mandatory:</span>
+
+<span class="sd">            * alignment_file</span>
+<span class="sd">            * focus_sequence</span>
+<span class="sd">            * focus_mode</span>
+<span class="sd">            * segments</span>
+
+<span class="sd">        * alignment_file</span>
+<span class="sd">        * [raw_alignment_file]</span>
+<span class="sd">        * statistics_file</span>
+<span class="sd">        * target_sequence_file</span>
+<span class="sd">        * sequence_file</span>
+<span class="sd">        * [annotation_file]</span>
+<span class="sd">        * frequencies_file</span>
+<span class="sd">        * identities_file</span>
+<span class="sd">        * [hittable_file]</span>
+<span class="sd">        * focus_mode</span>
+<span class="sd">        * focus_sequence</span>
+<span class="sd">        * segments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;first_raw_focus_alignment_file&quot;</span><span class="p">,</span> <span class="s2">&quot;second_raw_focus_alignment_file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;first_focus_sequence&quot;</span><span class="p">,</span> <span class="s2">&quot;second_focus_sequence&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;first_focus_mode&quot;</span><span class="p">,</span> <span class="s2">&quot;second_focus_mode&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;first_segments&quot;</span><span class="p">,</span> <span class="s2">&quot;second_segments&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="c1"># make sure input alignments</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Input alignment does not exist&quot;</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;first_alignment_file&quot;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;second_alignment_file&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------</span>
+    <span class="c1"># TODO: implement concatenation functionality and</span>
+    <span class="c1"># postprocessing functionality here</span>
+    <span class="c1"># -------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">_modify_segments</span><span class="p">(</span><span class="n">seg_list</span><span class="p">,</span> <span class="n">seg_prefix</span><span class="p">):</span>
+        <span class="c1"># extract segments from list representation into objects</span>
+        <span class="n">segs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Segment</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">seg_list</span>
+        <span class="p">]</span>
+        <span class="c1"># update segment IDs</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">segs</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">segment_id</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">seg_prefix</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">segs</span>
+
+    <span class="c1"># merge segments - this allows to have more than one segment per</span>
+    <span class="c1"># &quot;monomer&quot; alignment</span>
+    <span class="n">segments_1</span> <span class="o">=</span> <span class="n">_modify_segments</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;first_segments&quot;</span><span class="p">],</span> <span class="s2">&quot;A&quot;</span><span class="p">)</span>
+    <span class="n">segments_2</span> <span class="o">=</span> <span class="n">_modify_segments</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;second_segments&quot;</span><span class="p">],</span> <span class="s2">&quot;B&quot;</span><span class="p">)</span>
+    <span class="n">segments_complex</span> <span class="o">=</span> <span class="n">segments_1</span> <span class="o">+</span> <span class="n">segments_2</span>
+
+    <span class="c1"># make sure we return all the necessary information:</span>
+    <span class="c1"># * alignment_file: final concatenated alignment that will go into plmc</span>
+    <span class="c1"># * focus_sequence: this is the identifier of the concatenated target</span>
+    <span class="c1">#   sequence which will be passed into plmc with -f</span>
+
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;alignment_file&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># TODO: specify</span>
+        <span class="s2">&quot;focus_mode&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;focus_sequence&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># TODO: specify</span>
+        <span class="s2">&quot;segments&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">segments_complex</span><span class="p">],</span>
+        <span class="c1"># optional but good to have:</span>
+        <span class="s2">&quot;num_sites&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;num_sequences&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="c1"># &quot;effective_sequences&quot;: n_eff # TODO: could compute this like in align stage</span>
+        <span class="c1"># TODO: there are more outputs that we could add here (not mandatory),</span>
+        <span class="c1"># e.g. single column frequencies in concatenated alignment</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">outcfg</span></div>
+
+
+<span class="c1"># list of available EC inference protocols</span>
+<span class="n">PROTOCOLS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># concatenate based on genomic distance (&quot;operon-based&quot;)</span>
+    <span class="s2">&quot;genome_distance&quot;</span><span class="p">:</span> <span class="n">genome_distance</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../evcouplings.complex.html#evcouplings.complex.protocol.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run alignment concatenation protocol</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        protocol: concatenation protocol to run</span>
+<span class="sd">        prefix: Output prefix for all generated files</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of concatenation stage</span>
+<span class="sd">        Dictionary with results in following fields (in brackets: not mandatory):</span>
+
+<span class="sd">        .. todo::</span>
+
+<span class="sd">            to be finalized after implementing protocols</span>
+
+<span class="sd">        * alignment_file</span>
+<span class="sd">        * focus_mode</span>
+<span class="sd">        * focus_sequence</span>
+<span class="sd">        * segments</span>
+<span class="sd">        * num_sites</span>
+<span class="sd">        * num_sequences</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PROTOCOLS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid protocol selection: &quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">. Valid protocols are: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">],</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PROTOCOLS</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">PROTOCOLS</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]](</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

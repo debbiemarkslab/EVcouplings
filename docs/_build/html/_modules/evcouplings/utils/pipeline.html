@@ -1,0 +1,742 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.utils.pipeline &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.utils.pipeline</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.utils.pipeline</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Pipelining of different stages of method</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># chose backend for command-line usage</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="k">import</span> <span class="n">path</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">tarfile</span>
+
+<span class="kn">import</span> <span class="nn">click</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">read_config_file</span><span class="p">,</span> <span class="n">check_required</span><span class="p">,</span> <span class="n">write_config_file</span><span class="p">,</span>
+    <span class="n">InvalidParameterError</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">create_prefix_folders</span><span class="p">,</span> <span class="n">insert_dir</span><span class="p">,</span> <span class="n">verify_resources</span><span class="p">,</span>
+    <span class="n">valid_file</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.database</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">update_job_status</span><span class="p">,</span> <span class="n">EStatus</span>
+<span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">evcouplings.align.protocol</span> <span class="k">as</span> <span class="nn">ap</span>
+<span class="kn">import</span> <span class="nn">evcouplings.couplings.protocol</span> <span class="k">as</span> <span class="nn">cp</span>
+<span class="kn">import</span> <span class="nn">evcouplings.compare.protocol</span> <span class="k">as</span> <span class="nn">cm</span>
+<span class="kn">import</span> <span class="nn">evcouplings.mutate.protocol</span> <span class="k">as</span> <span class="nn">mt</span>
+<span class="kn">import</span> <span class="nn">evcouplings.fold.protocol</span> <span class="k">as</span> <span class="nn">fd</span>
+<span class="kn">import</span> <span class="nn">evcouplings.complex.protocol</span> <span class="k">as</span> <span class="nn">pp</span>
+
+<span class="c1"># supported pipelines</span>
+<span class="c1">#</span>
+<span class="c1"># stages are defined by:</span>
+<span class="c1"># 1) name of stage</span>
+<span class="c1"># 2) function to execute for stage</span>
+<span class="c1"># 3) key prefix (to avoid name collisions</span>
+<span class="c1">#    of output fields if same stage is run</span>
+<span class="c1">#    multiple times, e.g. 2 alignments for</span>
+<span class="c1">#    complexes)</span>
+<span class="n">PIPELINES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;protein_monomer&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;align&quot;</span><span class="p">,</span> <span class="n">ap</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;couplings&quot;</span><span class="p">,</span> <span class="n">cp</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;compare&quot;</span><span class="p">,</span> <span class="n">cm</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;mutate&quot;</span><span class="p">,</span> <span class="n">mt</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;fold&quot;</span><span class="p">,</span> <span class="n">fd</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;protein_complex&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;align_1&quot;</span><span class="p">,</span> <span class="n">ap</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="s2">&quot;first_&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;align_2&quot;</span><span class="p">,</span> <span class="n">ap</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="s2">&quot;second_&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;concatenate&quot;</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;couplings&quot;</span><span class="p">,</span> <span class="n">cp</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+
+<span class="c1"># suffix of file containing final output configuration of pipeline</span>
+<span class="n">FINAL_CONFIG_SUFFIX</span> <span class="o">=</span> <span class="s2">&quot;_final.outcfg&quot;</span>
+
+<span class="c1"># suffix of file that will be generated if execution</span>
+<span class="c1"># is terminated externally (SIGINT, SIGTERM, ...)</span>
+<span class="n">EXTENSION_TERMINATED</span> <span class="o">=</span> <span class="s2">&quot;.terminated&quot;</span>
+
+<span class="c1"># suffix of file that will be generated if execution</span>
+<span class="c1"># fails internally (i.e. exception is raised)</span>
+<span class="n">EXTENSION_FAILED</span> <span class="o">=</span> <span class="s2">&quot;.failed&quot;</span>
+
+<span class="c1"># suffix of file that will be generated if execution</span>
+<span class="c1"># runs through sucessfully</span>
+<span class="n">EXTENSION_DONE</span> <span class="o">=</span> <span class="s2">&quot;.done&quot;</span>
+
+
+<div class="viewcode-block" id="execute"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.pipeline.execute">[docs]</a><span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute a pipeline configuration</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    **config</span>
+<span class="sd">        Input configuration for pipeline</span>
+<span class="sd">        (see pipeline config files for</span>
+<span class="sd">        example of how this should look like)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    global_state : dict</span>
+<span class="sd">        Global output state of pipeline</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">config</span><span class="p">,</span>
+        <span class="p">[</span><span class="s2">&quot;pipeline&quot;</span><span class="p">,</span> <span class="s2">&quot;stages&quot;</span><span class="p">,</span> <span class="s2">&quot;global&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># check if valid pipeline was selected</span>
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;pipeline&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PIPELINES</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Not a valid pipeline selection. &quot;</span>
+            <span class="s2">&quot;Valid choices are:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PIPELINES</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">stages</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;stages&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">stages</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;No stages defined, need at least one.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># get definition of selected pipeline</span>
+    <span class="n">pipeline</span> <span class="o">=</span> <span class="n">PIPELINES</span><span class="p">[</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;pipeline&quot;</span><span class="p">]]</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># this is the global state of results as</span>
+    <span class="c1"># we move through different stages of</span>
+    <span class="c1"># the pipeline</span>
+    <span class="n">global_state</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">]</span>
+
+    <span class="c1"># keep track of how many stages are still</span>
+    <span class="c1"># to be run, so we can leave out stages at</span>
+    <span class="c1"># the end of workflow below</span>
+    <span class="n">num_stages_to_run</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">stages</span><span class="p">)</span>
+
+    <span class="c1"># set job status to running</span>
+    <span class="n">update_job_status</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span><span class="p">)</span>
+
+    <span class="c1"># iterate through individual stages</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="n">runner</span><span class="p">,</span> <span class="n">key_prefix</span><span class="p">)</span> <span class="ow">in</span> <span class="n">pipeline</span><span class="p">:</span>
+        <span class="c1"># check if anything else is left to</span>
+        <span class="c1"># run, otherwise skip</span>
+        <span class="k">if</span> <span class="n">num_stages_to_run</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">break</span>
+
+        <span class="c1"># check if config for stage is there</span>
+        <span class="n">check_required</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="n">stage</span><span class="p">])</span>
+
+        <span class="c1"># output files for stage into an individual folder</span>
+        <span class="n">stage_prefix</span> <span class="o">=</span> <span class="n">insert_dir</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">stage</span><span class="p">)</span>
+        <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">stage_prefix</span><span class="p">)</span>
+
+        <span class="c1"># config files for input and output of stage</span>
+        <span class="n">stage_incfg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.incfg&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">stage_prefix</span><span class="p">,</span> <span class="n">stage</span><span class="p">)</span>
+        <span class="n">stage_outcfg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.outcfg&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">stage_prefix</span><span class="p">,</span> <span class="n">stage</span><span class="p">)</span>
+
+        <span class="c1"># update current stage of job</span>
+        <span class="n">update_job_status</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="n">stage</span><span class="p">)</span>
+
+        <span class="c1"># check if stage should be executed</span>
+        <span class="k">if</span> <span class="n">stage</span> <span class="ow">in</span> <span class="n">stages</span><span class="p">:</span>
+            <span class="c1"># global state inserted at end, overrides any</span>
+            <span class="c1"># stage-specific settings (except for custom prefix)</span>
+            <span class="n">incfg</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="o">**</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;tools&quot;</span><span class="p">],</span>
+                <span class="o">**</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;databases&quot;</span><span class="p">],</span>
+                <span class="o">**</span><span class="n">config</span><span class="p">[</span><span class="n">stage</span><span class="p">],</span>
+                <span class="o">**</span><span class="n">global_state</span><span class="p">,</span>
+                <span class="s2">&quot;prefix&quot;</span><span class="p">:</span> <span class="n">stage_prefix</span>
+            <span class="p">}</span>
+            <span class="c1"># save input of stage in config file</span>
+            <span class="n">write_config_file</span><span class="p">(</span><span class="n">stage_incfg</span><span class="p">,</span> <span class="n">incfg</span><span class="p">)</span>
+
+            <span class="c1"># run stage</span>
+            <span class="n">outcfg</span> <span class="o">=</span> <span class="n">runner</span><span class="p">(</span><span class="o">**</span><span class="n">incfg</span><span class="p">)</span>
+
+            <span class="c1"># prefix output keys if this parameter is</span>
+            <span class="c1"># given in stage configuration, to avoid</span>
+            <span class="c1"># name clashes if same protocol run multiple times</span>
+            <span class="k">if</span> <span class="n">key_prefix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">key_prefix</span> <span class="o">+</span> <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">outcfg</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+
+            <span class="c1"># save output of stage in config file</span>
+            <span class="n">write_config_file</span><span class="p">(</span><span class="n">stage_outcfg</span><span class="p">,</span> <span class="n">outcfg</span><span class="p">)</span>
+
+            <span class="c1"># one less stage to put through after we ran this...</span>
+            <span class="n">num_stages_to_run</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># skip state by injecting state from previous run</span>
+            <span class="n">verify_resources</span><span class="p">(</span>
+                <span class="s2">&quot;Trying to skip, but output configuration &quot;</span>
+                <span class="s2">&quot;for stage &#39;</span><span class="si">{}</span><span class="s2">&#39; does not exist. Has it already &quot;</span>
+                <span class="s2">&quot;been run?&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="n">stage</span><span class="p">),</span>
+                <span class="n">stage_outcfg</span>
+            <span class="p">)</span>
+
+            <span class="c1"># read output configuration</span>
+            <span class="n">outcfg</span> <span class="o">=</span> <span class="n">read_config_file</span><span class="p">(</span><span class="n">stage_outcfg</span><span class="p">)</span>
+
+            <span class="c1"># verify all the output files are there</span>
+            <span class="n">outfiles</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">filepath</span> <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">filepath</span> <span class="ow">in</span> <span class="n">outcfg</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_file&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">filepath</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">]</span>
+
+            <span class="n">verify_resources</span><span class="p">(</span>
+                <span class="s2">&quot;Output files from stage &#39;</span><span class="si">{}</span><span class="s2">&#39; &quot;</span>
+                <span class="s2">&quot;missing&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">stage</span><span class="p">),</span>
+                <span class="o">*</span><span class="n">outfiles</span>
+            <span class="p">)</span>
+
+        <span class="c1"># update global state with outputs of stage</span>
+        <span class="n">global_state</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">global_state</span><span class="p">,</span> <span class="o">**</span><span class="n">outcfg</span><span class="p">}</span>
+
+    <span class="c1"># create results archive</span>
+    <span class="n">archive_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.tar.gz&quot;</span>
+    <span class="n">create_archive</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">global_state</span><span class="p">,</span> <span class="n">archive_file</span><span class="p">)</span>
+    <span class="n">global_state</span><span class="p">[</span><span class="s2">&quot;archive_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">archive_file</span>
+
+    <span class="c1"># delete selected output files if requested</span>
+    <span class="n">global_state</span> <span class="o">=</span> <span class="n">delete_outputs</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">global_state</span><span class="p">)</span>
+
+    <span class="c1"># write final global state of pipeline</span>
+    <span class="n">write_config_file</span><span class="p">(</span>
+        <span class="n">prefix</span> <span class="o">+</span> <span class="n">FINAL_CONFIG_SUFFIX</span><span class="p">,</span> <span class="n">global_state</span>
+    <span class="p">)</span>
+
+    <span class="c1"># set job status to done</span>
+    <span class="n">update_job_status</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">EStatus</span><span class="o">.</span><span class="n">DONE</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">global_state</span></div>
+
+
+<div class="viewcode-block" id="create_archive"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.pipeline.create_archive">[docs]</a><span class="k">def</span> <span class="nf">create_archive</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">outcfg</span><span class="p">,</span> <span class="n">output_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create archive of files generated by pipeline</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    config : dict-like</span>
+<span class="sd">        Input configuration of job. Uses </span>
+<span class="sd">        config[&quot;management&quot;][&quot;archive&quot;] (list of key </span>
+<span class="sd">        used to index outcfg) to determine</span>
+<span class="sd">        which files should be added to archive</span>
+<span class="sd">    outcfg : dict-like</span>
+<span class="sd">        Output configuration of job</span>
+<span class="sd">    output_file : str</span>
+<span class="sd">        Store archive file to this path</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># determine keys (corresponding to files) in</span>
+    <span class="c1"># outcfg that should be stored</span>
+    <span class="n">outkeys</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;management&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;archive&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># if no output keys are requested, nothing to do</span>
+    <span class="k">if</span> <span class="n">outkeys</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">outkeys</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="c1"># create archive</span>
+    <span class="k">with</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w:gz&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tar</span><span class="p">:</span>
+        <span class="c1"># add files based on keys one by one</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">outkeys</span><span class="p">:</span>
+            <span class="c1"># skip missing keys or ones not defined</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">outcfg</span> <span class="ow">or</span> <span class="n">outcfg</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># distinguish between files and lists of files</span>
+            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;files&quot;</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">outcfg</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+                        <span class="n">tar</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="n">k</span><span class="p">]):</span>
+                    <span class="n">tar</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="n">k</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="delete_outputs"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.pipeline.delete_outputs">[docs]</a><span class="k">def</span> <span class="nf">delete_outputs</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">outcfg</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove pipeline outputs to save memory</span>
+<span class="sd">    after running the job</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    config : dict-like</span>
+<span class="sd">        Input configuration of job. Uses </span>
+<span class="sd">        config[&quot;management&quot;][&quot;delete&quot;] (list of key </span>
+<span class="sd">        used to index outcfg) to determine</span>
+<span class="sd">        which files should be added to archive</span>
+<span class="sd">    outcfg : dict-like</span>
+<span class="sd">        Output configuration of job</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg_cleaned : dict-like</span>
+<span class="sd">        Output configuration with selected</span>
+<span class="sd">        output keys removed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># determine keys (corresponding to files) in</span>
+    <span class="c1"># outcfg that should be stored</span>
+    <span class="n">outkeys</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;management&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># if no output keys are requested, nothing to do</span>
+    <span class="k">if</span> <span class="n">outkeys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">outcfg</span>
+
+    <span class="c1"># go through all flagged files and delete if existing</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">outkeys</span><span class="p">:</span>
+        <span class="c1"># skip missing keys or ones not defined</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">outcfg</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># delete list of files</span>
+        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;files&quot;</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">outcfg</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">del</span> <span class="n">outcfg</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="c1"># delete individual file</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                <span class="k">del</span> <span class="n">outcfg</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">outcfg</span></div>
+
+
+<div class="viewcode-block" id="verify_prefix"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.pipeline.verify_prefix">[docs]</a><span class="k">def</span> <span class="nf">verify_prefix</span><span class="p">(</span><span class="n">verify_subdir</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check if configuration contains a prefix,</span>
+<span class="sd">    and that prefix is a valid directory we</span>
+<span class="sd">    can write to on the filesystem</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    verify_subdir : bool, optional (default: True)</span>
+<span class="sd">        Check if we can create subdirectory containing</span>
+<span class="sd">        full prefix. Set this to False for outer evcouplings</span>
+<span class="sd">        app loop.</span>
+<span class="sd">    **config</span>
+<span class="sd">        Input configuration for pipeline</span>
+<span class="sd">        </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    prefix : str</span>
+<span class="sd">        Verified prefix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># check we have a prefix entry, otherwise all hope is lost...</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Configuration does not include &#39;prefix&#39; setting in &quot;</span>
+            <span class="s2">&quot;&#39;global&#39; section&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># make sure prefix is also specified</span>
+    <span class="k">if</span> <span class="n">prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;&#39;prefix&#39; must be specified and cannot be None&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># verify that prefix is workable in terms</span>
+    <span class="c1"># of filesystem</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># make prefix folder</span>
+        <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+        <span class="c1"># try if we can write in the folder</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.test__&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="c1"># get rid of the file again</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.test__&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">verify_subdir</span><span class="p">:</span>
+            <span class="c1"># make sure we can create a subdirectory</span>
+            <span class="n">sub_prefix</span> <span class="o">=</span> <span class="n">insert_dir</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="s2">&quot;test__&quot;</span><span class="p">)</span>
+            <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">sub_prefix</span><span class="p">)</span>
+
+            <span class="c1"># remove again</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rmdir</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sub_prefix</span><span class="p">))</span>
+
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Not a valid prefix: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+    <span class="k">return</span> <span class="n">prefix</span></div>
+
+
+<div class="viewcode-block" id="execute_wrapped"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.pipeline.execute_wrapped">[docs]</a><span class="k">def</span> <span class="nf">execute_wrapped</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute a pipeline configuration in &quot;wrapped&quot;</span>
+<span class="sd">    mode that handles external interruptions and</span>
+<span class="sd">    exceptions and documents these using files</span>
+<span class="sd">    (.finished, .terminated, .failed), as well</span>
+<span class="sd">    as documenting failure in a job database</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    **config</span>
+<span class="sd">        Input configuration for pipeline</span>
+<span class="sd">        (see pipeline config files for</span>
+<span class="sd">        example of how this should look like)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Global output state of pipeline</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># make sure the prefix in configuration is valid</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">verify_prefix</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">update_job_status</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">EStatus</span><span class="o">.</span><span class="n">TERM</span><span class="p">)</span>
+        <span class="k">raise</span>
+
+    <span class="c1"># delete terminated/failed flags from previous</span>
+    <span class="c1"># executions of pipeline</span>
+    <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="n">EXTENSION_FAILED</span><span class="p">,</span> <span class="n">EXTENSION_TERMINATED</span><span class="p">,</span> <span class="n">EXTENSION_DONE</span><span class="p">,</span>
+    <span class="p">]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">ext</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="c1"># handler for external interruptions</span>
+    <span class="c1"># (needs config for database access)</span>
+    <span class="k">def</span> <span class="nf">_handler</span><span class="p">(</span><span class="n">signal_</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+        <span class="c1"># set job status to terminated in database</span>
+        <span class="n">update_job_status</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">EStatus</span><span class="o">.</span><span class="n">TERM</span><span class="p">)</span>
+
+        <span class="c1"># create file flag that job was terminated</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.terminated&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;SIGNAL: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">signal_</span><span class="p">))</span>
+
+        <span class="c1"># terminate program</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># set up handlers for job termination</span>
+    <span class="c1"># (note that this list may not be complete and may</span>
+    <span class="c1"># need extension for other computing environments)</span>
+    <span class="k">for</span> <span class="n">sig</span> <span class="ow">in</span> <span class="p">[</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGUSR1</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGUSR2</span><span class="p">]:</span>
+        <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">_handler</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># execute configuration</span>
+        <span class="n">outcfg</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="c1"># if we made it here, job was sucessfully run to completing</span>
+        <span class="c1"># create file flag that job was terminated</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.finished&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">outcfg</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">outcfg</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># set status in database to failed</span>
+        <span class="n">update_job_status</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">EStatus</span><span class="o">.</span><span class="n">FAIL</span><span class="p">)</span>
+
+        <span class="c1"># create failed file flag</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.failed&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+
+        <span class="c1"># raise exception again after we updated status</span>
+        <span class="k">raise</span></div>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.pipeline.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    EVcouplings pipeline execution from a</span>
+<span class="sd">    configuration file (single thread, no</span>
+<span class="sd">    batch or environment configuration)</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    kwargs</span>
+<span class="sd">        See click.option decorators for app()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;config&quot;</span><span class="p">]</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Config file does not exist or is empty.&quot;</span><span class="p">,</span>
+        <span class="n">config_file</span>
+    <span class="p">)</span>
+
+    <span class="c1"># read configuration and execute</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">read_config_file</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+    <span class="c1"># execute configuration in &quot;wrapped&quot; mode</span>
+    <span class="c1"># that handles exceptions and internal interrupts</span>
+    <span class="k">return</span> <span class="n">execute_wrapped</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">)</span></div>
+
+
+<span class="n">CONTEXT_SETTINGS</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">help_option_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;-h&#39;</span><span class="p">,</span> <span class="s1">&#39;--help&#39;</span><span class="p">])</span>
+
+
+<span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="n">context_settings</span><span class="o">=</span><span class="n">CONTEXT_SETTINGS</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s1">&#39;config&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">app</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Command line app entry point</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># execute configuration file</span>
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># print final result configuration to stdout</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">outcfg</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">app</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

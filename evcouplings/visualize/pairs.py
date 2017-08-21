@@ -61,13 +61,15 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
     boundaries : {"union", "intersection", "ecs", "structure"} or tuple
              or list(tuple, tuple)
         Set axis range (min/max) of contact map as follows:
-        - "union": Positions either in ECs or 3D structure
-        - "intersection": Positions both in ECs and 3D structure
-        - "ecs": Positions in ECs
-        - "structure": Positions in 3D structure
-        - tuple(float, float): Specify upper/lower bound manually
-        - [(float, float), (float, float)]: Specify upper/lower bounds
+
+        * "union": Positions either in ECs or 3D structure
+        * "intersection": Positions both in ECs and 3D structure
+        * "ecs": Positions in ECs
+        * "structure": Positions in 3D structure
+        * tuple(float, float): Specify upper/lower bound manually
+        * [(float, float), (float, float)]: Specify upper/lower bounds
           for both x-axis (first tuple) and y-axis (second tuple)
+
     ecs : pandas.DataFrame
         Table of evolutionary couplings to plot (using columns
         "i" and "j")
@@ -235,16 +237,17 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     invert_y : bool, optional (default: True)
         Invert the y axis of the contact map so both sequences
         run from N -to C- terminus starting from top left corner
-    boundaries : {"union", "intersection", "ecs", "structure"} or tuple
-                 or list(tuple, tuple), optional (default: "union")
+    boundaries : {"union", "intersection", "ecs", "structure"} or tuple or list(tuple, tuple), optional (default: "union")
         Set axis range (min/max) of contact map as follows:
-        - "union": Positions either in ECs or 3D structure
-        - "intersection": Positions both in ECs and 3D structure
-        - "ecs": Positions in ECs
-        - "structure": Positions in 3D structure
-        - tuple(float, float): Specify upper/lower bound manually
-        - [(float, float), (float, float)]: Specify upper/lower bounds
+
+        * "union": Positions either in ECs or 3D structure
+        * "intersection": Positions both in ECs and 3D structure
+        * "ecs": Positions in ECs
+        * "structure": Positions in 3D structure
+        * tuple(float, float): Specify upper/lower bound manually
+        * [(float, float), (float, float)]: Specify upper/lower bounds
           for both x-axis (first tuple) and y-axis (second tuple)
+
     symmetric : bool, optional (default: True)
         Sets if distance maps and ECs are symmetric (intra-chain or homomultimer),
         or not (inter-chain).
@@ -867,9 +870,10 @@ def find_secondary_structure_segments(sse_string, offset=0):
         Index of last position
     segments : list
         List of tuples with the following elements:
-        1) secondary structure element (str)
-        2) start position of segment (int)
-        3) end position of segment, exlusive (int)
+
+        1. secondary structure element (str)
+        2. start position of segment (int)
+        3. end position of segment, exlusive (int)
     """
     if len(sse_string) < 1:
         raise ValueError("Secondary structure string must have length > 0.")

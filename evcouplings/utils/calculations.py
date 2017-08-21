@@ -97,8 +97,7 @@ def dihedral_angle(p0, p1, p2, p3):
     Compute dihedral angle given four points
     
     Adapted from the following source:
-    http://stackoverflow.com/questions/20305272/
-     dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python 
+    http://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python
     (answer by user Praxeolitic)
     
     Parameters

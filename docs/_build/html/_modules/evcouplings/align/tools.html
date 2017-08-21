@@ -1,0 +1,688 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.align.tools &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.align.tools</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.align.tools</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Wrappers for running external sequence alignment tools</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">run</span><span class="p">,</span> <span class="n">create_prefix_folders</span><span class="p">,</span> <span class="n">verify_resources</span><span class="p">,</span> <span class="n">temp</span>
+<span class="p">)</span>
+
+<span class="c1"># output fields for storing results of a jackhmmer run</span>
+<span class="c1"># (returned by run_jackhmmer)</span>
+<span class="n">JackhmmerResult</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s2">&quot;JackhmmerResult&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;alignment&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;tblout&quot;</span><span class="p">,</span> <span class="s2">&quot;domtblout&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="run_jackhmmer"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.tools.run_jackhmmer">[docs]</a><span class="k">def</span> <span class="nf">run_jackhmmer</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span>
+                  <span class="n">use_bitscores</span><span class="p">,</span> <span class="n">domain_threshold</span><span class="p">,</span> <span class="n">seq_threshold</span><span class="p">,</span>
+                  <span class="n">iterations</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">nobias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cpu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">stdout_redirect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoints_hmm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">checkpoints_ali</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="s2">&quot;jackhmmer&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run jackhmmer sequence search against target database.</span>
+<span class="sd">    Refer to HMMER Userguide for explanation of these parameters.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    query : str</span>
+<span class="sd">        File containing query sequence</span>
+<span class="sd">    database : str</span>
+<span class="sd">        File containing sequence database</span>
+<span class="sd">    prefix : str</span>
+<span class="sd">        Prefix path for output files. Folder structure in</span>
+<span class="sd">        the prefix will be created if not existing.</span>
+<span class="sd">    use_bitscores : bool</span>
+<span class="sd">        Use bitscore inclusion thresholds rather than E-values.</span>
+<span class="sd">    domain_threshold : int or float or str</span>
+<span class="sd">        Inclusion threshold applied on the domain level</span>
+<span class="sd">        (e.g. &quot;1E-03&quot; or 0.001 or 50)</span>
+<span class="sd">    seq_threshold : int or float or str</span>
+<span class="sd">        Inclusion threshold applied on the sequence level</span>
+<span class="sd">        (e.g. &quot;1E-03&quot; or 0.001 or 50)</span>
+<span class="sd">    iterations : int</span>
+<span class="sd">        number of jackhmmer search iterations</span>
+<span class="sd">    nobias : bool, optional (default: False)</span>
+<span class="sd">        Turn of bias correction</span>
+<span class="sd">    cpu : int, optional (default: None)</span>
+<span class="sd">        Number of CPUs to use for search. Uses all if None.</span>
+<span class="sd">    stdout_redirect : str, optional (default: None)</span>
+<span class="sd">        Redirect bulky stdout instead of storing</span>
+<span class="sd">        with rest of results (use &quot;/dev/null&quot; to dispose)</span>
+<span class="sd">    checkpoints_hmm : bool, optional (default: False)</span>
+<span class="sd">        Store checkpoint HMMs to prefix.&lt;iter&gt;.hmm</span>
+<span class="sd">    checkpoints_ali : bool, optional (default: False)</span>
+<span class="sd">        Store checkpoint alignments to prefix.&lt;iter&gt;.sto</span>
+<span class="sd">    binary : str (default: &quot;jackhmmer&quot;)</span>
+<span class="sd">        Path to jackhmmer binary (put in PATH for</span>
+<span class="sd">        default to work)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    JackhmmerResult</span>
+<span class="sd">        namedtuple with fields corresponding to the different</span>
+<span class="sd">        output files (prefix, alignment, output, tblout, domtblout)</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ExternalToolError, ResourceError</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Input file does not exist or is empty&quot;</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">,</span> <span class="n">database</span>
+    <span class="p">)</span>
+
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># store filenames of all individual results;</span>
+    <span class="c1"># these will be returned as result of the</span>
+    <span class="c1"># function.</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">JackhmmerResult</span><span class="p">(</span>
+        <span class="n">prefix</span><span class="p">,</span>
+        <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.sto&quot;</span><span class="p">,</span>
+        <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.output&quot;</span> <span class="k">if</span> <span class="n">stdout_redirect</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">stdout_redirect</span><span class="p">,</span>
+        <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.tblout&quot;</span><span class="p">,</span>
+        <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.domtblout&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">binary</span><span class="p">,</span>
+        <span class="s2">&quot;-N&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">iterations</span><span class="p">),</span>
+        <span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+        <span class="s2">&quot;-A&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">alignment</span><span class="p">,</span>
+        <span class="s2">&quot;--tblout&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">tblout</span><span class="p">,</span>
+        <span class="s2">&quot;--domtblout&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">domtblout</span><span class="p">,</span>
+        <span class="s2">&quot;--noali&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--notextw&quot;</span>
+    <span class="p">]</span>
+
+    <span class="c1"># reporting thresholds are set accordingly to</span>
+    <span class="c1"># inclusion threshold to reduce memory footprit</span>
+    <span class="k">if</span> <span class="n">use_bitscores</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="s2">&quot;-T&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_threshold</span><span class="p">),</span>
+            <span class="s2">&quot;--domT&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">domain_threshold</span><span class="p">),</span>
+            <span class="s2">&quot;--incT&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_threshold</span><span class="p">),</span>
+            <span class="s2">&quot;--incdomT&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">domain_threshold</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="s2">&quot;-E&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_threshold</span><span class="p">),</span>
+            <span class="s2">&quot;--domE&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">domain_threshold</span><span class="p">),</span>
+            <span class="s2">&quot;--incE&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_threshold</span><span class="p">),</span>
+            <span class="s2">&quot;--incdomE&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">domain_threshold</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="c1"># number of CPUs</span>
+    <span class="k">if</span> <span class="n">cpu</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;--cpu&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">cpu</span><span class="p">)]</span>
+
+    <span class="c1"># bias correction filter</span>
+    <span class="k">if</span> <span class="n">nobias</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;--nobias&quot;</span><span class="p">]</span>
+
+    <span class="c1"># save checkpoints for alignments and HMMs?</span>
+    <span class="k">if</span> <span class="n">checkpoints_ali</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;--chkali&quot;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">checkpoints_hmm</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;--chkhmm&quot;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">]</span>
+
+    <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="n">query</span><span class="p">,</span> <span class="n">database</span><span class="p">]</span>
+
+    <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="c1"># also check we actually created some sort of alignment</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;jackhmmer returned empty alignment: &quot;</span>
+        <span class="s2">&quot;stdout=</span><span class="si">{}</span><span class="s2"> stderr=</span><span class="si">{}</span><span class="s2"> file=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">alignment</span>
+        <span class="p">),</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">alignment</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<span class="n">HmmscanResult</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s2">&quot;HmmscanResult&quot;</span><span class="p">,</span>
+    <span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="s2">&quot;tblout&quot;</span><span class="p">,</span> <span class="s2">&quot;domtblout&quot;</span><span class="p">,</span> <span class="s2">&quot;pfamtblout&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="run_hmmscan"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.tools.run_hmmscan">[docs]</a><span class="k">def</span> <span class="nf">run_hmmscan</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">database</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span>
+                <span class="n">use_model_threshold</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">threshold_type</span><span class="o">=</span><span class="s2">&quot;cut_ga&quot;</span><span class="p">,</span>
+                <span class="n">use_bitscores</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">domain_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seq_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">nobias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cpu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stdout_redirect</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="s2">&quot;hmmscan&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run hmmscan of HMMs in database against sequences in query</span>
+<span class="sd">    to identify matches of these HMMs.</span>
+<span class="sd">    Refer to HMMER Userguide for explanation of these parameters.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    query : str</span>
+<span class="sd">        File containing query sequence(s)</span>
+<span class="sd">    database : str</span>
+<span class="sd">        File containing HMM database (prepared with hmmpress)</span>
+<span class="sd">    prefix : str</span>
+<span class="sd">        Prefix path for output files. Folder structure in</span>
+<span class="sd">        the prefix will be created if not existing.</span>
+<span class="sd">    use_model_threshold: bool (default: True)</span>
+<span class="sd">        Use model-specific inclusion thresholds from</span>
+<span class="sd">        HMM database rather than global bitscore/E-value</span>
+<span class="sd">        thresholds (use_bitscores, domain_threshold and</span>
+<span class="sd">        seq_threshold are overriden by this flag).</span>
+<span class="sd">    threshold-type: {&quot;cut_ga&quot;, &quot;cut_nc&quot;, &quot;cut_tc&quot;} (default: &quot;cut_ga&quot;)</span>
+<span class="sd">        Use gathering (default), noise or trusted cutoff</span>
+<span class="sd">        to define scan hits. Please refer to HMMER manual for</span>
+<span class="sd">        details.</span>
+<span class="sd">    use_bitscores : bool</span>
+<span class="sd">        Use bitscore inclusion thresholds rather than E-values.</span>
+<span class="sd">        Overriden by use_model_threshold flag.</span>
+<span class="sd">    domain_threshold : int or float or str</span>
+<span class="sd">        Inclusion threshold applied on the domain level</span>
+<span class="sd">        (e.g. &quot;1E-03&quot; or 0.001 or 50)</span>
+<span class="sd">    seq_threshold : int or float or str</span>
+<span class="sd">        Inclusion threshold applied on the sequence level</span>
+<span class="sd">        (e.g. &quot;1E-03&quot; or 0.001 or 50)</span>
+<span class="sd">    nobias : bool, optional (default: False)</span>
+<span class="sd">        Turn of bias correction</span>
+<span class="sd">    cpu : int, optional (default: None)</span>
+<span class="sd">        Number of CPUs to use for search. Uses all if None.</span>
+<span class="sd">    stdout_redirect : str, optional (default: None)</span>
+<span class="sd">        Redirect bulky stdout instead of storing</span>
+<span class="sd">        with rest of results (use &quot;/dev/null&quot; to dispose)</span>
+<span class="sd">    binary : str (default: &quot;hmmscan&quot;)</span>
+<span class="sd">        Path to hmmscan binary (put in PATH for</span>
+<span class="sd">        default to work)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    HmmscanResult</span>
+<span class="sd">        namedtuple with fields corresponding to the different</span>
+<span class="sd">        output files (prefix, output, tblout, domtblout, pfamtblout)</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ExternalToolError, ResourceError</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Input file does not exist or is empty&quot;</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">,</span> <span class="n">database</span>
+    <span class="p">)</span>
+
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">HmmscanResult</span><span class="p">(</span>
+        <span class="n">prefix</span><span class="p">,</span>
+        <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.output&quot;</span> <span class="k">if</span> <span class="n">stdout_redirect</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">stdout_redirect</span><span class="p">,</span>
+        <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.tblout&quot;</span><span class="p">,</span>
+        <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.domtblout&quot;</span><span class="p">,</span>
+        <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.pfamtblout&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">binary</span><span class="p">,</span>
+        <span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+        <span class="s2">&quot;--tblout&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">tblout</span><span class="p">,</span>
+        <span class="s2">&quot;--domtblout&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">domtblout</span><span class="p">,</span>
+        <span class="s2">&quot;--pfamtblout&quot;</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">pfamtblout</span><span class="p">,</span>
+        <span class="s2">&quot;--notextw&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--acc&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="c1"># number of CPUs</span>
+    <span class="k">if</span> <span class="n">cpu</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;--cpu&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">cpu</span><span class="p">)]</span>
+
+    <span class="c1"># bias correction filter</span>
+    <span class="k">if</span> <span class="n">nobias</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;--nobias&quot;</span><span class="p">]</span>
+
+    <span class="c1"># either use model-specific threshold, or custom</span>
+    <span class="c1"># bitscore/E-value thresholds</span>
+    <span class="k">if</span> <span class="n">use_model_threshold</span><span class="p">:</span>
+        <span class="n">THRESHOLD_CHOICES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;cut_ga&quot;</span><span class="p">,</span> <span class="s2">&quot;cut_nc&quot;</span><span class="p">,</span> <span class="s2">&quot;cut_tc&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">threshold_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">THRESHOLD_CHOICES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid model threshold, valid choices are: &quot;</span> <span class="o">+</span>
+                <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">THRESHOLD_CHOICES</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;--&quot;</span> <span class="o">+</span> <span class="n">threshold_type</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">seq_threshold</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">domain_threshold</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Must define sequence- and domain-level reporting&quot;</span>
+                <span class="s2">&quot;thresholds, or use gathering threshold instead.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_bitscores</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="s2">&quot;-T&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_threshold</span><span class="p">),</span>
+                <span class="s2">&quot;--domT&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">domain_threshold</span><span class="p">),</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="s2">&quot;-E&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_threshold</span><span class="p">),</span>
+                <span class="s2">&quot;--domE&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">domain_threshold</span><span class="p">),</span>
+            <span class="p">]</span>
+
+    <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="n">database</span><span class="p">,</span> <span class="n">query</span><span class="p">]</span>
+
+    <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="c1"># also check we actually created a table with hits</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;hmmscan did not return results: &quot;</span>
+        <span class="s2">&quot;stdout=</span><span class="si">{}</span><span class="s2"> stderr=</span><span class="si">{}</span><span class="s2"> file=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">domtblout</span>
+        <span class="p">),</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">domtblout</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<span class="k">def</span> <span class="nf">_read_hmmer_table</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">column_names</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse a HMMER file in (dom)tbl format into</span>
+<span class="sd">    a pandas DataFrame.</span>
+
+<span class="sd">    (Why this is necessary: cannot easily split on</span>
+<span class="sd">    whitespace with pandas because of last column</span>
+<span class="sd">    that contains whitespace both in header and rows)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Path of (dom)tbl file</span>
+<span class="sd">    column_names : list of str</span>
+<span class="sd">        Columns in the respective format</span>
+<span class="sd">        (different for tbl and domtbl)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        DataFrame with parsed (dom)tbl</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">num_splits</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">column_names</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">fields</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="n">num_splits</span><span class="p">)</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+
+    <span class="c1"># at the moment, all fields in dataframe are strings, even</span>
+    <span class="c1"># if numeric. To convert to numbers, cheap trick is to store</span>
+    <span class="c1"># to csv file and let pandas guess the types, rather than</span>
+    <span class="c1"># going through convert_objects (deprecated) or to_numeric</span>
+    <span class="c1"># (more effort)</span>
+    <span class="n">tempfile</span> <span class="o">=</span> <span class="n">temp</span><span class="p">()</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">column_names</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">tempfile</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">tempfile</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="read_hmmer_tbl"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.tools.read_hmmer_tbl">[docs]</a><span class="k">def</span> <span class="nf">read_hmmer_tbl</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read a HMMER tbl file into DataFrame.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Path of tbl file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        DataFrame with parsed tbl</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">column_names</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;target_name&quot;</span><span class="p">,</span> <span class="s2">&quot;target_accession&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;query_name&quot;</span><span class="p">,</span> <span class="s2">&quot;query_accession&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;full_Evalue&quot;</span><span class="p">,</span> <span class="s2">&quot;full_score&quot;</span><span class="p">,</span> <span class="s2">&quot;full_bias&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;best_domain_Evalue&quot;</span><span class="p">,</span> <span class="s2">&quot;best_domain_score&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;best_domain_bias&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;domain_exp&quot;</span><span class="p">,</span> <span class="s2">&quot;domain_reg&quot;</span><span class="p">,</span> <span class="s2">&quot;domain_clu&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;domain_ov&quot;</span><span class="p">,</span> <span class="s2">&quot;domain_env&quot;</span><span class="p">,</span> <span class="s2">&quot;domain_dom&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;domain_rep&quot;</span><span class="p">,</span> <span class="s2">&quot;domain_inc&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;description&quot;</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">_read_hmmer_table</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">column_names</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="read_hmmer_domtbl"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.tools.read_hmmer_domtbl">[docs]</a><span class="k">def</span> <span class="nf">read_hmmer_domtbl</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read a HMMER domtbl file into DataFrame.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Path of domtbl file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        DataFrame with parsed domtbl</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">column_names</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;target_name&quot;</span><span class="p">,</span> <span class="s2">&quot;target_accession&quot;</span><span class="p">,</span> <span class="s2">&quot;target_len&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;query_name&quot;</span><span class="p">,</span> <span class="s2">&quot;query_accession&quot;</span><span class="p">,</span> <span class="s2">&quot;query_len&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;full_Evalue&quot;</span><span class="p">,</span> <span class="s2">&quot;full_score&quot;</span><span class="p">,</span> <span class="s2">&quot;full_bias&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;hit_number&quot;</span><span class="p">,</span> <span class="s2">&quot;total_hit_number&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;domain_c_Evalue&quot;</span><span class="p">,</span> <span class="s2">&quot;domain_i_Evalue&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;domain_score&quot;</span><span class="p">,</span> <span class="s2">&quot;domain_bias&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;hmm_from&quot;</span><span class="p">,</span> <span class="s2">&quot;hmm_to&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ali_from&quot;</span><span class="p">,</span> <span class="s2">&quot;ali_to&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;env_from&quot;</span><span class="p">,</span> <span class="s2">&quot;env_to&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;acc&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">_read_hmmer_table</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">column_names</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="run_hhfilter"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.tools.run_hhfilter">[docs]</a><span class="k">def</span> <span class="nf">run_hhfilter</span><span class="p">(</span><span class="n">input_file</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">95</span><span class="p">,</span>
+                 <span class="n">columns</span><span class="o">=</span><span class="s2">&quot;a2m&quot;</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="s2">&quot;hhfilter&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Redundancy-reduce a sequence alignment using hhfilter</span>
+<span class="sd">    from the HHsuite alignment suite.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    input_file : str</span>
+<span class="sd">        Path to input alignment in A2M/FASTA format</span>
+<span class="sd">    output_file : str</span>
+<span class="sd">        Path to output alignment (will be in A3M format)</span>
+<span class="sd">    threshold : int, optional (default: 95)</span>
+<span class="sd">        Sequence identity threshold for maximum pairwise</span>
+<span class="sd">        identity (between 0 and 100)</span>
+<span class="sd">    columns : {&quot;first&quot;, &quot;a2m&quot;}, optional (default: &quot;a2m&quot;)</span>
+<span class="sd">        Definition of match columns (based on first sequence</span>
+<span class="sd">        or upper-case columns (a2m))</span>
+<span class="sd">    binary : str</span>
+<span class="sd">        Path to hhfilter binary</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        output_file</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ResourceError</span>
+<span class="sd">        If output alignment is non-existent/empty</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        Upon invalid value of columns parameter</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">columns</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;first&quot;</span><span class="p">,</span> <span class="s2">&quot;a2m&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid column selection: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Alignment file does not exist or is empty&quot;</span><span class="p">,</span>
+        <span class="n">input_file</span>
+    <span class="p">)</span>
+
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">binary</span><span class="p">,</span>
+        <span class="s2">&quot;-i&quot;</span><span class="p">,</span> <span class="n">input_file</span><span class="p">,</span>
+        <span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span>
+        <span class="s2">&quot;-id&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">threshold</span><span class="p">),</span>
+        <span class="s2">&quot;-M&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span>
+        <span class="s2">&quot;-v&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;hhfilter returned empty alignment: &quot;</span>
+        <span class="s2">&quot;stdout=</span><span class="si">{}</span><span class="s2"> stderr=</span><span class="si">{}</span><span class="s2"> file=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">output_file</span>
+        <span class="p">),</span>
+        <span class="n">output_file</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">output_file</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

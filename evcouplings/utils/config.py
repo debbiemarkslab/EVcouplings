@@ -1,8 +1,9 @@
 """
 Configuration handling
 
-# TODO:
-(1) switch ruamel.yaml to round trip loading
+.. todo::
+
+    switch ruamel.yaml to round trip loading
     to preserver order and comments?
 
 Authors:

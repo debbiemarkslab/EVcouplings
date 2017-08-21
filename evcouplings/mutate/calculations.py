@@ -1,7 +1,9 @@
 """
 High-level mutation calculation functions for EVmutation
 
-# TODO: implement segment handling
+.. todo::
+
+    implement segment handling
 
 Authors:
   Thomas A. Hopf

@@ -238,13 +238,13 @@ def standard(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        ec_file_compared_all
-        ec_file_compared_all_longrange
-        pdb_structure_hits
-        distmap_monomer
-        distmap_multimer
-        contact_map_files
-        remapped_pdb_files
+        * ec_file_compared_all
+        * ec_file_compared_all_longrange
+        * pdb_structure_hits
+        * distmap_monomer
+        * distmap_multimer
+        * contact_map_files
+        * remapped_pdb_files
     """
     check_required(
         kwargs,
