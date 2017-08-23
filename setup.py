@@ -108,6 +108,7 @@ setup(
         'console_scripts': [
             'evcouplings=evcouplings.utils.app:app',
             'evcouplings_runcfg=evcouplings.utils.pipeline:app',
+            'evcouplings_dbupdate=evcouplings.utils.update_database:app'
         ],
     },
 
