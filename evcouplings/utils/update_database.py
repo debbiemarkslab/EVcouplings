@@ -80,10 +80,8 @@ def download_ftp_file(ftp_url, ftp_cwd, file_url, output_path, file_handling="wb
     ftp = ftplib.FTP(ftp_url)
     ftp.login()
     ftp.cwd(ftp_cwd)
-    print("Porgressbar enabled", verbose)
     with open(output_path, file_handling) as out:
         if verbose:
-            print("Porgressbar enabled")
             filesize = ftp.size(file_url)
             pbar = Progressbar(filesize)
             callback = partial(_callback, pbar)
