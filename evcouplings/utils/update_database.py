@@ -113,18 +113,18 @@ def run(**kwargs):
     if verbose:
         print("Updating SIFTS")
 
-    # SIFTS_dir = kwargs.get("sifts", os.path.realpath(__file__))
-    # sifts = os.path.join(SIFTS_dir, SIFTS_suffix)
-    # sifts_curr = os.path.join(SIFTS_dir, SIFTS_current)
-    # sifts_table = sifts.format(year=year, month=month, day=day, extension="csv")
-    # sifts_fasta = sifts.format(year=year, month=month, day=day, extension="fasta")
-    # s_new = SIFTS(sifts.format(year=year, month=month, day=day, extension="csv"))
-    # s_new.create_sequence_file(sifts.format(year=year, month=month, day=day, extension="fasta"))
-    #
-    # # set symlink to "<file>_current"
-    # if symlink:
-    #     symlink_force(sifts_table, sifts_curr.format(extension="csv"))
-    #     symlink_force(sifts_fasta, sifts_curr.format(extension="fasta"))
+    SIFTS_dir = kwargs.get("sifts", os.path.realpath(__file__))
+    sifts = os.path.join(SIFTS_dir, SIFTS_suffix)
+    sifts_curr = os.path.join(SIFTS_dir, SIFTS_current)
+    sifts_table = sifts.format(year=year, month=month, day=day, extension="csv")
+    sifts_fasta = sifts.format(year=year, month=month, day=day, extension="fasta")
+    s_new = SIFTS(sifts.format(year=year, month=month, day=day, extension="csv"))
+    s_new.create_sequence_file(sifts.format(year=year, month=month, day=day, extension="fasta"))
+
+    # set symlink to "<file>_current"
+    if symlink:
+        symlink_force(sifts_table, sifts_curr.format(extension="csv"))
+        symlink_force(sifts_fasta, sifts_curr.format(extension="fasta"))
 
     # update uniref
     DB_path = kwargs.get("db", os.path.realpath(__file__))
