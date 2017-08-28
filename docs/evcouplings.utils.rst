@@ -81,3 +81,11 @@ evcouplings\.utils\.system module
     :members:
     :undoc-members:
     :show-inheritance:
+
+evcouplings\.utils\.update_database module
+------------------------------------------
+
+.. automodule:: evcouplings.utils.update_database
+    :members:
+    :undoc-members:
+    :show-inheritance:
