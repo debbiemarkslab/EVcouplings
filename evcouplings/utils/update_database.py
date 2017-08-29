@@ -10,6 +10,7 @@ import datetime
 import os
 import errno
 from functools import partial
+from pathlib import Path
 
 import click
 
@@ -112,6 +113,10 @@ def run(**kwargs):
         print("Updating SIFTS")
 
     SIFTS_dir = kwargs.get("sifts", os.path.realpath(__file__))
+    # create directory if it does not exist
+    # ignores if directory on the way already exist
+    dir = Path(SIFTS_dir)
+    dir.mkdir(parents=True, exist_ok=True)
     sifts = os.path.join(SIFTS_dir, SIFTS_SUFFIX)
     sifts_curr = os.path.join(SIFTS_dir, SIFTS_CURRENT)
     sifts_table = sifts.format(year=year, month=month, day=day, extension="csv")
@@ -131,10 +136,15 @@ def run(**kwargs):
         if verbose:
             print("Updating", db_type)
 
+        # if not existent create folder db_path/db_type
+        db_full_path = os.path.join(db_path, db_type)
+        dir = Path(db_full_path)
+        dir.mkdir(parents=True, exist_ok=True)
+
         if db_type == "uniprot":
             # download Swiss and TrEMBL and concatinate both
-            out_path = os.path.join(db_path, DB_SUFFIX.format(type=db_type, year=year, month=month))
-            db_curr = os.path.join(db_path, DB_CURRENT.format(type=db_type))
+            out_path = os.path.join(db_full_path, DB_SUFFIX.format(type=db_type, year=year, month=month))
+            db_curr = os.path.join(db_full_path, DB_CURRENT.format(type=db_type))
             for i, type_d in enumerate(["sprot", "trembl"]):
                 if i:
                     file_url = UNIPROT_FILE.format(type=type_d)
@@ -146,8 +156,8 @@ def run(**kwargs):
             # download uniref db
             db_file = DB_FILE.format(type=db_type)
             db_cwd = DB_CWD.format(type=db_type)
-            out_path = os.path.join(db_path, DB_SUFFIX.format(type=db_type, year=year, month=month))
-            db_curr = os.path.join(db_path, DB_CURRENT.format(type=db_type))
+            out_path = os.path.join(db_full_path, DB_SUFFIX.format(type=db_type, year=year, month=month))
+            db_curr = os.path.join(db_full_path, DB_CURRENT.format(type=db_type))
             download_ftp_file(DB_URL, db_cwd, db_file, out_path, verbose=verbose)
 
         if symlink:
