@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/debbiemarkslab/EVcouplings.svg?token=mAy5mus6jwBNzyN7K4jr&branch=master)](https://travis-ci.com/debbiemarkslab/EVcouplings)
+[![Build Status](https://travis-ci.org/debbiemarkslab/EVcouplings.svg?branch=master)](https://travis-ci.org/debbiemarkslab/EVcouplings)
 # EVcouplings
 
 Predict protein structure, function and mutations using evolutionary sequence covariation.
