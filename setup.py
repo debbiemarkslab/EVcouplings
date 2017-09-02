@@ -87,9 +87,9 @@ setup(
     },
 
     # Runtime dependencies. (will be installed by pip when EVcouplings is installed)
-    setup_requires=['setuptools>=18.2', 'numpy'],
+    #setup_requires=['setuptools>=18.2', 'numpy'],
 
-    install_requires=[
+    install_requires=['setuptools>=18.2', 'numpy',
         'pandas', 'scipy', 'numba', 'ruamel.yaml', 'matplotlib', 'requests',
         'mmtf-python', 'click', 'filelock', 'psutil', 'bokeh', 'jinja2',
         'biopython', 'sqlalchemy', 'seaborn',
