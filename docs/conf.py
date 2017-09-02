@@ -30,7 +30,7 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
             return MagicMock()
 
-MOCK_MODULES = ['biopython', 'numba', 'scipy', 'click', 'argparse', 'numpy', 'pandas']
+MOCK_MODULES = ['biopython','ruamel','mmtf','matplotlib', 'numba', 'scipy', 'click', 'argparse', 'numpy', 'pandas']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration ------------------------------------------------
