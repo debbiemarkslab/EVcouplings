@@ -30,8 +30,8 @@ from unittest.mock import Mock
 #     def __getattr__(cls, name):
 #             return MagicMock()
 
-MOCK_MODULES = ['biopython', 'ruamel', 'ruamel.yaml', 'mmtf-python', 'pyyaml','sqlalchemy',
-                'mmtf','matplotlib', 'numba', 'scipy', 'click', 'argparse', 'numpy', 'pandas']
+MOCK_MODULES = ['biopython', 'ruamel.yaml', 'mmtf-python', 'pyyaml','sqlalchemy',
+               'matplotlib', 'numba', 'scipy', 'click', 'argparse', 'numpy', 'pandas']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration ------------------------------------------------
