@@ -32,8 +32,8 @@ class Mock(MagicMock):
          return MagicMock()
 
 MOCK_MODULES = ['biopython', 'ruamel.yaml', 'ruamel', 'mmtf-python', 'pyyaml', 'sqlalchemy', 'sqlalchemy.orm',
-                'matplotlib.pyplot', 'matplotlib', 'numba', 'scipy', 'scipy.optimize', 'click', 'argparse',
-                'numpy', 'pandas']
+                'sqlalchemy.ext', 'matplotlib.pyplot', 'matplotlib', 'numba', 'scipy', 'scipy.optimize',
+                'click', 'argparse', 'numpy', 'pandas']
 
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
