@@ -1,0 +1,16 @@
+numpy
+scipy
+pandas
+numba
+ruamel.yaml
+matplotlib
+requests
+mmtf-python
+click
+filelock
+psutil
+bokeh
+jinja2
+biopython
+sqlalchemy
+seaborn
