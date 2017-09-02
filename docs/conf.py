@@ -19,8 +19,25 @@
 #
 import os
 import sys
+# C dependent libraries have to be mocked. Otherwise RTD does not work
+from unittest.mock import MagicMock
+
 sys.path.insert(0, os.path.abspath('..'))
 
+
+class Mock(MagicMock):
+
+    @classmethod
+    def __getattr__(cls, name):
+         return MagicMock()
+
+MOCK_MODULES = ['biopython', 'ruamel.yaml', 'ruamel', 'mmtf-python', 'pyyaml', 'sqlalchemy', 'sqlalchemy.orm',
+                'sqlalchemy.ext', 'sqlalchemy.ext.declarative', 'matplotlib.pyplot', 'matplotlib', 'numba',
+                'scipy', 'scipy.optimize', 'click', 'argparse', 'numpy', 'pandas', 'bokeh', 'bokeh.core', 'bokeh.io',
+                'bokeh.core.properties', 'bokeh.models'
+                ]
+
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration ------------------------------------------------
 
