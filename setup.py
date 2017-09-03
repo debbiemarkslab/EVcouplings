@@ -42,8 +42,8 @@ setup(
         'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
-        'Intended Audience :: Biologists, Computational Biologists, Developer',
-        'Topic :: Evolutionary Couplings :: Structure Prediction',
+        'Intended Audience :: Developers',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
 
         # The license as you wish (should match "license" above)
         'License :: OSI Approved :: MIT License',
@@ -94,6 +94,5 @@ setup(
         'mmtf-python', 'click', 'filelock', 'psutil', 'bokeh', 'jinja2',
         'biopython', 'sqlalchemy', 'seaborn',
     ],
-
 
 )
