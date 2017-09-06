@@ -86,7 +86,14 @@ def most_similar_by_organism(similarities, id_to_organism):
     """
     species_to_most_similar = {}
     for full_id, value in similarities.items():
-        organism = id_to_organism[full_id]
+        try:
+            organism = id_to_organism[full_id]
+        except KeyError:
+            #If the region is not correctly specified in the config file, the annotationss.csv file will default
+            #to having the region start at 1, and then the identifiers (with region string) will not match.
+            raise KeyError('The identifier {} from  identities.csv is not' +
+                           'found in the _annotations.csv file. Please check that you correctly specified the region' +
+                           'of this monomer under the align stage in the config file'.format(full_id))
 
         # if the current similarity is higher than the already saved similarity, save
         # the new value
