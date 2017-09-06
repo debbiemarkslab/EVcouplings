@@ -1,0 +1,441 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.align.pfam &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.align.pfam</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.align.pfam</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Code for identifying Pfam domains and mapping Pfam</span>
+<span class="sd">alignments and ECs into target sequence mode.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+
+<span class="sd">.. todo::</span>
+
+<span class="sd">    1. Write code to create list of family sizes</span>
+<span class="sd">    2. Implement alignments against Pfam-HMM so precomputed results can be reused in focus mode</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">evcouplings.align.tools</span> <span class="k">import</span> <span class="n">run_hmmscan</span><span class="p">,</span> <span class="n">read_hmmer_domtbl</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.helpers</span> <span class="k">import</span> <span class="n">range_overlap</span>
+
+
+<div class="viewcode-block" id="create_family_size_table"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.pfam.create_family_size_table">[docs]</a><span class="k">def</span> <span class="nf">create_family_size_table</span><span class="p">(</span><span class="n">full_pfam_file</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse family size table from Pfam flat file</span>
+<span class="sd">    (ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.full.gz)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    full_pfam_file : str</span>
+<span class="sd">        Path to the pfam file (gzip).</span>
+<span class="sd">    outfile : str, optional (default: None)</span>
+<span class="sd">        Save the parsed table to this file as a csv file.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        Parsed Pfam table.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">full_pfam_file</span><span class="p">,</span> <span class="s2">&quot;rt&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;latin-1&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">gz_ref</span><span class="p">:</span>
+        <span class="n">pfam_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">num_seqs</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">gz_ref</span><span class="p">:</span>
+            <span class="c1"># identifier at the beginning of the family entry</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#=GF AC&quot;</span><span class="p">):</span>
+                <span class="n">pfam_id</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">10</span><span class="p">:</span><span class="mi">17</span><span class="p">]</span>
+
+            <span class="c1"># the number of sequences in the family, follows after the identifier</span>
+            <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;#=GF SQ&quot;</span><span class="p">):</span>
+                <span class="n">num_seqs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">10</span><span class="p">:])</span>
+
+            <span class="c1"># stores the result at the end of an entry</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;//&quot;</span><span class="p">)</span> <span class="ow">and</span>
+                    <span class="n">pfam_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">num_seqs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;pfam_id&quot;</span><span class="p">:</span> <span class="n">pfam_id</span><span class="p">,</span> <span class="s2">&quot;num_seqs&quot;</span><span class="p">:</span> <span class="n">num_seqs</span><span class="p">})</span>
+                <span class="n">pfam_id</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">num_seqs</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pfam_id&quot;</span><span class="p">,</span> <span class="s2">&quot;num_seqs&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">outfile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="remove_clan_overlaps"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.pfam.remove_clan_overlaps">[docs]</a><span class="k">def</span> <span class="nf">remove_clan_overlaps</span><span class="p">(</span><span class="n">pfam_table</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove overlapping Pfam hits from same Pfam clan</span>
+<span class="sd">    (equivalent of PfamScan.pl). Currently only</span>
+<span class="sd">    allows to remove overlaps by domain bitscore.</span>
+
+<span class="sd">    .. todo::</span>
+
+<span class="sd">        is bitscore the most sensible choice if different length hits?</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pfam_table : pd.DataFrame</span>
+<span class="sd">        Pfam hit table as generated by pfam_hits() function</span>
+<span class="sd">        (must contain Pfam clan annotation).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        Pfam hit table with lower-scoring overlaps removed</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># could make this a parameter, if switching to E-values</span>
+    <span class="c1"># we would have to changing sorting order of DataFrame</span>
+    <span class="c1"># and sign of comparison further below.</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="s2">&quot;domain_score&quot;</span>
+
+    <span class="c1"># group by sequence ID and clan to resolve overlaps</span>
+    <span class="n">grouped</span> <span class="o">=</span> <span class="n">pfam_table</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span>
+        <span class="n">by</span><span class="o">=</span><span class="n">score</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+        <span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;query_name&quot;</span><span class="p">,</span> <span class="s2">&quot;clan_id&quot;</span><span class="p">],</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1"># store index value of all entries to discard</span>
+    <span class="n">remove_hits</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">uniprot_ac</span><span class="p">,</span> <span class="n">clan_name</span><span class="p">),</span> <span class="n">grp</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">:</span>
+        <span class="c1"># safety check here that we are not grouping hits that are</span>
+        <span class="c1"># not in the same clan (missing value) if pandas ever changed</span>
+        <span class="c1"># the behaviour of groupby to not iterate through groups</span>
+        <span class="c1"># with missing values. Otherwise, we would have to skip grouop.</span>
+        <span class="k">assert</span> <span class="n">clan_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;CL&quot;</span><span class="p">)</span>
+
+        <span class="c1"># go through all pairwise combinations of hits</span>
+        <span class="k">for</span> <span class="n">idx1</span><span class="p">,</span> <span class="n">hit1</span> <span class="ow">in</span> <span class="n">grp</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">idx2</span><span class="p">,</span> <span class="n">hit2</span> <span class="ow">in</span> <span class="n">grp</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">idx1</span> <span class="o">&lt;</span> <span class="n">idx2</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">range_overlap</span><span class="p">(</span>
+                        <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hit1</span><span class="p">[</span><span class="s2">&quot;ali_from&quot;</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">hit1</span><span class="p">[</span><span class="s2">&quot;ali_to&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                        <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hit2</span><span class="p">[</span><span class="s2">&quot;ali_from&quot;</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">hit2</span><span class="p">[</span><span class="s2">&quot;ali_to&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">hit1</span><span class="p">[</span><span class="n">score</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="nb">float</span><span class="p">(</span><span class="n">hit2</span><span class="p">[</span><span class="n">score</span><span class="p">]):</span>
+                            <span class="n">remove_hits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx2</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">remove_hits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pfam_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">pfam_table</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">remove_hits</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="pfam_hits"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.pfam.pfam_hits">[docs]</a><span class="k">def</span> <span class="nf">pfam_hits</span><span class="p">(</span><span class="n">query_file</span><span class="p">,</span> <span class="n">hmm_database</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span>
+              <span class="n">clan_table_file</span><span class="p">,</span> <span class="n">size_table_file</span><span class="p">,</span>
+              <span class="n">resolve_overlaps</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">hmmscan_binary</span><span class="o">=</span><span class="s2">&quot;hmmscan&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify hits of Pfam HMMs in a set of sequences.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    query_file : str</span>
+<span class="sd">        File containing query sequence(s)</span>
+<span class="sd">    hmm_database : str</span>
+<span class="sd">        File containing HMM database</span>
+<span class="sd">        (Pfam-A.hmm, with hmmpress applied)</span>
+<span class="sd">    prefix : str</span>
+<span class="sd">        Prefix path for output files. Folder structure in</span>
+<span class="sd">        the prefix will be created if not existing.</span>
+<span class="sd">    clan_table_file : str</span>
+<span class="sd">        File with table linking Pfam families to clans</span>
+<span class="sd">        (Pfam-A.clans.tsv). Set to None if not available,</span>
+<span class="sd">        but resolve_overlaps cannot be True in that case.</span>
+<span class="sd">    size_table_file : str</span>
+<span class="sd">        File with table of family sizes. Create using</span>
+<span class="sd">        create_family_size_table(). Set to None if not</span>
+<span class="sd">        available.</span>
+<span class="sd">    resolve_overlaps : bool</span>
+<span class="sd">        Resolve overlapping hits by families from</span>
+<span class="sd">        the same clan.</span>
+<span class="sd">        Only possible if clan_table_file is given.</span>
+<span class="sd">    hmmscan_binary : str (default: &quot;hmmscan&quot;)</span>
+<span class="sd">        Path to hmmscan binary (put in PATH for</span>
+<span class="sd">        default to work)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        Pfam hit table</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># find HMM hits with hmmscan</span>
+    <span class="n">scan_res</span> <span class="o">=</span> <span class="n">run_hmmscan</span><span class="p">(</span>
+        <span class="n">query_file</span><span class="p">,</span> <span class="n">hmm_database</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span>
+        <span class="n">binary</span><span class="o">=</span><span class="n">hmmscan_binary</span>
+    <span class="p">)</span>
+
+    <span class="n">hits</span> <span class="o">=</span> <span class="n">read_hmmer_domtbl</span><span class="p">(</span><span class="n">scan_res</span><span class="o">.</span><span class="n">domtblout</span><span class="p">)</span>
+
+    <span class="c1"># remove version information from family name</span>
+    <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;pfam_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">target_accession</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># add information about Pfam clan for each family,</span>
+    <span class="c1"># this is necessary to resolve overlapping hits</span>
+    <span class="c1"># clan file is Pfam-A.clans.tsv from Pfam FTP site</span>
+    <span class="k">if</span> <span class="n">clan_table_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">clans</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">clan_table_file</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">names</span><span class="o">=</span><span class="p">[</span>
+                <span class="s2">&quot;pfam_id&quot;</span><span class="p">,</span> <span class="s2">&quot;clan_id&quot;</span><span class="p">,</span> <span class="s2">&quot;clan_name&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;family_name&quot;</span><span class="p">,</span> <span class="s2">&quot;family_text&quot;</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">hits</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">clans</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;pfam_id&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+
+    <span class="c1"># add number of sequences in each Pfam family,</span>
+    <span class="c1"># this file has to be created using create_family_sie_table()</span>
+    <span class="c1"># from Pfam-A.full.gz flatfile</span>
+    <span class="k">if</span> <span class="n">size_table_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sizes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">size_table_file</span><span class="p">)</span>
+        <span class="n">hits</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">sizes</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;pfam_id&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+
+        <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;num_seqs_over_len&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;num_seqs&quot;</span><span class="p">]</span> <span class="o">/</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">hits</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;target_len&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;raise&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># multiple members of the same clan might hit overlapping regions</span>
+    <span class="c1"># in these cases, we may only want to keep the top-scoring hit</span>
+    <span class="k">if</span> <span class="n">resolve_overlaps</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">clan_table_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Need to specify clan_table_file to resolve &quot;</span>
+                <span class="s2">&quot;overlapping hits from same clan.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">hits</span> <span class="o">=</span> <span class="n">remove_clan_overlaps</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">hits</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

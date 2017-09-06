@@ -510,8 +510,7 @@ class CouplingsModel:
         sequence : str, or list of chars
             Define a new default sequence for relative Hamiltonian
             calculations (e.g. energy difference relative to wild-type
-            sequence).
-            Length of sequence must correspond to model length (self.L)
+            sequence). Length of sequence must correspond to model length (self.L)
         """
         self._reset_precomputed()
 
@@ -1188,32 +1187,29 @@ class CouplingsModel:
         """
         Writes the potentially modified model again to binary file
 
-        Parameters:
-        -----------
-        outFile: A string specifying the path to a file
-
-        Returns:
-        --------
-        void
+        Parameters
+        ----------
+        out_file: str
+            A string specifying the path to a file
         """
         new = file_format.lower() == "plmc_v2"
         with open(out_file, "wb") as f:
-            np.array([self.L, self.num_symbols]).tofile(f)
+            np.array([self.L, self.num_symbols], dtype="int32").tofile(f)
             if new:
                 np.array([self.N_valid,
-                          self.N_valid,
                           self.N_invalid,
-                          self.num_iter,
-                          self.num_iter,
-                          self.theta,
+                          self.num_iter],
+                         dtype="int32").tofile(f)
+                np.array([self.theta,
                           self.lambda_h,
                           self.lambda_J,
                           self.lambda_group,
-                          self.N_eff]).tofile(f)
+                          self.N_eff],
+                         dtype=precision).tofile(f)
                 self.alphabet.dtype = "S1"
                 self.alphabet[np.where(self.alphabet != b"")].tofile(f)
                 self.alphabet.dtype = "U1"
-                self.weights.tofile(f)
+                self.weights.astype(precision).tofile(f)
             self.target_seq.dtype = "S1"
             self.target_seq[np.where(self.target_seq != b"")].tofile(f)
             self.target_seq.dtype = "U1"

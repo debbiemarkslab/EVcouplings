@@ -1,0 +1,395 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.mutate.protocol &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.mutate.protocol</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.mutate.protocol</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Sequence statistical energy and mutation effect computation</span>
+<span class="sd">protocols</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">bokeh.io</span> <span class="k">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">output_file</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.couplings.model</span> <span class="k">import</span> <span class="n">CouplingsModel</span>
+<span class="kn">from</span> <span class="nn">evcouplings.mutate.calculations</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">single_mutant_matrix</span><span class="p">,</span> <span class="n">predict_mutation_table</span>
+<span class="p">)</span>
+<span class="kn">import</span> <span class="nn">evcouplings</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">check_required</span><span class="p">,</span> <span class="n">InvalidParameterError</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">create_prefix_folders</span><span class="p">,</span> <span class="n">verify_resources</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="standard"><a class="viewcode-back" href="../../../evcouplings.mutate.html#evcouplings.mutate.protocol.standard">[docs]</a><span class="k">def</span> <span class="nf">standard</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Protocol:</span>
+<span class="sd">    Compare ECs for single proteins (or domains)</span>
+<span class="sd">    to 3D structure information</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        See list below in code where calling check_required</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of the pipeline, including</span>
+<span class="sd">        the following fields:</span>
+
+<span class="sd">        * mutation_matrix_file</span>
+<span class="sd">        * [mutation_dataset_predicted_file]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;model_file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mutation_dataset_file&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;mutation_matrix_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_single_mutant_matrix.csv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mutation_matrix_plot_files&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">}</span>
+
+    <span class="c1"># make sure model file exists</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Model parameter file does not exist&quot;</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># load couplings object, and create independent model</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">CouplingsModel</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">])</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">to_independent_model</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">type_</span> <span class="ow">in</span> <span class="p">[(</span><span class="n">c</span><span class="p">,</span> <span class="s2">&quot;Epistatic&quot;</span><span class="p">),</span> <span class="p">(</span><span class="n">c0</span><span class="p">,</span> <span class="s2">&quot;Independent&quot;</span><span class="p">)]:</span>
+        <span class="c1"># interactive plot using bokeh</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_</span><span class="si">{}</span><span class="s2">_model&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">type_</span><span class="o">.</span><span class="n">lower</span><span class="p">(),)</span>
+        <span class="n">output_file</span><span class="p">(</span>
+            <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.html&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> model&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">type_</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">evcouplings</span><span class="o">.</span><span class="n">visualize</span><span class="o">.</span><span class="n">mutations</span><span class="o">.</span><span class="n">plot_mutation_matrix</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;bokeh&quot;</span><span class="p">)</span>
+        <span class="n">save</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;mutation_matrix_plot_files&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.html&quot;</span><span class="p">)</span>
+
+        <span class="c1"># static matplotlib plot</span>
+        <span class="n">evcouplings</span><span class="o">.</span><span class="n">visualize</span><span class="o">.</span><span class="n">mutations</span><span class="o">.</span><span class="n">plot_mutation_matrix</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.pdf&quot;</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">)</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;mutation_matrix_plot_files&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.pdf&quot;</span><span class="p">)</span>
+
+    <span class="c1"># create single mutation matrix table,</span>
+    <span class="c1"># add prediction by independent model and</span>
+    <span class="c1"># save to file</span>
+    <span class="n">singles</span> <span class="o">=</span> <span class="n">single_mutant_matrix</span><span class="p">(</span>
+        <span class="n">c</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="s2">&quot;prediction_epistatic&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">singles</span> <span class="o">=</span> <span class="n">predict_mutation_table</span><span class="p">(</span>
+        <span class="n">c0</span><span class="p">,</span> <span class="n">singles</span><span class="p">,</span> <span class="s2">&quot;prediction_independent&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">singles</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;mutation_matrix_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Pymol scripts</span>
+    <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;mutations_epistatic_pml_files&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;epistatic&quot;</span><span class="p">,</span> <span class="s2">&quot;independent&quot;</span><span class="p">]:</span>
+        <span class="n">pml_filename</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_</span><span class="si">{}</span><span class="s2">_model.pml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">evcouplings</span><span class="o">.</span><span class="n">visualize</span><span class="o">.</span><span class="n">mutations</span><span class="o">.</span><span class="n">mutation_pymol_script</span><span class="p">(</span>
+            <span class="n">singles</span><span class="p">,</span> <span class="n">pml_filename</span><span class="p">,</span> <span class="n">effect_column</span><span class="o">=</span><span class="s2">&quot;prediction_&quot;</span> <span class="o">+</span> <span class="n">model</span>
+        <span class="p">)</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;mutations_epistatic_pml_files&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pml_filename</span><span class="p">)</span>
+
+    <span class="c1"># predict experimental dataset if given</span>
+    <span class="n">dataset_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;mutation_dataset_file&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">dataset_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">verify_resources</span><span class="p">(</span><span class="s2">&quot;Dataset file does not exist&quot;</span><span class="p">,</span> <span class="n">dataset_file</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">dataset_file</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+
+        <span class="c1"># add epistatic model prediction</span>
+        <span class="n">data_pred</span> <span class="o">=</span> <span class="n">predict_mutation_table</span><span class="p">(</span>
+            <span class="n">c</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="s2">&quot;prediction_epistatic&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># add independent model prediction</span>
+        <span class="n">data_pred</span> <span class="o">=</span> <span class="n">predict_mutation_table</span><span class="p">(</span>
+            <span class="n">c0</span><span class="p">,</span> <span class="n">data_pred</span><span class="p">,</span> <span class="s2">&quot;prediction_independent&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;mutation_dataset_predicted_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_dataset_predicted.csv&quot;</span>
+        <span class="n">data_pred</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+            <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;mutation_dataset_predicted_file&quot;</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outcfg</span></div>
+
+
+<span class="c1"># list of available mutation protocols</span>
+<span class="n">PROTOCOLS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># standard EVmutation protocol</span>
+    <span class="s2">&quot;standard&quot;</span><span class="p">:</span> <span class="n">standard</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../evcouplings.mutate.html#evcouplings.mutate.protocol.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run mutation protocol</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        protocol: EC protocol to run</span>
+<span class="sd">        prefix: Output prefix for all generated files</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of stage</span>
+<span class="sd">        (see individual protocol for fields)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PROTOCOLS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid protocol selection: &quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">. Valid protocols are: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">],</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PROTOCOLS</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">PROTOCOLS</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]](</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

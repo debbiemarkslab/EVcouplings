@@ -29,7 +29,7 @@ def plot_context(font="Helvetica", size=12,
         Default size of axis labels
     axis_title_size : float, optional (default: 14)
         Default size of axis titles
-     axis_line_width : float, optional (default: 1)
+    axis_line_width : float, optional (default: 1)
         Default line width
     tick_label_size : float, optional (default: 12)
         Default tick label size

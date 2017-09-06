@@ -1,0 +1,1292 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.utils.batch &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.utils.batch</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.utils.batch</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Looping through batches of jobs</span>
+<span class="sd">(former submit_job.py and buildali loop)</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Benjamin Schubert, Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">psutil</span>
+<span class="kn">import</span> <span class="nn">queue</span>
+
+<span class="kn">import</span> <span class="nn">ruamel.yaml</span> <span class="k">as</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="k">import</span> <span class="n">NamedTemporaryFile</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">Enum</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils</span> <span class="k">import</span> <span class="n">PersistentDict</span>
+
+
+<span class="n">EStatus</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="o">**</span><span class="n">enums</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="s1">&#39;Enum&#39;</span><span class="p">,</span> <span class="p">(),</span> <span class="n">enums</span><span class="p">))(</span>
+    <span class="n">RUN</span><span class="o">=</span><span class="s2">&quot;run&quot;</span><span class="p">,</span>
+    <span class="n">PEND</span><span class="o">=</span><span class="s2">&quot;pend&quot;</span><span class="p">,</span>
+    <span class="n">SUSP</span><span class="o">=</span><span class="s2">&quot;susp&quot;</span><span class="p">,</span>
+    <span class="n">EXIT</span><span class="o">=</span><span class="s2">&quot;exit&quot;</span><span class="p">,</span>
+    <span class="n">DONE</span><span class="o">=</span><span class="s2">&quot;done&quot;</span>
+<span class="p">)</span>
+
+<span class="n">EResource</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="o">**</span><span class="n">enums</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="s1">&#39;Enum&#39;</span><span class="p">,</span> <span class="p">(),</span> <span class="n">enums</span><span class="p">))(</span>
+    <span class="n">time</span><span class="o">=</span><span class="s2">&quot;time&quot;</span><span class="p">,</span>
+    <span class="n">mem</span><span class="o">=</span><span class="s2">&quot;mem&quot;</span><span class="p">,</span>
+    <span class="n">nodes</span><span class="o">=</span><span class="s2">&quot;nodes&quot;</span><span class="p">,</span>
+    <span class="n">queue</span><span class="o">=</span><span class="s2">&quot;queue&quot;</span><span class="p">,</span>
+    <span class="n">error</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">,</span>
+    <span class="n">out</span><span class="o">=</span><span class="s2">&quot;done&quot;</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="EJob"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.EJob">[docs]</a><span class="k">class</span> <span class="nc">EJob</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span> <span class="c1"># Internal messages for broker</span>
+    <span class="n">SUBMIT</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">MONITOR</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">CANCEL</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">STOP</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">UPDATE</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">PID</span> <span class="o">=</span> <span class="mi">5</span></div>
+
+
+<div class="viewcode-block" id="Command"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.Command">[docs]</a><span class="k">class</span> <span class="nc">Command</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper around the command parameters needed</span>
+<span class="sd">    to execute a script</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">environment</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resources</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Class represents a command to be submitted and contains all relevant information</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        command: str/list(str)</span>
+<span class="sd">            A single string or a list of strings representing the fully configured commands to be executed</span>
+<span class="sd">        name: str</span>
+<span class="sd">            The name of the command.</span>
+<span class="sd">        environment: str/list(str)</span>
+<span class="sd">            A string representing all calls that should be executed before command that configure the environment</span>
+<span class="sd">            (e.g., export or source commands).</span>
+<span class="sd">        workdir: str</span>
+<span class="sd">            Full path or relational path to working dir in which command is executed</span>
+<span class="sd">        resources: dict(Resource:str)</span>
+<span class="sd">            A dictionary defining resources that can be used by the job (time, memory,</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">command_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="n">command</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">command</span>
+        <span class="k">if</span> <span class="n">environment</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">environment</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">environment</span> <span class="o">=</span> <span class="p">[</span><span class="n">environment</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">environment</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">environment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">workdir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span> <span class="o">=</span> <span class="n">resources</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Command</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">command_id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">command_id</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Command:</span><span class="si">{id}</span><span class="s2">:</span><span class="se">\n\t</span><span class="si">{commands}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command_id</span><span class="p">,</span> <span class="n">commands</span><span class="o">=</span><span class="s2">&quot;&amp;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">)[:</span><span class="mi">16</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;Command(</span><span class="si">{id}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command_id</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">command_id</span><span class="p">)</span></div>
+
+
+<span class="c1"># Metaclass for Plugins</span>
+<div class="viewcode-block" id="APluginRegister"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.APluginRegister">[docs]</a><span class="k">class</span> <span class="nc">APluginRegister</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class allows automatic registration of new plugins.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">nmspc</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">APluginRegister</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">nmspc</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;registry&#39;</span><span class="p">):</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">registry</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isabstract</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="bp">cls</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="bp">cls</span>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">registry</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">registry</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;: &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">sc</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">sc</span> <span class="ow">in</span> <span class="bp">cls</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="ASubmitter"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.ASubmitter">[docs]</a><span class="k">class</span> <span class="nc">ASubmitter</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">APluginRegister</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Interface for all submitters</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractproperty</span>
+    <span class="k">def</span> <span class="nf">isBlocking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Indicator whether the submitter is blocking or not</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            whether submitter blocks by calling join or not</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractproperty</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The name of the submitter</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The name of the submitter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="ASubmitter.submit"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.ASubmitter.submit">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">dependent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Consumes job objects and starts them</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">         jobs: Command</span>
+<span class="sd">            A list of Job objects that should be submitted</span>
+<span class="sd">         dependent: list(Command)</span>
+<span class="sd">            A list of command objects the Command depend on</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list(str)</span>
+<span class="sd">            A list of jobIDs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ASubmitter.cancel"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.ASubmitter.cancel">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Consumes a list of jobIDs and trys to cancel them</span>
+
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        command: Command</span>
+<span class="sd">            The Command jobejct to cancel</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            If job was canceled</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ASubmitter.monitor"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.ASubmitter.monitor">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">monitor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the status of the consumed command</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        command: Command</span>
+<span class="sd">            The command object whose status is inquired</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Enum(Status)</span>
+<span class="sd">            The status of the Command</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ASubmitter.join"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.ASubmitter.join">[docs]</a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Blocks script if so desired until all jobs have be finished canceled or died</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<div class="viewcode-block" id="AClusterSubmitter"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.AClusterSubmitter">[docs]</a><span class="k">class</span> <span class="nc">AClusterSubmitter</span><span class="p">(</span><span class="n">ASubmitter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract subclass of a cluster submitter</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractproperty</span>
+    <span class="k">def</span> <span class="nf">submit_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractproperty</span>
+    <span class="k">def</span> <span class="nf">monitor_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractproperty</span>
+    <span class="k">def</span> <span class="nf">cancel_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractproperty</span>
+    <span class="k">def</span> <span class="nf">resource_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractproperty</span>
+    <span class="k">def</span> <span class="nf">db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The persistent DB to keep track of all submitted jobs and their status</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        PersistentDict</span>
+<span class="sd">                The Persistent DB</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractproperty</span>
+    <span class="k">def</span> <span class="nf">job_id_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">_get_job_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_id_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stdo</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_prepare_resources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resources</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        prepares the submitter dependent resource string</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The resource string specific for a submitter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_prepare_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resources</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        prepares the submitter dependent job-dependency string</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The job-dependency string specific for a submitter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">_internal_monitor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command_id</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job_id</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">[</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Command &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">command_id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; has not been submitted yet.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">submit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitor_command</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">submit</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                 <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">stdo</span><span class="p">,</span> <span class="n">stde</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+            <span class="n">stdr</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span>
+            <span class="k">if</span> <span class="n">stdr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Unsuccessful monitoring of &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">command_id</span><span class="p">)</span> <span class="o">+</span>
+                    <span class="s2">&quot; (EXIT!=0) with error: &quot;</span> <span class="o">+</span> <span class="n">stde</span>
+                <span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+        <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_status</span><span class="p">(</span><span class="n">stdo</span><span class="p">)</span>
+
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">[</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+        <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">[</span><span class="n">command_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">status</span>
+
+    <span class="k">def</span> <span class="nf">_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unfinished</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        internally monitor submitted jobs</span>
+<span class="sd">        only needed if blocking</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">unfinished</span><span class="p">:</span>
+            <span class="c1"># initial call</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">RangeIter</span><span class="p">():</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_monitor</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">status</span> <span class="ow">in</span> <span class="p">[</span><span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span><span class="p">,</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span><span class="p">]:</span>
+                    <span class="n">unfinished</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">unfinished</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">unfinished</span><span class="p">:</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_monitor</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">status</span> <span class="ow">in</span> <span class="p">[</span><span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span><span class="p">,</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span><span class="p">]:</span>
+                    <span class="n">tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">tmp</span>
+
+<div class="viewcode-block" id="AClusterSubmitter.monitor"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.AClusterSubmitter.monitor">[docs]</a>    <span class="k">def</span> <span class="nf">monitor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_monitor</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AClusterSubmitter.join"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.AClusterSubmitter.join">[docs]</a>    <span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBlocking</span><span class="p">:</span>
+            <span class="n">unfinished</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">unfinished</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">unfinished</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">unfinished</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AClusterSubmitter.cancel"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.AClusterSubmitter.cancel">[docs]</a>    <span class="k">def</span> <span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">job_id</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Command &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">command</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; has not been submitted yet.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">submit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cancel_command</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job_id</span><span class="o">=</span><span class="n">job_id</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">submit</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                 <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">stdo</span><span class="p">,</span> <span class="n">stde</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+            <span class="n">stdr</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span>
+            <span class="k">if</span> <span class="n">stdr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Unsuccessful cancellation of &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">command</span><span class="p">)</span> <span class="o">+</span>
+                    <span class="s2">&quot; (EXIT!=0) with error: &quot;</span> <span class="o">+</span> <span class="n">stde</span>
+                <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+        <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="AClusterSubmitter.submit"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.AClusterSubmitter.submit">[docs]</a>    <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">dependent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">dep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_dependencies</span><span class="p">(</span><span class="n">dependent</span><span class="p">)</span>
+
+        <span class="n">combine</span> <span class="o">=</span> <span class="s2">&quot; &amp;&amp; &quot;</span> <span class="k">if</span> <span class="n">command</span><span class="o">.</span><span class="n">environment</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot; &amp;&amp; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">environment</span><span class="p">)</span> <span class="o">+</span> <span class="n">combine</span> <span class="o">+</span> <span class="s2">&quot; &amp;&amp; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">command</span><span class="p">)</span>
+        <span class="n">resources</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_resources</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">resources</span><span class="p">)</span>
+        <span class="n">submit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">submit_command</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">cmd</span><span class="o">=</span><span class="n">cmd</span><span class="p">,</span>
+            <span class="n">resources</span><span class="o">=</span><span class="n">resources</span><span class="p">,</span>
+            <span class="n">dependent</span><span class="o">=</span><span class="n">dep</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span>
+        <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+                <span class="n">submit</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">command</span><span class="o">.</span><span class="n">workdir</span>
+            <span class="p">)</span>
+            <span class="n">stdo</span><span class="p">,</span> <span class="n">stde</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+            <span class="n">stdr</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span>
+
+            <span class="k">if</span> <span class="n">stdr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Unsuccessful execution of &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">command</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; (EXIT!=0) with error: &quot;</span> <span class="o">+</span> <span class="n">stde</span>
+                <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+        <span class="c1"># get job id and submit to db</span>
+        <span class="n">job_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_job_id</span><span class="p">(</span><span class="n">stdo</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># update entry if existing:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;tries&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job_id</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;command&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">command</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;resources&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">resources</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;workdir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">workdir</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;environment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">environment</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="c1"># add new entry</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;job_id&quot;</span><span class="p">:</span> <span class="n">job_id</span><span class="p">,</span>
+                <span class="s2">&quot;tries&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span><span class="p">,</span>
+                <span class="s2">&quot;command&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
+                <span class="s2">&quot;resources&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">resources</span><span class="p">,</span>
+                <span class="s2">&quot;workdir&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
+                <span class="s2">&quot;environment&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">environment</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">job_id</span></div></div>
+
+
+<div class="viewcode-block" id="LSFSubmitter"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.LSFSubmitter">[docs]</a><span class="k">class</span> <span class="nc">LSFSubmitter</span><span class="p">(</span><span class="n">AClusterSubmitter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements an LSF submitter</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__name</span> <span class="o">=</span> <span class="s2">&quot;lsf&quot;</span>
+    <span class="n">__submit</span> <span class="o">=</span> <span class="s2">&quot;bsub -J </span><span class="si">{name}</span><span class="s2"> </span><span class="si">{dependent}</span><span class="s2"> </span><span class="si">{resources}</span><span class="s2"> &#39;</span><span class="si">{cmd}</span><span class="s2">&#39;&quot;</span>
+    <span class="n">__monitor</span> <span class="o">=</span> <span class="s2">&quot;bjobs </span><span class="si">{job_id}</span><span class="s2">&quot;</span>
+    <span class="n">__cancel</span> <span class="o">=</span> <span class="s2">&quot;bkill </span><span class="si">{job_id}</span><span class="s2">&quot;</span>
+    <span class="n">__resources</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">__resources_flag</span> <span class="o">=</span> <span class="p">{</span><span class="n">EResource</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span> <span class="s2">&quot;-q&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">time</span><span class="p">:</span> <span class="s2">&quot;-W&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span> <span class="s2">&quot;-R&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span> <span class="s2">&quot;-n&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">error</span><span class="p">:</span> <span class="s2">&quot;-e&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">out</span><span class="p">:</span> <span class="s2">&quot;-o&quot;</span><span class="p">}</span>
+    <span class="n">__job_id_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^Job &lt;([0-9]*)&gt;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Init function</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        blocking: bool</span>
+<span class="sd">            determines whether join() blocks or not</span>
+<span class="sd">        db_path: str</span>
+<span class="sd">            the string to a LevelDB for command persistence</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__blocking</span> <span class="o">=</span> <span class="n">blocking</span>
+        <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tmp_db</span> <span class="o">=</span> <span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.db&quot;</span><span class="p">)</span>
+            <span class="n">tmp_db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__is_temp_db</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span> <span class="o">=</span> <span class="n">tmp_db</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__is_temp_db</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span> <span class="o">=</span> <span class="n">db_path</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__db</span> <span class="o">=</span> <span class="n">PersistentDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__is_temp_db</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">isBlocking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__blocking</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">monitor_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__monitor</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resource_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__resources_flag</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">submit_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__submit</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__db</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cancel_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__cancel</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">job_id_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job_id_pattern</span>
+
+    <span class="k">def</span> <span class="nf">_get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stdo</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">status_map</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">st</span> <span class="o">==</span> <span class="s2">&quot;PEND&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span>
+            <span class="k">elif</span> <span class="n">st</span> <span class="o">==</span> <span class="s2">&quot;RUN&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span>
+            <span class="k">elif</span> <span class="n">st</span> <span class="o">==</span> <span class="s2">&quot;DONE&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">DONE</span>
+            <span class="k">elif</span> <span class="n">st</span> <span class="o">==</span> <span class="s2">&quot;EXIT&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">SUSP</span>
+        <span class="k">return</span> <span class="n">status_map</span><span class="p">(</span><span class="n">stdo</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_prepare_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dependent</span><span class="p">):</span>
+        <span class="n">dep</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dependent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dependent</span><span class="p">,</span> <span class="n">Command</span><span class="p">):</span>
+                    <span class="n">d_info</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">dependent</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+                    <span class="n">dep</span> <span class="o">=</span> <span class="s2">&quot;-w </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d_info</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dep_jobs</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dependent</span><span class="p">:</span>
+                        <span class="n">d_info</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+                        <span class="n">dep_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d_info</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">])</span>
+                    <span class="c1"># not sure if comma-separated is correct</span>
+                    <span class="n">dep</span> <span class="o">=</span> <span class="s2">&quot;-w </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot; &amp;&amp; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;ended(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dep_jobs</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Specified depended jobs have not been submitted yet.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dep</span>
+
+    <span class="k">def</span> <span class="nf">_prepare_resources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resources</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resource_flags</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="n">EResource</span><span class="o">.</span><span class="n">mem</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> &#39;rusage[mem=</span><span class="si">{}</span><span class="s2">]&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">resource_flags</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">resources</span><span class="o">.</span><span class="n">items</span><span class="p">())</span></div>
+
+<span class="c1">########################################################################################################################</span>
+<span class="c1">#</span>
+<span class="c1">#  Slurm submitter</span>
+<span class="c1">#</span>
+<span class="c1">########################################################################################################################</span>
+
+
+<div class="viewcode-block" id="SlurmSubmitter"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.SlurmSubmitter">[docs]</a><span class="k">class</span> <span class="nc">SlurmSubmitter</span><span class="p">(</span><span class="n">AClusterSubmitter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Implements an LSF submitter</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">__name</span> <span class="o">=</span> <span class="s2">&quot;slurm&quot;</span>
+    <span class="n">__submit</span> <span class="o">=</span> <span class="s2">&quot;sbatch --job-name=</span><span class="si">{name}</span><span class="s2"> </span><span class="si">{dependent}</span><span class="s2"> </span><span class="si">{resources}</span><span class="s2"> --wrap &#39;</span><span class="si">{cmd}</span><span class="s2">&#39;&quot;</span>
+    <span class="n">__monitor</span> <span class="o">=</span> <span class="s2">&quot;squeue -t all -j </span><span class="si">{job_id}</span><span class="s2">&quot;</span>
+    <span class="n">__cancel</span> <span class="o">=</span> <span class="s2">&quot;scancel </span><span class="si">{job_id}</span><span class="s2">&quot;</span>
+    <span class="n">__resources</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">__resources_flag</span> <span class="o">=</span> <span class="p">{</span><span class="n">EResource</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span> <span class="s2">&quot;-p&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">time</span><span class="p">:</span> <span class="s2">&quot;-t&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span> <span class="s2">&quot;--mem-per-cpu&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span> <span class="s2">&quot;-n&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">error</span><span class="p">:</span> <span class="s2">&quot;-e&quot;</span><span class="p">,</span>
+                        <span class="n">EResource</span><span class="o">.</span><span class="n">out</span><span class="p">:</span> <span class="s2">&quot;-o&quot;</span><span class="p">}</span>
+    <span class="n">__job_id_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Submitted batch job ([0-9]*)&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Init function</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        blocking: bool</span>
+<span class="sd">            determines whether join() blocks or not</span>
+<span class="sd">        db_path: str</span>
+<span class="sd">            the string to a LevelDB for command persistence</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__blocking</span> <span class="o">=</span> <span class="n">blocking</span>
+        <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tmp_db</span> <span class="o">=</span> <span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.db&quot;</span><span class="p">)</span>
+            <span class="n">tmp_db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__is_temp_db</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span> <span class="o">=</span> <span class="n">tmp_db</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__is_temp_db</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span> <span class="o">=</span> <span class="n">db_path</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__db</span> <span class="o">=</span> <span class="n">PersistentDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__is_temp_db</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+          
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">isBlocking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__blocking</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">monitor_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__monitor</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resource_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__resources_flag</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">submit_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__submit</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__db</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cancel_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__cancel</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">job_id_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job_id_pattern</span>
+
+    <span class="k">def</span> <span class="nf">_prepare_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dependent</span><span class="p">):</span>
+        <span class="n">dep</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dependent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dependent</span><span class="p">,</span> <span class="n">Command</span><span class="p">):</span>
+                    <span class="n">d_info</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">dependent</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+                    <span class="n">dep</span> <span class="o">=</span> <span class="s2">&quot;--kill-on-invalid-dep=yes --dependency=afterok:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d_info</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dep_jobs</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dependent</span><span class="p">:</span>
+                        <span class="n">d_info</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+                        <span class="n">dep_jobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d_info</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">])</span>
+                    <span class="c1"># not sure if comma-separated is correct</span>
+                    <span class="n">dep</span> <span class="o">=</span> <span class="s2">&quot;--kill-on-invalid-dep=yes --dependency=afterok:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;ended(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+                                                                                              <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dep_jobs</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Specified depended jobs have not been submitted yet.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dep</span>
+
+    <span class="k">def</span> <span class="nf">_prepare_resources</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resources</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resource_flags</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">resources</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stdo</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">status_map</span><span class="p">(</span><span class="n">st</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">st</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;PD&quot;</span><span class="p">,</span> <span class="s2">&quot;CF&quot;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span>
+            <span class="k">elif</span> <span class="n">st</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;R&quot;</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span>
+            <span class="k">elif</span> <span class="n">st</span> <span class="o">==</span> <span class="s2">&quot;CD&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">DONE</span>
+            <span class="k">elif</span> <span class="n">st</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;BF&quot;</span><span class="p">,</span> <span class="s2">&quot;PR&quot;</span><span class="p">,</span> <span class="s2">&quot;TO&quot;</span><span class="p">,</span> <span class="s2">&quot;NF&quot;</span><span class="p">,</span> <span class="s2">&quot;F&quot;</span><span class="p">,</span> <span class="s2">&quot;CA&quot;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">SUSP</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Total input&quot;</span><span class="p">,</span> <span class="n">stdo</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Split:&quot;</span><span class="p">,</span> <span class="n">stdo</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">status_map</span><span class="p">(</span><span class="n">stdo</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span></div>
+
+<span class="c1">########################################################################################################################</span>
+<span class="c1">#</span>
+<span class="c1"># Local submitter</span>
+<span class="c1">#</span>
+<span class="c1">########################################################################################################################</span>
+
+
+<span class="k">class</span> <span class="nc">_Worker</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    _Worker class that runs commands</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">broker_queue</span><span class="p">,</span> <span class="n">input_queue</span><span class="p">,</span> <span class="n">results_queue</span><span class="p">):</span>
+        <span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span> <span class="o">=</span> <span class="n">broker_queue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__input_queue</span> <span class="o">=</span> <span class="n">input_queue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue</span> <span class="o">=</span> <span class="n">results_queue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__input_queue</span><span class="o">.</span><span class="n">get</span><span class="p">,</span> <span class="n">EJob</span><span class="o">.</span><span class="n">CANCEL</span><span class="p">):</span>
+            <span class="c1"># send RUN status to broker for received command</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">EJob</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">command_id</span><span class="p">,</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span><span class="p">)))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># run command and send DONE status to broker one success</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__submit</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">EJob</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">command_id</span><span class="p">,</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">DONE</span><span class="p">)))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="c1"># else send EXIT status</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">EJob</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">command_id</span><span class="p">,</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span><span class="p">)))</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="c1"># finally update semaphore counter of queue</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__input_queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        local function to submit a job</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ---------</span>
+<span class="sd">        command: Command</span>
+<span class="sd">            The Command object to execute</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The process ID of the command</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">combine</span> <span class="o">=</span> <span class="s2">&quot; &amp;&amp; &quot;</span> <span class="k">if</span> <span class="n">command</span><span class="o">.</span><span class="n">environment</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot; &amp;&amp; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">environment</span><span class="p">)</span> <span class="o">+</span> <span class="n">combine</span> <span class="o">+</span> <span class="s2">&quot; &amp;&amp; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">command</span><span class="p">)</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                 <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">universal_newlines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">command</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
+                                 <span class="n">preexec_fn</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">setsid</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">EJob</span><span class="o">.</span><span class="n">PID</span><span class="p">,</span> <span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">pid</span><span class="p">)))</span>
+            <span class="n">stdo</span><span class="p">,</span> <span class="n">stde</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>
+            <span class="n">stdr</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">returncode</span>
+            <span class="k">if</span> <span class="n">stdr</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Unsuccessful execution of &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">command</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; (EXIT!=0) with error: &quot;</span> <span class="o">+</span> <span class="n">stde</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_Broker</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    _Broker process handling dependencies and</span>
+<span class="sd">    submission of jobs</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">broker_queue</span><span class="p">,</span> <span class="n">worker_queue</span><span class="p">,</span> <span class="n">results_queue</span><span class="p">,</span> <span class="n">results_queue_worker</span><span class="p">,</span> <span class="n">pending_dict</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__input_queue</span> <span class="o">=</span> <span class="n">broker_queue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_master</span> <span class="o">=</span> <span class="n">results_queue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_worker</span> <span class="o">=</span> <span class="n">results_queue_worker</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__worker_queue</span> <span class="o">=</span> <span class="n">worker_queue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span> <span class="o">=</span> <span class="n">pending_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__db</span> <span class="o">=</span> <span class="n">PersistentDict</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># kill remaining runing commands</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="o">.</span><span class="n">RangeIter</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span><span class="p">,</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">DONE</span><span class="p">]:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpgid</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__input_queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+                <span class="n">ejob</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
+                <span class="k">if</span> <span class="n">ejob</span> <span class="o">==</span> <span class="n">EJob</span><span class="o">.</span><span class="n">STOP</span><span class="p">:</span>
+                    <span class="c1"># terminate broker</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+
+                <span class="k">elif</span> <span class="n">ejob</span> <span class="o">==</span> <span class="n">EJob</span><span class="o">.</span><span class="n">MONITOR</span><span class="p">:</span>
+                    <span class="c1"># monitor request</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_master</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__monitor</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+
+                <span class="k">elif</span> <span class="n">ejob</span> <span class="o">==</span> <span class="n">EJob</span><span class="o">.</span><span class="n">CANCEL</span><span class="p">:</span>
+                    <span class="c1"># cancel job</span>
+                    <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__cancel</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_master</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__update_status</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">command_id</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
+
+                <span class="k">elif</span> <span class="n">ejob</span> <span class="o">==</span> <span class="n">EJob</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">:</span>
+                    <span class="c1"># updating command status (e.g, RUN, EXIT, DONE)</span>
+                    <span class="c1"># some command has started message is coming from worker process</span>
+                    <span class="n">c_id</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">args</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__update_status</span><span class="p">(</span><span class="n">c_id</span><span class="p">,</span> <span class="n">status</span><span class="p">)</span>
+
+                <span class="k">elif</span> <span class="n">ejob</span> <span class="o">==</span> <span class="n">EJob</span><span class="o">.</span><span class="n">PID</span><span class="p">:</span>
+                    <span class="c1"># updating process ID of submitted command</span>
+                    <span class="n">job_id</span><span class="p">,</span> <span class="n">p_id</span> <span class="o">=</span> <span class="n">args</span>
+                    <span class="n">entry</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">job_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+                    <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p_id</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">job_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># submitting job to worker</span>
+                    <span class="n">job</span><span class="p">,</span> <span class="n">dependent</span> <span class="o">=</span> <span class="n">args</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__add_command</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">dependent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="p">[</span><span class="n">job</span><span class="p">]</span> <span class="o">=</span> <span class="n">dependent</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">__worker_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+                <span class="c1"># go through pending jobs and update status</span>
+                <span class="c1"># if one of the dependent jobs terminated with an error pending job is also terminated with error</span>
+                <span class="k">for</span> <span class="n">job</span><span class="p">,</span> <span class="n">dependent</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                    <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__condition_fulfilled</span><span class="p">(</span><span class="n">dependent</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">job</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span><span class="p">:</span>
+                            <span class="c1"># job cannot be called due to termination of dependent jobs</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">__update_status</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">command_id</span><span class="p">,</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span><span class="p">)</span>
+                            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="p">[</span><span class="n">job</span><span class="p">]</span>
+                        <span class="k">elif</span> <span class="n">status</span> <span class="o">==</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">__worker_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+                            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="p">[</span><span class="n">job</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># makes sure that a submitted job is properly registered and join works as intended</span>
+                        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span><span class="p">:</span>
+                            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="p">[</span><span class="n">job</span><span class="p">]</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">tb</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_master</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">e</span><span class="p">,</span> <span class="n">tb</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__condition_fulfilled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dependent</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dependent</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__monitor</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">DONE</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span>
+        <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span>
+
+    <span class="k">def</span> <span class="nf">__add_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># update entry if existing:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;tries&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;command&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">command</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;resources&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">resources</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;workdir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">workdir</span>
+            <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;environment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">environment</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="c1"># add new entry</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s2">&quot;job_id&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;tries&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span><span class="p">,</span>
+                <span class="s2">&quot;command&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
+                <span class="s2">&quot;resources&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">resources</span><span class="p">,</span>
+                <span class="s2">&quot;workdir&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
+                <span class="s2">&quot;environment&quot;</span><span class="p">:</span> <span class="n">command</span><span class="o">.</span><span class="n">environment</span>
+            <span class="p">}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Command &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; has not been submitted yet.&quot;</span><span class="p">)</span>
+        <span class="n">p_id</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__monitor</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="p">[</span><span class="n">command</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">status</span> <span class="ow">in</span> <span class="p">[</span><span class="n">EStatus</span><span class="o">.</span><span class="n">SUSP</span><span class="p">,</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span><span class="p">]:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpgid</span><span class="p">(</span><span class="n">p_id</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">status</span> <span class="o">==</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">DONE</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">status</span>
+        <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span>
+
+    <span class="k">def</span> <span class="nf">__monitor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        local function to monitor a command via assigned pID</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        command: Command</span>
+<span class="sd">            The Command object</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        EStatus</span>
+<span class="sd">            The status of the command</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">command</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Command &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; has not been submitted yet.&quot;</span><span class="p">)</span>
+
+        <span class="n">p_id</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;job_id&quot;</span><span class="p">]</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;command&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># I think if PID is completed this should through an error ....</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">pid</span><span class="o">=</span><span class="n">p_id</span><span class="p">)</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">status</span><span class="p">()</span>
+            <span class="n">p_cmd</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cmdline</span><span class="p">())</span>
+
+            <span class="c1"># test status types # if status is ZOMBIE also kill the job</span>
+            <span class="c1"># pid can be already in use by other process... one has to check the command as well....</span>
+            <span class="c1"># if p_cmd is different than the original process is probably completed</span>
+            <span class="k">if</span> <span class="n">cmd</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p_cmd</span><span class="p">:</span>
+                <span class="n">c_stat</span> <span class="o">=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">DONE</span>
+
+            <span class="k">elif</span> <span class="n">status</span> <span class="ow">in</span> <span class="p">[</span><span class="n">psutil</span><span class="o">.</span><span class="n">STATUS_DEAD</span><span class="p">,</span> <span class="n">psutil</span><span class="o">.</span><span class="n">STATUS_ZOMBIE</span><span class="p">]:</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+                <span class="n">c_stat</span> <span class="o">=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">EXIT</span>
+
+            <span class="k">elif</span> <span class="n">status</span> <span class="o">==</span> <span class="n">psutil</span><span class="o">.</span><span class="n">STATUS_RUNNING</span><span class="p">:</span>
+                <span class="n">c_stat</span> <span class="o">=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">SUSP</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">c_stat</span> <span class="o">=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">SUSP</span>
+        <span class="k">except</span> <span class="n">psutil</span><span class="o">.</span><span class="n">NoSuchProcess</span><span class="p">:</span>
+            <span class="n">c_stat</span> <span class="o">=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">DONE</span>
+        <span class="k">except</span> <span class="n">psutil</span><span class="o">.</span><span class="n">AccessDenied</span><span class="p">:</span>
+            <span class="n">c_stat</span> <span class="o">=</span> <span class="n">EStatus</span><span class="o">.</span><span class="n">RUN</span>
+
+        <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_stat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">command_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">c_stat</span>
+
+    <span class="k">def</span> <span class="nf">__update_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c_id</span><span class="p">,</span> <span class="n">status</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        updates the status of a command</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        c_id: str</span>
+<span class="sd">            The Command id</span>
+<span class="sd">        status: EStatus</span>
+<span class="sd">            The  new status</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">c_id</span><span class="p">],</span> <span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripLoader</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Command &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">c_id</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; has not been submitted yet.&quot;</span><span class="p">)</span>
+        <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="p">[</span><span class="n">c_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__db</span><span class="o">.</span><span class="n">sync</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="LocalSubmitter"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.LocalSubmitter">[docs]</a><span class="k">class</span> <span class="nc">LocalSubmitter</span><span class="p">(</span><span class="n">ASubmitter</span><span class="p">):</span>
+    <span class="n">__name</span> <span class="o">=</span> <span class="s2">&quot;local&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">blocking</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ncpu</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Init function</span>
+
+<span class="sd">        Parameter</span>
+<span class="sd">        ---------</span>
+<span class="sd">        blocking: bool</span>
+<span class="sd">            determines whether join() blocks or not</span>
+<span class="sd">        db_path: str</span>
+<span class="sd">            the string to a LevelDB for command persistence</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__blocking</span> <span class="o">=</span> <span class="n">blocking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__job_queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">JoinableQueue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Manager</span><span class="p">()</span><span class="o">.</span><span class="n">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_worker</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">db_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tmp_db</span> <span class="o">=</span> <span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.db&quot;</span><span class="p">)</span>
+            <span class="n">tmp_db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__is_temp_db</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span> <span class="o">=</span> <span class="n">tmp_db</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__is_temp_db</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span> <span class="o">=</span> <span class="n">db_path</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__broker</span> <span class="o">=</span> <span class="n">_Broker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job_queue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_worker</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="p">,</span> <span class="n">db_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__broker</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__broker</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__worker</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncpu</span><span class="p">):</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">_Worker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job_queue</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_worker</span><span class="p">)</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__worker</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__job_queue</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_worker</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="o">.</span><span class="n">join_thread</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__job_queue</span><span class="o">.</span><span class="n">join_thread</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue</span><span class="o">.</span><span class="n">join_thread</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue_worker</span><span class="o">.</span><span class="n">join_thread</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">__broker</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__worker</span><span class="p">:</span>
+                <span class="n">w</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__is_temp_db</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__db_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">isBlocking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__blocking</span>
+
+<div class="viewcode-block" id="LocalSubmitter.submit"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.LocalSubmitter.submit">[docs]</a>    <span class="k">def</span> <span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">dependent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dependent</span><span class="p">,</span> <span class="n">Command</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dependent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dependent</span> <span class="o">=</span> <span class="p">[</span><span class="n">dependent</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">EJob</span><span class="o">.</span><span class="n">SUBMIT</span><span class="p">,</span> <span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">dependent</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">command</span><span class="o">.</span><span class="n">command_id</span></div>
+
+<div class="viewcode-block" id="LocalSubmitter.cancel"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.LocalSubmitter.cancel">[docs]</a>    <span class="k">def</span> <span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">EJob</span><span class="o">.</span><span class="n">CANCEL</span><span class="p">,</span> <span class="n">command</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LocalSubmitter.monitor"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.LocalSubmitter.monitor">[docs]</a>    <span class="k">def</span> <span class="nf">monitor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__broker_queue</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">EJob</span><span class="o">.</span><span class="n">MONITOR</span><span class="p">,</span> <span class="n">command</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__results_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LocalSubmitter.join"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.batch.LocalSubmitter.join">[docs]</a>    <span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isBlocking</span><span class="p">:</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">__pending_dict</span><span class="p">:</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__job_queue</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

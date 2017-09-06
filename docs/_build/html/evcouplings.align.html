@@ -1,0 +1,1857 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.align package &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="index.html"/>
+        <link rel="up" title="Alignment" href="evcouplings.html"/>
+        <link rel="next" title="evcouplings.compare package" href="evcouplings.compare.html"/>
+        <link rel="prev" title="Alignment" href="evcouplings.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="evcouplings.html">Alignment</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">evcouplings.align package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.align.alignment">evcouplings.align.alignment module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.align.pfam">evcouplings.align.pfam module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.align.protocol">evcouplings.align.protocol module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.align.tools">evcouplings.align.tools module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="evcouplings.html">Alignment</a> &raquo;</li>
+        
+      <li>evcouplings.align package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/evcouplings.align.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="evcouplings-align-package">
+<h1>evcouplings.align package<a class="headerlink" href="#evcouplings-align-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-evcouplings.align.alignment">
+<span id="evcouplings-align-alignment-module"></span><h2>evcouplings.align.alignment module<a class="headerlink" href="#module-evcouplings.align.alignment" title="Permalink to this headline">¶</a></h2>
+<p>Class and functions for reading, storing and manipulating
+multiple sequence alignments.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.align.alignment.Alignment">
+<em class="property">class </em><code class="descclassname">evcouplings.align.alignment.</code><code class="descname">Alignment</code><span class="sig-paren">(</span><em>sequence_matrix</em>, <em>sequence_ids=None</em>, <em>annotation=None</em>, <em>alphabet='-ACDEFGHIKLMNPQRSTVWY'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Container to store and manipulate multiple sequence alignments.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Important:</p>
+<ol class="last arabic simple">
+<li>Sequence annotation currently is not transformed when
+selecting subsets of columns or positions (e.g. affects GR and GC
+lines in Stockholm alignments)</li>
+<li>Sequence ranges in IDs are not adjusted when selecting
+subsets of positions</li>
+</ol>
+</div>
+<dl class="method">
+<dt id="evcouplings.align.alignment.Alignment.apply">
+<code class="descname">apply</code><span class="sig-paren">(</span><em>columns=None</em>, <em>sequences=None</em>, <em>func=&lt;function lower&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply a function along columns and/or rows of alignment matrix,
+or to entire matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>columns</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>) or </em><em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>)</em><em>, </em><em>optional</em>) – Vector containing True for each column that
+should be retained, False otherwise; or the
+indices of columns that should be selected</li>
+<li><strong>sequences</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>) or </em><em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>)</em><em>, </em><em>optional</em>) – Vector containing True for each sequence that
+should be retained, False otherwise; or the
+indices of sequences that should be selected</li>
+<li><strong>func</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#callable" title="(in Python v2.7)"><em>callable</em></a>) – Vectorized numpy function that will be applied to
+the selected subset of the alignment matrix</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Alignment with modified columns and sequences
+(this alignment maintains annotation)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment">Alignment</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.align.alignment.Alignment.conservation">
+<code class="descname">conservation</code><span class="sig-paren">(</span><em>normalize=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.conservation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.conservation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate per-column conservation of sequence alignment
+based on entropy of single-column frequency distribution.</p>
+<p>If self.set_weights() was called previously, the
+frequencies used to calculate site entropies will be based
+on reweighted sequences.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>normalize</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Transform column entropy to range 0 (no conservation)
+to 1 (fully conserved)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Vector of length L with conservation scores</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.align.alignment.Alignment.count">
+<code class="descname">count</code><span class="sig-paren">(</span><em>char</em>, <em>axis='pos'</em>, <em>normalize=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Count occurrences of a character in the sequence
+alignment.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The counts are raw counts not adjusted for
+sequence redundancy.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>char</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Character which is counted</li>
+<li><strong>axis</strong> (<em>{&quot;pos&quot;</em><em>, </em><em>&quot;seq&quot;}</em><em>, </em><em>optional</em><em> (</em><em>default=&quot;pos&quot;</em><em>)</em>) – Count along positions or sequences</li>
+<li><strong>normalize</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default=True</em><em>)</em>) – Normalize count for length of axis (i.e. relative count)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Vector containing counts of char along the axis</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">np.array</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – Upon invalid axis specification</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.Alignment.frequencies">
+<code class="descname">frequencies</code><a class="headerlink" href="#evcouplings.align.alignment.Alignment.frequencies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns/calculates single-site frequencies of symbols in alignment.
+Also sets self._frequencies member variable for later reuse.</p>
+<p>Previously calculated sequence weights using self.set_weights()
+will be used to adjust frequency counts; otherwise, each sequence
+will contribute with equal weight.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Reference to self._frequencies</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.align.alignment.Alignment.from_dict">
+<em class="property">classmethod </em><code class="descname">from_dict</code><span class="sig-paren">(</span><em>sequences</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.from_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.from_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct an alignment object from a dictionary
+with sequence IDs as keys and aligned sequences
+as values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sequences</strong> (<em>dict-like</em>) – Dictionary with pairs of sequence ID (key) and
+aligned sequence (value)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">initialized alignment</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment">Alignment</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="evcouplings.align.alignment.Alignment.from_file">
+<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>fileobj</em>, <em>format='fasta'</em>, <em>a3m_inserts='first'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct an alignment object by reading in an
+alignment file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fileobj</strong> (<em>file-like obj</em>) – Alignment to be read in</li>
+<li><strong>format</strong> (<em>{&quot;fasta&quot;</em><em>, </em><em>&quot;stockholm&quot;</em><em>, </em><em>&quot;a3m&quot;}</em>) – Format of input alignment</li>
+<li><strong>a3m_inserts</strong> (<em>{&quot;first&quot;</em><em>, </em><em>&quot;delete&quot;}</em><em>, </em><em>optional</em><em> (</em><em>default: &quot;first&quot;</em><em>)</em>) – Strategy to deal with inserts in a3m alignment files
+(see read_a3m documentation for details)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Parsed alignment</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment">Alignment</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – For invalid alignments or alignment formats</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.align.alignment.Alignment.identities_to">
+<code class="descname">identities_to</code><span class="sig-paren">(</span><em>seq</em>, <em>normalize=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.identities_to"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.identities_to" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate sequence identity between sequence
+and all sequences in the alignment.</p>
+<dl class="docutils">
+<dt>seq <span class="classifier-delimiter">:</span> <span class="classifier">np.array, list-like, or str</span></dt>
+<dd>Sequence for comparison</dd>
+<dt>normalize <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional (default: True)</span></dt>
+<dd>Calculate relative identity between 0 and 1
+by normalizing with length of alignment</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.align.alignment.Alignment.lowercase_columns">
+<code class="descname">lowercase_columns</code><span class="sig-paren">(</span><em>columns</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.lowercase_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.lowercase_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change a subset of columns to lowercase character
+and replace “-” gaps with “.” gaps, e.g. to exclude
+them from EC calculations</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>columns</strong> (<em>numpy index array</em>) – Subset of columns to make lowercase</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Alignment with lowercase columns</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment">Alignment</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.Alignment.pair_frequencies">
+<code class="descname">pair_frequencies</code><a class="headerlink" href="#evcouplings.align.alignment.Alignment.pair_frequencies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns/calculates pairwise frequencies of symbols in alignment.
+Also sets self._pair_frequencies member variable for later reuse.</p>
+<p>Previously calculated sequence weights using self.set_weights()
+will be used to adjust frequency counts; otherwise, each sequence
+will contribute with equal weight.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Reference to self._pair_frequencies</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">np.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.align.alignment.Alignment.replace">
+<code class="descname">replace</code><span class="sig-paren">(</span><em>original</em>, <em>replacement</em>, <em>columns=None</em>, <em>sequences=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.replace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.replace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace character with another in full matrix or
+subset of columns/sequences.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>original</strong> (<em>char</em>) – Character that should be replaced</li>
+<li><strong>replacement</strong> (<em>char</em>) – Replacement character</li>
+<li><strong>columns</strong> (<em>numpy index array</em>) – See self.apply for explanation</li>
+<li><strong>sequences</strong> (<em>numpy index array</em>) – See self.apply for explanation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Alignment with replaced characters</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment">Alignment</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.align.alignment.Alignment.select">
+<code class="descname">select</code><span class="sig-paren">(</span><em>columns=None</em>, <em>sequences=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a sub-alignment that contains a subset of
+sequences and/or columns.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This does currently not adjust the indices
+of the sequences. Annotation in the original alignment
+will be lost and not passed on to the new object.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>columns</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>) or </em><em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>)</em><em>, </em><em>optional</em>) – Vector containing True for each column that
+should be retained, False otherwise; or the
+indices of columns that should be selected</li>
+<li><strong>sequences</strong> (<em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>) or </em><em>np.array</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>)</em><em>, </em><em>optional</em>) – Vector containing True for each sequence that
+should be retained, False otherwise; or the
+indices of sequences that should be selected</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Alignment with selected columns and sequences
+(note this alignment looses annotation)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment">Alignment</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.align.alignment.Alignment.set_weights">
+<code class="descname">set_weights</code><span class="sig-paren">(</span><em>identity_threshold=0.8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.set_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.set_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate weights for sequences in alignment by
+clustering all sequences with sequence identity
+greater or equal to the given threshold.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This method sets self.weights. After this method was called, methods/attributes such as
+self.frequencies or self.conservation()
+will make use of sequence weights.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">(Implementation: cannot use property here since we need identity threshold as a parameter….)</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>identity_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>, </em><em>optional</em><em> (</em><em>default: 0.8</em><em>)</em>) – Sequence identity threshold</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.align.alignment.Alignment.write">
+<code class="descname">write</code><span class="sig-paren">(</span><em>fileobj</em>, <em>format='fasta'</em>, <em>width=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#Alignment.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.Alignment.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write an alignment to a file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fileobj</strong> (<em>file-like object</em>) – File to which alignment is saved</li>
+<li><strong>format</strong> (<em>{&quot;fasta&quot;</em><em>, </em><em>&quot;aln&quot;</em><em>, </em><em>&quot;a3m&quot;}</em>) – Output format for alignment</li>
+<li><strong>width</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Column width for fasta alignment</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – Upon invalid file format specification</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.align.alignment.StockholmAlignment">
+<em class="property">class </em><code class="descclassname">evcouplings.align.alignment.</code><code class="descname">StockholmAlignment</code><span class="sig-paren">(</span><em>seqs</em>, <em>gf</em>, <em>gc</em>, <em>gs</em>, <em>gr</em><span class="sig-paren">)</span><a class="headerlink" href="#evcouplings.align.alignment.StockholmAlignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.StockholmAlignment.gc">
+<code class="descname">gc</code><a class="headerlink" href="#evcouplings.align.alignment.StockholmAlignment.gc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.StockholmAlignment.gf">
+<code class="descname">gf</code><a class="headerlink" href="#evcouplings.align.alignment.StockholmAlignment.gf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.StockholmAlignment.gr">
+<code class="descname">gr</code><a class="headerlink" href="#evcouplings.align.alignment.StockholmAlignment.gr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.StockholmAlignment.gs">
+<code class="descname">gs</code><a class="headerlink" href="#evcouplings.align.alignment.StockholmAlignment.gs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.StockholmAlignment.seqs">
+<code class="descname">seqs</code><a class="headerlink" href="#evcouplings.align.alignment.StockholmAlignment.seqs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.detect_format">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">detect_format</code><span class="sig-paren">(</span><em>fileobj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#detect_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.detect_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detect if an alignment file is in FASTA or
+Stockholm format.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fileobj</strong> (<em>file-like obj</em>) – Alignment file for which to detect format</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>format</strong> – Format of alignment, None if not detectable</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">{“fasta”, “stockholm”, None}</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.frequencies">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">frequencies</code><a class="reference internal" href="_modules/evcouplings/align/alignment.html#frequencies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.frequencies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate single-site frequencies of symbols in alignment</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>matrix</strong> (<em>np.array</em>) – N x L matrix containing N sequences of length L.
+Matrix must be mapped to range(0, num_symbols) using
+map_matrix function</li>
+<li><strong>seq_weights</strong> (<em>np.array</em>) – Vector of length N containing weight for each sequence</li>
+<li><strong>num_symbols</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Number of different symbols contained in alignment</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Matrix of size L x num_symbols containing relative
+column frequencies of all characters</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.identities_to_seq">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">identities_to_seq</code><a class="reference internal" href="_modules/evcouplings/align/alignment.html#identities_to_seq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.identities_to_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate number of identities to given target sequence
+for all sequences in the matrix</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>seq</strong> (<em>np.array</em>) – Vector of length L containing mapped sequence
+(using map_matrix function)</li>
+<li><strong>matrix</strong> (<em>np.array</em>) – N x L matrix containing N sequences of length L.
+Matrix must be mapped to range(0, num_symbols)
+using map_matrix function</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Vector of length N containing number of identities
+to each sequence in matrix</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.map_from_alphabet">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">map_from_alphabet</code><span class="sig-paren">(</span><em>alphabet='-ACDEFGHIKLMNPQRSTVWY'</em>, <em>default='-'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#map_from_alphabet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.map_from_alphabet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a mapping dictionary from a given alphabet.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>alphabet</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Alphabet for remapping. Elements will
+be remapped according to alphabet starting
+from 0</li>
+<li><strong>default</strong> (<em>Elements in matrix that are not</em>) – contained in alphabet will be treated as
+this character</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – For invalid default character</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.map_matrix">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">map_matrix</code><span class="sig-paren">(</span><em>matrix</em>, <em>map_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#map_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.map_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map elements in a numpy array using alphabet</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>matrix</strong> (<em>np.array</em>) – Matrix that should be remapped</li>
+<li><strong>map</strong> (<em>defaultdict</em>) – Map that will be applied to matrix elements</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Remapped matrix</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.num_cluster_members">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">num_cluster_members</code><a class="reference internal" href="_modules/evcouplings/align/alignment.html#num_cluster_members"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.num_cluster_members" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate number of sequences in alignment
+within given identity_threshold of each other</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>matrix</strong> (<em>np.array</em>) – N x L matrix containing N sequences of length L.
+Matrix must be mapped to range(0, num_symbols) using
+map_matrix function</li>
+<li><strong>identity_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Sequences with at least this pairwise identity will be
+grouped in the same cluster.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Vector of length N containing number of cluster
+members for each sequence (inverse of sequence
+weight)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.alignment.pair_frequencies">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">pair_frequencies</code><a class="reference internal" href="_modules/evcouplings/align/alignment.html#pair_frequencies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.pair_frequencies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate pairwise frequencies of symbols in alignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>matrix</strong> (<em>np.array</em>) – N x L matrix containing N sequences of length L.
+Matrix must be mapped to range(0, num_symbols) using
+map_matrix function</li>
+<li><strong>seq_weights</strong> (<em>np.array</em>) – Vector of length N containing weight for each sequence</li>
+<li><strong>num_symbols</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Number of different symbols contained in alignment</li>
+<li><strong>fi</strong> (<em>np.array</em>) – Matrix of size L x num_symbols containing relative
+column frequencies of all characters.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Matrix of size L x L x num_symbols x num_symbols containing
+relative pairwise frequencies of all character combinations</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.parse_header">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">parse_header</code><span class="sig-paren">(</span><em>header</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#parse_header"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.parse_header" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract ID of the (overall) sequence and the
+sequence range fromat a sequence header of the form
+sequenceID/start-end.</p>
+<p>If the header contains any additional information
+after the first whitespace character (e.g. sequence annotation),
+it will be discarded before parsing. If there is no sequence
+range, only the id (part of string before whitespace) will
+be returned but no range.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>header</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Sequence header</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>seq_id</strong> (<em>str</em>) – Sequence identifier</li>
+<li><strong>start</strong> (<em>int</em>) – Start of sequence range. Will be None if it cannot
+be extracted from the header.</li>
+<li><strong>stop</strong> (<em>int</em>) – End of sequence range. Will be None if it cannot
+be extracted from the header.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.read_a3m">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">read_a3m</code><span class="sig-paren">(</span><em>fileobj</em>, <em>inserts='first'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#read_a3m"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.read_a3m" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read an alignment in compressed a3m format and expand
+into a2m format.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">this function is currently not able to keep inserts in all the sequences</p>
+</div>
+<p>..todo:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">implement</span> <span class="n">this</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fileobj</strong> (<em>file-like object</em>) – A3M alignment file</li>
+<li><strong>inserts</strong> (<em>{&quot;first&quot;</em><em>, </em><em>&quot;delete&quot;}</em>) – Keep inserts in first sequence, or delete
+any insert column and keep only match state
+columns.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Sequences in alignment (key: ID, value: sequence),
+in order they appeared in input file</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">OrderedDict</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – Upon invalid choice of insert strategy</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.read_fasta">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">read_fasta</code><span class="sig-paren">(</span><em>fileobj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#read_fasta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.read_fasta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generator function to read a FASTA-format file
+(includes aligned FASTA, A2M, A3M formats)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fileobj</strong> (<em>file-like object</em>) – FASTA alignment file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Returns tuples of (sequence ID, sequence)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">generator of (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a>, <a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a>) tuples</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.read_stockholm">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">read_stockholm</code><span class="sig-paren">(</span><em>fileobj</em>, <em>read_annotation=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#read_stockholm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.read_stockholm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generator function to read Stockholm format alignment
+file (e.g. from hmmer).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Generator iterates over different alignments in the
+same file (but not over individual sequences, which makes
+little sense due to wrapped Stockholm alignments).</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fileobj</strong> (<em>file-like object</em>) – Stockholm alignment file</li>
+<li><strong>read_annotation</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default=False</em><em>)</em>) – Read annotation columns from alignment</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">namedtuple with the following fields:
+seqs, gf, gc, gs, gr (all DefaultOrderedDict)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.align.alignment.StockholmAlignment" title="evcouplings.align.alignment.StockholmAlignment">StockholmAlignment</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.sequences_to_matrix">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">sequences_to_matrix</code><span class="sig-paren">(</span><em>sequences</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#sequences_to_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.sequences_to_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms a list of sequences into a
+numpy array.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sequences</strong> (<em>list-like</em><em> (</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>)</em>) – List of strings containing aligned sequences</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">2D array containing sequence alignment
+(first axis: sequences, second axis: columns)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">numpy.array</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.write_a3m">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">write_a3m</code><span class="sig-paren">(</span><em>sequences</em>, <em>fileobj</em>, <em>insert_gap='.'</em>, <em>width=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#write_a3m"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.write_a3m" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a list of IDs/sequences to a FASTA-format file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>sequences</strong> (<em>Iterable</em>) – Iterator returning tuples(str, str), where
+first value is header/ID and second the
+sequence</li>
+<li><strong>fileobj</strong> (<em>file-like obj</em>) – File to which alignment will be written</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.write_aln">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">write_aln</code><span class="sig-paren">(</span><em>sequences</em>, <em>fileobj</em>, <em>width=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#write_aln"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.write_aln" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a list of IDs/sequences to a ALN-format file</p>
+<p>Currently, the file will not contain headers but simply
+a block matrix of the alignment</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>sequences</strong> (<em>Iterable</em>) – Iterator returning tuples(str, str), where
+first value is header/ID and second the
+sequence</li>
+<li><strong>fileobj</strong> (<em>file-like obj</em>) – File to which alignment will be written</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.alignment.write_fasta">
+<code class="descclassname">evcouplings.align.alignment.</code><code class="descname">write_fasta</code><span class="sig-paren">(</span><em>sequences</em>, <em>fileobj</em>, <em>width=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/alignment.html#write_fasta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.alignment.write_fasta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a list of IDs/sequences to a FASTA-format file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>sequences</strong> (<em>Iterable</em>) – Iterator returning tuples(str, str), where
+first value is header/ID and second the
+sequence</li>
+<li><strong>fileobj</strong> (<em>file-like obj</em>) – File to which alignment will be written</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.align.pfam">
+<span id="evcouplings-align-pfam-module"></span><h2>evcouplings.align.pfam module<a class="headerlink" href="#module-evcouplings.align.pfam" title="Permalink to this headline">¶</a></h2>
+<p>Code for identifying Pfam domains and mapping Pfam
+alignments and ECs into target sequence mode.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<ol class="last arabic simple">
+<li>Write code to create list of family sizes</li>
+<li>Implement alignments against Pfam-HMM so precomputed results can be reused in focus mode</li>
+</ol>
+</div>
+<dl class="function">
+<dt id="evcouplings.align.pfam.create_family_size_table">
+<code class="descclassname">evcouplings.align.pfam.</code><code class="descname">create_family_size_table</code><span class="sig-paren">(</span><em>full_pfam_file</em>, <em>outfile=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/pfam.html#create_family_size_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.pfam.create_family_size_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse family size table from Pfam flat file
+(<a class="reference external" href="ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.full.gz">ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.full.gz</a>)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>full_pfam_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to the pfam file (gzip).</li>
+<li><strong>outfile</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Save the parsed table to this file as a csv file.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Parsed Pfam table.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pd.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.pfam.pfam_hits">
+<code class="descclassname">evcouplings.align.pfam.</code><code class="descname">pfam_hits</code><span class="sig-paren">(</span><em>query_file</em>, <em>hmm_database</em>, <em>prefix</em>, <em>clan_table_file</em>, <em>size_table_file</em>, <em>resolve_overlaps=True</em>, <em>hmmscan_binary='hmmscan'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/pfam.html#pfam_hits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.pfam.pfam_hits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify hits of Pfam HMMs in a set of sequences.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>query_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File containing query sequence(s)</li>
+<li><strong>hmm_database</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File containing HMM database
+(Pfam-A.hmm, with hmmpress applied)</li>
+<li><strong>prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Prefix path for output files. Folder structure in
+the prefix will be created if not existing.</li>
+<li><strong>clan_table_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File with table linking Pfam families to clans
+(Pfam-A.clans.tsv). Set to None if not available,
+but resolve_overlaps cannot be True in that case.</li>
+<li><strong>size_table_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File with table of family sizes. Create using
+create_family_size_table(). Set to None if not
+available.</li>
+<li><strong>resolve_overlaps</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – Resolve overlapping hits by families from
+the same clan.
+Only possible if clan_table_file is given.</li>
+<li><strong>hmmscan_binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> (</em><em>default: &quot;hmmscan&quot;</em><em>)</em>) – Path to hmmscan binary (put in PATH for
+default to work)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Pfam hit table</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pd.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.pfam.remove_clan_overlaps">
+<code class="descclassname">evcouplings.align.pfam.</code><code class="descname">remove_clan_overlaps</code><span class="sig-paren">(</span><em>pfam_table</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/pfam.html#remove_clan_overlaps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.pfam.remove_clan_overlaps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove overlapping Pfam hits from same Pfam clan
+(equivalent of PfamScan.pl). Currently only
+allows to remove overlaps by domain bitscore.</p>
+<div class="admonition-todo admonition" id="index-1">
+<p class="first admonition-title">Todo</p>
+<p class="last">is bitscore the most sensible choice if different length hits?</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pfam_table</strong> (<em>pd.DataFrame</em>) – Pfam hit table as generated by pfam_hits() function
+(must contain Pfam clan annotation).</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Pfam hit table with lower-scoring overlaps removed</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pd.DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.align.protocol">
+<span id="evcouplings-align-protocol-module"></span><h2>evcouplings.align.protocol module<a class="headerlink" href="#module-evcouplings.align.protocol" title="Permalink to this headline">¶</a></h2>
+<p>Protein sequence alignment creation protocols/workflows.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.align.protocol.cut_sequence">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">cut_sequence</code><span class="sig-paren">(</span><em>sequence</em>, <em>sequence_id</em>, <em>region=None</em>, <em>first_index=None</em>, <em>out_file=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#cut_sequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.cut_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cut a given sequence to sub-range and save it in a file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sequence</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Full sequence that will be cut</li>
+<li><strong>sequence_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Identifier of sequence, used to construct header
+in output file</li>
+<li><strong>region</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>)</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Region that will be cut out of full sequence.
+If None, full sequence will be returned.</li>
+<li><strong>first_index</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Define index of first position in sequence.
+Will be set to 1 if None.</li>
+<li><strong>out_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Save sequence in a FASTA file (header:
+&gt;sequence_id/start_region-end_region)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
+<li><em>str</em> – Subsequence contained in region</li>
+<li><em>tuple(int, int)</em> – Region. If no input region is given, this will be
+(1, len(sequence)); otherwise, the input region is
+returned.</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal"><span class="pre">InvalidParameterError</span></code> – Upon invalid region specification (violating boundaries
+of sequence)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.describe_coverage">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">describe_coverage</code><span class="sig-paren">(</span><em>alignment</em>, <em>prefix</em>, <em>first_index</em>, <em>minimum_column_coverage</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#describe_coverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.describe_coverage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produce “classical” buildali coverage statistics, i.e.
+number of sequences, how many residues have too many gaps, etc.</p>
+<p>Only to be applied to alignments focused around the
+target sequence.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>alignment</strong> (<a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment"><em>Alignment</em></a>) – Alignment for which coverage statistics will be calculated</li>
+<li><strong>prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Prefix of alignment file that will be stored as identifier in table</li>
+<li><strong>first_index</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Sequence index of first position of target sequence</li>
+<li><strong>minimum_column_coverage</strong> (<em>Iterable</em><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em>) or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – <p>Minimum column coverage threshold(s) that will be tested
+(creating one row for each threshold in output table).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><code class="docutils literal"><span class="pre">int</span></code> values given to this function instead of a float will be divided by 100 to create the corresponding
+floating point representation. This parameter is 1.0 - maximum fraction of gaps per column.</p>
+</div>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Table with coverage statistics for different gap thresholds</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pd.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.describe_frequencies">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">describe_frequencies</code><span class="sig-paren">(</span><em>alignment</em>, <em>first_index</em>, <em>target_seq_index=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#describe_frequencies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.describe_frequencies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameters of alignment such as gaps, coverage,
+conservation and summarize.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>alignment</strong> (<a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment"><em>Alignment</em></a>) – Alignment for which description statistics
+will be calculated</li>
+<li><strong>first_index</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Sequence index of first residue in target sequence</li>
+<li><strong>target_seq_index</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – If given, will add the symbol in the target sequence
+into a separate column of the output table</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Table detailing conservation and symbol frequencies
+for all positions in the alignment</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.describe_seq_identities">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">describe_seq_identities</code><span class="sig-paren">(</span><em>alignment</em>, <em>target_seq_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#describe_seq_identities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.describe_seq_identities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate sequence identities of any sequence
+to target sequence and create result dataframe.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>alignment</strong> (<a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment"><em>Alignment</em></a>) – Alignment for which description statistics
+will be calculated</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Table giving the identity to target sequence
+for each sequence in alignment (in order of
+occurrence)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pandas.DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.existing">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">existing</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#existing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.existing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Protocol:</p>
+<p>Use external sequence alignment and extract all relevant
+information from there (e.g. sequence, region, etc.),
+then apply gap &amp; fragment filtering as usual</p>
+<p>Depending if sequence_id is given, the resulting alignment
+will be in focus mode or non-focus mode.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – See list below in code where calling check_required</td>
+</tr>
+</tbody>
+</table>
+<p>:param .. todo::: explain meaning of parameters in detail.
+:param If skip is given and True, the workflow will only return:
+:param the output configuration (outcfg) and ali will be None.:
+:param If callback is given, the function will be called at the:
+:param end of the workflow with the kwargs arguments updated with:
+:param the outcfg results.:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of the pipeline, including
+the following fields:<ul class="simple">
+<li>alignment_file</li>
+<li>raw_focus_alignment_file</li>
+<li>statistics_file</li>
+<li>sequence_file</li>
+<li>first_index</li>
+<li>target_sequence_file</li>
+<li>annotation_file (None)</li>
+<li>frequencies_file</li>
+<li>identities_file</li>
+<li>focus_mode</li>
+<li>focus_sequence</li>
+<li>segments</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.extract_header_annotation">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">extract_header_annotation</code><span class="sig-paren">(</span><em>alignment</em>, <em>from_annotation=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#extract_header_annotation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.extract_header_annotation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract Uniprot/Uniref sequence annotation from Stockholm file
+(as output by jackhmmer). This function may not work for other
+formats.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>alignment</strong> (<a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment"><em>Alignment</em></a>) – Multiple sequence alignment object</li>
+<li><strong>from_annotation</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Use annotation line (in Stockholm file) rather
+than sequence ID line (e.g. in FASTA file)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Table containing all annotation
+(one row per sequence in alignment,
+in order of occurrence)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.fetch_sequence">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">fetch_sequence</code><span class="sig-paren">(</span><em>sequence_id</em>, <em>sequence_file</em>, <em>sequence_download_url</em>, <em>out_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#fetch_sequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.fetch_sequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get sequence.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sequence_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Identifier of sequence that should be retrieved</li>
+<li><strong>sequence_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File containing sequence. If None, sqeuence will
+be downloaded from sequence_download_url</li>
+<li><strong>sequence_download_url</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – URL from which to download missing sequence. Must
+contain “{}” at the position where sequence ID will
+be inserted into download URL (using str.format).</li>
+<li><strong>out_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Output file in which sequence will be stored, if
+sequence_file is not existing.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><em>str</em> – Path of file with stored sequence (can be sequence_file
+or out_file)</li>
+<li><em>tuple (str, str)</em> – Identifier of sequence as stored in file, and sequence</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.jackhmmer_search">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">jackhmmer_search</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#jackhmmer_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.jackhmmer_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Protocol:</p>
+<p>Iterative jackhmmer search against a sequence database.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – See list below in code where calling check_required</td>
+</tr>
+</tbody>
+</table>
+<p>:param .. todo::: explain meaning of parameters in detail.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of the protocol, including
+the following fields:<ul class="simple">
+<li>target_sequence_file</li>
+<li>sequence_file</li>
+<li>raw_alignment_file</li>
+<li>hittable_file</li>
+<li>focus_mode</li>
+<li>focus_sequence</li>
+<li>segments</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.modify_alignment">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">modify_alignment</code><span class="sig-paren">(</span><em>focus_ali</em>, <em>target_seq_index</em>, <em>target_seq_id</em>, <em>region_start</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#modify_alignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.modify_alignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply pairwise identity filtering, fragment filtering, and exclusion
+of columns with too many gaps to a sequence alignment. Also generates
+files describing properties of the alignment such as frequency distributions,
+conservation, and “old-style” alignment statistics files.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">assumes focus alignment (otherwise unprocessed) as input.</p>
+</div>
+<div class="admonition-todo admonition" id="index-2">
+<p class="first admonition-title">Todo</p>
+<p class="last">come up with something more clever  to filter fragments than fixed width
+(e.g. use 95% quantile of length distribution as reference point)</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>focus_ali</strong> (<a class="reference internal" href="#evcouplings.align.alignment.Alignment" title="evcouplings.align.alignment.Alignment"><em>Alignment</em></a>) – Focus-mode input alignment</li>
+<li><strong>target_seq_index</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of target sequence in alignment</li>
+<li><strong>target_seq_id</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Identifier of target sequence (without range)</li>
+<li><strong>region_start</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Index of first sequence position in target sequence</li>
+<li><strong>kwargs</strong> (<em>See required arguments in source code</em>) – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>outcfg</strong> (<em>Dict</em>) – File products generated by the function:<ul>
+<li>alignment_file</li>
+<li>statistics_file</li>
+<li>frequencies_file</li>
+<li>identities_file</li>
+<li>raw_focus_alignment_file</li>
+</ul>
+</li>
+<li><strong>ali</strong> (<em>Alignment</em>) – Final processed alignment</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.run">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">run</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run alignment protocol to generate multiple sequence
+alignment from input sequence.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>kwargs arguments</strong> (<em>Mandatory</em>) – protocol: Alignment protocol to run
+prefix: Output prefix for all generated files</li>
+<li><strong>Optional</strong> – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><em>Alignment</em></li>
+<li><em>Dictionary with results of stage in following fields (in brackets - not returned by all protocols)</em> –<ul>
+<li>alignment_file</li>
+<li>[raw_alignment_file]</li>
+<li>statistics_file</li>
+<li>target_sequence_file</li>
+<li>sequence_file</li>
+<li>[annotation_file]</li>
+<li>frequencies_file</li>
+<li>identities_file</li>
+<li>[hittable_file]</li>
+<li>focus_mode</li>
+<li>focus_sequence</li>
+<li>segments</li>
+</ul>
+</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.search_thresholds">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">search_thresholds</code><span class="sig-paren">(</span><em>use_bitscores</em>, <em>seq_threshold</em>, <em>domain_threshold</em>, <em>seq_len</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#search_thresholds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.search_thresholds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set homology search inclusion parameters.</p>
+<dl class="docutils">
+<dt>HMMER hits get included in the HMM according to a two-step rule</dt>
+<dd><ol class="first last arabic simple">
+<li>sequence passes sequence-level treshold</li>
+<li>domain passes domain-level threshold</li>
+</ol>
+</dd>
+<dt>Therefore, search thresholds are set based on the following logic:</dt>
+<dd><ol class="first last arabic simple">
+<li>If only sequence threshold is given, a MissingParameterException is raised</li>
+<li>If only bitscore threshold is given, sequence threshold is set to the same</li>
+<li>If both thresholds are given, they are according to defined values</li>
+</ol>
+</dd>
+<dt>Valid inputs for bitscore thresholds:</dt>
+<dd><blockquote class="first">
+<div><ol class="arabic simple">
+<li>int or str: taken as absolute score threshold</li>
+<li>float: taken as relative threshold (absolute threshold derived by</li>
+</ol>
+</div></blockquote>
+<p class="last">multiplication with domain length)</p>
+</dd>
+<dt>Valid inputs for integer thresholds:</dt>
+<dd><ol class="first last arabic simple">
+<li>int: Used as negative exponent, threshold will be set to 1E-&lt;exponent&gt;</li>
+<li>float or str: Interpreted literally</li>
+</ol>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>use_bitscores</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – Use bitscore threshold instead of E-value threshold</li>
+<li><strong>domain_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Domain-level threshold. See rules above.</li>
+<li><strong>seq_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) – Sequence-level threshold. See rules above.</li>
+<li><strong>seq_len</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Length of sequence. Used to calculate absolute bitscore
+threshold for relative bitscore thresholds.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Sequence- and domain-level thresholds ready to be fed into HMMER</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)">tuple</a> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a>, <a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.protocol.standard">
+<code class="descclassname">evcouplings.align.protocol.</code><code class="descname">standard</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/protocol.html#standard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.protocol.standard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Protocol:</p>
+<p>Standard buildali4 workflow (run iterative jackhmmer
+search against sequence database, than determine which
+sequences and columns to include in the calculation based
+on coverage and maximum gap thresholds).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – See list below in code where calling check_required</td>
+</tr>
+</tbody>
+</table>
+<p>:param .. todo::: explain meaning of parameters in detail.
+:param If skip is given and True, the workflow will only return:
+:param the output configuration (outcfg) and ali will be None.:
+:param If callback is given, the function will be called at the:
+:param end of the workflow with the kwargs arguments updated with:
+:param the outcfg results.:</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>outcfg</strong> (<em>dict</em>) – Output configuration of the pipeline, including
+the following fields:<ul>
+<li>alignment_file</li>
+<li>raw_alignment_file</li>
+<li>raw_focus_alignment_file</li>
+<li>statistics_file</li>
+<li>target_sequence_file</li>
+<li>sequence_file</li>
+<li>annotation_file</li>
+<li>frequencies_file</li>
+<li>identities_file</li>
+<li>hittable_file</li>
+<li>focus_mode</li>
+<li>focus_sequence</li>
+<li>segments</li>
+</ul>
+</li>
+<li><strong>ali</strong> (<em>Alignment</em>) – Final sequence alignment</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.align.tools">
+<span id="evcouplings-align-tools-module"></span><h2>evcouplings.align.tools module<a class="headerlink" href="#module-evcouplings.align.tools" title="Permalink to this headline">¶</a></h2>
+<p>Wrappers for running external sequence alignment tools</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.align.tools.HmmscanResult">
+<em class="property">class </em><code class="descclassname">evcouplings.align.tools.</code><code class="descname">HmmscanResult</code><span class="sig-paren">(</span><em>prefix</em>, <em>output</em>, <em>tblout</em>, <em>domtblout</em>, <em>pfamtblout</em><span class="sig-paren">)</span><a class="headerlink" href="#evcouplings.align.tools.HmmscanResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="evcouplings.align.tools.HmmscanResult.domtblout">
+<code class="descname">domtblout</code><a class="headerlink" href="#evcouplings.align.tools.HmmscanResult.domtblout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.tools.HmmscanResult.output">
+<code class="descname">output</code><a class="headerlink" href="#evcouplings.align.tools.HmmscanResult.output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.tools.HmmscanResult.pfamtblout">
+<code class="descname">pfamtblout</code><a class="headerlink" href="#evcouplings.align.tools.HmmscanResult.pfamtblout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.tools.HmmscanResult.prefix">
+<code class="descname">prefix</code><a class="headerlink" href="#evcouplings.align.tools.HmmscanResult.prefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.tools.HmmscanResult.tblout">
+<code class="descname">tblout</code><a class="headerlink" href="#evcouplings.align.tools.HmmscanResult.tblout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.align.tools.JackhmmerResult">
+<em class="property">class </em><code class="descclassname">evcouplings.align.tools.</code><code class="descname">JackhmmerResult</code><span class="sig-paren">(</span><em>prefix</em>, <em>alignment</em>, <em>output</em>, <em>tblout</em>, <em>domtblout</em><span class="sig-paren">)</span><a class="headerlink" href="#evcouplings.align.tools.JackhmmerResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="evcouplings.align.tools.JackhmmerResult.alignment">
+<code class="descname">alignment</code><a class="headerlink" href="#evcouplings.align.tools.JackhmmerResult.alignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.tools.JackhmmerResult.domtblout">
+<code class="descname">domtblout</code><a class="headerlink" href="#evcouplings.align.tools.JackhmmerResult.domtblout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.tools.JackhmmerResult.output">
+<code class="descname">output</code><a class="headerlink" href="#evcouplings.align.tools.JackhmmerResult.output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.tools.JackhmmerResult.prefix">
+<code class="descname">prefix</code><a class="headerlink" href="#evcouplings.align.tools.JackhmmerResult.prefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.align.tools.JackhmmerResult.tblout">
+<code class="descname">tblout</code><a class="headerlink" href="#evcouplings.align.tools.JackhmmerResult.tblout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.tools.read_hmmer_domtbl">
+<code class="descclassname">evcouplings.align.tools.</code><code class="descname">read_hmmer_domtbl</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/tools.html#read_hmmer_domtbl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.tools.read_hmmer_domtbl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a HMMER domtbl file into DataFrame.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path of domtbl file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">DataFrame with parsed domtbl</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pd.DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.tools.read_hmmer_tbl">
+<code class="descclassname">evcouplings.align.tools.</code><code class="descname">read_hmmer_tbl</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/tools.html#read_hmmer_tbl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.tools.read_hmmer_tbl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a HMMER tbl file into DataFrame.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path of tbl file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">DataFrame with parsed tbl</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pd.DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.tools.run_hhfilter">
+<code class="descclassname">evcouplings.align.tools.</code><code class="descname">run_hhfilter</code><span class="sig-paren">(</span><em>input_file</em>, <em>output_file</em>, <em>threshold=95</em>, <em>columns='a2m'</em>, <em>binary='hhfilter'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/tools.html#run_hhfilter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.tools.run_hhfilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Redundancy-reduce a sequence alignment using hhfilter
+from the HHsuite alignment suite.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>input_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to input alignment in A2M/FASTA format</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to output alignment (will be in A3M format)</li>
+<li><strong>threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: 95</em><em>)</em>) – Sequence identity threshold for maximum pairwise
+identity (between 0 and 100)</li>
+<li><strong>columns</strong> (<em>{&quot;first&quot;</em><em>, </em><em>&quot;a2m&quot;}</em><em>, </em><em>optional</em><em> (</em><em>default: &quot;a2m&quot;</em><em>)</em>) – Definition of match columns (based on first sequence
+or upper-case columns (a2m))</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to hhfilter binary</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">output_file</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal"><span class="pre">ResourceError</span></code> – If output alignment is non-existent/empty</li>
+<li><code class="xref py py-exc docutils literal"><span class="pre">ValueError</span></code> – Upon invalid value of columns parameter</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.tools.run_hmmscan">
+<code class="descclassname">evcouplings.align.tools.</code><code class="descname">run_hmmscan</code><span class="sig-paren">(</span><em>query</em>, <em>database</em>, <em>prefix</em>, <em>use_model_threshold=True</em>, <em>threshold_type='cut_ga'</em>, <em>use_bitscores=True</em>, <em>domain_threshold=None</em>, <em>seq_threshold=None</em>, <em>nobias=False</em>, <em>cpu=None</em>, <em>stdout_redirect=None</em>, <em>binary='hmmscan'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/tools.html#run_hmmscan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.tools.run_hmmscan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run hmmscan of HMMs in database against sequences in query
+to identify matches of these HMMs.
+Refer to HMMER Userguide for explanation of these parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>query</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File containing query sequence(s)</li>
+<li><strong>database</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File containing HMM database (prepared with hmmpress)</li>
+<li><strong>prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Prefix path for output files. Folder structure in
+the prefix will be created if not existing.</li>
+<li><strong>use_model_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em> (</em><em>default: True</em><em>)</em>) – Use model-specific inclusion thresholds from
+HMM database rather than global bitscore/E-value
+thresholds (use_bitscores, domain_threshold and
+seq_threshold are overriden by this flag).</li>
+<li><strong>threshold-type</strong> (<em>{&quot;cut_ga&quot;</em><em>, </em><em>&quot;cut_nc&quot;</em><em>, </em><em>&quot;cut_tc&quot;}</em><em> (</em><em>default: &quot;cut_ga&quot;</em><em>)</em>) – Use gathering (default), noise or trusted cutoff
+to define scan hits. Please refer to HMMER manual for
+details.</li>
+<li><strong>use_bitscores</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – Use bitscore inclusion thresholds rather than E-values.
+Overriden by use_model_threshold flag.</li>
+<li><strong>domain_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Inclusion threshold applied on the domain level
+(e.g. “1E-03” or 0.001 or 50)</li>
+<li><strong>seq_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Inclusion threshold applied on the sequence level
+(e.g. “1E-03” or 0.001 or 50)</li>
+<li><strong>nobias</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Turn of bias correction</li>
+<li><strong>cpu</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Number of CPUs to use for search. Uses all if None.</li>
+<li><strong>stdout_redirect</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Redirect bulky stdout instead of storing
+with rest of results (use “/dev/null” to dispose)</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> (</em><em>default: &quot;hmmscan&quot;</em><em>)</em>) – Path to hmmscan binary (put in PATH for
+default to work)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">namedtuple with fields corresponding to the different
+output files (prefix, output, tblout, domtblout, pfamtblout)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.align.tools.HmmscanResult" title="evcouplings.align.tools.HmmscanResult">HmmscanResult</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last">ExternalToolError, ResourceError</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.align.tools.run_jackhmmer">
+<code class="descclassname">evcouplings.align.tools.</code><code class="descname">run_jackhmmer</code><span class="sig-paren">(</span><em>query</em>, <em>database</em>, <em>prefix</em>, <em>use_bitscores</em>, <em>domain_threshold</em>, <em>seq_threshold</em>, <em>iterations=5</em>, <em>nobias=False</em>, <em>cpu=None</em>, <em>stdout_redirect=None</em>, <em>checkpoints_hmm=False</em>, <em>checkpoints_ali=False</em>, <em>binary='jackhmmer'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/align/tools.html#run_jackhmmer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.align.tools.run_jackhmmer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run jackhmmer sequence search against target database.
+Refer to HMMER Userguide for explanation of these parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>query</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File containing query sequence</li>
+<li><strong>database</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – File containing sequence database</li>
+<li><strong>prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Prefix path for output files. Folder structure in
+the prefix will be created if not existing.</li>
+<li><strong>use_bitscores</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – Use bitscore inclusion thresholds rather than E-values.</li>
+<li><strong>domain_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Inclusion threshold applied on the domain level
+(e.g. “1E-03” or 0.001 or 50)</li>
+<li><strong>seq_threshold</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Inclusion threshold applied on the sequence level
+(e.g. “1E-03” or 0.001 or 50)</li>
+<li><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – number of jackhmmer search iterations</li>
+<li><strong>nobias</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Turn of bias correction</li>
+<li><strong>cpu</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Number of CPUs to use for search. Uses all if None.</li>
+<li><strong>stdout_redirect</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Redirect bulky stdout instead of storing
+with rest of results (use “/dev/null” to dispose)</li>
+<li><strong>checkpoints_hmm</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Store checkpoint HMMs to prefix.&lt;iter&gt;.hmm</li>
+<li><strong>checkpoints_ali</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Store checkpoint alignments to prefix.&lt;iter&gt;.sto</li>
+<li><strong>binary</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> (</em><em>default: &quot;jackhmmer&quot;</em><em>)</em>) – Path to jackhmmer binary (put in PATH for
+default to work)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">namedtuple with fields corresponding to the different
+output files (prefix, alignment, output, tblout, domtblout)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference internal" href="#evcouplings.align.tools.JackhmmerResult" title="evcouplings.align.tools.JackhmmerResult">JackhmmerResult</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last">ExternalToolError, ResourceError</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="evcouplings.compare.html" class="btn btn-neutral float-right" title="evcouplings.compare package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="evcouplings.html" class="btn btn-neutral" title="Alignment" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

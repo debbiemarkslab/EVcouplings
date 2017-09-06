@@ -1,0 +1,752 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.fold.tools &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.fold.tools</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.fold.tools</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Wrappers for tools for 3D structure prediction</span>
+<span class="sd">from evolutionary couplings</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="k">import</span> <span class="n">path</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="n">InvalidParameterError</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">run</span><span class="p">,</span> <span class="n">makedirs</span><span class="p">,</span> <span class="n">temp</span><span class="p">,</span> <span class="n">verify_resources</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="run_cns"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.tools.run_cns">[docs]</a><span class="k">def</span> <span class="nf">run_cns</span><span class="p">(</span><span class="n">inp_script</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inp_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="s2">&quot;cns&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run CNSsolve 1.21 (without worrying about environment setup)</span>
+
+<span class="sd">    Note that the user is responsible for verifying the output products</span>
+<span class="sd">    of CNS, since their paths are determined by .inp scripts and</span>
+<span class="sd">    hard to check automatically and in a general way.</span>
+
+<span class="sd">    Either input_script or input_file has to be specified.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inp_script : str, optional (default: None)</span>
+<span class="sd">        CNS &quot;.inp&quot; input script (actual commands, not file)</span>
+<span class="sd">    inp_file : str, optional (default: None)</span>
+<span class="sd">        Path to .inp input script file. Will override</span>
+<span class="sd">        inp_script if also specified.</span>
+<span class="sd">    log_file : str, optional (default: None)</span>
+<span class="sd">        Save CNS stdout output to this file</span>
+<span class="sd">    binary : str, optional (default: &quot;cns&quot;)</span>
+<span class="sd">        Absolute path of CNS binary</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ExternalToolError</span>
+<span class="sd">        If call to CNS fails</span>
+<span class="sd">    InvalidParameterError</span>
+<span class="sd">        If no input script (file or string) given</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># make sure we have absolute path</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+
+    <span class="c1"># extract main installation directory</span>
+    <span class="n">cns_main_dir</span> <span class="o">=</span> <span class="n">binary</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">cns_main_dir</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">cns_main_dir</span><span class="p">)</span>
+
+    <span class="c1"># create environment</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span>
+    <span class="n">library_dir</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cns_main_dir</span><span class="p">,</span> <span class="s2">&quot;libraries&quot;</span><span class="p">)</span>
+    <span class="n">module_dir</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cns_main_dir</span><span class="p">,</span> <span class="s2">&quot;modules&quot;</span><span class="p">)</span>
+
+    <span class="n">env</span><span class="p">[</span><span class="s2">&quot;CNS_SOLVE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cns_main_dir</span>
+    <span class="n">env</span><span class="p">[</span><span class="s2">&quot;CNS_LIB&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">library_dir</span>
+    <span class="n">env</span><span class="p">[</span><span class="s2">&quot;CNS_MODULE&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">module_dir</span>
+    <span class="n">env</span><span class="p">[</span><span class="s2">&quot;CNS_HELPLIB&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cns_main_dir</span><span class="p">,</span> <span class="s2">&quot;helplip&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">subdir</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;CNS_TOPPAR&quot;</span><span class="p">,</span> <span class="s2">&quot;toppar&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CNS_CONFDB&quot;</span><span class="p">,</span> <span class="s2">&quot;confdb&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CNS_XTALLIB&quot;</span><span class="p">,</span> <span class="s2">&quot;xtal&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CNS_NMRLIB&quot;</span><span class="p">,</span> <span class="s2">&quot;nmr&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CNS_XRAYLIB&quot;</span><span class="p">,</span> <span class="s2">&quot;xray&quot;</span><span class="p">),</span>
+    <span class="p">]:</span>
+        <span class="n">env</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">library_dir</span><span class="p">,</span> <span class="n">subdir</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">subdir</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;CNS_XTALMODULE&quot;</span><span class="p">,</span> <span class="s2">&quot;xtal&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;CNS_NMRMODULE&quot;</span><span class="p">,</span> <span class="s2">&quot;nmr&quot;</span><span class="p">),</span>
+    <span class="p">]:</span>
+        <span class="n">env</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">module_dir</span><span class="p">,</span> <span class="n">subdir</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">inp_script</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inp_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Must specify either input_script or input_file&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># read input script, this is fed into CNS using stdin</span>
+    <span class="k">if</span> <span class="n">inp_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">inp_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">inp_script</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">())</span>
+
+    <span class="c1"># run and store output</span>
+    <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span>
+        <span class="n">binary</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">inp_script</span>
+    <span class="p">)</span>
+
+    <span class="c1"># write stdout output to log file</span>
+    <span class="k">if</span> <span class="n">log_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="run_cns_13"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.tools.run_cns_13">[docs]</a><span class="k">def</span> <span class="nf">run_cns_13</span><span class="p">(</span><span class="n">inp_script</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inp_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">source_script</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="s2">&quot;cns&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run CNSsolve 1.3</span>
+
+<span class="sd">    Note that the user is responsible for verifying the output products</span>
+<span class="sd">    of CNS, since their paths are determined by .inp scripts and</span>
+<span class="sd">    hard to check automatically and in a general way.</span>
+
+<span class="sd">    Either input_script or input_file has to be specified.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inp_script : str, optional (default: None)</span>
+<span class="sd">        CNS &quot;.inp&quot; input script (actual commands, not file)</span>
+<span class="sd">    inp_file : str, optional (default: None)</span>
+<span class="sd">        Path to .inp input script file. Will override</span>
+<span class="sd">        inp_script if also specified.</span>
+<span class="sd">    log_file : str, optional (default: None)</span>
+<span class="sd">        Save CNS stdout output to this file</span>
+<span class="sd">    source_script : str, optional (default: None)</span>
+<span class="sd">        Script to set CNS environment variables.</span>
+<span class="sd">        This should typically point to .cns_solve_env_sh</span>
+<span class="sd">        in the CNS installation main directory (the</span>
+<span class="sd">        shell script itself needs to be edited to</span>
+<span class="sd">        contain the path of the installation)</span>
+<span class="sd">    binary : str, optional (default: &quot;cns&quot;)</span>
+<span class="sd">        Name of CNS binary</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ExternalToolError</span>
+<span class="sd">        If call to CNS fails</span>
+<span class="sd">    InvalidParameterError</span>
+<span class="sd">        If no input script (file or string) given</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># usually need to source script to set up environment for CNS</span>
+    <span class="k">if</span> <span class="n">source_script</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;source </span><span class="si">{}</span><span class="s2">;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">source_script</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">cmd</span> <span class="o">+=</span> <span class="n">binary</span>
+
+    <span class="k">if</span> <span class="n">inp_script</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inp_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Must specify either input_script or input_file&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># read input script, this is fed into CNS using stdin</span>
+    <span class="k">if</span> <span class="n">inp_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">inp_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">inp_script</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">())</span>
+
+    <span class="c1"># run and store output</span>
+    <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span>
+        <span class="n">cmd</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">inp_script</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="c1"># write stdout output to log file</span>
+    <span class="k">if</span> <span class="n">log_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="run_psipred"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.tools.run_psipred">[docs]</a><span class="k">def</span> <span class="nf">run_psipred</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="s2">&quot;runpsipred&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run psipred secondary structure prediction</span>
+
+<span class="sd">    psipred output file convention: run_psipred creates</span>
+<span class="sd">    output files &lt;rootname&gt;.ss2 and &lt;rootname2&gt;.horiz</span>
+<span class="sd">    in the current working directory, where &lt;rootname&gt;</span>
+<span class="sd">    is extracted from the basename of the input file</span>
+<span class="sd">    (e.g. /home/test/&lt;rootname&gt;.fa)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fasta_file : str</span>
+<span class="sd">        Input sequence file in FASTA format</span>
+<span class="sd">    output_dir : str</span>
+<span class="sd">        Directory in which output will be saved</span>
+<span class="sd">    binary : str, optional (default: &quot;cns&quot;)</span>
+<span class="sd">        Path of psipred executable (runpsipred)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ss2_file : str</span>
+<span class="sd">        Absolute path to prediction output in &quot;VFORMAT&quot;</span>
+<span class="sd">    horiz_file : str</span>
+<span class="sd">        Absolute path to prediction output in &quot;HFORMAT&quot;</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ExternalToolError</span>
+<span class="sd">        If call to psipred fails</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># make sure we have absolute path</span>
+    <span class="n">binary</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">binary</span><span class="p">)</span>
+    <span class="n">fasta_file</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">)</span>
+    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+
+    <span class="c1"># make sure input file is valid</span>
+    <span class="n">verify_resources</span><span class="p">(</span><span class="s2">&quot;Input FASTA file is invalid&quot;</span><span class="p">,</span> <span class="n">fasta_file</span><span class="p">)</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+
+    <span class="c1"># execute psipred;</span>
+    <span class="c1"># we have to start it from output directory so</span>
+    <span class="c1"># result files end up there (this is hardcoded</span>
+    <span class="c1"># in runpsipred)</span>
+    <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">binary</span><span class="p">,</span> <span class="n">fasta_file</span><span class="p">],</span> <span class="n">working_dir</span><span class="o">=</span><span class="n">output_dir</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># determine where psipred will store output based</span>
+    <span class="c1"># on logic from runpsipred script</span>
+    <span class="n">rootname</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fasta_file</span><span class="p">))</span>
+    <span class="n">output_prefix</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">output_dir</span><span class="p">,</span> <span class="n">rootname</span>
+    <span class="p">)</span>
+
+    <span class="c1"># construct paths to output files in vertical and horizontal formats</span>
+    <span class="n">ss2_file</span> <span class="o">=</span> <span class="n">output_prefix</span> <span class="o">+</span> <span class="s2">&quot;.ss2&quot;</span>
+    <span class="n">horiz_file</span> <span class="o">=</span> <span class="n">output_prefix</span> <span class="o">+</span> <span class="s2">&quot;.horiz&quot;</span>
+
+    <span class="c1"># make sure we actually predicted something</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;psipred output is invalid&quot;</span><span class="p">,</span> <span class="n">ss2_file</span><span class="p">,</span> <span class="n">horiz_file</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ss2_file</span><span class="p">,</span> <span class="n">horiz_file</span></div>
+
+
+<div class="viewcode-block" id="read_psipred_prediction"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.tools.read_psipred_prediction">[docs]</a><span class="k">def</span> <span class="nf">read_psipred_prediction</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">first_index</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read a psipred secondary structure prediction file</span>
+<span class="sd">    in horizontal or vertical format (auto-detected).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filename : str</span>
+<span class="sd">        Path to prediction output file</span>
+<span class="sd">    first_index : int, optional (default: 1)</span>
+<span class="sd">        Index of first position in predicted sequence</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pred : pandas.DataFrame</span>
+<span class="sd">        Table containing secondary structure prediction,</span>
+<span class="sd">        with the following columns:</span>
+
+<span class="sd">        * i: position</span>
+
+<span class="sd">        * A_i: amino acid</span>
+
+<span class="sd">        * sec_struct_3state: prediction (H, E, C)</span>
+
+<span class="sd">        If reading vformat, also contains columns</span>
+<span class="sd">        for the individual (score_coil/helix/strand)</span>
+
+<span class="sd">        If reading hformat, also contains confidence</span>
+<span class="sd">        score between 1 and 9 (sec_struct_conf)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># detect file format</span>
+    <span class="n">file_format</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;# PSIPRED HFORMAT&quot;</span><span class="p">):</span>
+                <span class="n">file_format</span> <span class="o">=</span> <span class="s2">&quot;hformat&quot;</span>
+            <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;# PSIPRED VFORMAT&quot;</span><span class="p">):</span>
+                <span class="n">file_format</span> <span class="o">=</span> <span class="s2">&quot;vformat&quot;</span>
+
+    <span class="k">if</span> <span class="n">file_format</span> <span class="o">==</span> <span class="s2">&quot;vformat&quot;</span><span class="p">:</span>
+        <span class="c1"># read in output file</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">filename</span><span class="p">,</span>
+            <span class="n">skip_blank_lines</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;#&quot;</span><span class="p">,</span>
+            <span class="n">delim_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">names</span><span class="o">=</span><span class="p">[</span>
+                <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;A_i&quot;</span><span class="p">,</span> <span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;score_coil&quot;</span><span class="p">,</span> <span class="s2">&quot;score_helix&quot;</span><span class="p">,</span> <span class="s2">&quot;score_strand&quot;</span>
+            <span class="p">],</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">file_format</span> <span class="o">==</span> <span class="s2">&quot;hformat&quot;</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="c1"># go through file and assemble Conf, Pred, and AA lines</span>
+            <span class="c1"># into single strings</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;:&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+                    <span class="n">content</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">value</span>
+
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+            <span class="s2">&quot;A_i&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s2">&quot;AA&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s2">&quot;Pred&quot;</span><span class="p">]),</span>
+            <span class="s2">&quot;sec_struct_conf&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s2">&quot;Conf&quot;</span><span class="p">])),</span>
+        <span class="p">})</span>
+        <span class="n">pred</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;i&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Input file is not a valid psipred prediciton file&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># shift indices if first_index != 1</span>
+    <span class="n">pred</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;i&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">first_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pred</span></div>
+
+
+<div class="viewcode-block" id="parse_maxcluster_comparison"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.tools.parse_maxcluster_comparison">[docs]</a><span class="k">def</span> <span class="nf">parse_maxcluster_comparison</span><span class="p">(</span><span class="n">comparison_output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse maxcluster output into a DataFrame</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    comparison_output : str</span>
+<span class="sd">        stdout output from maxcluster after comparison</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Parsed result table (columns: filename, num_pairs,</span>
+<span class="sd">        rmsd, maxsub, tm, msi), refer to maxcluster documentation</span>
+<span class="sd">        for explanation of the score fields.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># compile regular expression to extract output fields</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="s2">&quot;vs. (.+?)\s+Pairs=\s*(\d+), RMSD=\s*(\d+\.\d+), &quot;</span>
+        <span class="s2">&quot;MaxSub=\s*(\d+\.\d+), TM=\s*(\d+\.\d+), MSI=\s*(\d+\.\d+)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># extract scores for each structure (one per line)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">comparison_output</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">())</span>
+
+    <span class="c1"># create dataframe of results</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+            <span class="s2">&quot;filename&quot;</span><span class="p">,</span> <span class="s2">&quot;num_pairs&quot;</span><span class="p">,</span> <span class="s2">&quot;rmsd&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;maxsub&quot;</span><span class="p">,</span> <span class="s2">&quot;tm&quot;</span><span class="p">,</span> <span class="s2">&quot;msi&quot;</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># convert score columns to numerical values</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="s2">&quot;filename&quot;</span><span class="p">:</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">c</span><span class="p">])</span>
+
+    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;num_pairs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;num_pairs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="run_maxcluster_compare"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.tools.run_maxcluster_compare">[docs]</a><span class="k">def</span> <span class="nf">run_maxcluster_compare</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">experiment</span><span class="p">,</span> <span class="n">normalization_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">distance_cutoff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="s2">&quot;maxcluster&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compare a set of predicted structures to an experimental structure</span>
+<span class="sd">    using maxcluster.</span>
+<span class="sd">    </span>
+<span class="sd">    For clustering functionality, use run_maxcluster_clustering() function.</span>
+<span class="sd">    </span>
+<span class="sd">    For a high-level wrapper around this function that removes</span>
+<span class="sd">    problematic atoms and compares multiple models, please look at </span>
+<span class="sd">    evcouplings.fold.protocol.compare_models_maxcluster().</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    predictions : list(str)</span>
+<span class="sd">        List of PDB files that should be compared against experiment</span>
+<span class="sd">    experiment : str</span>
+<span class="sd">        Path of experimental structure PDB file. Note that the numbering</span>
+<span class="sd">        and residues in this file must agree with the predicted structure,</span>
+<span class="sd">        and that the structure may not contain duplicate atoms (multiple</span>
+<span class="sd">        models, or alternative locations for the same atom).</span>
+<span class="sd">    normalization_length : int, optional (default: None)</span>
+<span class="sd">        Use this length to normalize the Template Modeling (TM)</span>
+<span class="sd">        score (-N option of maxcluster). If None, will normalize</span>
+<span class="sd">        by length of experiment.</span>
+<span class="sd">    distance_cutoff : float, optional (default: None)</span>
+<span class="sd">        Distance cutoff for MaxSub search (-d option of maxcluster).</span>
+<span class="sd">        If None, will use maxcluster auto-calibration.</span>
+<span class="sd">    binary : str, optional (default: &quot;maxcluster&quot;)</span>
+<span class="sd">        Path to maxcluster binary</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Comparison result table (see parse_maxcluster_comparison</span>
+<span class="sd">        for more detailed explanation)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create a list of files for input to maxcluster</span>
+    <span class="n">list_file</span> <span class="o">=</span> <span class="n">temp</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">list_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">pred_file</span> <span class="ow">in</span> <span class="n">predictions</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pred_file</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="n">binary</span><span class="p">,</span> <span class="s2">&quot;-l&quot;</span><span class="p">,</span> <span class="n">list_file</span><span class="p">,</span> <span class="s2">&quot;-e&quot;</span><span class="p">,</span> <span class="n">experiment</span><span class="p">]</span>
+
+    <span class="c1"># normalization length for TM score calculation</span>
+    <span class="k">if</span> <span class="n">normalization_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;-N&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">normalization_length</span><span class="p">)]</span>
+
+    <span class="c1"># distance cutoff for MaxSub search</span>
+    <span class="k">if</span> <span class="n">distance_cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;-d&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">distance_cutoff</span><span class="p">)]</span>
+
+    <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">parse_maxcluster_comparison</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_maxcluster_clustering"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.tools.parse_maxcluster_clustering">[docs]</a><span class="k">def</span> <span class="nf">parse_maxcluster_clustering</span><span class="p">(</span><span class="n">clustering_output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse maxcluster clustering output into a DataFrame</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    clustering_output : str</span>
+<span class="sd">        stdout output from maxcluster after clustering</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Parsed result table (columns: filename, cluster, cluster_size)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># compile regular expression to extract output fields</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;INFO\s*:\s*(\d+)\s*:\s*(\d+)\s+(.+)&quot;</span><span class="p">)</span>
+
+    <span class="c1"># extract scores for each structure (one per line)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">read</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">clustering_output</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+        <span class="c1"># only parse section where cluster for each structure is output</span>
+        <span class="k">if</span> <span class="s2">&quot;Clusters @ Threshold&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">read</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="s2">&quot;Centroids&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">read</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">match</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">read</span> <span class="ow">and</span> <span class="n">match</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">())</span>
+
+    <span class="c1"># turn results into table</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;item&quot;</span><span class="p">,</span> <span class="s2">&quot;cluster&quot;</span><span class="p">,</span> <span class="s2">&quot;filename&quot;</span><span class="p">])</span>
+
+    <span class="c1"># add column containing the size of each cluster</span>
+    <span class="n">cluster_sizes</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+        <span class="s2">&quot;cluster&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;cluster_size&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;cluster&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">,</span> <span class="s2">&quot;cluster&quot;</span><span class="p">,</span> <span class="s2">&quot;cluster_size&quot;</span><span class="p">]]</span></div>
+
+
+<div class="viewcode-block" id="run_maxcluster_cluster"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.tools.run_maxcluster_cluster">[docs]</a><span class="k">def</span> <span class="nf">run_maxcluster_cluster</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;average&quot;</span><span class="p">,</span> <span class="n">rmsd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                           <span class="n">clustering_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="s2">&quot;maxcluster&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compare a set of predicted structures to an experimental structure</span>
+<span class="sd">    using maxcluster.</span>
+
+<span class="sd">    For clustering functionality, use run_maxcluster_clustering() function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    predictions : list(str)</span>
+<span class="sd">        List of PDB files that should be compared against experiment</span>
+<span class="sd">    method : {&quot;single&quot;, &quot;average&quot;, &quot;maximum&quot;, &quot;pairs_min&quot;, &quot;pairs_abs&quot;}, optional (default: &quot;average&quot;)</span>
+<span class="sd">        Clustering method (single / average / maximum linkage,</span>
+<span class="sd">        or min / absolute size neighbour pairs</span>
+<span class="sd">    clustering_threshold : float (optional, default: None)</span>
+<span class="sd">        Initial clustering threshold (maxcluster -T option)</span>
+<span class="sd">    rmsd : bool, optional (default: True)</span>
+<span class="sd">        Use RMSD-based clustering (faster)</span>
+<span class="sd">    binary : str, optional (default: &quot;maxcluster&quot;)</span>
+<span class="sd">        Path to maxcluster binary</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Clustering result table (see parse_maxcluster_clustering</span>
+<span class="sd">        for more detailed explanation)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create a list of files for input to maxcluster</span>
+    <span class="n">list_file</span> <span class="o">=</span> <span class="n">temp</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">list_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">pred_file</span> <span class="ow">in</span> <span class="n">predictions</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">pred_file</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">method_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;single&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;average&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;maximum&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="s2">&quot;pairs_min&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s2">&quot;pairs_abs&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">method_map</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Method must be one of the following: &quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">method_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="p">)</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="n">binary</span><span class="p">,</span> <span class="s2">&quot;-l&quot;</span><span class="p">,</span> <span class="n">list_file</span><span class="p">,</span> <span class="s2">&quot;-C&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">method_map</span><span class="p">[</span><span class="n">method</span><span class="p">])]</span>
+
+    <span class="k">if</span> <span class="n">rmsd</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;-rmsd&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">clustering_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;-T&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">clustering_threshold</span><span class="p">)]</span>
+
+    <span class="n">return_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">parse_maxcluster_clustering</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

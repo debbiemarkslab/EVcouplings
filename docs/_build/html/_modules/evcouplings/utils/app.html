@@ -1,0 +1,717 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.utils.app &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.utils.app</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.utils.app</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">evcouplings command-line app</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+
+<span class="sd">.. todo::</span>
+
+<span class="sd">    Once there are different pipelines to run, there should</span>
+<span class="sd">    be individual commands for these, so will need to define additional</span>
+<span class="sd">    entry points for applications (e.g. evcomplex in addition to evcouplings).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="k">import</span> <span class="n">executable</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="k">import</span> <span class="n">path</span>
+
+<span class="kn">import</span> <span class="nn">click</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils</span> <span class="k">import</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">database</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils</span> <span class="k">import</span> <span class="n">summarize</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">create_prefix_folders</span><span class="p">,</span> <span class="n">ResourceError</span><span class="p">,</span> <span class="n">valid_file</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">check_required</span><span class="p">,</span> <span class="n">InvalidParameterError</span><span class="p">,</span>
+    <span class="n">read_config_file</span><span class="p">,</span> <span class="n">write_config_file</span>
+<span class="p">)</span>
+
+<span class="c1"># store individual config files in files with this name</span>
+<span class="n">CONFIG_NAME</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_config.txt&quot;</span>
+
+
+<div class="viewcode-block" id="substitute_config"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.app.substitute_config">[docs]</a><span class="k">def</span> <span class="nf">substitute_config</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Substitute command line arguments into config file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Command line parameters to be substituted</span>
+<span class="sd">        into configuration file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Updated configuration</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># mapping of command line parameters to config file entries</span>
+    <span class="n">CONFIG_MAP</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;prefix&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;global&quot;</span><span class="p">,</span> <span class="s2">&quot;prefix&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;protein&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;global&quot;</span><span class="p">,</span> <span class="s2">&quot;sequence_id&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;seqfile&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;global&quot;</span><span class="p">,</span> <span class="s2">&quot;sequence_file&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;alignment&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;align&quot;</span><span class="p">,</span> <span class="s2">&quot;input_alignment&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;iterations&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;align&quot;</span><span class="p">,</span> <span class="s2">&quot;iterations&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;align&quot;</span><span class="p">,</span> <span class="s2">&quot;seqid_filter&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;seqcov&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;align&quot;</span><span class="p">,</span> <span class="s2">&quot;minimum_sequence_coverage&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;colcov&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;align&quot;</span><span class="p">,</span> <span class="s2">&quot;minimum_column_coverage&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;theta&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;global&quot;</span><span class="p">,</span> <span class="s2">&quot;theta&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;plmiter&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;couplings&quot;</span><span class="p">,</span> <span class="s2">&quot;iterations&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;queue&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;environment&quot;</span><span class="p">,</span> <span class="s2">&quot;queue&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;environment&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;cores&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;environment&quot;</span><span class="p">,</span> <span class="s2">&quot;cores&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;memory&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;environment&quot;</span><span class="p">,</span> <span class="s2">&quot;memory&quot;</span><span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="c1"># try to read in configuration</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;config&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">config_file</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+            <span class="s2">&quot;Config file does not exist or is empty: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">config_file</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">config</span> <span class="o">=</span> <span class="n">read_config_file</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="n">preserve_order</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># substitute command-line parameters into configuration</span>
+    <span class="c1"># (if straightforward substitution)</span>
+    <span class="k">for</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">CONFIG_MAP</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">outer</span><span class="p">,</span> <span class="n">inner</span> <span class="o">=</span> <span class="n">CONFIG_MAP</span><span class="p">[</span><span class="n">param</span><span class="p">]</span>
+            <span class="n">config</span><span class="p">[</span><span class="n">outer</span><span class="p">][</span><span class="n">inner</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="c1"># make sure that number of CPUs requested by</span>
+    <span class="c1"># programs within pipeline does not exceed</span>
+    <span class="c1"># number of cores requested in environment</span>
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;environment&quot;</span><span class="p">][</span><span class="s2">&quot;cores&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;cpu&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;environment&quot;</span><span class="p">][</span><span class="s2">&quot;cores&quot;</span><span class="p">]</span>
+
+    <span class="c1"># handle the more complicated parameters</span>
+
+    <span class="c1"># If alignment is given, run &quot;existing&quot; protocol</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;alignment&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># TODO: think about what to do if sequence_file is given</span>
+        <span class="c1"># (will not be used)</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">][</span><span class="s2">&quot;protocol&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;existing&quot;</span>
+
+    <span class="c1"># subregion of protein</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;region&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;region&quot;</span><span class="p">]</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">&quot;(\d+)-(\d+)&quot;</span><span class="p">,</span> <span class="n">region</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+            <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">())</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;region&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+                <span class="s2">&quot;Region string does not have format &quot;</span>
+                <span class="s2">&quot;start-end (e.g. 5-123):&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">region</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="c1"># pipeline stages to run</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stages&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;stages&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;stages&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+
+    <span class="c1"># sequence alignment input database</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;database&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;database&quot;</span><span class="p">]</span>
+        <span class="c1"># check if we have a predefined sequence database</span>
+        <span class="c1"># if so, use it; otherwise, interpret as file path</span>
+        <span class="k">if</span> <span class="n">db</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;databases&quot;</span><span class="p">]:</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">][</span><span class="s2">&quot;database&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">db</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">][</span><span class="s2">&quot;database&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;custom&quot;</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;databases&quot;</span><span class="p">][</span><span class="s2">&quot;custom&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">db</span>
+
+    <span class="c1"># make sure bitscore and E-value thresholds are exclusively set</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bitscores&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;evalues&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Can not specify bitscore and E-value threshold at the same time.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bitscores&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">thresholds</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;bitscores&quot;</span><span class="p">]</span>
+        <span class="n">bitscore</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;evalues&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">thresholds</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;evalues&quot;</span><span class="p">]</span>
+        <span class="n">bitscore</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">thresholds</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">thresholds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">thresholds</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x_cast</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="n">t</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">T</span>
+            <span class="p">]</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+                <span class="s2">&quot;Bitscore/E-value threshold(s) must be numeric: &quot;</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">thresholds</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">][</span><span class="s2">&quot;use_bitscores&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bitscore</span>
+
+        <span class="c1"># check if we have a single threshold (single job)</span>
+        <span class="c1"># or if we need to create an array of jobs</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_cast</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">][</span><span class="s2">&quot;domain_threshold&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_cast</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">][</span><span class="s2">&quot;sequence_threshold&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_cast</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">x_cast</span><span class="p">:</span>
+                <span class="n">sub_prefix</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_b&quot;</span> <span class="k">if</span> <span class="n">bitscore</span> <span class="k">else</span> <span class="s2">&quot;_e&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">config</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">][</span><span class="n">sub_prefix</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;align&quot;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="s2">&quot;domain_threshold&quot;</span><span class="p">:</span> <span class="n">t</span><span class="p">,</span>
+                        <span class="s2">&quot;sequence_threshold&quot;</span><span class="p">:</span> <span class="n">t</span><span class="p">,</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">config</span></div>
+
+
+<div class="viewcode-block" id="unroll_config"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.app.unroll_config">[docs]</a><span class="k">def</span> <span class="nf">unroll_config</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create individual job configs from master config file</span>
+<span class="sd">    (e.g. containing batch section)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    config : dict</span>
+<span class="sd">        Global run dictionary that will be split</span>
+<span class="sd">        up into individual pipeline jobs</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    configs : dict</span>
+<span class="sd">        Dictionary of prefix to individual configurations</span>
+<span class="sd">        created by substitution from input configuration.</span>
+<span class="sd">        If no batch section is present, there will be only</span>
+<span class="sd">        one entry in the dictionary that corresponds to</span>
+<span class="sd">        the master run specified by the input configuration.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># get global prefix of run</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="c1"># store unrolled configurations here</span>
+    <span class="n">configs</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># check if we have a single job or need to unroll</span>
+    <span class="c1"># into multiple jobs</span>
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;batch&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">configs</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># go through all specified runs</span>
+        <span class="k">for</span> <span class="n">sub_id</span><span class="p">,</span> <span class="n">delta_config</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># create copy of config and update for current subjob</span>
+            <span class="n">sub_config</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+            <span class="c1"># create prefix of subjob (may contain / to route</span>
+            <span class="c1"># subjob output to subfolder)</span>
+            <span class="n">sub_prefix</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">sub_id</span>
+
+            <span class="c1"># these are not batch jobs anymore, so deactivate section</span>
+            <span class="n">sub_config</span><span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># create full prefix for subjob</span>
+            <span class="n">sub_config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sub_prefix</span>
+
+            <span class="c1"># apply subconfig delta</span>
+            <span class="c1"># (assuming parameters are nested in two layers)</span>
+            <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">delta_config</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">delta_config</span><span class="p">[</span><span class="n">section</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">sub_config</span><span class="p">[</span><span class="n">section</span><span class="p">][</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+            <span class="n">configs</span><span class="p">[</span><span class="n">sub_prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">sub_config</span>
+
+    <span class="k">return</span> <span class="n">configs</span></div>
+
+
+<div class="viewcode-block" id="run_jobs"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.app.run_jobs">[docs]</a><span class="k">def</span> <span class="nf">run_jobs</span><span class="p">(</span><span class="n">configs</span><span class="p">,</span> <span class="n">global_config</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Submit config to pipeline</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    configs : dict</span>
+<span class="sd">        Configurations for individual subjobs</span>
+<span class="sd">    global_config : dict</span>
+<span class="sd">        Master configuration (if only one job,</span>
+<span class="sd">        the contents of this dictionary will be</span>
+<span class="sd">        equal to the single element of config_files)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">python</span> <span class="o">=</span> <span class="n">executable</span>
+    <span class="n">pipeline_path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">pipeline</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span>
+    <span class="n">summarize_path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">summarize</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span>
+
+    <span class="n">cmd_base</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">python</span><span class="p">,</span> <span class="n">pipeline_path</span><span class="p">)</span>
+    <span class="n">summ_base</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">python</span><span class="p">,</span> <span class="n">summarize_path</span><span class="p">)</span>
+
+    <span class="c1"># determine output directory for config files</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">global_config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="c1"># integrate working directory into output prefix</span>
+    <span class="c1"># if it is given; if prefix contains an absolute path,</span>
+    <span class="c1"># this will override the workdir according to</span>
+    <span class="c1"># implementation of path.join()</span>
+    <span class="k">if</span> <span class="n">workdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">out_prefix</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">out_prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+
+    <span class="c1"># save configuration file, make sure we do not overwrite previous run</span>
+    <span class="c1"># if overwrite protection is activated</span>
+    <span class="c1"># (but only if it is a valid configuration file with contents)</span>
+    <span class="n">cfg_filename</span> <span class="o">=</span> <span class="n">CONFIG_NAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out_prefix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">cfg_filename</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Existing configuration file </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cfg_filename</span><span class="p">)</span> <span class="o">+</span>
+            <span class="s2">&quot;indicates current prefix </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span>
+            <span class="s2">&quot;would overwrite existing results. Use --yolo &quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;flag to deactivate overwrite protection (e.g. for &quot;</span>
+            <span class="s2">&quot;restarting a job or running a different stage).&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># make sure working directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">cfg_filename</span><span class="p">)</span>
+
+    <span class="c1"># write global config file</span>
+    <span class="n">write_config_file</span><span class="p">(</span><span class="n">cfg_filename</span><span class="p">,</span> <span class="n">global_config</span><span class="p">)</span>
+
+    <span class="c1"># also write individual subjob configuration files</span>
+    <span class="c1"># (we have to write these before submitting, since</span>
+    <span class="c1"># the job summarizer needs the paths to all files)</span>
+    <span class="k">for</span> <span class="n">subjob_prefix</span><span class="p">,</span> <span class="n">subjob_cfg</span> <span class="ow">in</span> <span class="n">configs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># determine working dir for each subjob, since subjob</span>
+        <span class="c1"># prefix may contain slashes leading to subfolder creation</span>
+        <span class="k">if</span> <span class="n">workdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">subjob_out_prefix</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">subjob_prefix</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">subjob_out_prefix</span> <span class="o">=</span> <span class="n">subjob_prefix</span>
+
+        <span class="n">subcfg_filename</span> <span class="o">=</span> <span class="n">CONFIG_NAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subjob_out_prefix</span><span class="p">)</span>
+
+        <span class="c1"># make sure output subfolder exists</span>
+        <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">subcfg_filename</span><span class="p">)</span>
+
+        <span class="c1"># write subjob configuration file</span>
+        <span class="n">write_config_file</span><span class="p">(</span><span class="n">subcfg_filename</span><span class="p">,</span> <span class="n">subjob_cfg</span><span class="p">)</span>
+
+    <span class="c1"># now create list of subjob config files relative to working</span>
+    <span class="c1"># directory (above, we allow to run submitted in arbitrary directory)</span>
+    <span class="n">config_files</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">CONFIG_NAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">subjob_prefix</span><span class="p">)</span> <span class="k">for</span> <span class="n">subjob_prefix</span> <span class="ow">in</span> <span class="n">configs</span>
+    <span class="p">]</span>
+
+    <span class="c1"># create command for summarizer (needs to know all subjob config files)</span>
+    <span class="n">summ_cmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">summ_base</span><span class="p">,</span>
+        <span class="n">global_config</span><span class="p">[</span><span class="s2">&quot;pipeline&quot;</span><span class="p">],</span>
+        <span class="n">global_config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;prefix&quot;</span><span class="p">],</span>
+        <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">config_files</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># create submitter from global (pre-unrolling) configuration</span>
+    <span class="n">submitter</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">SubmitterFactory</span><span class="p">(</span>
+        <span class="n">global_config</span><span class="p">[</span><span class="s2">&quot;environment&quot;</span><span class="p">][</span><span class="s2">&quot;engine&quot;</span><span class="p">],</span>
+        <span class="n">db_path</span><span class="o">=</span><span class="n">out_prefix</span> <span class="o">+</span> <span class="s2">&quot;_job_database.txt&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># collect individual submitted jobs here</span>
+    <span class="n">commands</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># prepare individual jobs for submission</span>
+    <span class="k">for</span> <span class="n">job</span><span class="p">,</span> <span class="n">job_cfg</span> <span class="ow">in</span> <span class="n">configs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">job_prefix</span> <span class="o">=</span> <span class="n">job_cfg</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">][</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+        <span class="n">job_cfg_file</span> <span class="o">=</span> <span class="n">CONFIG_NAME</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+        <span class="c1"># set job status in database to pending</span>
+        <span class="n">pipeline</span><span class="o">.</span><span class="n">update_job_status</span><span class="p">(</span><span class="n">job_cfg</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">database</span><span class="o">.</span><span class="n">EStatus</span><span class="o">.</span><span class="n">PEND</span><span class="p">)</span>
+
+        <span class="c1"># create submission command</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">job_cfg</span><span class="p">[</span><span class="s2">&quot;environment&quot;</span><span class="p">]</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">Command</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cmd_base</span><span class="p">,</span> <span class="n">job_cfg_file</span><span class="p">),</span>
+                <span class="n">summ_cmd</span>
+            <span class="p">],</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">job_prefix</span><span class="p">,</span>
+            <span class="n">environment</span><span class="o">=</span><span class="n">env</span><span class="p">[</span><span class="s2">&quot;configuration&quot;</span><span class="p">],</span>
+            <span class="n">workdir</span><span class="o">=</span><span class="n">workdir</span><span class="p">,</span>
+            <span class="n">resources</span><span class="o">=</span><span class="p">{</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">EResource</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span> <span class="n">env</span><span class="p">[</span><span class="s2">&quot;queue&quot;</span><span class="p">],</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">EResource</span><span class="o">.</span><span class="n">time</span><span class="p">:</span> <span class="n">env</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">EResource</span><span class="o">.</span><span class="n">mem</span><span class="p">:</span> <span class="n">env</span><span class="p">[</span><span class="s2">&quot;memory&quot;</span><span class="p">],</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">EResource</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span> <span class="n">env</span><span class="p">[</span><span class="s2">&quot;cores&quot;</span><span class="p">],</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">EResource</span><span class="o">.</span><span class="n">out</span><span class="p">:</span> <span class="n">job_prefix</span> <span class="o">+</span> <span class="s2">&quot;_stdout.log&quot;</span><span class="p">,</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">EResource</span><span class="o">.</span><span class="n">error</span><span class="p">:</span> <span class="n">job_prefix</span> <span class="o">+</span> <span class="s2">&quot;_stderr.log&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="c1"># store job for later dependency creation</span>
+        <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+        <span class="c1"># finally, submit job</span>
+        <span class="n">submitter</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="c1"># submit final summarizer</span>
+    <span class="c1"># (hold for now - summarizer is run after each subjob finishes)</span>
+
+    <span class="c1"># wait for all runs to finish (but only if blocking)</span>
+    <span class="n">submitter</span><span class="o">.</span><span class="n">join</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../evcouplings.utils.html#evcouplings.utils.app.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exposes command line interface as a Python function.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    kwargs</span>
+<span class="sd">        See click.option decorators for app() function </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># substitute commmand line options in config file</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">substitute_config</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># check minimal set of parameters is present in config</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">config</span><span class="p">,</span>
+        <span class="p">[</span><span class="s2">&quot;pipeline&quot;</span><span class="p">,</span> <span class="s2">&quot;stages&quot;</span><span class="p">,</span> <span class="s2">&quot;global&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># verify that global prefix makes sense</span>
+    <span class="n">pipeline</span><span class="o">.</span><span class="n">verify_prefix</span><span class="p">(</span><span class="n">verify_subdir</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="c1"># make sure parameters make sense (minimally...)</span>
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;global&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sequence_id&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Sequence identifier not defined (sequence_id).&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># for convenience, turn on N_eff computation if we run alignment,</span>
+    <span class="c1"># but not the couplings stage</span>
+    <span class="k">if</span> <span class="s2">&quot;align&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;stages&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="s2">&quot;couplings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;stages&quot;</span><span class="p">]:</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;align&quot;</span><span class="p">][</span><span class="s2">&quot;compute_num_effective_seqs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># unroll batch jobs into individual pipeline jobs</span>
+    <span class="n">sub_configs</span> <span class="o">=</span> <span class="n">unroll_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="c1"># run pipeline computation for each individual (unrolled) config</span>
+    <span class="n">run_jobs</span><span class="p">(</span>
+        <span class="n">sub_configs</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;yolo&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;workdir&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<span class="n">CONTEXT_SETTINGS</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">help_option_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;-h&#39;</span><span class="p">,</span> <span class="s1">&#39;--help&#39;</span><span class="p">])</span>
+
+
+<span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="n">context_settings</span><span class="o">=</span><span class="n">CONTEXT_SETTINGS</span><span class="p">)</span>
+<span class="c1"># run settings</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">argument</span><span class="p">(</span><span class="s1">&#39;config&#39;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;-P&quot;</span><span class="p">,</span> <span class="s2">&quot;--prefix&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Job prefix&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;-S&quot;</span><span class="p">,</span> <span class="s2">&quot;--stages&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Stages of pipeline to run (comma-separated)&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;-p&quot;</span><span class="p">,</span> <span class="s2">&quot;--protein&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sequence identifier of query protein&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;-s&quot;</span><span class="p">,</span> <span class="s2">&quot;--seqfile&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;FASTA file with query sequence&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-a&quot;</span><span class="p">,</span> <span class="s2">&quot;--alignment&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Existing sequence alignment to start from (aligned FASTA/Stockholm). Use -p to select target sequence.&quot;</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;-r&quot;</span><span class="p">,</span> <span class="s2">&quot;--region&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Region of query sequence(e.g 25-341)&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-b&quot;</span><span class="p">,</span> <span class="s2">&quot;--bitscores&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of alignment bitscores (comma-separated, length-normalized &quot;</span>
+         <span class="s2">&quot;(float) or absolute score (int))&quot;</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-e&quot;</span><span class="p">,</span> <span class="s2">&quot;--evalues&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of alignment E-values (negative exponent, comma-separated)&quot;</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-n&quot;</span><span class="p">,</span> <span class="s2">&quot;--iterations&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of alignment iterations&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;-d&quot;</span><span class="p">,</span> <span class="s2">&quot;--database&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path or name of sequence database&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-i&quot;</span><span class="p">,</span> <span class="s2">&quot;--id&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Filter alignment at x</span><span class="si">% s</span><span class="s2">equence identity&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="s2">&quot;--seqcov&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum % aligned positions per sequence&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-m&quot;</span><span class="p">,</span> <span class="s2">&quot;--colcov&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum % aligned positions per column&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-t&quot;</span><span class="p">,</span> <span class="s2">&quot;--theta&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Downweight sequences above this identity cutoff&quot;</span>
+         <span class="s2">&quot; during inference (e.g. 0.8 for 80</span><span class="si">% i</span><span class="s2">dentity cutoff)&quot;</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="nb">float</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;--plmiter&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Maximum number of iterations during inference&quot;</span><span class="p">,</span>
+    <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+<span class="p">)</span>
+<span class="c1"># environment configuration</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;-Q&quot;</span><span class="p">,</span> <span class="s2">&quot;--queue&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Grid queue to run job(s)&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-T&quot;</span><span class="p">,</span> <span class="s2">&quot;--time&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Time requirement (hours) for batch jobs&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;-N&quot;</span><span class="p">,</span> <span class="s2">&quot;--cores&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of cores for batch jobs&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-M&quot;</span><span class="p">,</span> <span class="s2">&quot;--memory&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Memory requirement for batch jobs (MB or &#39;auto&#39;)&quot;</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;-y&quot;</span><span class="p">,</span> <span class="s2">&quot;--yolo&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable overwrite protection&quot;</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">app</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    EVcouplings command line interface</span>
+
+<span class="sd">    Any command line option specified in addition to the config file</span>
+<span class="sd">    will overwrite the corresponding setting in the config file.</span>
+
+<span class="sd">    Specifying a list of bitscores or E-values will result in the creation</span>
+<span class="sd">    of multiple jobs that only vary in this parameter, with all other parameters</span>
+<span class="sd">    constant.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">app</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

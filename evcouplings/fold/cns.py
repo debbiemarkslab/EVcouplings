@@ -120,7 +120,9 @@ def cns_mtf_inp(seq_infile, mtf_outfile, first_index=1, disulfide_bridges=None):
     disulfide_bridges: list or pandas.DataFrame, optional (default: None)
         Position pairs that should be linked by a disulfide
         bridge. Can be:
+
         * list of tuples (i, j)
+
         * dataframe with columns i and j for positions, and A_i and A_j
           for amino acid symbols. Will automatically select those pairs
           (i, j) where A_i and A_j are 'C'.
@@ -432,8 +434,8 @@ def cns_dgsa_fold(residues, ec_pairs, prefix, config_file=None,
     Predict 3D structure coordinates using distance geometry
     and simulated annealing-based folding protocol
      
-    Parameters:
-    -----------
+    Parameters
+    ----------
     residues : pandas.DataFrame
         Table containing positions (column i), residue
         type (column A_i), and secondary structure for
@@ -462,8 +464,8 @@ def cns_dgsa_fold(residues, ec_pairs, prefix, config_file=None,
     binary : str, optional (default: "cns")
         Path of CNS binary
 
-    Returns:
-    --------
+    Returns
+    -------
     final_models : dict
         Mapping from model name to path of model
     """

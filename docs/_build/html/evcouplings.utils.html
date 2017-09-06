@@ -1,0 +1,1635 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.utils package &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="index.html"/>
+        <link rel="up" title="Alignment" href="evcouplings.html"/>
+        <link rel="prev" title="evcouplings.visualize package" href="evcouplings.visualize.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="evcouplings.html#utilities">Utilities</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">evcouplings.utils package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.app">evcouplings.utils.app module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.batch">evcouplings.utils.batch module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.calculations">evcouplings.utils.calculations module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.config">evcouplings.utils.config module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.constants">evcouplings.utils.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.database">evcouplings.utils.database module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.helpers">evcouplings.utils.helpers module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.pipeline">evcouplings.utils.pipeline module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.summarize">evcouplings.utils.summarize module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.utils.system">evcouplings.utils.system module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="evcouplings.html">Alignment</a> &raquo;</li>
+        
+      <li>evcouplings.utils package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/evcouplings.utils.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="evcouplings-utils-package">
+<h1>evcouplings.utils package<a class="headerlink" href="#evcouplings-utils-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-evcouplings.utils.app">
+<span id="evcouplings-utils-app-module"></span><h2>evcouplings.utils.app module<a class="headerlink" href="#module-evcouplings.utils.app" title="Permalink to this headline">¶</a></h2>
+<p>evcouplings command-line app</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">Once there are different pipelines to run, there should
+be individual commands for these, so will need to define additional
+entry points for applications (e.g. evcomplex in addition to evcouplings).</p>
+</div>
+<dl class="function">
+<dt id="evcouplings.utils.app.run">
+<code class="descclassname">evcouplings.utils.app.</code><code class="descname">run</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/app.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.app.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exposes command line interface as a Python function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> – See click.option decorators for app() function</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.app.run_jobs">
+<code class="descclassname">evcouplings.utils.app.</code><code class="descname">run_jobs</code><span class="sig-paren">(</span><em>configs</em>, <em>global_config</em>, <em>overwrite=False</em>, <em>workdir=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/app.html#run_jobs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.app.run_jobs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submit config to pipeline</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>configs</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) – Configurations for individual subjobs</li>
+<li><strong>global_config</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) – Master configuration (if only one job,
+the contents of this dictionary will be
+equal to the single element of config_files)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.app.substitute_config">
+<code class="descclassname">evcouplings.utils.app.</code><code class="descname">substitute_config</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/app.html#substitute_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.app.substitute_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Substitute command line arguments into config file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**kwargs</strong> – Command line parameters to be substituted
+into configuration file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Updated configuration</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.app.unroll_config">
+<code class="descclassname">evcouplings.utils.app.</code><code class="descname">unroll_config</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/app.html#unroll_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.app.unroll_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create individual job configs from master config file
+(e.g. containing batch section)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>config</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) – Global run dictionary that will be split
+up into individual pipeline jobs</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>configs</strong> – Dictionary of prefix to individual configurations
+created by substitution from input configuration.
+If no batch section is present, there will be only
+one entry in the dictionary that corresponds to
+the master run specified by the input configuration.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.utils.batch">
+<span id="evcouplings-utils-batch-module"></span><h2>evcouplings.utils.batch module<a class="headerlink" href="#module-evcouplings.utils.batch" title="Permalink to this headline">¶</a></h2>
+<p>Looping through batches of jobs
+(former submit_job.py and buildali loop)</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Benjamin Schubert, Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.utils.batch.AClusterSubmitter">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.batch.</code><code class="descname">AClusterSubmitter</code><a class="reference internal" href="_modules/evcouplings/utils/batch.html#AClusterSubmitter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#evcouplings.utils.batch.ASubmitter" title="evcouplings.utils.batch.ASubmitter"><code class="xref py py-class docutils literal"><span class="pre">evcouplings.utils.batch.ASubmitter</span></code></a></p>
+<p>Abstract subclass of a cluster submitter</p>
+<dl class="method">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.cancel">
+<code class="descname">cancel</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#AClusterSubmitter.cancel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.cancel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.cancel_command">
+<code class="descname">cancel_command</code><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.cancel_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.db">
+<code class="descname">db</code><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.db" title="Permalink to this definition">¶</a></dt>
+<dd><p>The persistent DB to keep track of all submitted jobs and their status</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The Persistent DB</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#evcouplings.utils.helpers.PersistentDict" title="evcouplings.utils.helpers.PersistentDict">PersistentDict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.job_id_pattern">
+<code class="descname">job_id_pattern</code><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.job_id_pattern" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.join">
+<code class="descname">join</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#AClusterSubmitter.join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.join" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.monitor">
+<code class="descname">monitor</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#AClusterSubmitter.monitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.monitor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.monitor_command">
+<code class="descname">monitor_command</code><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.monitor_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.resource_flags">
+<code class="descname">resource_flags</code><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.resource_flags" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.submit">
+<code class="descname">submit</code><span class="sig-paren">(</span><em>command</em>, <em>dependent=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#AClusterSubmitter.submit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.submit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.AClusterSubmitter.submit_command">
+<code class="descname">submit_command</code><a class="headerlink" href="#evcouplings.utils.batch.AClusterSubmitter.submit_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.utils.batch.APluginRegister">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.batch.</code><code class="descname">APluginRegister</code><span class="sig-paren">(</span><em>name</em>, <em>bases</em>, <em>nmspc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#APluginRegister"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.APluginRegister" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/abc.html#abc.ABCMeta" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">abc.ABCMeta</span></code></a></p>
+<p>This class allows automatic registration of new plugins.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.utils.batch.ASubmitter">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.batch.</code><code class="descname">ASubmitter</code><a class="reference internal" href="_modules/evcouplings/utils/batch.html#ASubmitter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.ASubmitter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Interface for all submitters</p>
+<dl class="method">
+<dt id="evcouplings.utils.batch.ASubmitter.cancel">
+<code class="descname">cancel</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#ASubmitter.cancel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.ASubmitter.cancel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Consumes a list of jobIDs and trys to cancel them</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> (<a class="reference internal" href="#evcouplings.utils.batch.Command" title="evcouplings.utils.batch.Command"><em>Command</em></a>) – The Command jobejct to cancel</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">If job was canceled</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.ASubmitter.isBlocking">
+<code class="descname">isBlocking</code><a class="headerlink" href="#evcouplings.utils.batch.ASubmitter.isBlocking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indicator whether the submitter is blocking or not</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">whether submitter blocks by calling join or not</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.batch.ASubmitter.join">
+<code class="descname">join</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#ASubmitter.join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.ASubmitter.join" title="Permalink to this definition">¶</a></dt>
+<dd><p>Blocks script if so desired until all jobs have be finished canceled or died</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.batch.ASubmitter.monitor">
+<code class="descname">monitor</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#ASubmitter.monitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.ASubmitter.monitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the status of the consumed command</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> (<a class="reference internal" href="#evcouplings.utils.batch.Command" title="evcouplings.utils.batch.Command"><em>Command</em></a>) – The command object whose status is inquired</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The status of the Command</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Enum(Status)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.ASubmitter.name">
+<code class="descname">name</code><a class="headerlink" href="#evcouplings.utils.batch.ASubmitter.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the submitter</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The name of the submitter</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.ASubmitter.registry">
+<code class="descname">registry</code><em class="property"> = {'local': &lt;class 'evcouplings.utils.batch.LocalSubmitter'&gt;, 'lsf': &lt;class 'evcouplings.utils.batch.LSFSubmitter'&gt;, 'slurm': &lt;class 'evcouplings.utils.batch.SlurmSubmitter'&gt;}</em><a class="headerlink" href="#evcouplings.utils.batch.ASubmitter.registry" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.batch.ASubmitter.submit">
+<code class="descname">submit</code><span class="sig-paren">(</span><em>command</em>, <em>dependent=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#ASubmitter.submit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.ASubmitter.submit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Consumes job objects and starts them</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>jobs</strong> (<a class="reference internal" href="#evcouplings.utils.batch.Command" title="evcouplings.utils.batch.Command"><em>Command</em></a>) – A list of Job objects that should be submitted</li>
+<li><strong>dependent</strong> (<em>list</em><em>(</em><a class="reference internal" href="#evcouplings.utils.batch.Command" title="evcouplings.utils.batch.Command"><em>Command</em></a><em>)</em>) – A list of command objects the Command depend on</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of jobIDs</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list(<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.utils.batch.Command">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.batch.</code><code class="descname">Command</code><span class="sig-paren">(</span><em>command</em>, <em>name=None</em>, <em>environment=None</em>, <em>workdir=None</em>, <em>resources=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#Command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.Command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Wrapper around the command parameters needed
+to execute a script</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.utils.batch.EJob">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.batch.</code><code class="descname">EJob</code><a class="reference internal" href="_modules/evcouplings/utils/batch.html#EJob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.EJob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.EJob.CANCEL">
+<code class="descname">CANCEL</code><em class="property"> = 2</em><a class="headerlink" href="#evcouplings.utils.batch.EJob.CANCEL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.EJob.MONITOR">
+<code class="descname">MONITOR</code><em class="property"> = 1</em><a class="headerlink" href="#evcouplings.utils.batch.EJob.MONITOR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.EJob.PID">
+<code class="descname">PID</code><em class="property"> = 5</em><a class="headerlink" href="#evcouplings.utils.batch.EJob.PID" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.EJob.STOP">
+<code class="descname">STOP</code><em class="property"> = 3</em><a class="headerlink" href="#evcouplings.utils.batch.EJob.STOP" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.EJob.SUBMIT">
+<code class="descname">SUBMIT</code><em class="property"> = 0</em><a class="headerlink" href="#evcouplings.utils.batch.EJob.SUBMIT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.EJob.UPDATE">
+<code class="descname">UPDATE</code><em class="property"> = 4</em><a class="headerlink" href="#evcouplings.utils.batch.EJob.UPDATE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.EResource">
+<code class="descclassname">evcouplings.utils.batch.</code><code class="descname">EResource</code><a class="headerlink" href="#evcouplings.utils.batch.EResource" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Enum</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.EStatus">
+<code class="descclassname">evcouplings.utils.batch.</code><code class="descname">EStatus</code><a class="headerlink" href="#evcouplings.utils.batch.EStatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Enum</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.utils.batch.LSFSubmitter">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.batch.</code><code class="descname">LSFSubmitter</code><span class="sig-paren">(</span><em>blocking=False</em>, <em>db_path=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#LSFSubmitter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.LSFSubmitter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#evcouplings.utils.batch.AClusterSubmitter" title="evcouplings.utils.batch.AClusterSubmitter"><code class="xref py py-class docutils literal"><span class="pre">evcouplings.utils.batch.AClusterSubmitter</span></code></a></p>
+<p>Implements an LSF submitter</p>
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LSFSubmitter.cancel_command">
+<code class="descname">cancel_command</code><a class="headerlink" href="#evcouplings.utils.batch.LSFSubmitter.cancel_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LSFSubmitter.db">
+<code class="descname">db</code><a class="headerlink" href="#evcouplings.utils.batch.LSFSubmitter.db" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LSFSubmitter.isBlocking">
+<code class="descname">isBlocking</code><a class="headerlink" href="#evcouplings.utils.batch.LSFSubmitter.isBlocking" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LSFSubmitter.job_id_pattern">
+<code class="descname">job_id_pattern</code><a class="headerlink" href="#evcouplings.utils.batch.LSFSubmitter.job_id_pattern" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LSFSubmitter.monitor_command">
+<code class="descname">monitor_command</code><a class="headerlink" href="#evcouplings.utils.batch.LSFSubmitter.monitor_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LSFSubmitter.name">
+<code class="descname">name</code><a class="headerlink" href="#evcouplings.utils.batch.LSFSubmitter.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LSFSubmitter.resource_flags">
+<code class="descname">resource_flags</code><a class="headerlink" href="#evcouplings.utils.batch.LSFSubmitter.resource_flags" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LSFSubmitter.submit_command">
+<code class="descname">submit_command</code><a class="headerlink" href="#evcouplings.utils.batch.LSFSubmitter.submit_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.utils.batch.LocalSubmitter">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.batch.</code><code class="descname">LocalSubmitter</code><span class="sig-paren">(</span><em>blocking=True</em>, <em>db_path=None</em>, <em>ncpu=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#LocalSubmitter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.LocalSubmitter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#evcouplings.utils.batch.ASubmitter" title="evcouplings.utils.batch.ASubmitter"><code class="xref py py-class docutils literal"><span class="pre">evcouplings.utils.batch.ASubmitter</span></code></a></p>
+<dl class="method">
+<dt id="evcouplings.utils.batch.LocalSubmitter.cancel">
+<code class="descname">cancel</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#LocalSubmitter.cancel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.LocalSubmitter.cancel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LocalSubmitter.isBlocking">
+<code class="descname">isBlocking</code><a class="headerlink" href="#evcouplings.utils.batch.LocalSubmitter.isBlocking" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.batch.LocalSubmitter.join">
+<code class="descname">join</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#LocalSubmitter.join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.LocalSubmitter.join" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.batch.LocalSubmitter.monitor">
+<code class="descname">monitor</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#LocalSubmitter.monitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.LocalSubmitter.monitor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.LocalSubmitter.name">
+<code class="descname">name</code><a class="headerlink" href="#evcouplings.utils.batch.LocalSubmitter.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.batch.LocalSubmitter.submit">
+<code class="descname">submit</code><span class="sig-paren">(</span><em>command</em>, <em>dependent=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#LocalSubmitter.submit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.LocalSubmitter.submit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.utils.batch.SlurmSubmitter">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.batch.</code><code class="descname">SlurmSubmitter</code><span class="sig-paren">(</span><em>blocking=False</em>, <em>db_path=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/batch.html#SlurmSubmitter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.batch.SlurmSubmitter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#evcouplings.utils.batch.AClusterSubmitter" title="evcouplings.utils.batch.AClusterSubmitter"><code class="xref py py-class docutils literal"><span class="pre">evcouplings.utils.batch.AClusterSubmitter</span></code></a></p>
+<p>Implements an LSF submitter</p>
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.SlurmSubmitter.cancel_command">
+<code class="descname">cancel_command</code><a class="headerlink" href="#evcouplings.utils.batch.SlurmSubmitter.cancel_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.SlurmSubmitter.db">
+<code class="descname">db</code><a class="headerlink" href="#evcouplings.utils.batch.SlurmSubmitter.db" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.SlurmSubmitter.isBlocking">
+<code class="descname">isBlocking</code><a class="headerlink" href="#evcouplings.utils.batch.SlurmSubmitter.isBlocking" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.SlurmSubmitter.job_id_pattern">
+<code class="descname">job_id_pattern</code><a class="headerlink" href="#evcouplings.utils.batch.SlurmSubmitter.job_id_pattern" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.SlurmSubmitter.monitor_command">
+<code class="descname">monitor_command</code><a class="headerlink" href="#evcouplings.utils.batch.SlurmSubmitter.monitor_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.SlurmSubmitter.name">
+<code class="descname">name</code><a class="headerlink" href="#evcouplings.utils.batch.SlurmSubmitter.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.SlurmSubmitter.resource_flags">
+<code class="descname">resource_flags</code><a class="headerlink" href="#evcouplings.utils.batch.SlurmSubmitter.resource_flags" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.batch.SlurmSubmitter.submit_command">
+<code class="descname">submit_command</code><a class="headerlink" href="#evcouplings.utils.batch.SlurmSubmitter.submit_command" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.utils.calculations">
+<span id="evcouplings-utils-calculations-module"></span><h2>evcouplings.utils.calculations module<a class="headerlink" href="#module-evcouplings.utils.calculations" title="Permalink to this headline">¶</a></h2>
+<p>General calculation functions.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.utils.calculations.dihedral_angle">
+<code class="descclassname">evcouplings.utils.calculations.</code><code class="descname">dihedral_angle</code><span class="sig-paren">(</span><em>p0</em>, <em>p1</em>, <em>p2</em>, <em>p3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/calculations.html#dihedral_angle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.calculations.dihedral_angle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute dihedral angle given four points</p>
+<p>Adapted from the following source:
+<a class="reference external" href="http://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python">http://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python</a>
+(answer by user Praxeolitic)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p0</strong> (<em>np.array</em>) – Coordinates of first point</li>
+<li><strong>p1</strong> (<em>np.array</em>) – Coordinates of second point</li>
+<li><strong>p2</strong> (<em>np.array</em>) – Coordinates of third point</li>
+<li><strong>p3</strong> (<em>np.array</em>) – Coordinates of fourth point</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Dihedral angle (in radians)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">numpy.float</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.calculations.entropy">
+<code class="descclassname">evcouplings.utils.calculations.</code><code class="descname">entropy</code><span class="sig-paren">(</span><em>X</em>, <em>normalize=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/calculations.html#entropy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.calculations.entropy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate entropy of distribution</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> (<em>np.array</em>) – Vector for which entropy will be calculated</li>
+<li><strong>normalize</strong> – Rescale entropy to range from 0 (“variable”, “flat”)
+to 1 (“conserved”)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Entropy of X</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)">float</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.calculations.entropy_map">
+<code class="descclassname">evcouplings.utils.calculations.</code><code class="descname">entropy_map</code><span class="sig-paren">(</span><em>model</em>, <em>normalize=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/calculations.html#entropy_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.calculations.entropy_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute dictionary of positional entropies for
+single-site frequencies in a CouplingsModel</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model</strong> (<a class="reference internal" href="evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel"><em>CouplingsModel</em></a>) – Model for which entropy of sequence
+alignment will be computed (based on
+single-site frequencies f_i(A_i)
+contained in model)</li>
+<li><strong>normalize</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>default: True</em>) – Normalize entropy to range 0 (variable)
+to 1 (conserved) instead of raw values</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Map from positions in sequence (int) to
+entropy of column (float) in alignment</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.calculations.entropy_vector">
+<code class="descclassname">evcouplings.utils.calculations.</code><code class="descname">entropy_vector</code><span class="sig-paren">(</span><em>model</em>, <em>normalize=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/calculations.html#entropy_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.calculations.entropy_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute vector of positional entropies for
+single-site frequencies in a CouplingsModel</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model</strong> (<a class="reference internal" href="evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel"><em>CouplingsModel</em></a>) – Model for which entropy of sequence
+alignment will be computed (based on
+single-site frequencies f_i(A_i)
+contained in model)</li>
+<li><strong>normalize</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>default: True</em>) – Normalize entropy to range 0 (variable)
+to 1 (conserved) instead of raw values</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Vector of length model.L containing
+entropy for each position</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">np.array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.utils.config">
+<span id="evcouplings-utils-config-module"></span><h2>evcouplings.utils.config module<a class="headerlink" href="#module-evcouplings.utils.config" title="Permalink to this headline">¶</a></h2>
+<p>Configuration handling</p>
+<div class="admonition-todo admonition" id="index-1">
+<p class="first admonition-title">Todo</p>
+<p class="last">switch ruamel.yaml to round trip loading
+to preserver order and comments?</p>
+</div>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="exception">
+<dt id="evcouplings.utils.config.InvalidParameterError">
+<em class="property">exception </em><code class="descclassname">evcouplings.utils.config.</code><code class="descname">InvalidParameterError</code><a class="reference internal" href="_modules/evcouplings/utils/config.html#InvalidParameterError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.config.InvalidParameterError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
+<p>Exception for invalid parameter settings</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="evcouplings.utils.config.MissingParameterError">
+<em class="property">exception </em><code class="descclassname">evcouplings.utils.config.</code><code class="descname">MissingParameterError</code><a class="reference internal" href="_modules/evcouplings/utils/config.html#MissingParameterError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.config.MissingParameterError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
+<p>Exception for missing parameters</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.config.check_required">
+<code class="descclassname">evcouplings.utils.config.</code><code class="descname">check_required</code><span class="sig-paren">(</span><em>params</em>, <em>keys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/config.html#check_required"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.config.check_required" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify if required set of parameters is present in configuration</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) – Dictionary with parameters</li>
+<li><strong>keys</strong> (<em>list-like</em>) – Set of parameters that has to be present in params</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">True if all parameters present, False otherwise</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)">bool</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.config.parse_config">
+<code class="descclassname">evcouplings.utils.config.</code><code class="descname">parse_config</code><span class="sig-paren">(</span><em>config_str</em>, <em>preserve_order=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/config.html#parse_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.config.parse_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a configuration string</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>config_str</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Configuration to be parsed</li>
+<li><strong>preserve_order</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Preserve formatting of input configuration
+string</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Configuration dictionary</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.config.read_config_file">
+<code class="descclassname">evcouplings.utils.config.</code><code class="descname">read_config_file</code><span class="sig-paren">(</span><em>filename</em>, <em>preserve_order=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/config.html#read_config_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.config.read_config_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read and parse a configuration file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path of configuration file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Configuration dictionary</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.config.write_config_file">
+<code class="descclassname">evcouplings.utils.config.</code><code class="descname">write_config_file</code><span class="sig-paren">(</span><em>out_filename</em>, <em>config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/config.html#write_config_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.config.write_config_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save configuration data structure in YAML file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>out_filename</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Filename of output file</li>
+<li><strong>config</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) – Config data that will be written to file</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.utils.constants">
+<span id="evcouplings-utils-constants-module"></span><h2>evcouplings.utils.constants module<a class="headerlink" href="#module-evcouplings.utils.constants" title="Permalink to this headline">¶</a></h2>
+<p>Useful values and constants for all of package</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+</div>
+<div class="section" id="module-evcouplings.utils.database">
+<span id="evcouplings-utils-database-module"></span><h2>evcouplings.utils.database module<a class="headerlink" href="#module-evcouplings.utils.database" title="Permalink to this headline">¶</a></h2>
+<p>Job status database models and handling</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.utils.database.ComputeJob">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.database.</code><code class="descname">ComputeJob</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/database.html#ComputeJob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.database.ComputeJob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">sqlalchemy.ext.declarative.api.Base</span></code></p>
+<p>Single compute job. Holds general information about job
+and its status, but not about individual parameters
+(these are stored in config file to keep table schema
+stable).</p>
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.config_file">
+<code class="descname">config_file</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.config_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.group_id">
+<code class="descname">group_id</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.group_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.id">
+<code class="descname">id</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.location">
+<code class="descname">location</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.location" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.name">
+<code class="descname">name</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.prefix">
+<code class="descname">prefix</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.prefix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.stage">
+<code class="descname">stage</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.stage" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.status">
+<code class="descname">status</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.status" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.time_finished">
+<code class="descname">time_finished</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.time_finished" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.ComputeJob.time_started">
+<code class="descname">time_started</code><a class="headerlink" href="#evcouplings.utils.database.ComputeJob.time_started" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="evcouplings.utils.database.EStatus">
+<code class="descclassname">evcouplings.utils.database.</code><code class="descname">EStatus</code><a class="headerlink" href="#evcouplings.utils.database.EStatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Enum</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.database.update_job_status">
+<code class="descclassname">evcouplings.utils.database.</code><code class="descname">update_job_status</code><span class="sig-paren">(</span><em>config</em>, <em>status=None</em>, <em>stage=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/database.html#update_job_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.database.update_job_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update job status based on configuration and
+update request by pipeline</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>config</strong> (<em>dict-like</em>) – <p>Job configuration dictionary. Accessed entries
+are {</p>
+<blockquote>
+<div>global : {prefix}
+management: {database_uri, job_name}</div></blockquote>
+<p>}</p>
+</li>
+<li><strong>status</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – If not None, update job status to this value</li>
+<li><strong>stage</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – If not None, update job stage to this value</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.utils.helpers">
+<span id="evcouplings-utils-helpers-module"></span><h2>evcouplings.utils.helpers module<a class="headerlink" href="#module-evcouplings.utils.helpers" title="Permalink to this headline">¶</a></h2>
+<p>Useful Python helpers</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf, Benjamin Schubert</dd>
+</dl>
+<dl class="class">
+<dt id="evcouplings.utils.helpers.DefaultOrderedDict">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.helpers.</code><code class="descname">DefaultOrderedDict</code><span class="sig-paren">(</span><em>default_factory=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/helpers.html#DefaultOrderedDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.helpers.DefaultOrderedDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/collections.html#collections.OrderedDict" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">collections.OrderedDict</span></code></a></p>
+<p>Source:
+<a class="reference external" href="http://stackoverflow.com/questions/36727877/inheriting-from-defaultddict-and-ordereddict">http://stackoverflow.com/questions/36727877/inheriting-from-defaultddict-and-ordereddict</a>
+Answer by <a class="reference external" href="http://stackoverflow.com/users/3555845/daniel">http://stackoverflow.com/users/3555845/daniel</a></p>
+<p>Maybe this one would be better?
+<a class="reference external" href="http://stackoverflow.com/questions/6190331/can-i-do-an-ordered-default-dict-in-python">http://stackoverflow.com/questions/6190331/can-i-do-an-ordered-default-dict-in-python</a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="evcouplings.utils.helpers.PersistentDict">
+<em class="property">class </em><code class="descclassname">evcouplings.utils.helpers.</code><code class="descname">PersistentDict</code><span class="sig-paren">(</span><em>filename</em>, <em>flag='c'</em>, <em>mode=None</em>, <em>format='json'</em>, <em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/helpers.html#PersistentDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.helpers.PersistentDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">dict</span></code></a></p>
+<p>Persistent dictionary with an API compatible with shelve and anydbm.</p>
+<p>The dict is kept in memory, so the dictionary operations run as fast as
+a regular dictionary.</p>
+<p>Write to disk is delayed until close or sync (similar to gdbm’s fast mode).</p>
+<p>Input file format is automatically discovered.
+Output file format is selectable between pickle, json, and csv.
+All three serialization formats are backed by fast C implementations.</p>
+<p><a class="reference external" href="https://code.activestate.com/recipes/576642/">https://code.activestate.com/recipes/576642/</a></p>
+<dl class="method">
+<dt id="evcouplings.utils.helpers.PersistentDict.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/helpers.html#PersistentDict.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.helpers.PersistentDict.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.helpers.PersistentDict.dump">
+<code class="descname">dump</code><span class="sig-paren">(</span><em>fileobj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/helpers.html#PersistentDict.dump"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.helpers.PersistentDict.dump" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.helpers.PersistentDict.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>fileobj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/helpers.html#PersistentDict.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.helpers.PersistentDict.load" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="evcouplings.utils.helpers.PersistentDict.sync">
+<code class="descname">sync</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/helpers.html#PersistentDict.sync"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.helpers.PersistentDict.sync" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write dict to disk</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.helpers.range_overlap">
+<code class="descclassname">evcouplings.utils.helpers.</code><code class="descname">range_overlap</code><span class="sig-paren">(</span><em>a</em>, <em>b</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/helpers.html#range_overlap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.helpers.range_overlap" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Source: <a class="reference external" href="http://stackoverflow.com/questions/2953967/">http://stackoverflow.com/questions/2953967/</a></dt>
+<dd>built-in-function-for-computing-overlap-in-python</dd>
+</dl>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Ends of range are not inclusive</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>a</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>)</em>) – Start and end of first range
+(end of range is not inclusive)</li>
+<li><strong>b</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a><em>(</em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>)</em>) – Start and end of second range
+(end of range is not inclusive)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Length of overlap between ranges a and b</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)">int</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.helpers.render_template">
+<code class="descclassname">evcouplings.utils.helpers.</code><code class="descname">render_template</code><span class="sig-paren">(</span><em>template_file</em>, <em>mapping</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/helpers.html#render_template"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.helpers.render_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render a template using jinja2 and substitute
+values from mapping</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>template_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to jinja2 template</li>
+<li><strong>mapping</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) – Mapping used to substitute values
+in the template</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Rendered template</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.helpers.wrap">
+<code class="descclassname">evcouplings.utils.helpers.</code><code class="descname">wrap</code><span class="sig-paren">(</span><em>text</em>, <em>width=80</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/helpers.html#wrap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.helpers.wrap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps a string at a fixed width.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>text</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Text to be wrapped</li>
+<li><strong>width</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) – Line width</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Wrapped string</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.utils.pipeline">
+<span id="evcouplings-utils-pipeline-module"></span><h2>evcouplings.utils.pipeline module<a class="headerlink" href="#module-evcouplings.utils.pipeline" title="Permalink to this headline">¶</a></h2>
+<p>Pipelining of different stages of method</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.utils.pipeline.create_archive">
+<code class="descclassname">evcouplings.utils.pipeline.</code><code class="descname">create_archive</code><span class="sig-paren">(</span><em>config</em>, <em>outcfg</em>, <em>output_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/pipeline.html#create_archive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.pipeline.create_archive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create archive of files generated by pipeline</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>config</strong> (<em>dict-like</em>) – Input configuration of job. Uses
+config[“management”][“archive”] (list of key
+used to index outcfg) to determine
+which files should be added to archive</li>
+<li><strong>outcfg</strong> (<em>dict-like</em>) – Output configuration of job</li>
+<li><strong>output_file</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Store archive file to this path</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.pipeline.delete_outputs">
+<code class="descclassname">evcouplings.utils.pipeline.</code><code class="descname">delete_outputs</code><span class="sig-paren">(</span><em>config</em>, <em>outcfg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/pipeline.html#delete_outputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.pipeline.delete_outputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove pipeline outputs to save memory
+after running the job</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>config</strong> (<em>dict-like</em>) – Input configuration of job. Uses
+config[“management”][“delete”] (list of key
+used to index outcfg) to determine
+which files should be added to archive</li>
+<li><strong>outcfg</strong> (<em>dict-like</em>) – Output configuration of job</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>outcfg_cleaned</strong> – Output configuration with selected
+output keys removed.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict-like</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.pipeline.execute">
+<code class="descclassname">evcouplings.utils.pipeline.</code><code class="descname">execute</code><span class="sig-paren">(</span><em>**config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/pipeline.html#execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.pipeline.execute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a pipeline configuration</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**config</strong> – Input configuration for pipeline
+(see pipeline config files for
+example of how this should look like)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>global_state</strong> – Global output state of pipeline</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.pipeline.execute_wrapped">
+<code class="descclassname">evcouplings.utils.pipeline.</code><code class="descname">execute_wrapped</code><span class="sig-paren">(</span><em>**config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/pipeline.html#execute_wrapped"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.pipeline.execute_wrapped" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a pipeline configuration in “wrapped”
+mode that handles external interruptions and
+exceptions and documents these using files
+(.finished, .terminated, .failed), as well
+as documenting failure in a job database</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**config</strong> – Input configuration for pipeline
+(see pipeline config files for
+example of how this should look like)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Global output state of pipeline</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.pipeline.run">
+<code class="descclassname">evcouplings.utils.pipeline.</code><code class="descname">run</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/pipeline.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.pipeline.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>EVcouplings pipeline execution from a
+configuration file (single thread, no
+batch or environment configuration)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> – See click.option decorators for app()</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.pipeline.verify_prefix">
+<code class="descclassname">evcouplings.utils.pipeline.</code><code class="descname">verify_prefix</code><span class="sig-paren">(</span><em>verify_subdir=True</em>, <em>**config</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/pipeline.html#verify_prefix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.pipeline.verify_prefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if configuration contains a prefix,
+and that prefix is a valid directory we
+can write to on the filesystem</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>verify_subdir</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Check if we can create subdirectory containing
+full prefix. Set this to False for outer evcouplings
+app loop.</li>
+<li><strong>**config</strong> – Input configuration for pipeline</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>prefix</strong> – Verified prefix</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.utils.summarize">
+<span id="evcouplings-utils-summarize-module"></span><h2>evcouplings.utils.summarize module<a class="headerlink" href="#module-evcouplings.utils.summarize" title="Permalink to this headline">¶</a></h2>
+<p>Create summary statistics / plots for runs from
+evcouplings app</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.utils.summarize.protein_complex">
+<code class="descclassname">evcouplings.utils.summarize.</code><code class="descname">protein_complex</code><span class="sig-paren">(</span><em>prefix</em>, <em>configs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/summarize.html#protein_complex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.summarize.protein_complex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create results summary for run using
+protein_complex pipeline</p>
+<p># TODO</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.summarize.protein_monomer">
+<code class="descclassname">evcouplings.utils.summarize.</code><code class="descname">protein_monomer</code><span class="sig-paren">(</span><em>prefix</em>, <em>configs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/summarize.html#protein_monomer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.summarize.protein_monomer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create results summary for run using
+protein_monomer pipeline</p>
+<p># TODO</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.utils.system">
+<span id="evcouplings-utils-system-module"></span><h2>evcouplings.utils.system module<a class="headerlink" href="#module-evcouplings.utils.system" title="Permalink to this headline">¶</a></h2>
+<p>System-level calls to external tools, directory creation, etc.</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="exception">
+<dt id="evcouplings.utils.system.ExternalToolError">
+<em class="property">exception </em><code class="descclassname">evcouplings.utils.system.</code><code class="descname">ExternalToolError</code><a class="reference internal" href="_modules/evcouplings/utils/system.html#ExternalToolError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.ExternalToolError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
+<p>Exception for failing external calculations</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="evcouplings.utils.system.ResourceError">
+<em class="property">exception </em><code class="descclassname">evcouplings.utils.system.</code><code class="descname">ResourceError</code><a class="reference internal" href="_modules/evcouplings/utils/system.html#ResourceError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.ResourceError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">Exception</span></code></p>
+<p>Exception for missing resources (files, URLs, …)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.create_prefix_folders">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">create_prefix_folders</code><span class="sig-paren">(</span><em>prefix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#create_prefix_folders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.create_prefix_folders" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a directory tree contained in a prefix.</p>
+<dl class="docutils">
+<dt>prefix <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Prefix containing directory tree</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.get">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">get</code><span class="sig-paren">(</span><em>url</em>, <em>output_path=None</em>, <em>allow_redirects=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download external resource</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>url</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – URL of resource that should be downloaded</li>
+<li><strong>output_path</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em>) – Save contents of URL to this file
+(only for text files)</li>
+<li><strong>allow_redirects</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) – Allow redirects by server or not</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>r</strong> – Response object, use r.text to access text,
+r.json() to decode json, and r.content for
+raw bytestring</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">requests.models.Response</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.utils.system.ResourceError" title="evcouplings.utils.system.ResourceError"><code class="xref py py-exc docutils literal"><span class="pre">ResourceError</span></code></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.get_urllib">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">get_urllib</code><span class="sig-paren">(</span><em>url</em>, <em>output_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#get_urllib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.get_urllib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download external resource to file using urllib.
+This function is intended for cases where get()
+implemented using requests can not be used, e.g.
+for download from an FTP server.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>url</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – URL of resource that should be downloaded</li>
+<li><strong>output_path</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em>) – Save contents of URL to this file
+(only for text files)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.insert_dir">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">insert_dir</code><span class="sig-paren">(</span><em>prefix</em>, <em>*dirs</em>, <em>rootname_subdir=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#insert_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.insert_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create new path by inserting additional
+directories into the folder tree of prefix
+(but keeping the filename prefix at the end),</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>prefix</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Prefix of path that should be extended</li>
+<li><strong>*dirs</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Add these directories at the end of path</li>
+<li><strong>rootname_subdir</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – <p>Given /my/path/prefix,</p>
+<ul>
+<li>if True, creates structure like
+/my/path/prefix/<a href="#id1"><span class="problematic" id="id2">*</span></a>dirs/prefix</li>
+<li>if False, creates structure like
+/my/path/<a href="#id3"><span class="problematic" id="id4">*</span></a>dirs/prefix</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Extended path</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.makedirs">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">makedirs</code><span class="sig-paren">(</span><em>directories</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#makedirs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.makedirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create directory subtree, some or all of the folders
+may already exist.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>directories</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Directory subtree to create</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.run">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">run</code><span class="sig-paren">(</span><em>cmd</em>, <em>stdin=None</em>, <em>check_returncode=True</em>, <em>working_dir=None</em>, <em>shell=False</em>, <em>env=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run external program as subprocess.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cmd</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>list of str</em>) – Command (and  optional command line arguments)</li>
+<li><strong>stdin</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em> or </em><em>byte sequence</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Input to be sent to STDIN of the process</li>
+<li><strong>check_returncode</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default=True</em><em>)</em>) – Verify if call had returncode == 0, otherwise raise
+ExternalToolError</li>
+<li><strong>working_dir</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Change to this directory before running command</li>
+<li><strong>shell</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – Invoke shell when calling subprocess (default: False)</li>
+<li><strong>env</strong> (<a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Use this environment for executing the subprocess</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
+<li><em>int</em> – Return code of process</li>
+<li><em>stdout</em> – Byte string with stdout output</li>
+<li><em>stderr</em> – Byte string of stderr output</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.utils.system.ExternalToolError" title="evcouplings.utils.system.ExternalToolError"><code class="xref py py-exc docutils literal"><span class="pre">ExternalToolError</span></code></a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.temp">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">temp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#temp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.temp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a temporary file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Path of temporary file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.tempdir">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">tempdir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#tempdir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.tempdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a temporary directory</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Path of temporary directory</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.valid_file">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">valid_file</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#valid_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.valid_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify if a file exists and is not empty.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path to file to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if file exists and is non-zero size,
+False otherwise.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)">bool</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.verify_resources">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">verify_resources</code><span class="sig-paren">(</span><em>message</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#verify_resources"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.verify_resources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify if a set of files exists and is not empty.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>message</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Message to display with raised ResourceError</li>
+<li><strong>*args</strong> (<em>List of str</em>) – Path(s) of file(s) to be checked</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#evcouplings.utils.system.ResourceError" title="evcouplings.utils.system.ResourceError"><code class="xref py py-exc docutils literal"><span class="pre">ResourceError</span></code></a> – If any of the resources does not exist or is empty</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.utils.system.write_file">
+<code class="descclassname">evcouplings.utils.system.</code><code class="descname">write_file</code><span class="sig-paren">(</span><em>file_path</em>, <em>content</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/utils/system.html#write_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.utils.system.write_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes content to output file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Path of output file</li>
+<li><strong>content</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Content to be written to file</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="evcouplings.visualize.html" class="btn btn-neutral" title="evcouplings.visualize package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -200,14 +200,17 @@ def genome_distance(**kwargs):
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-        (TODO: explain meaning of parameters in detail).
+
+        .. todo::
+
+            Explain meaning of parameters in detail.
 
     Returns
     -------
     outcfg : dict
         Output configuration of the pipeline, including
         the following fields:
-
+F
         alignment_file
         raw_alignment_file
         focus_mode
@@ -537,6 +540,7 @@ def best_reciprocal_hit(**kwargs):
         num_sites
         raw_focus_alignment_file
         statistics_file
+
     """
     check_required(
         kwargs,
@@ -753,6 +757,7 @@ def run(**kwargs):
         num_sites
         raw_focus_alignment_file
         statistics_file
+
     """
     check_required(kwargs, ["protocol"])
 

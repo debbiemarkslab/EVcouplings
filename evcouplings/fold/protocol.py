@@ -311,9 +311,9 @@ def standard(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        sec_struct_file
-        folding_ec_file
-        folded_structure_files
+        * sec_struct_file
+        * folding_ec_file
+        * folded_structure_files
     """
     check_required(
         kwargs,

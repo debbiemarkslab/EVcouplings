@@ -1,0 +1,824 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.fold.cns &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.fold.cns</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.fold.cns</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for structure prediction using CNSsolve 1.21</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="k">import</span> <span class="n">path</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="k">import</span> <span class="n">resource_filename</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.fold.restraints</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">ec_dist_restraints</span><span class="p">,</span> <span class="n">secstruct_dist_restraints</span><span class="p">,</span> <span class="n">secstruct_angle_restraints</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">evcouplings.fold.tools</span> <span class="k">import</span> <span class="n">run_cns</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="n">InvalidParameterError</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.constants</span> <span class="k">import</span> <span class="n">AA1_to_AA3</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.helpers</span> <span class="k">import</span> <span class="n">render_template</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">create_prefix_folders</span><span class="p">,</span> <span class="n">verify_resources</span><span class="p">,</span> <span class="n">temp</span><span class="p">,</span> <span class="n">valid_file</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="cns_seq_file"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.cns.cns_seq_file">[docs]</a><span class="k">def</span> <span class="nf">cns_seq_file</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="n">output_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">residues_per_line</span><span class="o">=</span><span class="mi">16</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a CNS .seq file for a given protein sequence</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sequence : str</span>
+<span class="sd">        Amino acid sequence in one-letter code</span>
+<span class="sd">    output_file : str, optional (default: None)</span>
+<span class="sd">        Save 3-letter code sequence to this file</span>
+<span class="sd">        (if None, will create temporary file)</span>
+<span class="sd">    residues_per_line : int, optional (default: 16)</span>
+<span class="sd">        Print this many residues on each line</span>
+<span class="sd">        of .seq file</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    output_file : str</span>
+<span class="sd">        Path to file with sequence</span>
+<span class="sd">        (useful if temporary file was</span>
+<span class="sd">        generated)</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    InvalidParameterError</span>
+<span class="sd">        If sequence contains invalid symbol</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">output_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output_file</span> <span class="o">=</span> <span class="n">temp</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="c1"># split sequence into parts per line</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">sequence</span><span class="p">[</span><span class="n">i</span><span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">residues_per_line</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">),</span> <span class="n">residues_per_line</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="c1"># go through lines and transform into 3-letter code</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">l3</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">AA1_to_AA3</span><span class="p">[</span><span class="n">aa</span><span class="p">]</span> <span class="k">for</span> <span class="n">aa</span> <span class="ow">in</span> <span class="n">line</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+                    <span class="s2">&quot;Invalid amino acid could not be mapped&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">l3</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">output_file</span></div>
+
+
+<span class="k">def</span> <span class="nf">_cns_render_template</span><span class="p">(</span><span class="n">template_name</span><span class="p">,</span> <span class="n">mapping</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Render an included CNS template .inp</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    template_name : str</span>
+<span class="sd">        Name of CNS template (e.g. dg_sa)</span>
+<span class="sd">    mapping : dict</span>
+<span class="sd">        Values to be substituted into template</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Rendered template</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># get path of template within package</span>
+    <span class="n">template_file</span> <span class="o">=</span> <span class="n">resource_filename</span><span class="p">(</span>
+        <span class="vm">__name__</span><span class="p">,</span> <span class="s2">&quot;cns_templates/</span><span class="si">{}</span><span class="s2">.inp&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">template_name</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;CNS template does not exist: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">template_file</span><span class="p">),</span>
+        <span class="n">template_file</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="n">template_file</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="cns_mtf_inp"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.cns.cns_mtf_inp">[docs]</a><span class="k">def</span> <span class="nf">cns_mtf_inp</span><span class="p">(</span><span class="n">seq_infile</span><span class="p">,</span> <span class="n">mtf_outfile</span><span class="p">,</span> <span class="n">first_index</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">disulfide_bridges</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create CNS input script (.inp) to create molecular</span>
+<span class="sd">    topology file (.mtf) from sequence (.seq file)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    seq_infile : str</span>
+<span class="sd">        Path to .seq input file (create using cns_seq_file())</span>
+<span class="sd">    mtf_outfile : str</span>
+<span class="sd">        Path where generated .mtf file should be stored</span>
+<span class="sd">    first_index : int, optional (default: 1)</span>
+<span class="sd">        Index of first residue in sequence</span>
+<span class="sd">    disulfide_bridges: list or pandas.DataFrame, optional (default: None)</span>
+<span class="sd">        Position pairs that should be linked by a disulfide</span>
+<span class="sd">        bridge. Can be:</span>
+
+<span class="sd">        * list of tuples (i, j)</span>
+
+<span class="sd">        * dataframe with columns i and j for positions, and A_i and A_j</span>
+<span class="sd">          for amino acid symbols. Will automatically select those pairs</span>
+<span class="sd">          (i, j) where A_i and A_j are &#39;C&#39;.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str:</span>
+<span class="sd">        Input script</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># determine if disulfide bridge information will go into input script or not</span>
+    <span class="k">if</span> <span class="n">disulfide_bridges</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">disulfides</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># if dataframe, extract (i, j) pairs where both residues are cysteine</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">disulfide_bridges</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="n">cys_pairs</span> <span class="o">=</span> <span class="n">disulfide_bridges</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;A_i == &#39;C&#39; and A_j == &#39;C&#39;&quot;</span><span class="p">)</span>
+            <span class="n">pair_list</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">cys_pairs</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="n">cys_pairs</span><span class="o">.</span><span class="n">j</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pair_list</span> <span class="o">=</span> <span class="n">disulfide_bridges</span>
+
+        <span class="c1"># add index from 1 to list, since template needs running index</span>
+        <span class="c1"># for fields</span>
+        <span class="n">disulfides</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pair_list</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">_cns_render_template</span><span class="p">(</span>
+        <span class="s2">&quot;generate_seq&quot;</span><span class="p">,</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;renumber_index&quot;</span><span class="p">:</span> <span class="n">first_index</span><span class="p">,</span>
+            <span class="s2">&quot;sequence_infile&quot;</span><span class="p">:</span> <span class="n">seq_infile</span><span class="p">,</span>
+            <span class="s2">&quot;mtf_outfile&quot;</span><span class="p">:</span> <span class="n">mtf_outfile</span><span class="p">,</span>
+            <span class="s2">&quot;disulfide_list&quot;</span><span class="p">:</span> <span class="n">disulfides</span>
+        <span class="p">}</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cns_extended_inp"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.cns.cns_extended_inp">[docs]</a><span class="k">def</span> <span class="nf">cns_extended_inp</span><span class="p">(</span><span class="n">mtf_infile</span><span class="p">,</span> <span class="n">pdb_outfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create CNS iput script (.inp) to create extended PDB file</span>
+<span class="sd">    from molecular topology file (.mtf)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mtf_infile : str</span>
+<span class="sd">        Path to .mtf topology file</span>
+<span class="sd">    pdb_outfile : str</span>
+<span class="sd">        Path where extended .pdb file will be stored</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str:</span>
+<span class="sd">        Input script</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_cns_render_template</span><span class="p">(</span>
+        <span class="s2">&quot;generate_extended&quot;</span><span class="p">,</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;mtf_infile&quot;</span><span class="p">:</span> <span class="n">mtf_infile</span><span class="p">,</span>
+            <span class="s2">&quot;pdb_outfile&quot;</span><span class="p">:</span> <span class="n">pdb_outfile</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cns_dgsa_inp"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.cns.cns_dgsa_inp">[docs]</a><span class="k">def</span> <span class="nf">cns_dgsa_inp</span><span class="p">(</span><span class="n">pdb_infile</span><span class="p">,</span> <span class="n">mtf_infile</span><span class="p">,</span> <span class="n">outfile_prefix</span><span class="p">,</span>
+                 <span class="n">ec_pair_tbl_infile</span><span class="p">,</span> <span class="n">ss_dist_tbl_infile</span><span class="p">,</span>
+                 <span class="n">ss_angle_tbl_infile</span><span class="p">,</span> <span class="n">num_structures</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+                 <span class="n">log_level</span><span class="o">=</span><span class="s2">&quot;quiet&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create CNS iput script (.inp) to fold extended PDB file</span>
+<span class="sd">    using distance geometry and simulated annealing with</span>
+<span class="sd">    distance and dihedral angle constraints</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pdb_infile : str</span>
+<span class="sd">        Path to extended PDB structure that will be folded</span>
+<span class="sd">    mtf_infile : str</span>
+<span class="sd">        Path to molecular topology file corresponding to</span>
+<span class="sd">        pdb_infile</span>
+<span class="sd">    outfile_prefix : str</span>
+<span class="sd">        Prefix of output files</span>
+<span class="sd">    ec_pair_tbl_infile:</span>
+<span class="sd">        Path to .tbl file with distance restraints for</span>
+<span class="sd">        EC pairs</span>
+<span class="sd">    ss_dist_tbl_infile : str</span>
+<span class="sd">        Path to .tbl file with distance restraints for</span>
+<span class="sd">        secondary structure</span>
+<span class="sd">    ss_angle_tbl_infile : str</span>
+<span class="sd">        Path to .tbl file with dihedral angle restraints</span>
+<span class="sd">        for secondary structure</span>
+<span class="sd">    num_structures : int, optional (default: 20)</span>
+<span class="sd">        Number of trial structures to generate</span>
+<span class="sd">    log_level : str, optional (default: &quot;quiet&quot;)</span>
+<span class="sd">        Log output level of CNS. Set to &quot;verbose&quot; to obtain</span>
+<span class="sd">        information about restraint violations.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str:</span>
+<span class="sd">        Input script</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_cns_render_template</span><span class="p">(</span>
+        <span class="s2">&quot;dg_sa&quot;</span><span class="p">,</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;pdb_infile&quot;</span><span class="p">:</span> <span class="n">pdb_infile</span><span class="p">,</span>
+            <span class="s2">&quot;mtf_infile&quot;</span><span class="p">:</span> <span class="n">mtf_infile</span><span class="p">,</span>
+            <span class="s2">&quot;num_structures&quot;</span><span class="p">:</span> <span class="n">num_structures</span><span class="p">,</span>
+            <span class="s2">&quot;ec_pair_tbl_infile&quot;</span><span class="p">:</span> <span class="n">ec_pair_tbl_infile</span><span class="p">,</span>
+            <span class="s2">&quot;ss_dist_tbl_infile&quot;</span><span class="p">:</span> <span class="n">ss_dist_tbl_infile</span><span class="p">,</span>
+            <span class="s2">&quot;ss_angle_tbl_infile&quot;</span><span class="p">:</span> <span class="n">ss_angle_tbl_infile</span><span class="p">,</span>
+            <span class="s2">&quot;pdb_outfile_basename&quot;</span><span class="p">:</span> <span class="n">outfile_prefix</span><span class="p">,</span>
+            <span class="s2">&quot;hbond_tbl_infile&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;log_level&quot;</span><span class="p">:</span> <span class="n">log_level</span><span class="p">,</span>
+            <span class="s2">&quot;md_cool_noe_scale_factor&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+            <span class="s2">&quot;ss_dist_noe_avg_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;cent&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ec_pair_noe_avg_mode&quot;</span><span class="p">:</span> <span class="s2">&quot;cent&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cns_generate_easy_inp"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.cns.cns_generate_easy_inp">[docs]</a><span class="k">def</span> <span class="nf">cns_generate_easy_inp</span><span class="p">(</span><span class="n">pdb_infile</span><span class="p">,</span> <span class="n">pdb_outfile</span><span class="p">,</span> <span class="n">mtf_outfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create CNS input script (.inp) to run generate_easy</span>
+<span class="sd">    protocol (here, to add hydrogen bonds to models)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pdb_infile : str</span>
+<span class="sd">        Path to 3D structure to which hydrogens will be added</span>
+<span class="sd">    pdb_outfile : str</span>
+<span class="sd">        Path where to to store updated structure</span>
+<span class="sd">    mtf_outfile : str</span>
+<span class="sd">        Path where to store molecular topology file corresponding</span>
+<span class="sd">        to updated structure</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str:</span>
+<span class="sd">        Input script</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_cns_render_template</span><span class="p">(</span>
+        <span class="s2">&quot;generate_easy&quot;</span><span class="p">,</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;pdb_infile&quot;</span><span class="p">:</span> <span class="n">pdb_infile</span><span class="p">,</span>
+            <span class="s2">&quot;mtf_outfile&quot;</span><span class="p">:</span> <span class="n">mtf_outfile</span><span class="p">,</span>
+            <span class="s2">&quot;pdb_outfile&quot;</span><span class="p">:</span> <span class="n">pdb_outfile</span><span class="p">,</span>
+            <span class="s2">&quot;hydrogen_flag&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;pdb_o_format&quot;</span><span class="p">:</span> <span class="s2">&quot;false&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ile_cd_becomes&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>  <span class="c1"># default: CD1</span>
+            <span class="s2">&quot;ot1_becomes&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>     <span class="c1"># default: O</span>
+            <span class="s2">&quot;ot2_becomes&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>     <span class="c1"># default: OXT</span>
+        <span class="p">}</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cns_minimize_inp"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.cns.cns_minimize_inp">[docs]</a><span class="k">def</span> <span class="nf">cns_minimize_inp</span><span class="p">(</span><span class="n">pdb_infile</span><span class="p">,</span> <span class="n">mtf_infile</span><span class="p">,</span> <span class="n">pdb_outfile</span><span class="p">,</span> <span class="n">num_cycles</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create CNS input script (.inp) to minimize model</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pdb_infile : str</span>
+<span class="sd">        Path to PDB structure that should be minimized</span>
+<span class="sd">        (created using generate_easy protocol)</span>
+<span class="sd">    mtf_infile : str</span>
+<span class="sd">        Path to corresponding .mtf topology file of</span>
+<span class="sd">        PDB structure (created using generate_easy protocol)</span>
+<span class="sd">    pdb_outfile : str</span>
+<span class="sd">        Path where minimized structure will be stored</span>
+<span class="sd">    num_cycles : int, optional (default: 5)</span>
+<span class="sd">        Number of minimization cycles</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str:</span>
+<span class="sd">        Input script</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_cns_render_template</span><span class="p">(</span>
+        <span class="s2">&quot;model_minimize&quot;</span><span class="p">,</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;pdb_infile&quot;</span><span class="p">:</span> <span class="n">pdb_infile</span><span class="p">,</span>
+            <span class="s2">&quot;mtf_infile&quot;</span><span class="p">:</span> <span class="n">mtf_infile</span><span class="p">,</span>
+            <span class="s2">&quot;pdb_outfile&quot;</span><span class="p">:</span> <span class="n">pdb_outfile</span><span class="p">,</span>
+            <span class="s2">&quot;num_cycles&quot;</span><span class="p">:</span> <span class="n">num_cycles</span><span class="p">,</span>
+            <span class="s2">&quot;use_cryst&quot;</span><span class="p">:</span> <span class="s2">&quot;false&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;space_group&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cns_dist_restraint"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.cns.cns_dist_restraint">[docs]</a><span class="k">def</span> <span class="nf">cns_dist_restraint</span><span class="p">(</span><span class="n">resid_i</span><span class="p">,</span> <span class="n">atom_i</span><span class="p">,</span> <span class="n">resid_j</span><span class="p">,</span> <span class="n">atom_j</span><span class="p">,</span>
+                       <span class="n">dist</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">comment</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a CNS distance restraint string</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    resid_i : int</span>
+<span class="sd">        Index of first residue</span>
+<span class="sd">    atom_i : str</span>
+<span class="sd">        Name of selected atom in first residue</span>
+<span class="sd">    resid_j : int</span>
+<span class="sd">        Index of second residue</span>
+<span class="sd">    atom_j : str</span>
+<span class="sd">        Name of selected atom in second residue</span>
+<span class="sd">    dist : float</span>
+<span class="sd">        Restrain distance between residues to this value</span>
+<span class="sd">    lower : float</span>
+<span class="sd">        Lower bound delta on distance</span>
+<span class="sd">    upper : float</span>
+<span class="sd">        Upper bound delta on distance</span>
+<span class="sd">    weight : float, optional (default: None)</span>
+<span class="sd">        Weight for distance restraint</span>
+<span class="sd">    comment : str, optional (default: None)</span>
+<span class="sd">        Print comment at the end of restraint line</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    r : str</span>
+<span class="sd">        Distance restraint</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">weight_str</span> <span class="o">=</span> <span class="s2">&quot;weight </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">weight_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">comment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">comment_str</span> <span class="o">=</span> <span class="s2">&quot;! </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">comment_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">r</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;assign (resid </span><span class="si">{}</span><span class="s2"> and name </span><span class="si">{}</span><span class="s2">) (resid </span><span class="si">{}</span><span class="s2"> and name </span><span class="si">{}</span><span class="s2">)  &quot;</span>
+        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">resid_i</span><span class="p">,</span> <span class="n">atom_i</span><span class="p">,</span> <span class="n">resid_j</span><span class="p">,</span> <span class="n">atom_j</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span><span class="p">,</span>
+            <span class="n">weight_str</span><span class="p">,</span> <span class="n">comment_str</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">r</span></div>
+
+
+<div class="viewcode-block" id="cns_dihedral_restraint"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.cns.cns_dihedral_restraint">[docs]</a><span class="k">def</span> <span class="nf">cns_dihedral_restraint</span><span class="p">(</span><span class="n">resid_i</span><span class="p">,</span> <span class="n">atom_i</span><span class="p">,</span> <span class="n">resid_j</span><span class="p">,</span> <span class="n">atom_j</span><span class="p">,</span>
+                           <span class="n">resid_k</span><span class="p">,</span> <span class="n">atom_k</span><span class="p">,</span> <span class="n">resid_l</span><span class="p">,</span> <span class="n">atom_l</span><span class="p">,</span>
+                           <span class="n">energy_constant</span><span class="p">,</span> <span class="n">degrees</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span>
+                           <span class="n">exponent</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a CNS dihedral angle restraint string</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    resid_i : int</span>
+<span class="sd">        Index of first residue</span>
+<span class="sd">    atom_i : str</span>
+<span class="sd">        Name of selected atom in first residue</span>
+<span class="sd">    resid_j : int</span>
+<span class="sd">        Index of second residue</span>
+<span class="sd">    atom_j : str</span>
+<span class="sd">        Name of selected atom in second residue</span>
+<span class="sd">    resid_k : int</span>
+<span class="sd">        Index of third residue</span>
+<span class="sd">    atom_k : str</span>
+<span class="sd">        Name of selected atom in third residue</span>
+<span class="sd">    resid_l : int</span>
+<span class="sd">        Index of fourth residue</span>
+<span class="sd">    atom_l : str</span>
+<span class="sd">        Name of selected atom in fourth residue</span>
+<span class="sd">    energy_constant : float</span>
+<span class="sd">        Energy constant for restraint</span>
+<span class="sd">    degrees : float</span>
+<span class="sd">        Restrain angle to this value</span>
+<span class="sd">    range : float</span>
+<span class="sd">        Acceptable range around angle</span>
+<span class="sd">    exponent : int</span>
+<span class="sd">        Exponent of dihedral angle energy</span>
+<span class="sd">    comment : str, optional (default: None)</span>
+<span class="sd">        Print comment at the end of restraint line</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    r : str</span>
+<span class="sd">        Dihedral angle restraint</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">comment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">comment_str</span> <span class="o">=</span> <span class="s2">&quot; ! </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">comment_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">r</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;assign (resid </span><span class="si">{}</span><span class="s2"> and name </span><span class="si">{}</span><span class="s2">) (resid </span><span class="si">{}</span><span class="s2"> and name </span><span class="si">{}</span><span class="s2">) &quot;</span>
+        <span class="s2">&quot;(resid </span><span class="si">{}</span><span class="s2"> and name </span><span class="si">{}</span><span class="s2">) (resid </span><span class="si">{}</span><span class="s2"> and name </span><span class="si">{}</span><span class="s2">)&quot;</span>
+        <span class="s2">&quot;  </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">resid_i</span><span class="p">,</span> <span class="n">atom_i</span><span class="p">,</span> <span class="n">resid_j</span><span class="p">,</span> <span class="n">atom_j</span><span class="p">,</span>
+            <span class="n">resid_k</span><span class="p">,</span> <span class="n">atom_k</span><span class="p">,</span> <span class="n">resid_l</span><span class="p">,</span> <span class="n">atom_l</span><span class="p">,</span>
+            <span class="n">energy_constant</span><span class="p">,</span> <span class="n">degrees</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span>
+            <span class="n">exponent</span><span class="p">,</span> <span class="n">comment_str</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">r</span></div>
+
+
+<div class="viewcode-block" id="cns_dgsa_fold"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.cns.cns_dgsa_fold">[docs]</a><span class="k">def</span> <span class="nf">cns_dgsa_fold</span><span class="p">(</span><span class="n">residues</span><span class="p">,</span> <span class="n">ec_pairs</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">config_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">secstruct_column</span><span class="o">=</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">,</span>
+                  <span class="n">num_structures</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">min_cycles</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                  <span class="n">log_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="s2">&quot;cns&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Predict 3D structure coordinates using distance geometry</span>
+<span class="sd">    and simulated annealing-based folding protocol</span>
+<span class="sd">     </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    residues : pandas.DataFrame</span>
+<span class="sd">        Table containing positions (column i), residue</span>
+<span class="sd">        type (column A_i), and secondary structure for</span>
+<span class="sd">        each position</span>
+<span class="sd">    ec_pairs : pandas.DataFrame</span>
+<span class="sd">        Table with EC pairs that will be turned</span>
+<span class="sd">        into distance restraints</span>
+<span class="sd">        (with columns i, j, A_i, A_j)</span>
+<span class="sd">    prefix : str</span>
+<span class="sd">        Prefix for output files (can include directories).</span>
+<span class="sd">        Folders will be created automatically.</span>
+<span class="sd">    config_file : str, optional (default: None)</span>
+<span class="sd">        Path to config file with folding settings. If None,</span>
+<span class="sd">        will use default settings included in package</span>
+<span class="sd">        (restraints.yml)</span>
+<span class="sd">    secstruct_column : str, optional (default: sec_struct_3state)</span>
+<span class="sd">        Column name in residues dataframe from which secondary</span>
+<span class="sd">        structure will be extracted (has to be H, E, or C).</span>
+<span class="sd">    num_structures : int, optional (default: 20)</span>
+<span class="sd">        Number of trial structures to generate</span>
+<span class="sd">    min_cycles : int, optional (default: 5)</span>
+<span class="sd">        Number of minimization cycles at end of protocol</span>
+<span class="sd">    log_level : {None, &quot;quiet&quot;, &quot;verbose&quot;}, optional (default: None)</span>
+<span class="sd">        Don&#39;t keep CNS log files, or switch to different degrees</span>
+<span class="sd">        of verbosity (&quot;verbose&quot; needed to obtain violation information)</span>
+<span class="sd">    binary : str, optional (default: &quot;cns&quot;)</span>
+<span class="sd">        Path of CNS binary</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    final_models : dict</span>
+<span class="sd">        Mapping from model name to path of model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_run_inp</span><span class="p">(</span><span class="n">inp_str</span><span class="p">,</span> <span class="n">output_prefix</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_prefix</span> <span class="o">+</span> <span class="s2">&quot;.inp&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">inp_str</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">log_level</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">log_file</span> <span class="o">=</span> <span class="n">output_prefix</span> <span class="o">+</span> <span class="s2">&quot;.log&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">log_file</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">run_cns</span><span class="p">(</span><span class="n">inp_str</span><span class="p">,</span> <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="n">binary</span><span class="p">)</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># CNS doesn&#39;t like paths above a certain length, so we</span>
+    <span class="c1"># will change into working directory and keep paths short.</span>
+    <span class="c1"># For this reason, extract path and filename prefix</span>
+    <span class="n">dir_</span><span class="p">,</span> <span class="n">rootname</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="n">cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">dir_</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">dir_</span><span class="p">)</span>
+
+    <span class="c1"># create restraints (EC pairs and secondary structure-based)</span>
+    <span class="n">ec_tbl</span> <span class="o">=</span> <span class="n">rootname</span> <span class="o">+</span> <span class="s2">&quot;_couplings.tbl&quot;</span>
+    <span class="n">ss_dist_tbl</span> <span class="o">=</span> <span class="n">rootname</span> <span class="o">+</span> <span class="s2">&quot;_ss_distance.tbl&quot;</span>
+    <span class="n">ss_angle_tbl</span> <span class="o">=</span> <span class="n">rootname</span> <span class="o">+</span> <span class="s2">&quot;_ss_angle.tbl&quot;</span>
+
+    <span class="n">ec_dist_restraints</span><span class="p">(</span>
+        <span class="n">ec_pairs</span><span class="p">,</span> <span class="n">ec_tbl</span><span class="p">,</span> <span class="n">cns_dist_restraint</span><span class="p">,</span>
+        <span class="n">config_file</span>
+    <span class="p">)</span>
+
+    <span class="n">secstruct_dist_restraints</span><span class="p">(</span>
+        <span class="n">residues</span><span class="p">,</span> <span class="n">ss_dist_tbl</span><span class="p">,</span> <span class="n">cns_dist_restraint</span><span class="p">,</span>
+        <span class="n">config_file</span><span class="p">,</span> <span class="n">secstruct_column</span>
+    <span class="p">)</span>
+
+    <span class="n">secstruct_angle_restraints</span><span class="p">(</span>
+        <span class="n">residues</span><span class="p">,</span> <span class="n">ss_angle_tbl</span><span class="p">,</span> <span class="n">cns_dihedral_restraint</span><span class="p">,</span>
+        <span class="n">config_file</span><span class="p">,</span> <span class="n">secstruct_column</span>
+    <span class="p">)</span>
+
+    <span class="c1"># create sequence file</span>
+    <span class="n">seq</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">residues</span><span class="o">.</span><span class="n">A_i</span><span class="p">)</span>
+    <span class="n">seq_file</span> <span class="o">=</span> <span class="n">rootname</span> <span class="o">+</span> <span class="s2">&quot;.seq&quot;</span>
+    <span class="n">cns_seq_file</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">seq_file</span><span class="p">)</span>
+
+    <span class="c1"># set up input files for folding</span>
+    <span class="c1"># make molecular topology file (will be written to mtf_file)</span>
+    <span class="n">mtf_file</span> <span class="o">=</span> <span class="n">rootname</span> <span class="o">+</span> <span class="s2">&quot;.mtf&quot;</span>
+    <span class="n">_run_inp</span><span class="p">(</span>
+        <span class="n">cns_mtf_inp</span><span class="p">(</span>
+            <span class="n">seq_file</span><span class="p">,</span> <span class="n">mtf_file</span><span class="p">,</span> <span class="n">first_index</span><span class="o">=</span><span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+            <span class="n">disulfide_bridges</span><span class="o">=</span><span class="kc">None</span>
+        <span class="p">),</span> <span class="n">mtf_file</span>
+    <span class="p">)</span>
+
+    <span class="c1"># make extended PDB file (will be in extended_file)</span>
+    <span class="n">extended_file</span> <span class="o">=</span> <span class="n">rootname</span> <span class="o">+</span> <span class="s2">&quot;_extended.pdb&quot;</span>
+    <span class="n">_run_inp</span><span class="p">(</span>
+        <span class="n">cns_extended_inp</span><span class="p">(</span>
+            <span class="n">mtf_file</span><span class="p">,</span> <span class="n">extended_file</span>
+        <span class="p">),</span> <span class="n">extended_file</span>
+    <span class="p">)</span>
+
+    <span class="c1"># fold using dg_sa protocol (filenames will have suffixes _1, _2, ...)</span>
+
+    <span class="c1"># have to pass either quiet or verbose to CNS (but will not store</span>
+    <span class="c1"># log file if log_level is None).</span>
+    <span class="k">if</span> <span class="n">log_level</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dgsa_log_level</span> <span class="o">=</span> <span class="s2">&quot;quiet&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dgsa_log_level</span> <span class="o">=</span> <span class="n">log_level</span>
+
+    <span class="n">_run_inp</span><span class="p">(</span>
+        <span class="n">cns_dgsa_inp</span><span class="p">(</span>
+            <span class="n">extended_file</span><span class="p">,</span> <span class="n">mtf_file</span><span class="p">,</span> <span class="n">rootname</span><span class="p">,</span>
+            <span class="n">ec_tbl</span><span class="p">,</span> <span class="n">ss_dist_tbl</span><span class="p">,</span> <span class="n">ss_angle_tbl</span><span class="p">,</span>
+            <span class="n">num_structures</span><span class="o">=</span><span class="n">num_structures</span><span class="p">,</span>
+            <span class="n">log_level</span><span class="o">=</span><span class="n">dgsa_log_level</span>
+        <span class="p">),</span> <span class="n">rootname</span> <span class="o">+</span> <span class="s2">&quot;_dgsa&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># add hydrogen atoms and minimize (for all</span>
+    <span class="c1"># generated candidate structures from dg_sa)</span>
+
+    <span class="c1"># keep track of final predicted structures</span>
+    <span class="n">final_models</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_structures</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">input_root</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rootname</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">input_model</span> <span class="o">=</span> <span class="n">input_root</span> <span class="o">+</span> <span class="s2">&quot;.pdb&quot;</span>
+
+        <span class="c1"># check if we actually got the model from dg_sa</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">input_model</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># run generate_easy protocol to add hydrogen atoms</span>
+        <span class="n">easy_pdb</span> <span class="o">=</span> <span class="n">input_root</span> <span class="o">+</span> <span class="s2">&quot;_h.pdb&quot;</span>
+        <span class="n">easy_mtf</span> <span class="o">=</span> <span class="n">input_root</span> <span class="o">+</span> <span class="s2">&quot;_h.mtf&quot;</span>
+        <span class="n">_run_inp</span><span class="p">(</span>
+            <span class="n">cns_generate_easy_inp</span><span class="p">(</span>
+                <span class="n">input_model</span><span class="p">,</span> <span class="n">easy_pdb</span><span class="p">,</span> <span class="n">easy_mtf</span>
+            <span class="p">),</span> <span class="n">input_root</span> <span class="o">+</span> <span class="s2">&quot;_h&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># then minimize</span>
+        <span class="n">min_pdb</span> <span class="o">=</span> <span class="n">input_root</span> <span class="o">+</span> <span class="s2">&quot;_hMIN.pdb&quot;</span>
+
+        <span class="n">_run_inp</span><span class="p">(</span>
+            <span class="n">cns_minimize_inp</span><span class="p">(</span>
+                <span class="n">easy_pdb</span><span class="p">,</span> <span class="n">easy_mtf</span><span class="p">,</span> <span class="n">min_pdb</span><span class="p">,</span>
+                <span class="n">num_cycles</span><span class="o">=</span><span class="n">min_cycles</span>
+            <span class="p">),</span> <span class="n">input_root</span> <span class="o">+</span> <span class="s2">&quot;_hMIN&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">min_pdb</span><span class="p">):</span>
+            <span class="n">final_models</span><span class="p">[</span><span class="n">min_pdb</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">dir_</span><span class="p">,</span> <span class="n">min_pdb</span>
+            <span class="p">)</span>
+
+    <span class="c1"># change back into original directory</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">cwd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">final_models</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

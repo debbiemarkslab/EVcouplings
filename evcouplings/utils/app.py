@@ -4,9 +4,11 @@ evcouplings command-line app
 Authors:
   Thomas A. Hopf
 
-# TODO: Once there are different pipelines to run, there should
-be individual commands for these, so will need to define additional
-entry points for applications (e.g. evcomplex in addition to evcouplings).
+.. todo::
+
+    Once there are different pipelines to run, there should
+    be individual commands for these, so will need to define additional
+    entry points for applications (e.g. evcomplex in addition to evcouplings).
 """
 
 import re
@@ -58,7 +60,7 @@ def substitute_config(**kwargs):
         "id": ("align", "seqid_filter"),
         "seqcov": ("align", "minimum_sequence_coverage"),
         "colcov": ("align", "minimum_column_coverage"),
-        "theta": ("couplings", "theta"),
+        "theta": ("global", "theta"),
         "plmiter": ("couplings", "iterations"),
         "queue": ("environment", "queue"),
         "time": ("environment", "time"),
@@ -323,7 +325,7 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
     # create submitter from global (pre-unrolling) configuration
     submitter = utils.SubmitterFactory(
         global_config["environment"]["engine"],
-        db_path=global_config["global"]["prefix"] + "_job_database.txt"
+        db_path=out_prefix + "_job_database.txt"
     )
 
     # collect individual submitted jobs here

@@ -1,0 +1,1402 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.align.protocol &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.align.protocol</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.align.protocol</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Protein sequence alignment creation protocols/workflows.</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span><span class="p">,</span> <span class="n">Iterable</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="k">import</span> <span class="n">copy</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.align</span> <span class="k">import</span> <span class="n">tools</span> <span class="k">as</span> <span class="n">at</span>
+<span class="kn">from</span> <span class="nn">evcouplings.align.alignment</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">detect_format</span><span class="p">,</span> <span class="n">parse_header</span><span class="p">,</span> <span class="n">read_fasta</span><span class="p">,</span>
+    <span class="n">write_fasta</span><span class="p">,</span> <span class="n">Alignment</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.couplings.mapping</span> <span class="k">import</span> <span class="n">Segment</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">check_required</span><span class="p">,</span> <span class="n">InvalidParameterError</span><span class="p">,</span> <span class="n">MissingParameterError</span><span class="p">,</span>
+    <span class="n">read_config_file</span><span class="p">,</span> <span class="n">write_config_file</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.utils.system</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">create_prefix_folders</span><span class="p">,</span> <span class="n">get</span><span class="p">,</span> <span class="n">valid_file</span><span class="p">,</span>
+    <span class="n">verify_resources</span><span class="p">,</span> <span class="n">ResourceError</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="fetch_sequence"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.fetch_sequence">[docs]</a><span class="k">def</span> <span class="nf">fetch_sequence</span><span class="p">(</span><span class="n">sequence_id</span><span class="p">,</span> <span class="n">sequence_file</span><span class="p">,</span>
+                   <span class="n">sequence_download_url</span><span class="p">,</span> <span class="n">out_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get sequence.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sequence_id : str</span>
+<span class="sd">        Identifier of sequence that should be retrieved</span>
+<span class="sd">    sequence_file : str</span>
+<span class="sd">        File containing sequence. If None, sqeuence will</span>
+<span class="sd">        be downloaded from sequence_download_url</span>
+<span class="sd">    sequence_download_url : str</span>
+<span class="sd">        URL from which to download missing sequence. Must</span>
+<span class="sd">        contain &quot;{}&quot; at the position where sequence ID will</span>
+<span class="sd">        be inserted into download URL (using str.format).</span>
+<span class="sd">    out_file : str</span>
+<span class="sd">        Output file in which sequence will be stored, if</span>
+<span class="sd">        sequence_file is not existing.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Path of file with stored sequence (can be sequence_file</span>
+<span class="sd">        or out_file)</span>
+<span class="sd">    tuple (str, str)</span>
+<span class="sd">        Identifier of sequence as stored in file, and sequence</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sequence_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">get</span><span class="p">(</span>
+            <span class="n">sequence_download_url</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sequence_id</span><span class="p">),</span>
+            <span class="n">out_file</span><span class="p">,</span>
+            <span class="n">allow_redirects</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># if we have sequence file, try to copy it</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">copy</span><span class="p">(</span><span class="n">sequence_file</span><span class="p">,</span> <span class="n">out_file</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ResourceError</span><span class="p">(</span>
+                <span class="s2">&quot;sequence_file does not exist: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">sequence_file</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="c1"># also make sure input file has something in it</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Input sequence missing&quot;</span><span class="p">,</span> <span class="n">out_file</span>
+    <span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">read_fasta</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">out_file</span><span class="p">,</span> <span class="n">seq</span></div>
+
+
+<div class="viewcode-block" id="cut_sequence"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.cut_sequence">[docs]</a><span class="k">def</span> <span class="nf">cut_sequence</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="n">sequence_id</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">first_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">out_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cut a given sequence to sub-range and save it in a file</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sequence : str</span>
+<span class="sd">        Full sequence that will be cut</span>
+<span class="sd">    sequence_id : str</span>
+<span class="sd">        Identifier of sequence, used to construct header</span>
+<span class="sd">        in output file</span>
+<span class="sd">    region : tuple(int, int), optional (default: None)</span>
+<span class="sd">        Region that will be cut out of full sequence.</span>
+<span class="sd">        If None, full sequence will be returned.</span>
+<span class="sd">    first_index : int, optional (default: None)</span>
+<span class="sd">        Define index of first position in sequence.</span>
+<span class="sd">        Will be set to 1 if None.</span>
+<span class="sd">    out_file : str, optional (default: None)</span>
+<span class="sd">        Save sequence in a FASTA file (header:</span>
+<span class="sd">        &gt;sequence_id/start_region-end_region)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ------</span>
+<span class="sd">    str</span>
+<span class="sd">        Subsequence contained in region</span>
+<span class="sd">    tuple(int, int)</span>
+<span class="sd">        Region. If no input region is given, this will be</span>
+<span class="sd">        (1, len(sequence)); otherwise, the input region is</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    InvalidParameterError</span>
+<span class="sd">        Upon invalid region specification (violating boundaries</span>
+<span class="sd">        of sequence)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cut_seq</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># (not using 1 as default value to allow parameter</span>
+    <span class="c1"># to be unspecified in config file)</span>
+    <span class="k">if</span> <span class="n">first_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">first_index</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># last index is *inclusive*!</span>
+    <span class="k">if</span> <span class="n">region</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="p">(</span><span class="n">first_index</span><span class="p">,</span> <span class="n">first_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">cut_seq</span> <span class="o">=</span> <span class="n">sequence</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">region</span>
+        <span class="n">str_start</span> <span class="o">=</span> <span class="n">start</span> <span class="o">-</span> <span class="n">first_index</span>
+        <span class="n">str_end</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">first_index</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">cut_seq</span> <span class="o">=</span> <span class="n">sequence</span><span class="p">[</span><span class="n">str_start</span><span class="p">:</span><span class="n">str_end</span><span class="p">]</span>
+
+        <span class="c1"># make sure bounds are valid given the sequence that we have</span>
+        <span class="k">if</span> <span class="n">str_start</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">str_end</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid sequence range: &quot;</span>
+                <span class="s2">&quot;region=</span><span class="si">{}</span><span class="s2"> first_index=</span><span class="si">{}</span><span class="s2"> len(sequence)=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">region</span><span class="p">,</span>
+                    <span class="n">first_index</span><span class="p">,</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="c1"># save sequence to file</span>
+    <span class="k">if</span> <span class="n">out_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">header</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sequence_id</span><span class="p">,</span> <span class="o">*</span><span class="n">region</span><span class="p">)</span>
+            <span class="n">write_fasta</span><span class="p">([(</span><span class="n">header</span><span class="p">,</span> <span class="n">cut_seq</span><span class="p">)],</span> <span class="n">f</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">region</span><span class="p">,</span> <span class="n">cut_seq</span></div>
+
+
+<div class="viewcode-block" id="search_thresholds"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.search_thresholds">[docs]</a><span class="k">def</span> <span class="nf">search_thresholds</span><span class="p">(</span><span class="n">use_bitscores</span><span class="p">,</span> <span class="n">seq_threshold</span><span class="p">,</span> <span class="n">domain_threshold</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set homology search inclusion parameters.</span>
+
+<span class="sd">    HMMER hits get included in the HMM according to a two-step rule</span>
+<span class="sd">        1. sequence passes sequence-level treshold</span>
+<span class="sd">        2. domain passes domain-level threshold</span>
+
+<span class="sd">    Therefore, search thresholds are set based on the following logic:</span>
+<span class="sd">        1. If only sequence threshold is given, a MissingParameterException is raised</span>
+<span class="sd">        2. If only bitscore threshold is given, sequence threshold is set to the same</span>
+<span class="sd">        3. If both thresholds are given, they are according to defined values</span>
+
+<span class="sd">    Valid inputs for bitscore thresholds:</span>
+<span class="sd">        1. int or str: taken as absolute score threshold</span>
+<span class="sd">        2. float: taken as relative threshold (absolute threshold derived by</span>
+<span class="sd">       multiplication with domain length)</span>
+
+<span class="sd">    Valid inputs for integer thresholds:</span>
+<span class="sd">        1. int: Used as negative exponent, threshold will be set to 1E-&lt;exponent&gt;</span>
+<span class="sd">        2. float or str: Interpreted literally</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    use_bitscores : bool</span>
+<span class="sd">        Use bitscore threshold instead of E-value threshold</span>
+<span class="sd">    domain_threshold : str or int or float</span>
+<span class="sd">        Domain-level threshold. See rules above.</span>
+<span class="sd">    seq_threshold : str or int or float</span>
+<span class="sd">        Sequence-level threshold. See rules above.</span>
+<span class="sd">    seq_len : int</span>
+<span class="sd">        Length of sequence. Used to calculate absolute bitscore</span>
+<span class="sd">        threshold for relative bitscore thresholds.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple (str, str)</span>
+<span class="sd">        Sequence- and domain-level thresholds ready to be fed into HMMER</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">transform_bitscore</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="c1"># float: interpret as relative fraction of length</span>
+            <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{:.1f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">seq_len</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># otherwise interpret as absolute score</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">transform_evalue</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="c1"># if integer, interpret as negative exponent</span>
+            <span class="k">return</span> <span class="s2">&quot;1E</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># otherwise interpret literally</span>
+            <span class="c1"># (mantissa-exponent string or float)</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">domain_threshold</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">MissingParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;domain_threshold must be explicitly defined &quot;</span>
+            <span class="s2">&quot;and may not be None/empty&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_bitscores</span><span class="p">:</span>
+        <span class="n">transform</span> <span class="o">=</span> <span class="n">transform_bitscore</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">transform</span> <span class="o">=</span> <span class="n">transform_evalue</span>
+
+    <span class="k">if</span> <span class="n">seq_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">seq_threshold</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">seq_threshold</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">domain_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">domain_threshold</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">domain_threshold</span><span class="p">)</span>
+
+    <span class="c1"># set &quot;outer&quot; sequence threshold so that it matches domain threshold</span>
+    <span class="k">if</span> <span class="n">domain_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">seq_threshold</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">seq_threshold</span> <span class="o">=</span> <span class="n">domain_threshold</span>
+
+    <span class="k">return</span> <span class="n">seq_threshold</span><span class="p">,</span> <span class="n">domain_threshold</span></div>
+
+
+<div class="viewcode-block" id="extract_header_annotation"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.extract_header_annotation">[docs]</a><span class="k">def</span> <span class="nf">extract_header_annotation</span><span class="p">(</span><span class="n">alignment</span><span class="p">,</span> <span class="n">from_annotation</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract Uniprot/Uniref sequence annotation from Stockholm file</span>
+<span class="sd">    (as output by jackhmmer). This function may not work for other</span>
+<span class="sd">    formats.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alignment : Alignment</span>
+<span class="sd">        Multiple sequence alignment object</span>
+<span class="sd">    from_annotation : bool, optional (default: True)</span>
+<span class="sd">        Use annotation line (in Stockholm file) rather</span>
+<span class="sd">        than sequence ID line (e.g. in FASTA file)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Table containing all annotation</span>
+<span class="sd">        (one row per sequence in alignment,</span>
+<span class="sd">        in order of occurrence)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;GN&quot;</span><span class="p">,</span> <span class="s2">&quot;gene&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;OS&quot;</span><span class="p">,</span> <span class="s2">&quot;organism&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;PE&quot;</span><span class="p">,</span> <span class="s2">&quot;existence_evidence&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;SV&quot;</span><span class="p">,</span> <span class="s2">&quot;sequence_version&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">,</span> <span class="s2">&quot;num_cluster_members&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;Tax&quot;</span><span class="p">,</span> <span class="s2">&quot;taxon&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;RepID&quot;</span><span class="p">,</span> <span class="s2">&quot;representative_member&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">col_to_descr</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+    <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;\s(</span><span class="si">{}</span><span class="s2">)=&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">col_to_descr</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+    <span class="p">)</span>
+
+    <span class="c1"># collect rows for dataframe in here</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">id_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">alignment</span><span class="o">.</span><span class="n">ids</span><span class="p">):</span>
+        <span class="c1"># annotation line for current sequence</span>
+        <span class="n">seq_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">anno</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># look for annotation either in separate</span>
+        <span class="c1"># annotation line or in full sequence ID line</span>
+        <span class="k">if</span> <span class="n">from_annotation</span><span class="p">:</span>
+            <span class="n">seq_id</span> <span class="o">=</span> <span class="n">id_</span>
+            <span class="c1"># query level by level to avoid creating new keys</span>
+            <span class="c1"># in DefaultOrderedDict</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;GS&quot;</span> <span class="ow">in</span> <span class="n">alignment</span><span class="o">.</span><span class="n">annotation</span> <span class="ow">and</span>
+                    <span class="n">id_</span> <span class="ow">in</span> <span class="n">alignment</span><span class="o">.</span><span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;GS&quot;</span><span class="p">]</span> <span class="ow">and</span>
+                    <span class="s2">&quot;DE&quot;</span> <span class="ow">in</span> <span class="n">alignment</span><span class="o">.</span><span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;GS&quot;</span><span class="p">][</span><span class="n">id_</span><span class="p">]):</span>
+                <span class="n">anno</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">annotation</span><span class="p">[</span><span class="s2">&quot;GS&quot;</span><span class="p">][</span><span class="n">id_</span><span class="p">][</span><span class="s2">&quot;DE&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">split</span> <span class="o">=</span> <span class="n">id_</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">split</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">seq_id</span><span class="p">,</span> <span class="n">anno</span> <span class="o">=</span> <span class="n">split</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">seq_id</span> <span class="o">=</span> <span class="n">id_</span>
+                <span class="n">anno</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># extract info from line if we got one</span>
+        <span class="k">if</span> <span class="n">anno</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># do split on known field names o keep things</span>
+            <span class="c1"># simpler than a gigantic full regex to match</span>
+            <span class="c1"># (some fields are allowed to be missing)</span>
+            <span class="n">pairs</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">anno</span><span class="p">)</span>
+            <span class="n">pairs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">seq_id</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">pairs</span>
+
+            <span class="c1"># create feature-value map</span>
+            <span class="n">feat_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">pairs</span><span class="p">[::</span><span class="mi">2</span><span class="p">],</span> <span class="n">pairs</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]))</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feat_map</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">seq_id</span><span class="p">})</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">col_to_descr</span><span class="o">.</span><span class="n">keys</span><span class="p">())]</span></div>
+
+
+<div class="viewcode-block" id="describe_seq_identities"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.describe_seq_identities">[docs]</a><span class="k">def</span> <span class="nf">describe_seq_identities</span><span class="p">(</span><span class="n">alignment</span><span class="p">,</span> <span class="n">target_seq_index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate sequence identities of any sequence</span>
+<span class="sd">    to target sequence and create result dataframe.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alignment : Alignment</span>
+<span class="sd">        Alignment for which description statistics</span>
+<span class="sd">        will be calculated</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Table giving the identity to target sequence</span>
+<span class="sd">        for each sequence in alignment (in order of</span>
+<span class="sd">        occurrence)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">id_to_query</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">identities_to</span><span class="p">(</span>
+        <span class="n">alignment</span><span class="p">[</span><span class="n">target_seq_index</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">alignment</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="s2">&quot;identity_to_query&quot;</span><span class="p">:</span> <span class="n">id_to_query</span><span class="p">}</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="describe_frequencies"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.describe_frequencies">[docs]</a><span class="k">def</span> <span class="nf">describe_frequencies</span><span class="p">(</span><span class="n">alignment</span><span class="p">,</span> <span class="n">first_index</span><span class="p">,</span> <span class="n">target_seq_index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get parameters of alignment such as gaps, coverage,</span>
+<span class="sd">    conservation and summarize.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alignment : Alignment</span>
+<span class="sd">        Alignment for which description statistics</span>
+<span class="sd">        will be calculated</span>
+<span class="sd">    first_index : int</span>
+<span class="sd">        Sequence index of first residue in target sequence</span>
+<span class="sd">    target_seq_index : int, optional (default: None)</span>
+<span class="sd">        If given, will add the symbol in the target sequence</span>
+<span class="sd">        into a separate column of the output table</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Table detailing conservation and symbol frequencies</span>
+<span class="sd">        for all positions in the alignment</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fi</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">frequencies</span>
+    <span class="n">conservation</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">conservation</span><span class="p">()</span>
+
+    <span class="n">fi_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">fi</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">alignment</span><span class="o">.</span><span class="n">alphabet_map</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="k">if</span> <span class="n">target_seq_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">target_seq</span> <span class="o">=</span> <span class="n">alignment</span><span class="p">[</span><span class="n">target_seq_index</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">target_seq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">alignment</span><span class="o">.</span><span class="n">L</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+    <span class="n">info</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;i&quot;</span><span class="p">:</span> <span class="nb">range</span><span class="p">(</span><span class="n">first_index</span><span class="p">,</span> <span class="n">first_index</span> <span class="o">+</span> <span class="n">alignment</span><span class="o">.</span><span class="n">L</span><span class="p">),</span>
+            <span class="s2">&quot;A_i&quot;</span><span class="p">:</span> <span class="n">target_seq</span><span class="p">,</span>
+            <span class="s2">&quot;conservation&quot;</span><span class="p">:</span> <span class="n">conservation</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">fi_cols</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="c1"># reorder columns</span>
+    <span class="n">info</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;A_i&quot;</span><span class="p">,</span> <span class="s2">&quot;conservation&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">alignment</span><span class="o">.</span><span class="n">alphabet</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">info</span></div>
+
+
+<div class="viewcode-block" id="describe_coverage"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.describe_coverage">[docs]</a><span class="k">def</span> <span class="nf">describe_coverage</span><span class="p">(</span><span class="n">alignment</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">first_index</span><span class="p">,</span> <span class="n">minimum_column_coverage</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Produce &quot;classical&quot; buildali coverage statistics, i.e.</span>
+<span class="sd">    number of sequences, how many residues have too many gaps, etc.</span>
+
+<span class="sd">    Only to be applied to alignments focused around the</span>
+<span class="sd">    target sequence.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    alignment : Alignment</span>
+<span class="sd">        Alignment for which coverage statistics will be calculated</span>
+<span class="sd">    prefix : str</span>
+<span class="sd">        Prefix of alignment file that will be stored as identifier in table</span>
+<span class="sd">    first_index : int</span>
+<span class="sd">        Sequence index of first position of target sequence</span>
+<span class="sd">    minimum_column_coverage : Iterable(float) or float</span>
+<span class="sd">        Minimum column coverage threshold(s) that will be tested</span>
+<span class="sd">        (creating one row for each threshold in output table).</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            ``int`` values given to this function instead of a float will be divided by 100 to create the corresponding</span>
+<span class="sd">            floating point representation. This parameter is 1.0 - maximum fraction of gaps per column.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pd.DataFrame</span>
+<span class="sd">        Table with coverage statistics for different gap thresholds</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">NO_MEFF</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">minimum_column_coverage</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="n">minimum_column_coverage</span> <span class="o">=</span> <span class="p">[</span><span class="n">minimum_column_coverage</span><span class="p">]</span>
+
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">first_index</span><span class="p">,</span> <span class="n">first_index</span> <span class="o">+</span> <span class="n">alignment</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+    <span class="n">f_gap</span> <span class="o">=</span> <span class="n">alignment</span><span class="o">.</span><span class="n">frequencies</span><span class="p">[:,</span> <span class="n">alignment</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">[</span><span class="n">alignment</span><span class="o">.</span><span class="n">_match_gap</span><span class="p">]]</span>
+
+    <span class="k">for</span> <span class="n">threshold</span> <span class="ow">in</span> <span class="n">minimum_column_coverage</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">threshold</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">threshold</span> <span class="o">/=</span> <span class="mi">100</span>
+
+        <span class="c1"># all positions that have enough sequence information (i.e. little gaps),</span>
+        <span class="c1"># and their indeces</span>
+        <span class="n">uppercase</span> <span class="o">=</span> <span class="n">f_gap</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">threshold</span>
+        <span class="n">uppercase_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">uppercase</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># where does coverage of sequence by good alignment start and end?</span>
+        <span class="n">cov_first_idx</span><span class="p">,</span> <span class="n">cov_last_idx</span> <span class="o">=</span> <span class="n">uppercase_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">uppercase_idx</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># calculate indeces in sequence numbering space</span>
+        <span class="n">first</span><span class="p">,</span> <span class="n">last</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">cov_first_idx</span><span class="p">],</span> <span class="n">pos</span><span class="p">[</span><span class="n">cov_last_idx</span><span class="p">]</span>
+
+        <span class="c1"># how many lowercase positions in covered region?</span>
+        <span class="n">num_lc_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">~</span><span class="n">uppercase</span><span class="p">[</span><span class="n">cov_first_idx</span><span class="p">:</span><span class="n">cov_last_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># total number of upper- and lowercase positions,</span>
+        <span class="c1"># and relative percentage</span>
+        <span class="n">num_cov</span> <span class="o">=</span> <span class="n">uppercase</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">num_lc</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">uppercase</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">perc_cov</span> <span class="o">=</span> <span class="n">num_cov</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">uppercase</span><span class="p">)</span>
+
+        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">alignment</span><span class="o">.</span><span class="n">N</span><span class="p">,</span> <span class="n">alignment</span><span class="o">.</span><span class="n">L</span><span class="p">,</span>
+             <span class="n">num_cov</span><span class="p">,</span> <span class="n">num_lc</span><span class="p">,</span> <span class="n">perc_cov</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">last</span><span class="p">,</span>
+             <span class="n">last</span> <span class="o">-</span> <span class="n">first</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_lc_cov</span><span class="p">,</span> <span class="n">NO_MEFF</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;minimum_column_coverage&quot;</span><span class="p">,</span> <span class="s2">&quot;num_seqs&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;seqlen&quot;</span><span class="p">,</span> <span class="s2">&quot;num_cov&quot;</span><span class="p">,</span> <span class="s2">&quot;num_lc&quot;</span><span class="p">,</span> <span class="s2">&quot;perc_cov&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;1st_uc&quot;</span><span class="p">,</span> <span class="s2">&quot;last_uc&quot;</span><span class="p">,</span> <span class="s2">&quot;len_cov&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;num_lc_cov&quot;</span><span class="p">,</span> <span class="s2">&quot;N_eff&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="existing"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.existing">[docs]</a><span class="k">def</span> <span class="nf">existing</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Protocol:</span>
+
+<span class="sd">    Use external sequence alignment and extract all relevant</span>
+<span class="sd">    information from there (e.g. sequence, region, etc.),</span>
+<span class="sd">    then apply gap &amp; fragment filtering as usual</span>
+
+<span class="sd">    Depending if sequence_id is given, the resulting alignment</span>
+<span class="sd">    will be in focus mode or non-focus mode.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        See list below in code where calling check_required</span>
+
+<span class="sd">    .. todo::</span>
+<span class="sd">        explain meaning of parameters in detail.</span>
+
+<span class="sd">    If skip is given and True, the workflow will only return</span>
+<span class="sd">    the output configuration (outcfg) and ali will be None.</span>
+
+<span class="sd">    If callback is given, the function will be called at the</span>
+<span class="sd">    end of the workflow with the kwargs arguments updated with</span>
+<span class="sd">    the outcfg results.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of the pipeline, including</span>
+<span class="sd">        the following fields:</span>
+
+<span class="sd">        * alignment_file</span>
+<span class="sd">        * raw_focus_alignment_file</span>
+<span class="sd">        * statistics_file</span>
+<span class="sd">        * sequence_file</span>
+<span class="sd">        * first_index</span>
+<span class="sd">        * target_sequence_file</span>
+<span class="sd">        * annotation_file (None)</span>
+<span class="sd">        * frequencies_file</span>
+<span class="sd">        * identities_file</span>
+<span class="sd">        * focus_mode</span>
+<span class="sd">        * focus_sequence</span>
+<span class="sd">        * segments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;input_alignment&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sequence_id&quot;</span><span class="p">,</span> <span class="s2">&quot;first_index&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;extract_annotation&quot;</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># this file is starting point of pipeline;</span>
+    <span class="c1"># check if input alignment actually exists</span>
+    <span class="n">input_alignment</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;input_alignment&quot;</span><span class="p">]</span>
+    <span class="n">verify_resources</span><span class="p">(</span>
+        <span class="s2">&quot;Input alignment does not exist&quot;</span><span class="p">,</span>
+        <span class="n">input_alignment</span>
+    <span class="p">)</span>
+
+    <span class="c1"># first try to autodetect format of alignment</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_alignment</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="nb">format</span> <span class="o">=</span> <span class="n">detect_format</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+                <span class="s2">&quot;Format of input alignment </span><span class="si">{}</span><span class="s2"> could not be &quot;</span>
+                <span class="s2">&quot;automatically detected.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">input_alignment</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_alignment</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">ali_raw</span> <span class="o">=</span> <span class="n">Alignment</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="nb">format</span><span class="p">)</span>
+
+    <span class="c1"># save annotation in sequence headers (species etc.)</span>
+    <span class="n">annotation_file</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;extract_annotation&quot;</span><span class="p">]:</span>
+        <span class="n">annotation_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_annotation.csv&quot;</span>
+        <span class="n">from_anno_line</span> <span class="o">=</span> <span class="p">(</span><span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;stockholm&quot;</span><span class="p">)</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="n">extract_header_annotation</span><span class="p">(</span>
+            <span class="n">ali_raw</span><span class="p">,</span> <span class="n">from_annotation</span><span class="o">=</span><span class="n">from_anno_line</span>
+        <span class="p">)</span>
+        <span class="n">annotation</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">annotation_file</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Target sequence of alignment</span>
+    <span class="n">sequence_id</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_id&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">sequence_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Parameter sequence_id must be defined&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># First, find focus sequence in alignment</span>
+    <span class="n">focus_index</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">id_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ali_raw</span><span class="o">.</span><span class="n">ids</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">id_</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">sequence_id</span><span class="p">):</span>
+            <span class="n">focus_index</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">break</span>
+
+    <span class="c1"># if we didn&#39;t find it, cannot continue</span>
+    <span class="k">if</span> <span class="n">focus_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Target sequence </span><span class="si">{}</span><span class="s2"> could not be found in alignment&quot;</span>
+            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sequence_id</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># identify what columns (non-gap) to keep for focus</span>
+    <span class="n">focus_seq</span> <span class="o">=</span> <span class="n">ali_raw</span><span class="p">[</span><span class="n">focus_index</span><span class="p">]</span>
+    <span class="n">focus_cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">ali_raw</span><span class="o">.</span><span class="n">_match_gap</span><span class="p">,</span> <span class="n">ali_raw</span><span class="o">.</span><span class="n">_insert_gap</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">focus_seq</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># extract focus alignment</span>
+    <span class="n">focus_ali</span> <span class="o">=</span> <span class="n">ali_raw</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">focus_cols</span><span class="p">)</span>
+    <span class="n">focus_seq_nogap</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">focus_ali</span><span class="p">[</span><span class="n">focus_index</span><span class="p">])</span>
+
+    <span class="c1"># determine region of sequence. If first_index is given,</span>
+    <span class="c1"># use that in any case, otherwise try to autodetect</span>
+    <span class="n">full_focus_header</span> <span class="o">=</span> <span class="n">ali_raw</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="n">focus_index</span><span class="p">]</span>
+    <span class="n">focus_id</span> <span class="o">=</span> <span class="n">full_focus_header</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># try to extract region from sequence header</span>
+    <span class="n">id_</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span> <span class="o">=</span> <span class="n">parse_header</span><span class="p">(</span><span class="n">focus_id</span><span class="p">)</span>
+
+    <span class="c1"># override with first_index if given</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;first_index&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">region_start</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;first_index&quot;</span><span class="p">]</span>
+        <span class="n">region_end</span> <span class="o">=</span> <span class="n">region_start</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">focus_seq_nogap</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">region_start</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">region_end</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Could not extract region information &quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;from sequence header </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">full_focus_header</span><span class="p">)</span> <span class="o">+</span>
+            <span class="s2">&quot;and first_index parameter is not given.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># resubstitute full sequence ID from identifier</span>
+    <span class="c1"># and region information</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">id_</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span>
+    <span class="p">)</span>
+
+    <span class="n">focus_ali</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="n">focus_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">header</span>
+
+    <span class="c1"># write target sequence to file</span>
+    <span class="n">target_sequence_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.fa&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">target_sequence_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">write_fasta</span><span class="p">(</span>
+            <span class="p">[(</span><span class="n">header</span><span class="p">,</span> <span class="n">focus_seq_nogap</span><span class="p">)],</span> <span class="n">f</span>
+        <span class="p">)</span>
+
+    <span class="c1"># apply sequence identity and fragment filters,</span>
+    <span class="c1"># and gap threshold</span>
+    <span class="n">mod_outcfg</span><span class="p">,</span> <span class="n">ali</span> <span class="o">=</span> <span class="n">modify_alignment</span><span class="p">(</span>
+        <span class="n">focus_ali</span><span class="p">,</span> <span class="n">focus_index</span><span class="p">,</span> <span class="n">id_</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span>
+
+    <span class="c1"># generate output configuration of protocol</span>
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">mod_outcfg</span><span class="p">,</span>
+        <span class="s2">&quot;sequence_file&quot;</span><span class="p">:</span> <span class="n">target_sequence_file</span><span class="p">,</span>
+        <span class="s2">&quot;first_index&quot;</span><span class="p">:</span> <span class="n">region_start</span><span class="p">,</span>
+        <span class="s2">&quot;target_sequence_file&quot;</span><span class="p">:</span> <span class="n">target_sequence_file</span><span class="p">,</span>
+        <span class="s2">&quot;focus_sequence&quot;</span><span class="p">:</span> <span class="n">header</span><span class="p">,</span>
+        <span class="s2">&quot;focus_mode&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">annotation_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;annotation_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotation_file</span>
+
+    <span class="c1"># dump config to YAML file for debugging/logging</span>
+    <span class="n">write_config_file</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.align_existing.outcfg&quot;</span><span class="p">,</span> <span class="n">outcfg</span><span class="p">)</span>
+
+    <span class="c1"># return results of protocol</span>
+    <span class="k">return</span> <span class="n">outcfg</span></div>
+
+
+<div class="viewcode-block" id="modify_alignment"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.modify_alignment">[docs]</a><span class="k">def</span> <span class="nf">modify_alignment</span><span class="p">(</span><span class="n">focus_ali</span><span class="p">,</span> <span class="n">target_seq_index</span><span class="p">,</span> <span class="n">target_seq_id</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Apply pairwise identity filtering, fragment filtering, and exclusion</span>
+<span class="sd">    of columns with too many gaps to a sequence alignment. Also generates</span>
+<span class="sd">    files describing properties of the alignment such as frequency distributions,</span>
+<span class="sd">    conservation, and &quot;old-style&quot; alignment statistics files.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        assumes focus alignment (otherwise unprocessed) as input.</span>
+
+<span class="sd">    .. todo::</span>
+
+<span class="sd">        come up with something more clever  to filter fragments than fixed width</span>
+<span class="sd">        (e.g. use 95% quantile of length distribution as reference point)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    focus_ali : Alignment</span>
+<span class="sd">        Focus-mode input alignment</span>
+<span class="sd">    target_seq_index : int</span>
+<span class="sd">        Index of target sequence in alignment</span>
+<span class="sd">    target_seq_id : str</span>
+<span class="sd">        Identifier of target sequence (without range)</span>
+<span class="sd">    region_start : int</span>
+<span class="sd">        Index of first sequence position in target sequence</span>
+<span class="sd">    kwargs : See required arguments in source code</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : Dict</span>
+<span class="sd">        File products generated by the function:</span>
+
+<span class="sd">        * alignment_file</span>
+<span class="sd">        * statistics_file</span>
+<span class="sd">        * frequencies_file</span>
+<span class="sd">        * identities_file</span>
+<span class="sd">        * raw_focus_alignment_file</span>
+<span class="sd">    ali : Alignment</span>
+<span class="sd">        Final processed alignment</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;seqid_filter&quot;</span><span class="p">,</span> <span class="s2">&quot;hhfilter&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;minimum_sequence_coverage&quot;</span><span class="p">,</span> <span class="s2">&quot;minimum_column_coverage&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;compute_num_effective_seqs&quot;</span><span class="p">,</span> <span class="s2">&quot;theta&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="n">focus_fasta_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_raw_focus.fasta&quot;</span>
+
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;alignment_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.a2m&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;statistics_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_alignment_statistics.csv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;frequencies_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_frequencies.csv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;identities_file&quot;</span><span class="p">:</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_identities.csv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;raw_focus_alignment_file&quot;</span><span class="p">:</span> <span class="n">focus_fasta_file</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="c1"># swap target sequence to first position if it is not</span>
+    <span class="c1"># the first sequence in alignment;</span>
+    <span class="c1"># this is particularly important for hhfilter run</span>
+    <span class="c1"># because target sequence might otherwise be filtered out</span>
+    <span class="k">if</span> <span class="n">target_seq_index</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">focus_ali</span><span class="p">))</span>
+        <span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_seq_index</span>
+        <span class="n">indices</span><span class="p">[</span><span class="n">target_seq_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">target_seq_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">focus_ali</span> <span class="o">=</span> <span class="n">focus_ali</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">sequences</span><span class="o">=</span><span class="n">indices</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">focus_fasta_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">focus_ali</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;fasta&quot;</span><span class="p">)</span>
+
+    <span class="c1"># apply pairwise identity filter (using hhfilter)</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;seqid_filter&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">filtered_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_filtered.a3m&quot;</span>
+
+        <span class="n">at</span><span class="o">.</span><span class="n">run_hhfilter</span><span class="p">(</span>
+            <span class="n">focus_fasta_file</span><span class="p">,</span> <span class="n">filtered_file</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;seqid_filter&quot;</span><span class="p">],</span>
+            <span class="n">columns</span><span class="o">=</span><span class="s2">&quot;first&quot;</span><span class="p">,</span> <span class="n">binary</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;hhfilter&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filtered_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">focus_ali</span> <span class="o">=</span> <span class="n">Alignment</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;a3m&quot;</span><span class="p">)</span>
+
+        <span class="c1"># final FASTA alignment before applying A2M format modifications</span>
+        <span class="n">filtered_fasta_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_raw_focus_filtered.fasta&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filtered_fasta_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">focus_ali</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;fasta&quot;</span><span class="p">)</span>
+
+    <span class="n">ali</span> <span class="o">=</span> <span class="n">focus_ali</span>
+
+    <span class="c1"># filter fragments</span>
+    <span class="c1"># come up with something more clever here than fixed width</span>
+    <span class="c1"># (e.g. use 95% quantile of length distribution as reference point)</span>
+    <span class="n">min_cov</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;minimum_sequence_coverage&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">min_cov</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">min_cov</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">min_cov</span> <span class="o">/=</span> <span class="mi">100</span>
+
+        <span class="n">keep_seqs</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ali</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;seq&quot;</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="n">min_cov</span>
+        <span class="n">ali</span> <span class="o">=</span> <span class="n">ali</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">sequences</span><span class="o">=</span><span class="n">keep_seqs</span><span class="p">)</span>
+
+    <span class="c1"># Calculate frequencies, conservation and identity to query</span>
+    <span class="c1"># on final alignment (except for lowercase modification)</span>
+    <span class="c1"># Note: running hhfilter might cause a loss of the target seque</span>
+    <span class="c1"># if it is not the first sequence in the file! To be sure that</span>
+    <span class="c1"># nothing goes wrong, target_seq_index should always be 0.</span>
+    <span class="n">describe_seq_identities</span><span class="p">(</span>
+        <span class="n">ali</span><span class="p">,</span> <span class="n">target_seq_index</span><span class="o">=</span><span class="n">target_seq_index</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;identities_file&quot;</span><span class="p">],</span> <span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.3f</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="n">describe_frequencies</span><span class="p">(</span>
+        <span class="n">ali</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="n">target_seq_index</span><span class="o">=</span><span class="n">target_seq_index</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;frequencies_file&quot;</span><span class="p">],</span> <span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.3f</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="n">coverage_stats</span> <span class="o">=</span> <span class="n">describe_coverage</span><span class="p">(</span>
+        <span class="n">ali</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;minimum_column_coverage&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># keep list of uppercase sequence positions in alignment</span>
+    <span class="n">pos_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">region_start</span><span class="p">,</span> <span class="n">region_start</span> <span class="o">+</span> <span class="n">ali</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Make columns with too many gaps lowercase</span>
+    <span class="n">min_col_cov</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;minimum_column_coverage&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">min_col_cov</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">min_col_cov</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">min_col_cov</span> <span class="o">/=</span> <span class="mi">100</span>
+
+        <span class="n">lc_cols</span> <span class="o">=</span> <span class="n">ali</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">ali</span><span class="o">.</span><span class="n">_match_gap</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;pos&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">min_col_cov</span>
+        <span class="n">ali</span> <span class="o">=</span> <span class="n">ali</span><span class="o">.</span><span class="n">lowercase_columns</span><span class="p">(</span><span class="n">lc_cols</span><span class="p">)</span>
+
+        <span class="c1"># if we remove columns, we have to update list of positions</span>
+        <span class="n">pos_list</span> <span class="o">=</span> <span class="n">pos_list</span><span class="p">[</span><span class="o">~</span><span class="n">lc_cols</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lc_cols</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># compute effective number of sequences</span>
+    <span class="c1"># (this is intended for cases where coupling stage is</span>
+    <span class="c1"># not run, but this number is wanted nonetheless)</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;compute_num_effective_seqs&quot;</span><span class="p">]:</span>
+        <span class="c1"># make sure we only compute N_eff on the columns</span>
+        <span class="c1"># that would be used for model inference, dispose</span>
+        <span class="c1"># the rest</span>
+        <span class="k">if</span> <span class="n">lc_cols</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cut_ali</span> <span class="o">=</span> <span class="n">ali</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cut_ali</span> <span class="o">=</span> <span class="n">ali</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">columns</span><span class="o">=~</span><span class="n">lc_cols</span><span class="p">)</span>
+
+        <span class="c1"># compute sequence weights</span>
+        <span class="n">cut_ali</span><span class="o">.</span><span class="n">set_weights</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;theta&quot;</span><span class="p">])</span>
+
+        <span class="c1"># N_eff := sum of all sequence weights</span>
+        <span class="n">n_eff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cut_ali</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+
+        <span class="c1"># patch into coverage statistics (N_eff column)</span>
+        <span class="n">coverage_stats</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;N_eff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_eff</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_eff</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># save coverage statistics to file</span>
+    <span class="n">coverage_stats</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span>
+        <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;statistics_file&quot;</span><span class="p">],</span> <span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.3f</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">index</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1"># store description of final sequence alignment in outcfg</span>
+    <span class="c1"># (note these parameters will be updated by couplings protocol)</span>
+    <span class="n">outcfg</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;num_sites&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">pos_list</span><span class="p">),</span>
+            <span class="s2">&quot;num_sequences&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">ali</span><span class="p">),</span>
+            <span class="s2">&quot;effective_sequences&quot;</span><span class="p">:</span> <span class="n">n_eff</span><span class="p">,</span>
+            <span class="s2">&quot;region_start&quot;</span><span class="p">:</span> <span class="n">region_start</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="c1"># create segment in outcfg</span>
+    <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Segment</span><span class="p">(</span>
+            <span class="s2">&quot;aa&quot;</span><span class="p">,</span> <span class="n">target_seq_id</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="n">region_start</span> <span class="o">+</span> <span class="n">ali</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pos_list</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+    <span class="p">]</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;alignment_file&quot;</span><span class="p">],</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">ali</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;fasta&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outcfg</span><span class="p">,</span> <span class="n">ali</span></div>
+
+
+<div class="viewcode-block" id="jackhmmer_search"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.jackhmmer_search">[docs]</a><span class="k">def</span> <span class="nf">jackhmmer_search</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Protocol:</span>
+
+<span class="sd">    Iterative jackhmmer search against a sequence database.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        See list below in code where calling check_required</span>
+
+<span class="sd">    .. todo::</span>
+<span class="sd">        explain meaning of parameters in detail.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of the protocol, including</span>
+<span class="sd">        the following fields:</span>
+
+<span class="sd">        * target_sequence_file</span>
+<span class="sd">        * sequence_file</span>
+<span class="sd">        * raw_alignment_file</span>
+<span class="sd">        * hittable_file</span>
+<span class="sd">        * focus_mode</span>
+<span class="sd">        * focus_sequence</span>
+<span class="sd">        * segments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;sequence_id&quot;</span><span class="p">,</span> <span class="s2">&quot;sequence_file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;sequence_download_url&quot;</span><span class="p">,</span> <span class="s2">&quot;region&quot;</span><span class="p">,</span> <span class="s2">&quot;first_index&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;use_bitscores&quot;</span><span class="p">,</span> <span class="s2">&quot;domain_threshold&quot;</span><span class="p">,</span> <span class="s2">&quot;sequence_threshold&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;database&quot;</span><span class="p">,</span> <span class="s2">&quot;iterations&quot;</span><span class="p">,</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="s2">&quot;nobias&quot;</span><span class="p">,</span> <span class="s2">&quot;reuse_alignment&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;checkpoints_hmm&quot;</span><span class="p">,</span> <span class="s2">&quot;checkpoints_ali&quot;</span><span class="p">,</span> <span class="s2">&quot;jackhmmer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;extract_annotation&quot;</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># store search sequence file here</span>
+    <span class="n">target_sequence_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.fa&quot;</span>
+    <span class="n">full_sequence_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_full.fa&quot;</span>
+
+    <span class="c1"># make sure search sequence is defined and load it</span>
+    <span class="n">full_seq_file</span><span class="p">,</span> <span class="p">(</span><span class="n">full_seq_id</span><span class="p">,</span> <span class="n">full_seq</span><span class="p">)</span> <span class="o">=</span> <span class="n">fetch_sequence</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_id&quot;</span><span class="p">],</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_file&quot;</span><span class="p">],</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_download_url&quot;</span><span class="p">],</span>
+        <span class="n">full_sequence_file</span>
+    <span class="p">)</span>
+
+    <span class="c1"># cut sequence to target region and save in sequence_file</span>
+    <span class="c1"># (this is the main sequence file used downstream)</span>
+    <span class="p">(</span><span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span><span class="p">),</span> <span class="n">cut_seq</span> <span class="o">=</span> <span class="n">cut_sequence</span><span class="p">(</span>
+        <span class="n">full_seq</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_id&quot;</span><span class="p">],</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;region&quot;</span><span class="p">],</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;first_index&quot;</span><span class="p">],</span>
+        <span class="n">target_sequence_file</span>
+    <span class="p">)</span>
+
+    <span class="c1"># run jackhmmer... allow to reuse pre-exisiting</span>
+    <span class="c1"># Stockholm alignment file here</span>
+    <span class="n">ali_outcfg_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.align_jackhmmer_search.outcfg&quot;</span>
+
+    <span class="c1"># determine if to rerun, only possible if previous results</span>
+    <span class="c1"># were stored in ali_outcfg_file</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;reuse_alignment&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">valid_file</span><span class="p">(</span><span class="n">ali_outcfg_file</span><span class="p">):</span>
+        <span class="n">ali</span> <span class="o">=</span> <span class="n">read_config_file</span><span class="p">(</span><span class="n">ali_outcfg_file</span><span class="p">)</span>
+
+        <span class="c1"># check if the alignment file itself is also there</span>
+        <span class="n">verify_resources</span><span class="p">(</span>
+            <span class="s2">&quot;Tried to reuse alignment, but empty or &quot;</span>
+            <span class="s2">&quot;does not exist&quot;</span><span class="p">,</span>
+            <span class="n">ali</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">],</span> <span class="n">ali</span><span class="p">[</span><span class="s2">&quot;domtblout&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># otherwise, we have to run the alignment</span>
+        <span class="c1"># modify search thresholds to be suitable for jackhmmer</span>
+        <span class="n">seq_threshold</span><span class="p">,</span> <span class="n">domain_threshold</span> <span class="o">=</span> <span class="n">search_thresholds</span><span class="p">(</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;use_bitscores&quot;</span><span class="p">],</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_threshold&quot;</span><span class="p">],</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;domain_threshold&quot;</span><span class="p">],</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">cut_seq</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># run search process</span>
+        <span class="n">ali</span> <span class="o">=</span> <span class="n">at</span><span class="o">.</span><span class="n">run_jackhmmer</span><span class="p">(</span>
+            <span class="n">query</span><span class="o">=</span><span class="n">target_sequence_file</span><span class="p">,</span>
+            <span class="n">database</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;database&quot;</span><span class="p">]],</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+            <span class="n">use_bitscores</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;use_bitscores&quot;</span><span class="p">],</span>
+            <span class="n">domain_threshold</span><span class="o">=</span><span class="n">domain_threshold</span><span class="p">,</span>
+            <span class="n">seq_threshold</span><span class="o">=</span><span class="n">seq_threshold</span><span class="p">,</span>
+            <span class="n">iterations</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;iterations&quot;</span><span class="p">],</span>
+            <span class="n">nobias</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;nobias&quot;</span><span class="p">],</span>
+            <span class="n">cpu</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">],</span>
+            <span class="n">checkpoints_hmm</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;checkpoints_hmm&quot;</span><span class="p">],</span>
+            <span class="n">checkpoints_ali</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;checkpoints_ali&quot;</span><span class="p">],</span>
+            <span class="n">binary</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;jackhmmer&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># get rid of huge stdout log file immediately</span>
+        <span class="c1"># (do not use /dev/null option of jackhmmer function</span>
+        <span class="c1"># to make no assumption about operating system)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">ali</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="c1"># turn namedtuple into dictionary to make</span>
+        <span class="c1"># restarting code nicer</span>
+        <span class="n">ali</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ali</span><span class="o">.</span><span class="n">_asdict</span><span class="p">())</span>
+
+        <span class="c1"># save results of search for possible restart</span>
+        <span class="n">write_config_file</span><span class="p">(</span><span class="n">ali_outcfg_file</span><span class="p">,</span> <span class="n">ali</span><span class="p">)</span>
+
+    <span class="c1"># prepare output dictionary with result files</span>
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;target_sequence_file&quot;</span><span class="p">:</span> <span class="n">target_sequence_file</span><span class="p">,</span>
+        <span class="s2">&quot;sequence_file&quot;</span><span class="p">:</span> <span class="n">full_sequence_file</span><span class="p">,</span>
+        <span class="s2">&quot;focus_mode&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s2">&quot;raw_alignment_file&quot;</span><span class="p">:</span> <span class="n">ali</span><span class="p">[</span><span class="s2">&quot;alignment&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;hittable_file&quot;</span><span class="p">:</span> <span class="n">ali</span><span class="p">[</span><span class="s2">&quot;domtblout&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
+
+    <span class="c1"># define a single protein segment based on target sequence</span>
+    <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">Segment</span><span class="p">(</span>
+            <span class="s2">&quot;aa&quot;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_id&quot;</span><span class="p">],</span>
+            <span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span><span class="p">,</span>
+            <span class="nb">range</span><span class="p">(</span><span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+    <span class="p">]</span>
+
+    <span class="n">outcfg</span><span class="p">[</span><span class="s2">&quot;focus_sequence&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/</span><span class="si">{}</span><span class="s2">-</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_id&quot;</span><span class="p">],</span> <span class="n">region_start</span><span class="p">,</span> <span class="n">region_end</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outcfg</span></div>
+
+
+<div class="viewcode-block" id="standard"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.standard">[docs]</a><span class="k">def</span> <span class="nf">standard</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Protocol:</span>
+
+<span class="sd">    Standard buildali4 workflow (run iterative jackhmmer</span>
+<span class="sd">    search against sequence database, than determine which</span>
+<span class="sd">    sequences and columns to include in the calculation based</span>
+<span class="sd">    on coverage and maximum gap thresholds).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        See list below in code where calling check_required</span>
+
+<span class="sd">    .. todo::</span>
+
+<span class="sd">        explain meaning of parameters in detail.</span>
+
+<span class="sd">    If skip is given and True, the workflow will only return</span>
+<span class="sd">    the output configuration (outcfg) and ali will be None.</span>
+
+<span class="sd">    If callback is given, the function will be called at the</span>
+<span class="sd">    end of the workflow with the kwargs arguments updated with</span>
+<span class="sd">    the outcfg results.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outcfg : dict</span>
+<span class="sd">        Output configuration of the pipeline, including</span>
+<span class="sd">        the following fields:</span>
+
+<span class="sd">        * alignment_file</span>
+<span class="sd">        * raw_alignment_file</span>
+<span class="sd">        * raw_focus_alignment_file</span>
+<span class="sd">        * statistics_file</span>
+<span class="sd">        * target_sequence_file</span>
+<span class="sd">        * sequence_file</span>
+<span class="sd">        * annotation_file</span>
+<span class="sd">        * frequencies_file</span>
+<span class="sd">        * identities_file</span>
+<span class="sd">        * hittable_file</span>
+<span class="sd">        * focus_mode</span>
+<span class="sd">        * focus_sequence</span>
+<span class="sd">        * segments</span>
+
+<span class="sd">    ali : Alignment</span>
+<span class="sd">        Final sequence alignment</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">[</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;extract_annotation&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;prefix&quot;</span><span class="p">]</span>
+
+    <span class="c1"># make sure output directory exists</span>
+    <span class="n">create_prefix_folders</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># first step of protocol is to get alignment using</span>
+    <span class="c1"># jackhmmer; initialize output configuration with</span>
+    <span class="c1"># results of this search</span>
+    <span class="n">jackhmmer_outcfg</span> <span class="o">=</span> <span class="n">jackhmmer_search</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">stockholm_file</span> <span class="o">=</span> <span class="n">jackhmmer_outcfg</span><span class="p">[</span><span class="s2">&quot;raw_alignment_file&quot;</span><span class="p">]</span>
+
+    <span class="n">segment</span> <span class="o">=</span> <span class="n">Segment</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="n">jackhmmer_outcfg</span><span class="p">[</span><span class="s2">&quot;segments&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">target_seq_id</span> <span class="o">=</span> <span class="n">segment</span><span class="o">.</span><span class="n">sequence_id</span>
+    <span class="n">region_start</span> <span class="o">=</span> <span class="n">segment</span><span class="o">.</span><span class="n">region_start</span>
+    <span class="n">region_end</span> <span class="o">=</span> <span class="n">segment</span><span class="o">.</span><span class="n">region_end</span>
+
+    <span class="c1"># read in stockholm format (with full annotation)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">stockholm_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">a</span><span class="p">:</span>
+        <span class="n">ali_raw</span> <span class="o">=</span> <span class="n">Alignment</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s2">&quot;stockholm&quot;</span><span class="p">)</span>
+
+    <span class="c1"># and store as FASTA file first (disabled for now</span>
+    <span class="c1"># since equivalent information easily be obtained</span>
+    <span class="c1"># from Stockholm file</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ali_raw_fasta_file = prefix + &quot;_raw.fasta&quot;</span>
+<span class="sd">    with open(ali_raw_fasta_file, &quot;w&quot;) as f:</span>
+<span class="sd">        ali_raw.write(f, &quot;fasta&quot;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># save annotation in sequence headers (species etc.)</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;extract_annotation&quot;</span><span class="p">]:</span>
+        <span class="n">annotation_file</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_annotation.csv&quot;</span>
+        <span class="n">annotation</span> <span class="o">=</span> <span class="n">extract_header_annotation</span><span class="p">(</span><span class="n">ali_raw</span><span class="p">)</span>
+        <span class="n">annotation</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">annotation_file</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># center alignment around focus/search sequence</span>
+    <span class="n">focus_cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">c</span> <span class="o">!=</span> <span class="s2">&quot;-&quot;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ali_raw</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+    <span class="n">focus_ali</span> <span class="o">=</span> <span class="n">ali_raw</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">focus_cols</span><span class="p">)</span>
+
+    <span class="n">target_seq_index</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">mod_outcfg</span><span class="p">,</span> <span class="n">ali</span> <span class="o">=</span> <span class="n">modify_alignment</span><span class="p">(</span>
+        <span class="n">focus_ali</span><span class="p">,</span> <span class="n">target_seq_index</span><span class="p">,</span> <span class="n">target_seq_id</span><span class="p">,</span> <span class="n">region_start</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span>
+
+    <span class="c1">#  merge results of jackhmmer_search and modify_alignment stage</span>
+    <span class="n">outcfg</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">jackhmmer_outcfg</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">mod_outcfg</span><span class="p">,</span>
+        <span class="s2">&quot;annotation_file&quot;</span><span class="p">:</span> <span class="n">annotation_file</span>
+    <span class="p">}</span>
+
+    <span class="c1"># dump output config to YAML file for debugging/logging</span>
+    <span class="n">write_config_file</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.align_standard.outcfg&quot;</span><span class="p">,</span> <span class="n">outcfg</span><span class="p">)</span>
+
+    <span class="c1"># return results of protocol</span>
+    <span class="k">return</span> <span class="n">outcfg</span></div>
+
+
+<span class="c1"># list of available alignment protocols</span>
+<span class="n">PROTOCOLS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># standard buildali protocol (iterative hmmer search)</span>
+    <span class="s2">&quot;standard&quot;</span><span class="p">:</span> <span class="n">standard</span><span class="p">,</span>
+
+    <span class="c1"># build raw multiple sequence alignment using jackmmer</span>
+    <span class="s2">&quot;jackhmmer_search&quot;</span><span class="p">:</span> <span class="n">jackhmmer_search</span><span class="p">,</span>
+
+    <span class="c1"># start from an existing (external) alignment</span>
+    <span class="s2">&quot;existing&quot;</span><span class="p">:</span> <span class="n">existing</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../evcouplings.align.html#evcouplings.align.protocol.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run alignment protocol to generate multiple sequence</span>
+<span class="sd">    alignment from input sequence.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Mandatory kwargs arguments:</span>
+<span class="sd">        protocol: Alignment protocol to run</span>
+<span class="sd">        prefix: Output prefix for all generated files</span>
+
+<span class="sd">    Optional:</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Alignment</span>
+<span class="sd">    Dictionary with results of stage in following fields (in brackets - not returned by all protocols):</span>
+
+<span class="sd">        * alignment_file</span>
+<span class="sd">        * [raw_alignment_file]</span>
+<span class="sd">        * statistics_file</span>
+<span class="sd">        * target_sequence_file</span>
+<span class="sd">        * sequence_file</span>
+<span class="sd">        * [annotation_file]</span>
+<span class="sd">        * frequencies_file</span>
+<span class="sd">        * identities_file</span>
+<span class="sd">        * [hittable_file]</span>
+<span class="sd">        * focus_mode</span>
+<span class="sd">        * focus_sequence</span>
+<span class="sd">        * segments</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">check_required</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PROTOCOLS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid protocol selection: &quot;</span> <span class="o">+</span>
+            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">. Valid protocols are: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">],</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PROTOCOLS</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">PROTOCOLS</span><span class="p">[</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;protocol&quot;</span><span class="p">]](</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

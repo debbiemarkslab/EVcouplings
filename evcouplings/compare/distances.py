@@ -377,9 +377,10 @@ class DistanceMap:
         contacts : pandas.DataFrame
             Table with residue-residue contacts, with the
             following columns:
-                1) id_i: identifier of residue in chain i
-                2) id_j: identifier of residue in chain j
-                3) dist: pair distance
+
+            1. id_i: identifier of residue in chain i
+            2. id_j: identifier of residue in chain j
+            3. dist: pair distance
         """
         # find which entries of matrix fulfill
         # distance criteria
@@ -430,12 +431,16 @@ class DistanceMap:
 
         Parameters
         ----------
-        *matrices : DistanceMap
-            *args-style list of DistanceMaps that
+        ``*matrices`` : DistanceMap
+            ``*args-style`` list of DistanceMaps that
             will be aggregated.
-            Note: the id column of each axis may only
-            contain numeric residue ids (and no characters
-            such as insertion codes)
+
+            .. note::
+
+                The id column of each axis may only
+                contain numeric residue ids (and no characters
+                such as insertion codes)
+
         intersect : bool, optional (default: False)
             If True, intersect indices of the given
             distance maps. Otherwise, union of indices
@@ -595,6 +600,14 @@ class DistanceMap:
                 maps_j[k].index_agg.values,
                 indexing="ij"
             )
+
+            # check we have valid indices (otherwise
+            # will crash on empty distance matrices)
+            if (len(i_agg) == 0 or len(j_agg) == 0 or
+                    len(i_src) == 0 or len(j_src) == 0):
+                raise ValueError(
+                    "Trying to aggregate distance matrices on empty set of positions."
+                )
 
             new_mat[k][i_agg, j_agg] = m.dist_matrix[i_src, j_src]
 
@@ -758,6 +771,10 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
             model
         )
 
+        # skip empty chains
+        if len(chain.residues) == 0:
+            continue
+
         # compute distance map
         distmap = DistanceMap.from_coords(chain)
 
@@ -870,6 +887,10 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
         # compare all possible pairs of chains
         for (index_i, ch_i), (index_j, ch_j) in combinations(chains, 2):
+            # skip empty chains (e.g. residues lost during remapping)
+            if len(ch_i.residues) == 0 or len(ch_j.residues) == 0:
+                continue
+
             distmap = DistanceMap.from_coords(ch_i, ch_j)
 
             # symmetrize matrix (for ECs we are only interested if a pair
@@ -915,15 +936,17 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         Input structures and mapping to use
         for second axis of computed distance map
     structures : str or dict, optional (default: None)
-        If str: Load structures from directory this string
-        points to. Missing structures will be fetched
-        from web.
 
-        If dict: dictionary with lower-case PDB ids as keys
-        and PDB objects as values. This dictionary has to
-        contain all necessary structures, missing ones will
-        not be fetched. This dictionary can be created using
-        pdb.load_structures.
+        * If str: Load structures from directory this string
+          points to. Missing structures will be fetched
+          from web.
+
+        * If dict: dictionary with lower-case PDB ids as keys
+          and PDB objects as values. This dictionary has to
+          contain all necessary structures, missing ones will
+          not be fetched. This dictionary can be created using
+          pdb.load_structures.
+
     atom_filter : str, optional (default: None)
         Filter coordinates to contain only these atoms. E.g.
         set to "CA" to compute C_alpha - C_alpha distances
@@ -1010,6 +1033,11 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         index_i = r["index_i"]
         index_j = r["index_j"]
 
+        # skip empty chains
+        if (len(chains_i[index_i].residues) == 0 or
+                len(chains_j[index_j].residues) == 0):
+            continue
+
         # compute distance map for current chain pair
         distmap = DistanceMap.from_coords(
             chains_i[index_i],
@@ -1055,19 +1083,25 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
         Mapping from sequence position (int or str) to residue.
         If this parameter is given, residues in the output 
         structures will be renamed to the residues in this
-        mapping (Note that if side-chain residues are not taken
-        off using atom_filter, this will e.g. happily label an
-        actual glutamate as an alanine).
-    structures : str or dict, optional (default: None)
-        If str: Load structures from directory this string
-        points to. Missing structures will be fetched
-        from web.
+        mapping.
 
-        If dict: dictionary with lower-case PDB ids as keys
-        and PDB objects as values. This dictionary has to
-        contain all necessary structures, missing ones will
-        not be fetched. This dictionary can be created using
-        pdb.load_structures.
+        .. note::
+
+            if side-chain residues are not taken off using atom_filter, this will e.g. happily label
+            an actual glutamate as an alanine).
+
+    structures : str or dict, optional (default: None)
+
+        * If str: Load structures from directory this string
+          points to. Missing structures will be fetched
+          from web.
+
+        * If dict: dictionary with lower-case PDB ids as keys
+          and PDB objects as values. This dictionary has to
+          contain all necessary structures, missing ones will
+          not be fetched. This dictionary can be created using
+          pdb.load_structures.
+
     atom_filter : str, optional (default: ("N", "CA", "C", "O"))
         Filter coordinates to contain only these atoms. If None,
         will retain all atoms; the default value will only keep

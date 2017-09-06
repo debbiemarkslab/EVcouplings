@@ -5,10 +5,11 @@ alignments and ECs into target sequence mode.
 Authors:
   Thomas A. Hopf
 
-# TODO: write code to create list of family sizes
-# TODO: implement alignments against Pfam-HMM so
-        precomputed results can be reused in
-        focus mode
+.. todo::
+
+    1. Write code to create list of family sizes
+    2. Implement alignments against Pfam-HMM so precomputed results can be reused in focus mode
+
 """
 import gzip
 import pandas as pd
@@ -31,7 +32,7 @@ def create_family_size_table(full_pfam_file, outfile=None):
     Returns
     -------
     pd.DataFrame
-        Parsed Pfam table.     
+        Parsed Pfam table.
     """
     data = []
 
@@ -69,7 +70,9 @@ def remove_clan_overlaps(pfam_table):
     (equivalent of PfamScan.pl). Currently only
     allows to remove overlaps by domain bitscore.
 
-    # TODO: is bitscore the most sensible choice if different length hits?
+    .. todo::
+
+        is bitscore the most sensible choice if different length hits?
 
     Parameters
     ----------

@@ -272,7 +272,7 @@ def dihedral_ranking_score(structure, residues, sec_struct_column="sec_struct_3s
     Assess quality of structure model by twist of 
     predicted alpha-helices and beta-sheets.
 
-    This function reimplements the functionality of
+    This function re-implements the functionality of
     make_alpha_beta_score_table.m from the original
     pipeline.
 
@@ -402,7 +402,7 @@ def dihedral_ranking(structure_files, residues, chain=None,
     Assess quality of a set of structure models by
     twist of predicted alpha-helices and beta-sheets.
 
-    This function reimplements the final score table
+    This function re-implements the final score table
     computed in make_alpha_beta_score_table.m from
     the original pipeline. Some of the implementation
     details where however modified, possibly leading

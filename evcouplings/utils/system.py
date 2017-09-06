@@ -93,6 +93,7 @@ def valid_file(file_path):
     ----------
     file_path : str
         Path to file to check
+
     Returns
     -------
     bool
@@ -172,10 +173,12 @@ def insert_dir(prefix, *dirs, rootname_subdir=True):
         Add these directories at the end of path
     rootname_subdir : bool, optional (default: True)
         Given /my/path/prefix,
+
         * if True, creates structure like
-        /my/path/prefix/*dirs/prefix
+          /my/path/prefix/*dirs/prefix
+
         * if False, creates structure like
-        /my/path/*dirs/prefix
+          /my/path/*dirs/prefix
 
     Returns
     -------
@@ -187,6 +190,7 @@ def insert_dir(prefix, *dirs, rootname_subdir=True):
         return path.join(prefix, *dirs, rootname)
     else:
         return path.join(base_dir, *dirs, rootname)
+
 
 def temp():
     """

@@ -103,10 +103,10 @@ align:
     # already present in the alignment). If blank, no filtering. If filtering, HHfilter must be installed.
     seqid_filter:
 
-    # Only include alignment columns with at least x% residues (rather than gaps) during model inference
+    # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
     minimum_sequence_coverage: 50
 
-    # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
+    # Only include alignment columns with at least x% residues (rather than gaps) during model inference
     minimum_column_coverage: 70
 
     # Create a file with extracted annotation from UniRef/UniProt sequence FASTA headers
@@ -354,9 +354,9 @@ environment:
 databases:
     # Sequence databases (only download the ones you want to use). You can also specify arbitrary databases in FASTA format
     # using a database name of your choice here)
-    uniprot: /groups/marks/databases/jackhmmer/uniprot/uniprot_2017_04.fasta
-    uniref100: /groups/marks/databases/jackhmmer/uniref100/uniref100_2017_04.fasta
-    uniref90: /groups/marks/databases/jackhmmer/uniref90/uniref90_2017_04.fasta
+    uniprot: /groups/marks/databases/jackhmmer/uniprot/uniprot_current.fasta
+    uniref100: /groups/marks/databases/jackhmmer/uniref100/uniref100_current.fasta
+    uniref90: /groups/marks/databases/jackhmmer/uniref90/uniref90_current.fasta
 
     # URL do download sequences if sequence_file is not given. {} will be replaced by sequence_id.
     sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
@@ -366,8 +366,8 @@ databases:
 
     # SIFTS mapping information. Point to valid directory, and if these files do not exist, they will be automatically generated
     # (this may take a while). Periodically delete these files to more recent versions of SIFTS are used.
-    sifts_mapping_table: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_04_18.csv
-    sifts_sequence_db: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_04_18.fa
+    sifts_mapping_table: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.csv
+    sifts_sequence_db: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.fasta
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:

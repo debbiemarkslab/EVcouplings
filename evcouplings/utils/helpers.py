@@ -9,6 +9,8 @@ from collections import OrderedDict
 import pickle, json, csv, os, shutil
 from os import path
 import jinja2
+import sys
+
 
 class PersistentDict(dict):
     ''' Persistent dictionary with an API compatible with shelve and anydbm.
@@ -22,7 +24,7 @@ class PersistentDict(dict):
     Output file format is selectable between pickle, json, and csv.
     All three serialization formats are backed by fast C implementations.
 
-    https: // code.activestate.com / recipes / 576642 /
+    https://code.activestate.com/recipes/576642/
     '''
 
     def __init__(self, filename, flag='c', mode=None, format='json', *args, **kwds):
@@ -127,7 +129,10 @@ def range_overlap(a, b):
     """
     Source: http://stackoverflow.com/questions/2953967/
             built-in-function-for-computing-overlap-in-python
-    Note that ends of range are not inclusive
+
+    .. note::
+
+        Ends of range are not inclusive
 
     Parameters
     ----------
@@ -175,3 +180,58 @@ def render_template(template_file, mapping):
     template = jinja_env.get_template(filename)
 
     return template.render(mapping)
+
+
+class Progressbar(object):
+    """
+    Progress bar for command line programs
+
+    Parameters
+    ----------
+    total_size : int
+        The total size of the iteration
+    bar_length : int
+        The visual bar length that gets printed on stdout
+    """
+
+    def __init__(self, total_size, bar_length=60):
+        self.total_size = total_size
+        self.current_size = 0
+        self.bar_length = bar_length
+
+
+    def __iadd__(self, chunk):
+        """
+        Convenience function of self.update
+
+        Parameters
+        ----------
+        chunk : int
+            The size of the elements that are processed in the current iteration
+        """
+        self.update(chunk)
+        return self
+
+    def update(self, chunk):
+        """
+        Updates and prints the progress of the progressbar
+
+        Parameters
+        ----------
+        chunk : int
+            The size of the elements that are processed in the current iteration
+        """
+
+        self.current_size += chunk
+        if self.current_size < self.total_size:
+            filled_len = int(round(self.bar_length * self.current_size / float(self.total_size)))
+            percents = round(100.0 * self.current_size / float(self.total_size), 1)
+            bar = '=' * filled_len + '-' * (self.bar_length - filled_len)
+            sys.stdout.write('[%s] %s%s|%s/%s ...\r' % (bar, percents, '%', self.current_size, self.total_size))
+            sys.stdout.flush()
+        else:
+            filled_len = int(self.bar_length)
+            bar = '=' * filled_len
+            sys.stdout.write('[%s] %s%s|%s/%s ...\r' % (bar, 100.0, '%', self.total_size, self.total_size))
+            sys.stdout.flush()
+            sys.stdout.write("\n")

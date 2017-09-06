@@ -171,22 +171,22 @@ def search_thresholds(use_bitscores, seq_threshold, domain_threshold, seq_len):
     Set homology search inclusion parameters.
 
     HMMER hits get included in the HMM according to a two-step rule
-    1) sequence passes sequence-level treshold
-    2) domain passes domain-level threshold
+        1. sequence passes sequence-level treshold
+        2. domain passes domain-level threshold
 
     Therefore, search thresholds are set based on the following logic:
-    1) If only sequence threshold is given, a MissingParameterException is raised
-    2) If only bitscore threshold is given, sequence threshold is set to the same
-    3) If both thresholds are given, they are according to defined values
+        1. If only sequence threshold is given, a MissingParameterException is raised
+        2. If only bitscore threshold is given, sequence threshold is set to the same
+        3. If both thresholds are given, they are according to defined values
 
     Valid inputs for bitscore thresholds:
-    1) int or str: taken as absolute score threshold
-    2) float: taken as relative threshold (absolute threshold derived by
+        1. int or str: taken as absolute score threshold
+        2. float: taken as relative threshold (absolute threshold derived by
        multiplication with domain length)
 
     Valid inputs for integer thresholds:
-    1) int: Used as negative exponent, threshold will be set to 1E-<exponent>
-    2) float or str: Interpreted literally
+        1. int: Used as negative exponent, threshold will be set to 1E-<exponent>
+        2. float or str: Interpreted literally
 
     Parameters
     ----------
@@ -252,8 +252,8 @@ def extract_header_annotation(alignment, from_annotation=True):
     (as output by jackhmmer). This function may not work for other
     formats.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     alignment : Alignment
         Multiple sequence alignment object
     from_annotation : bool, optional (default: True)
@@ -416,10 +416,12 @@ def describe_coverage(alignment, prefix, first_index, minimum_column_coverage):
         Sequence index of first position of target sequence
     minimum_column_coverage : Iterable(float) or float
         Minimum column coverage threshold(s) that will be tested
-        (creating one row for each threshold in output table). Note that int
-        values given to this function instead of a float will be divided
-        by 100 to create the corresponding floating point representation.
-        This parameter is 1.0 - maximum fraction of gaps per column.
+        (creating one row for each threshold in output table).
+
+        .. note::
+
+            ``int`` values given to this function instead of a float will be divided by 100 to create the corresponding
+            floating point representation. This parameter is 1.0 - maximum fraction of gaps per column.
 
     Returns
     -------
@@ -489,24 +491,34 @@ def existing(**kwargs):
     Mandatory kwargs arguments:
         See list below in code where calling check_required
 
+    .. todo::
+        explain meaning of parameters in detail.
+
+    If skip is given and True, the workflow will only return
+    the output configuration (outcfg) and ali will be None.
+
+    If callback is given, the function will be called at the
+    end of the workflow with the kwargs arguments updated with
+    the outcfg results.
+
     Returns
     -------
     outcfg : dict
         Output configuration of the pipeline, including
         the following fields:
 
-        alignment_file
-        raw_focus_alignment_file
-        statistics_file
-        sequence_file
-        first_index
-        target_sequence_file
-        annotation_file (None)
-        frequencies_file
-        identities_file
-        focus_mode
-        focus_sequence
-        segments
+        * alignment_file
+        * raw_focus_alignment_file
+        * statistics_file
+        * sequence_file
+        * first_index
+        * target_sequence_file
+        * annotation_file (None)
+        * frequencies_file
+        * identities_file
+        * focus_mode
+        * focus_sequence
+        * segments
     """
     check_required(
         kwargs,
@@ -654,7 +666,14 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
     files describing properties of the alignment such as frequency distributions,
     conservation, and "old-style" alignment statistics files.
 
-    Note: assumes focus alignment (otherwise unprocessed) as input.
+    .. note::
+
+        assumes focus alignment (otherwise unprocessed) as input.
+
+    .. todo::
+
+        come up with something more clever  to filter fragments than fixed width
+        (e.g. use 95% quantile of length distribution as reference point)
 
     Parameters
     ----------
@@ -672,11 +691,12 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
     -------
     outcfg : Dict
         File products generated by the function:
-          alignment_file
-          statistics_file
-          frequencies_file
-          identities_file
-          raw_focus_alignment_file
+
+        * alignment_file
+        * statistics_file
+        * frequencies_file
+        * identities_file
+        * raw_focus_alignment_file
     ali : Alignment
         Final processed alignment
     """
@@ -738,7 +758,7 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
     ali = focus_ali
 
     # filter fragments
-    # TODO: come up with something more clever here than fixed width
+    # come up with something more clever here than fixed width
     # (e.g. use 95% quantile of length distribution as reference point)
     min_cov = kwargs["minimum_sequence_coverage"]
     if min_cov is not None:
@@ -765,11 +785,8 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
         outcfg["frequencies_file"], float_format="%.3f", index=False
     )
 
-    describe_coverage(
+    coverage_stats = describe_coverage(
         ali, prefix, region_start, kwargs["minimum_column_coverage"]
-    ).to_csv(
-        outcfg["statistics_file"], float_format="%.3f",
-        index=False
     )
 
     # keep list of uppercase sequence positions in alignment
@@ -806,8 +823,17 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
 
         # N_eff := sum of all sequence weights
         n_eff = float(cut_ali.weights.sum())
+
+        # patch into coverage statistics (N_eff column)
+        coverage_stats.loc[:, "N_eff"] = n_eff
     else:
         n_eff = None
+
+    # save coverage statistics to file
+    coverage_stats.to_csv(
+        outcfg["statistics_file"], float_format="%.3f",
+        index=False
+    )
 
     # store description of final sequence alignment in outcfg
     # (note these parameters will be updated by couplings protocol)
@@ -843,7 +869,9 @@ def jackhmmer_search(**kwargs):
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-        (TODO: explain meaning of parameters in detail).
+
+    .. todo::
+        explain meaning of parameters in detail.
 
     Returns
     -------
@@ -851,13 +879,13 @@ def jackhmmer_search(**kwargs):
         Output configuration of the protocol, including
         the following fields:
 
-        target_sequence_file
-        sequence_file
-        raw_alignment_file
-        hittable_file
-        focus_mode
-        focus_sequence
-        segments
+        * target_sequence_file
+        * sequence_file
+        * raw_alignment_file
+        * hittable_file
+        * focus_mode
+        * focus_sequence
+        * segments
     """
     check_required(
         kwargs,
@@ -992,25 +1020,41 @@ def standard(**kwargs):
     Mandatory kwargs arguments:
         See list below in code where calling check_required
 
+    .. todo::
+
+        explain meaning of parameters in detail.
+
+    If skip is given and True, the workflow will only return
+    the output configuration (outcfg) and ali will be None.
+
+    If callback is given, the function will be called at the
+    end of the workflow with the kwargs arguments updated with
+    the outcfg results.
+
+
     Returns
     -------
     outcfg : dict
         Output configuration of the pipeline, including
         the following fields:
 
-        alignment_file
-        raw_alignment_file
-        raw_focus_alignment_file
-        statistics_file
-        target_sequence_file
-        sequence_file
-        annotation_file
-        frequencies_file
-        identities_file
-        hittable_file
-        focus_mode
-        focus_sequence
-        segments
+        * alignment_file
+        * raw_alignment_file
+        * raw_focus_alignment_file
+        * statistics_file
+        * target_sequence_file
+        * sequence_file
+        * annotation_file
+        * frequencies_file
+        * identities_file
+        * hittable_file
+        * focus_mode
+        * focus_sequence
+        * segments
+
+    ali : Alignment
+        Final sequence alignment
+
     """
     check_required(
         kwargs,
@@ -1194,20 +1238,20 @@ def run(**kwargs):
     Returns
     -------
     Alignment
-    Dictionary with results of stage in following fields:
-    (in brackets: not returned by all protocols)
-        alignment_file
-        [raw_alignment_file]
-        statistics_file
-        target_sequence_file
-        sequence_file
-        [annotation_file]
-        frequencies_file
-        identities_file
-        [hittable_file]
-        focus_mode
-        focus_sequence
-        segments
+    Dictionary with results of stage in following fields (in brackets - not returned by all protocols):
+
+        * alignment_file
+        * [raw_alignment_file]
+        * statistics_file
+        * target_sequence_file
+        * sequence_file
+        * [annotation_file]
+        * frequencies_file
+        * identities_file
+        * [hittable_file]
+        * focus_mode
+        * focus_sequence
+        * segments
     """
     check_required(kwargs, ["protocol"])
 

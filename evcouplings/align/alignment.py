@@ -116,10 +116,11 @@ def read_stockholm(fileobj, read_annotation=False):
     Generator function to read Stockholm format alignment
     file (e.g. from hmmer).
 
-    Notes:
-    Generator iterates over different alignments in the
-    same file (but not over individual sequences, which makes
-    little sense due to wrapped Stockholm alignments).
+    .. note::
+
+        Generator iterates over different alignments in the
+        same file (but not over individual sequences, which makes
+        little sense due to wrapped Stockholm alignments).
 
 
     Parameters
@@ -214,9 +215,13 @@ def read_a3m(fileobj, inserts="first"):
     Read an alignment in compressed a3m format and expand
     into a2m format.
 
-    Note: this function is currently not able to keep inserts
-    in all the sequences
-    # TODO: implement this
+    .. note::
+
+        this function is currently not able to keep inserts in all the sequences
+
+    ..todo::
+
+        implement this
 
     Parameters
     ----------
@@ -466,21 +471,25 @@ class Alignment:
     """
     Container to store and manipulate multiple sequence alignments.
 
-    Important:
-    (1) Sequence annotation currently is not transformed when
-    selecting subsets of columns or positions (e.g. affects GR and GC
-    lines in Stockholm alignments)
-    (2) Sequence ranges in IDs are not adjusted when selecting
-    subsets of positions
+    .. note::
+
+        Important:
+
+        1. Sequence annotation currently is not transformed when
+           selecting subsets of columns or positions (e.g. affects GR and GC
+           lines in Stockholm alignments)
+        2. Sequence ranges in IDs are not adjusted when selecting
+           subsets of positions
     """
     def __init__(self, sequence_matrix, sequence_ids=None, annotation=None,
                  alphabet=ALPHABET_PROTEIN):
         """
         Create new alignment object from ready-made components.
 
-        Note:
-        Use factory method Alignment.from_file to create alignment from file,
-        or Alignment.from_dict from dictionary of sequences.
+        .. note::
+
+            Use factory method Alignment.from_file to create alignment from file,
+            or Alignment.from_dict from dictionary of sequences.
 
         Parameters
         ----------
@@ -523,6 +532,7 @@ class Alignment:
         self.num_cluster_members = None
         self.weights = None
         self._frequencies = None
+        self._pair_frequencies = None
 
         if sequence_ids is None:
             # default to numbering sequences if not given
@@ -624,8 +634,9 @@ class Alignment:
 
     def __getitem__(self, index):
         """
-        # TODO: eventually this should allow fancy indexing
-        and offer the functionality of select()
+        .. todo::
+
+            eventually this should allow fancy indexing and offer the functionality of select()
         """
         if index in self.id_to_index:
             return self.matrix[self.id_to_index[index], :]
@@ -644,8 +655,10 @@ class Alignment:
         Count occurrences of a character in the sequence
         alignment.
 
-        Note that these counts are raw counts not adjusted for
-        sequence redundancy.
+        .. note::
+
+            The counts are raw counts not adjusted for
+            sequence redundancy.
 
         Parameters
         ----------
@@ -684,9 +697,11 @@ class Alignment:
         Create a sub-alignment that contains a subset of
         sequences and/or columns.
 
-        Note: This does currently not adjust the indices
-        of the sequences. Annotation in the original alignment
-        will be lost and not passed on to the new object.
+        .. note::
+
+            This does currently not adjust the indices
+            of the sequences. Annotation in the original alignment
+            will be lost and not passed on to the new object.
 
         Parameters
         ----------
@@ -832,13 +847,15 @@ class Alignment:
         clustering all sequences with sequence identity
         greater or equal to the given threshold.
 
-        Note that this method sets self.weights.
-        After this method was called, methods/attributes such as
-        self.frequencies or self.conservation()
-        will make use of sequence weights.
+        .. note::
 
-        (Implementation note: cannot use property here
-        since we need identity threshold as a parameter....)
+            This method sets self.weights. After this method was called, methods/attributes such as
+            self.frequencies or self.conservation()
+            will make use of sequence weights.
+
+        .. note::
+
+            (Implementation: cannot use property here since we need identity threshold as a parameter....)
 
         Parameters
         ----------
@@ -855,6 +872,7 @@ class Alignment:
         # reset frequencies, since these were based on
         # different weights before or had no weights at all
         self._frequencies = None
+        self._pair_frequencies = None
 
     @property
     def frequencies(self):
@@ -887,6 +905,36 @@ class Alignment:
             )
 
         return self._frequencies
+
+    @property
+    def pair_frequencies(self):
+        """
+        Returns/calculates pairwise frequencies of symbols in alignment.
+        Also sets self._pair_frequencies member variable for later reuse.
+
+        Previously calculated sequence weights using self.set_weights()
+        will be used to adjust frequency counts; otherwise, each sequence
+        will contribute with equal weight.
+
+        Returns
+        -------
+        np.array
+            Reference to self._pair_frequencies
+        """
+        if self._pair_frequencies is None:
+            self.__ensure_mapped_matrix()
+
+            if self.weights is None:
+                weights = np.ones((self.N))
+            else:
+                weights = self.weights
+
+            self._pair_frequencies = pair_frequencies(
+                self.matrix_mapped, weights,
+                self.num_symbols, self.frequencies
+            )
+
+        return self._pair_frequencies
 
     def identities_to(self, seq, normalize=True):
         """
@@ -1000,7 +1048,54 @@ def frequencies(matrix, seq_weights, num_symbols):
         for i in range(L):
             fi[i, matrix[s, i]] += seq_weights[s]
 
-    return fi / N
+    return fi / seq_weights.sum()
+
+
+@jit(nopython=True)
+def pair_frequencies(matrix, seq_weights, num_symbols, fi):
+    """
+    Calculate pairwise frequencies of symbols in alignment.
+
+    Parameters
+    ----------
+    matrix : np.array
+        N x L matrix containing N sequences of length L.
+        Matrix must be mapped to range(0, num_symbols) using
+        map_matrix function
+    seq_weights : np.array
+        Vector of length N containing weight for each sequence
+    num_symbols : int
+        Number of different symbols contained in alignment
+    fi : np.array
+        Matrix of size L x num_symbols containing relative
+        column frequencies of all characters.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x L x num_symbols x num_symbols containing
+        relative pairwise frequencies of all character combinations
+    """
+    N, L = matrix.shape
+    fij = np.zeros((L, L, num_symbols, num_symbols))
+    for s in range(N):
+        for i in range(L):
+            for j in range(i + 1, L):
+                fij[i, j, matrix[s, i], matrix[s, j]] += seq_weights[s]
+                fij[j, i, matrix[s, j], matrix[s, i]] = fij[i, j, matrix[s, i], matrix[s, j]]
+
+    # normalize frequencies by the number
+    # of effective sequences
+    fij /= seq_weights.sum()
+
+    # set the frequency of a pair (alpha, alpha)
+    # in position i to the respective single-site
+    # frequency of alpha in position i
+    for i in range(L):
+        for alpha in range(num_symbols):
+            fij[i, i, alpha, alpha] = fi[i, alpha]
+
+    return fij
 
 
 @jit(nopython=True)

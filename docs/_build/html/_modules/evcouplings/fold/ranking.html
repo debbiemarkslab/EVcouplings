@@ -1,0 +1,723 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.fold.ranking &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.fold.ranking</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.fold.ranking</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for detecting ECs that should not be</span>
+<span class="sd">included in 3D structure prediction</span>
+
+<span class="sd">Most functions in this module are rewritten from</span>
+<span class="sd">older pipeline code in choose_CNS_constraint_set.m</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="k">import</span> <span class="n">combinations</span><span class="p">,</span> <span class="n">product</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.compare.pdb</span> <span class="k">import</span> <span class="n">ClassicPDB</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.calculations</span> <span class="k">import</span> <span class="n">dihedral_angle</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.config</span> <span class="k">import</span> <span class="n">InvalidParameterError</span>
+<span class="kn">from</span> <span class="nn">evcouplings.visualize.pairs</span> <span class="k">import</span> <span class="n">find_secondary_structure_segments</span>
+
+
+<span class="k">def</span> <span class="nf">_alpha_dihedrals</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">segments</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute dihedral score for alpha-helical</span>
+<span class="sd">    segments.</span>
+
+<span class="sd">    This function reimplements the functionality of</span>
+<span class="sd">    analyze_alpha_helix.pl and make_alpha_beta_score_table.m</span>
+<span class="sd">    (analyze_alpha_helix function) from the original pipeline.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    coords : pandas.DataFrame</span>
+<span class="sd">        Coordinate and residue information</span>
+<span class="sd">        dataframe (residues with CA</span>
+<span class="sd">        coordinates only)</span>
+<span class="sd">    segments : list</span>
+<span class="sd">        List of tuples (start, end) that</span>
+<span class="sd">        define secondary structure segments</span>
+<span class="sd">        (end index is exclusive)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Table with dihedral angles for all</span>
+<span class="sd">        helical residues with defined angle</span>
+<span class="sd">        (columns: helix (helix index), i (position),</span>
+<span class="sd">        dihedral (dihedral angle))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># check if we have cooords for position</span>
+    <span class="k">def</span> <span class="nf">has</span><span class="p">(</span><span class="n">pos</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">coords</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="c1"># return coords for position</span>
+    <span class="k">def</span> <span class="nf">xyz</span><span class="p">(</span><span class="n">pos</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+            <span class="n">coords</span><span class="o">.</span><span class="n">i</span> <span class="o">==</span> <span class="n">pos</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">]</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># go through all helical segments</span>
+    <span class="k">for</span> <span class="n">helix_idx</span><span class="p">,</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">segments</span><span class="p">):</span>
+        <span class="c1"># compute dihedral for each residue</span>
+        <span class="c1"># within that helical segment</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+            <span class="c1"># check if all four necessary CA atoms are defined</span>
+            <span class="k">if</span> <span class="n">has</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">has</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">and</span> <span class="n">has</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">has</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="c1"># compute dihedral</span>
+                <span class="n">angle</span> <span class="o">=</span> <span class="n">dihedral_angle</span><span class="p">(</span>
+                    <span class="n">xyz</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">xyz</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">xyz</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">xyz</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">helix_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">angle</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;helix&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;dihedral&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_beta_dihedrals</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">segments</span><span class="p">,</span> <span class="n">max_strand_distance</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+                    <span class="n">original</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute dihedral score for beta strand</span>
+<span class="sd">    segments.</span>
+
+<span class="sd">    This function reimplements the functionality of</span>
+<span class="sd">    analyze_beta_strand.pl and make_alpha_beta_score_table.m</span>
+<span class="sd">    (analyze_beta_strand function) from the original pipeline.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    coords : pandas.DataFrame</span>
+<span class="sd">        Coordinate and residue information</span>
+<span class="sd">        dataframe (residues with CA</span>
+<span class="sd">        coordinates only)</span>
+<span class="sd">    segments : list</span>
+<span class="sd">        List of tuples (start, end) that</span>
+<span class="sd">        define secondary structure segments</span>
+<span class="sd">        (end index is exclusive)</span>
+<span class="sd">    max_strand_distance : float, optional (default: 7)</span>
+<span class="sd">        Maximum distance of strands to be considered</span>
+<span class="sd">        for dihedral angle calculation</span>
+<span class="sd">    original : bool, optional (default: True):</span>
+<span class="sd">        Use exact implementation of 2011 ranking protocol</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Table with dihedral angles for all</span>
+<span class="sd">        sheet residues with defined angle</span>
+<span class="sd">        (columns: helix (helix index), i (position),</span>
+<span class="sd">        dihedral (dihedral angle))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># transfer coords into a dict of numpy vectors for faster access</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">i</span><span class="p">,</span> <span class="n">coords</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># check if we have cooords for position</span>
+    <span class="k">def</span> <span class="nf">has</span><span class="p">(</span><span class="n">pos</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">coords</span>
+
+    <span class="c1"># return coords for position</span>
+    <span class="k">def</span> <span class="nf">xyz</span><span class="p">(</span><span class="n">pos</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
+
+    <span class="c1"># determine orientation of strands (parallel or antiparallel)</span>
+    <span class="k">def</span> <span class="nf">_orientation</span><span class="p">(</span><span class="n">pairs</span><span class="p">):</span>
+        <span class="c1"># votes in favor of parallel arrangement, and total votes</span>
+        <span class="n">par</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">pairs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pos_i&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pos_j&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">has</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="ow">and</span> <span class="n">has</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="ow">and</span> <span class="n">has</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="n">d_par</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">xyz</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">xyz</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="n">original</span><span class="p">:</span>
+                    <span class="c1"># the residues chosen here disagree with residues</span>
+                    <span class="c1"># for angle calculation</span>
+                    <span class="n">d_anti</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">xyz</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">xyz</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># alternative implementation consistent with angle</span>
+                    <span class="c1"># calculation</span>
+                    <span class="n">d_anti</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">xyz</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">xyz</span><span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span>
+
+                <span class="c1"># cast votes</span>
+                <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">d_par</span> <span class="o">&lt;=</span> <span class="n">d_anti</span><span class="p">:</span>
+                    <span class="n">par</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">total</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">par</span> <span class="o">/</span> <span class="n">total</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="c1"># compute dihedral angles for residue pairings</span>
+    <span class="k">def</span> <span class="nf">_compute_dihedral</span><span class="p">(</span><span class="n">pairs</span><span class="p">,</span> <span class="n">strands_parallel</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">pairs</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pos_i&quot;</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">&quot;pos_j&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">original</span><span class="p">:</span>
+                <span class="c1"># the residues evaluated here disagree with residues</span>
+                <span class="c1"># used for angle calculation</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">has</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">strands_parallel</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">strands_parallel</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">):</span>
+                    <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># alternative implementation consistent with angle</span>
+                <span class="c1"># calculation</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">has</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="n">strands_parallel</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">2</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">strands_parallel</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has</span><span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="mi">2</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">strands_parallel</span><span class="p">:</span>
+                <span class="n">angle</span> <span class="o">=</span> <span class="n">dihedral_angle</span><span class="p">(</span>
+                    <span class="n">xyz</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">xyz</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">),</span> <span class="n">xyz</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">2</span><span class="p">),</span> <span class="n">xyz</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">angle</span> <span class="o">=</span> <span class="n">dihedral_angle</span><span class="p">(</span>
+                    <span class="n">xyz</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">xyz</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">),</span> <span class="n">xyz</span><span class="p">(</span><span class="n">j</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span> <span class="n">xyz</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;strand_i&quot;</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;strand_j&quot;</span><span class="p">]),</span> <span class="n">angle</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">res</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;strand_i&quot;</span><span class="p">,</span> <span class="s2">&quot;strand_j&quot;</span><span class="p">,</span> <span class="s2">&quot;dihedral&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="c1"># go through all possible combinations of strands</span>
+    <span class="c1"># and identify what possible partners are in 3D</span>
+    <span class="n">strand_partners</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">strand_i</span><span class="p">,</span> <span class="n">seg_i</span><span class="p">),</span> <span class="p">(</span><span class="n">strand_j</span><span class="p">,</span> <span class="n">seg_j</span><span class="p">)</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">segments</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="c1"># compute all pairwise C_alpha distances between residues in</span>
+        <span class="c1"># strands i and j</span>
+        <span class="n">pair_dists</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="n">strand_i</span><span class="p">,</span> <span class="n">strand_j</span><span class="p">,</span> <span class="n">pos_i</span><span class="p">,</span> <span class="n">pos_j</span><span class="p">,</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">xyz</span><span class="p">(</span><span class="n">pos_i</span><span class="p">)</span> <span class="o">-</span> <span class="n">xyz</span><span class="p">(</span><span class="n">pos_j</span><span class="p">))</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">pos_i</span><span class="p">,</span> <span class="n">pos_j</span><span class="p">)</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="o">*</span><span class="n">seg_i</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="o">*</span><span class="n">seg_j</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">has</span><span class="p">(</span><span class="n">pos_i</span><span class="p">)</span> <span class="ow">and</span> <span class="n">has</span><span class="p">(</span><span class="n">pos_j</span><span class="p">)</span>
+            <span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;strand_i&quot;</span><span class="p">,</span> <span class="s2">&quot;strand_j&quot;</span><span class="p">,</span> <span class="s2">&quot;pos_i&quot;</span><span class="p">,</span> <span class="s2">&quot;pos_j&quot;</span><span class="p">,</span> <span class="s2">&quot;dist&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="c1"># test if strands are proximal, otherwise skip pair</span>
+        <span class="k">if</span> <span class="n">pair_dists</span><span class="o">.</span><span class="n">dist</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">max_strand_distance</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># for each position in strand i,</span>
+        <span class="c1"># identify nearest residue in strand j</span>
+        <span class="n">nearest</span> <span class="o">=</span> <span class="n">pair_dists</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span>
+            <span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pos_i&quot;</span><span class="p">,</span> <span class="s2">&quot;dist&quot;</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;pos_i&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">first</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
+
+        <span class="c1"># identify pairs that are close according to distance threshold</span>
+        <span class="n">close</span> <span class="o">=</span> <span class="n">nearest</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">nearest</span><span class="o">.</span><span class="n">dist</span> <span class="o">&lt;=</span> <span class="n">max_strand_distance</span><span class="p">]</span>
+
+        <span class="c1"># also determine strand distance as closest of all pairs</span>
+        <span class="n">strand_dist</span> <span class="o">=</span> <span class="n">close</span><span class="o">.</span><span class="n">dist</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+
+        <span class="c1"># select anything between first and last close pair, this</span>
+        <span class="c1"># defines the strand segments for further computations including angles</span>
+        <span class="n">first_good</span><span class="p">,</span> <span class="n">last_good</span> <span class="o">=</span> <span class="n">close</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">close</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">dihedral_pairs</span> <span class="o">=</span> <span class="n">nearest</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">first_good</span><span class="p">:</span><span class="n">last_good</span><span class="p">]</span>
+
+        <span class="c1"># determine if pair is parallel or antiparallel</span>
+        <span class="n">orientation_vote</span> <span class="o">=</span> <span class="n">_orientation</span><span class="p">(</span><span class="n">dihedral_pairs</span><span class="p">)</span>
+        <span class="n">strands_parallel</span> <span class="o">=</span> <span class="n">orientation_vote</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+        <span class="c1"># compute dihedrals (if we have the positions in coordinates)</span>
+        <span class="c1"># print(&quot;ORIENTATION:&quot;, orientation_vote, strands_parallel)</span>
+        <span class="n">dihedrals</span> <span class="o">=</span> <span class="n">_compute_dihedral</span><span class="p">(</span><span class="n">dihedral_pairs</span><span class="p">,</span> <span class="n">strands_parallel</span><span class="p">)</span>
+
+        <span class="c1"># store strand pairing</span>
+        <span class="n">strand_partners</span><span class="p">[</span><span class="n">strand_i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">strand_dist</span><span class="p">,</span> <span class="n">strand_j</span><span class="p">,</span> <span class="n">dihedrals</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># now assemble final table of dihedrals,</span>
+    <span class="c1"># allow only up to two pairings per strand</span>
+    <span class="c1"># (if more, take the two closest ones in 3D based on strand_dist)</span>
+    <span class="n">all_dihedrals</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+    <span class="n">num_partners</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">strand_i</span><span class="p">,</span> <span class="n">partners</span> <span class="ow">in</span> <span class="n">strand_partners</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># only take two closest strands</span>
+        <span class="k">for</span> <span class="n">dist</span><span class="p">,</span> <span class="n">strand_j</span><span class="p">,</span> <span class="n">dihedrals</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">partners</span><span class="p">):</span>
+            <span class="c1"># check we do not have two partners yet</span>
+            <span class="k">if</span> <span class="n">num_partners</span><span class="p">[</span><span class="n">strand_i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">num_partners</span><span class="p">[</span><span class="n">strand_j</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">all_dihedrals</span> <span class="o">=</span> <span class="n">all_dihedrals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dihedrals</span><span class="p">)</span>
+                <span class="n">num_partners</span><span class="p">[</span><span class="n">strand_i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">num_partners</span><span class="p">[</span><span class="n">strand_j</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">all_dihedrals</span>
+
+
+<div class="viewcode-block" id="dihedral_ranking_score"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.ranking.dihedral_ranking_score">[docs]</a><span class="k">def</span> <span class="nf">dihedral_ranking_score</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">sec_struct_column</span><span class="o">=</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">,</span>
+                           <span class="n">original</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assess quality of structure model by twist of </span>
+<span class="sd">    predicted alpha-helices and beta-sheets.</span>
+
+<span class="sd">    This function re-implements the functionality of</span>
+<span class="sd">    make_alpha_beta_score_table.m from the original</span>
+<span class="sd">    pipeline.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    structure : evcouplings.compare.pdb.Chain</span>
+<span class="sd">        Chain with 3D structure coordinates to evaluate</span>
+<span class="sd">    residues : pandas.DataFrame</span>
+<span class="sd">        Residue table with secondary structure predictions</span>
+<span class="sd">        (columns i, A_i and secondary structure column)</span>
+<span class="sd">    sec_struct_column : str, optional (default: sec_struct_3state)</span>
+<span class="sd">        Column in residues dataframe that contains predicted</span>
+<span class="sd">        secondary structure (H, E, C)</span>
+<span class="sd">    original : bool, optional (default: True):</span>
+<span class="sd">        Use exact implementation of 2011 ranking protocol</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    int</span>
+<span class="sd">        Number of alpha dihedrals computed</span>
+<span class="sd">    float</span>
+<span class="sd">        Alpha dihedral score (unnormalized)</span>
+<span class="sd">    int</span>
+<span class="sd">        Number of beta dihedrals computed</span>
+<span class="sd">    float</span>
+<span class="sd">        Beta dihedral score (unnormalized)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create table that, for each residue, contains</span>
+    <span class="c1"># secondary structure and C_alpha coordinates.</span>
+
+    <span class="c1"># First, throw away anything but C_alpha atoms</span>
+    <span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">filter_atoms</span><span class="p">(</span><span class="n">atom_name</span><span class="o">=</span><span class="s2">&quot;CA&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Then, merge residue with atom information</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">residues</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+        <span class="n">structure</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">left_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">right_on</span><span class="o">=</span><span class="s2">&quot;residue_index&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Then, merge with secondary structure prediction</span>
+    <span class="c1"># PDB indices are strings, so merge on string</span>
+    <span class="n">residues</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">residues</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">residues</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># find secondary structure segments</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">segments</span> <span class="o">=</span> <span class="n">find_secondary_structure_segments</span><span class="p">(</span>
+        <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">sec_struct_column</span><span class="p">]),</span> <span class="n">offset</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_segments</span><span class="p">(</span><span class="n">seg_type</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">type_</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="ow">in</span> <span class="n">segments</span>
+            <span class="k">if</span> <span class="n">type_</span> <span class="o">==</span> <span class="n">seg_type</span>
+        <span class="p">]</span>
+
+    <span class="n">segs_alpha</span> <span class="o">=</span> <span class="n">_get_segments</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">)</span>
+    <span class="n">segs_beta</span> <span class="o">=</span> <span class="n">_get_segments</span><span class="p">(</span><span class="s2">&quot;E&quot;</span><span class="p">)</span>
+
+    <span class="c1"># extract positions that actually have C_alpha coordinates</span>
+    <span class="n">x_valid</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">])</span>
+
+    <span class="c1"># compute alpha helix and beta sheet dihedrals</span>
+    <span class="n">d_alpha</span> <span class="o">=</span> <span class="n">_alpha_dihedrals</span><span class="p">(</span><span class="n">x_valid</span><span class="p">,</span> <span class="n">segs_alpha</span><span class="p">)</span>
+    <span class="n">d_beta</span> <span class="o">=</span> <span class="n">_beta_dihedrals</span><span class="p">(</span><span class="n">x_valid</span><span class="p">,</span> <span class="n">segs_beta</span><span class="p">,</span> <span class="n">original</span><span class="o">=</span><span class="n">original</span><span class="p">)</span>
+
+    <span class="c1"># Finally, merge results into score</span>
+
+    <span class="c1"># first, count how many angles in the right range</span>
+    <span class="c1"># we have, but weight for actual value of the dihedral</span>
+
+    <span class="c1"># alpha</span>
+    <span class="n">alpha_weights</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.44</span><span class="p">,</span> <span class="mf">0.52</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.52</span><span class="p">,</span> <span class="mf">0.61</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.61</span><span class="p">,</span> <span class="mf">0.70</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.70</span><span class="p">,</span> <span class="mf">0.78</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.78</span><span class="p">,</span> <span class="mf">0.96</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.96</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">,</span> <span class="mf">1.13</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">1.13</span><span class="p">,</span> <span class="mf">1.22</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">1.22</span><span class="p">,</span> <span class="mf">1.31</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_alpha</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">alpha_dihedral_score</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
+            <span class="n">weight</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_alpha</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="s2">&quot;@lower &lt; dihedral and dihedral &lt;= @upper&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">weight</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="ow">in</span> <span class="n">alpha_weights</span>
+        <span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">alpha_dihedral_score</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># beta</span>
+    <span class="n">beta_weights</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.3</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.4</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.3</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.4</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.6</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.8</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.6</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.8</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.9</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.4</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.1</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">),</span>
+        <span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.2</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.1</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_beta</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">beta_dihedral_score</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span>
+            <span class="n">weight</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_beta</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="s2">&quot;@lower &lt;= dihedral and dihedral &lt; @upper&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">weight</span><span class="p">,</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="ow">in</span> <span class="n">beta_weights</span>
+        <span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">beta_dihedral_score</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_alpha</span><span class="p">),</span> <span class="n">alpha_dihedral_score</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d_beta</span><span class="p">),</span> <span class="n">beta_dihedral_score</span></div>
+
+
+<div class="viewcode-block" id="dihedral_ranking"><a class="viewcode-back" href="../../../evcouplings.fold.html#evcouplings.fold.ranking.dihedral_ranking">[docs]</a><span class="k">def</span> <span class="nf">dihedral_ranking</span><span class="p">(</span><span class="n">structure_files</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">sec_struct_column</span><span class="o">=</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">,</span>
+                     <span class="n">model</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assess quality of a set of structure models by</span>
+<span class="sd">    twist of predicted alpha-helices and beta-sheets.</span>
+
+<span class="sd">    This function re-implements the final score table</span>
+<span class="sd">    computed in make_alpha_beta_score_table.m from</span>
+<span class="sd">    the original pipeline. Some of the implementation</span>
+<span class="sd">    details where however modified, possibly leading</span>
+<span class="sd">    to differences in the final computed ranking scores.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    structure_files : list(str)</span>
+<span class="sd">        Paths to PDB files that will be ranked</span>
+<span class="sd">        (have to be in .pdb format)</span>
+<span class="sd">    residues : pandas.DataFrame</span>
+<span class="sd">        Residue table with secondary structure predictions</span>
+<span class="sd">        (columns i, A_i and secondary structure column)</span>
+<span class="sd">    chain : str, optional (default: None)</span>
+<span class="sd">        Use this chain in each structure for the calculation.</span>
+<span class="sd">        If None, will pick the only existing chain (if there</span>
+<span class="sd">        are multiple chains, an InvalidParameterError will be</span>
+<span class="sd">        raised).</span>
+<span class="sd">    sec_struct_column : str, optional (default: sec_struct_3state)</span>
+<span class="sd">        Column in residues dataframe that contains predicted</span>
+<span class="sd">        secondary structure (H, E, C)</span>
+<span class="sd">    model : int, optional (default: 0)</span>
+<span class="sd">        Use this model from each PDB structure</span>
+<span class="sd">        </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Table with final ranking scores (column ranking_score)</span>
+<span class="sd">        and alpha and beta dihedral scores, as well</span>
+<span class="sd">        as well as possible maximum score (equal to the number</span>
+<span class="sd">        of computed dihedrals).</span>
+<span class="sd">        </span>
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    InvalidParameterError</span>
+<span class="sd">        If chain is None but multiple chains exist in any</span>
+<span class="sd">        of the structures</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">structure_files</span><span class="p">:</span>
+        <span class="c1"># load structure</span>
+        <span class="n">struc</span> <span class="o">=</span> <span class="n">ClassicPDB</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="c1"># see if we can select the right chain</span>
+        <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chains</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">model_to_chains</span><span class="p">[</span><span class="n">model</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chains</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InvalidParameterError</span><span class="p">(</span>
+                    <span class="s2">&quot;Model has more than one chain, need to &quot;</span>
+                    <span class="s2">&quot;specify chain parameter to disambiguate.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">chain</span> <span class="o">=</span> <span class="n">chains</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># extract chain from structure</span>
+        <span class="n">sel_chain</span> <span class="o">=</span> <span class="n">struc</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+
+        <span class="c1"># compute dihedral ranking score</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">dihedral_ranking_score</span><span class="p">(</span>
+            <span class="n">sel_chain</span><span class="p">,</span> <span class="n">residues</span><span class="p">,</span> <span class="n">sec_struct_column</span><span class="p">,</span> <span class="n">original</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">filename</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="p">))</span>
+
+    <span class="n">r</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+            <span class="s2">&quot;filename&quot;</span><span class="p">,</span> <span class="s2">&quot;num_alpha_dihedrals&quot;</span><span class="p">,</span> <span class="s2">&quot;alpha_dihedral_score&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;num_beta_dihedrals&quot;</span><span class="p">,</span> <span class="s2">&quot;beta_dihedral_score&quot;</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># maximum score we could have obtained for either set of dihedrals</span>
+    <span class="n">max_alpha</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">num_alpha_dihedrals</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="c1"># note that, unlike for alpha dihedrals, beta dihedrals are dependent</span>
+    <span class="c1"># on what contacts between strands are made in 3D structure models</span>
+    <span class="n">max_beta</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">num_beta_dihedrals</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="c1"># compute final ranking score</span>
+    <span class="c1"># this computation is somewhat diffeent from original implementation:</span>
+    <span class="c1"># - normalization for alpha helices is through number of possible dihedrals</span>
+    <span class="c1">#   not the number of residues with helix secondary structure</span>
+    <span class="c1"># - scores for helix and beta dihedrals are not adjusted to values &lt; 0 in</span>
+    <span class="c1">#   borderline cases</span>
+
+    <span class="c1"># make sure we do not divide by 0 if we didn&#39;t count any dihedrals at all</span>
+    <span class="n">max_val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_alpha</span> <span class="o">+</span> <span class="n">max_beta</span><span class="p">)</span>
+
+    <span class="n">r</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;ranking_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">alpha_dihedral_score</span> <span class="o">+</span> <span class="n">r</span><span class="o">.</span><span class="n">beta_dihedral_score</span><span class="p">)</span> <span class="o">/</span> <span class="n">max_val</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">r</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

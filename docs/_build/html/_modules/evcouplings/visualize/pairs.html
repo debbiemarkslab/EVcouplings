@@ -1,0 +1,1245 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.visualize.pairs &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.visualize.pairs</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.visualize.pairs</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Visualization of evolutionary couplings (contact maps etc.)</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="kn">from</span> <span class="nn">evcouplings.visualize.pymol</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">pymol_pair_lines</span><span class="p">,</span> <span class="n">pymol_mapping</span>
+<span class="p">)</span>
+
+<span class="c1"># default plotting styles</span>
+<span class="n">STYLE_EC</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;edgecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;s&quot;</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">STYLE_CONTACT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;edgecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="s2">&quot;#b6d4e9&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;s&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">STYLE_CONTACT_BRIGHT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;edgecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="s2">&quot;#d9e7f5&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;s&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">STYLE_CONTACT_MULTIMER</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;edgecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="s2">&quot;#fc8c3b&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+    <span class="s2">&quot;s&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">STYLE_SECSTRUCT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;helix_turn_length&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s2">&quot;strand_width_factor&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="s2">&quot;min_sse_length&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s2">&quot;width&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;line_width&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s2">&quot;helix_color&quot;</span><span class="p">:</span> <span class="s2">&quot;k&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;strand_color&quot;</span><span class="p">:</span> <span class="s2">&quot;k&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;coil_color&quot;</span><span class="p">:</span> <span class="s2">&quot;k&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="find_boundaries"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.find_boundaries">[docs]</a><span class="k">def</span> <span class="nf">find_boundaries</span><span class="p">(</span><span class="n">boundaries</span><span class="p">,</span> <span class="n">ecs</span><span class="p">,</span> <span class="n">monomer</span><span class="p">,</span> <span class="n">multimer</span><span class="p">,</span> <span class="n">symmetric</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify axis boundaries for contact map plots</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    boundaries : {&quot;union&quot;, &quot;intersection&quot;, &quot;ecs&quot;, &quot;structure&quot;} or tuple</span>
+<span class="sd">             or list(tuple, tuple)</span>
+<span class="sd">        Set axis range (min/max) of contact map as follows:</span>
+
+<span class="sd">        * &quot;union&quot;: Positions either in ECs or 3D structure</span>
+<span class="sd">        * &quot;intersection&quot;: Positions both in ECs and 3D structure</span>
+<span class="sd">        * &quot;ecs&quot;: Positions in ECs</span>
+<span class="sd">        * &quot;structure&quot;: Positions in 3D structure</span>
+<span class="sd">        * tuple(float, float): Specify upper/lower bound manually</span>
+<span class="sd">        * [(float, float), (float, float)]: Specify upper/lower bounds</span>
+<span class="sd">          for both x-axis (first tuple) and y-axis (second tuple)</span>
+
+<span class="sd">    ecs : pandas.DataFrame</span>
+<span class="sd">        Table of evolutionary couplings to plot (using columns</span>
+<span class="sd">        &quot;i&quot; and &quot;j&quot;)</span>
+<span class="sd">    monomer : evcouplings.compare.distances.DistanceMap</span>
+<span class="sd">        Monomer distance map (intra-chain distances)</span>
+<span class="sd">    multimer : evcouplings.compare.distances.DistanceMap</span>
+<span class="sd">        Multimer distance map (multimeric inter-chain distances)</span>
+<span class="sd">    symmetric : bool</span>
+<span class="sd">        Sets if distance maps and ECs are symmetric (intra-chain or homomultimer),</span>
+<span class="sd">        or not (inter-chain).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    (min_x, max_x) : (float, float)</span>
+<span class="sd">        First and last position on x-axis</span>
+<span class="sd">    (min_y, max_y) : (float, float)</span>
+<span class="sd">        First and last position on y-axis</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_find_pos</span><span class="p">(</span><span class="n">axis</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find first and last index along a single contact map axis</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># determine what sets of positions are for ECs/contact maps</span>
+        <span class="n">ec_pos</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">monomer_pos</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">multimer_pos</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="c1"># need to merge i and j here if symmetric</span>
+        <span class="k">if</span> <span class="n">ecs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+                <span class="n">ec_pos</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ec_pos</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">ecs</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">monomer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">monomer_pos</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">monomer</span><span class="p">,</span> <span class="s2">&quot;residues_&quot;</span> <span class="o">+</span> <span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">multimer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">multimer_pos</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">multimer</span><span class="p">,</span> <span class="s2">&quot;residues_&quot;</span> <span class="o">+</span> <span class="n">axis</span><span class="p">)</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">structure_pos</span> <span class="o">=</span> <span class="n">monomer_pos</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">multimer_pos</span><span class="p">)</span>
+
+        <span class="c1"># maximum ranges spanned by structure or ECs</span>
+        <span class="c1"># if any of the sets is not given, revert to</span>
+        <span class="c1"># the other set of positions in else case</span>
+        <span class="c1"># (in these cases, union and intersection will</span>
+        <span class="c1"># be trivially the one set that is actually defined)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ec_pos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">min_ec</span><span class="p">,</span> <span class="n">max_ec</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ec_pos</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">ec_pos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">min_ec</span><span class="p">,</span> <span class="n">max_ec</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">structure_pos</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">structure_pos</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">structure_pos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">min_struct</span><span class="p">,</span> <span class="n">max_struct</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">structure_pos</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">structure_pos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">min_struct</span><span class="p">,</span> <span class="n">max_struct</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ec_pos</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">ec_pos</span><span class="p">)</span>
+
+        <span class="c1"># determine and set plot boundaries</span>
+        <span class="k">if</span> <span class="n">boundaries</span> <span class="o">==</span> <span class="s2">&quot;union&quot;</span><span class="p">:</span>
+            <span class="n">min_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">min_ec</span><span class="p">,</span> <span class="n">min_struct</span><span class="p">)</span>
+            <span class="n">max_val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_ec</span><span class="p">,</span> <span class="n">max_struct</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">boundaries</span> <span class="o">==</span> <span class="s2">&quot;intersection&quot;</span><span class="p">:</span>
+            <span class="n">min_val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">min_ec</span><span class="p">,</span> <span class="n">min_struct</span><span class="p">)</span>
+            <span class="n">max_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_ec</span><span class="p">,</span> <span class="n">max_struct</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">boundaries</span> <span class="o">==</span> <span class="s2">&quot;ecs&quot;</span><span class="p">:</span>
+            <span class="n">min_val</span> <span class="o">=</span> <span class="n">min_ec</span>
+            <span class="n">max_val</span> <span class="o">=</span> <span class="n">max_ec</span>
+        <span class="k">elif</span> <span class="n">boundaries</span> <span class="o">==</span> <span class="s2">&quot;structure&quot;</span><span class="p">:</span>
+            <span class="n">min_val</span> <span class="o">=</span> <span class="n">min_struct</span>
+            <span class="n">max_val</span> <span class="o">=</span> <span class="n">max_struct</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Not a valid value for boundaries: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">boundaries</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">min_val</span><span class="p">,</span> <span class="n">max_val</span>
+
+    <span class="c1"># check first if range is specified manually</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">boundaries</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundaries</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;boundaries must be a tuple with 2 elements (min, max).&quot;</span>
+            <span class="p">)</span>
+        <span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span> <span class="o">=</span> <span class="n">boundaries</span>
+        <span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span> <span class="o">=</span> <span class="n">boundaries</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">boundaries</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundaries</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundaries</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundaries</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;boundaries must be a list of 2 tuples with 2 elements &quot;</span>
+                <span class="s2">&quot;[(min_x, max_x), (min_y, max_y)].&quot;</span>
+            <span class="p">)</span>
+        <span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span> <span class="o">=</span> <span class="n">boundaries</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span> <span class="o">=</span> <span class="n">boundaries</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span> <span class="o">=</span> <span class="n">_find_pos</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">)</span>
+        <span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span> <span class="o">=</span> <span class="n">_find_pos</span><span class="p">(</span><span class="s2">&quot;j&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span><span class="p">),</span> <span class="p">(</span><span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="plot_contact_map"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.plot_contact_map">[docs]</a><span class="k">def</span> <span class="nf">plot_contact_map</span><span class="p">(</span><span class="n">ecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">monomer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">multimer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">distance_cutoff</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">secondary_structure</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">show_secstruct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">scale_sizes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                     <span class="n">ec_style</span><span class="o">=</span><span class="n">STYLE_EC</span><span class="p">,</span> <span class="n">monomer_style</span><span class="o">=</span><span class="n">STYLE_CONTACT</span><span class="p">,</span>
+                     <span class="n">multimer_style</span><span class="o">=</span><span class="n">STYLE_CONTACT_MULTIMER</span><span class="p">,</span>
+                     <span class="n">secstruct_style</span><span class="o">=</span><span class="n">STYLE_SECSTRUCT</span><span class="p">,</span>
+                     <span class="n">margin</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">invert_y</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">boundaries</span><span class="o">=</span><span class="s2">&quot;union&quot;</span><span class="p">,</span>
+                     <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper for simple contact map plots with optional</span>
+<span class="sd">    multimer contacts (can also handle non-symmetric inter-chain</span>
+<span class="sd">    contacts). For full flexibility, compose your own</span>
+<span class="sd">    contact map plot using the functions used below.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ecs : pandas.DataFrame</span>
+<span class="sd">        Table of evolutionary couplings to plot (using columns</span>
+<span class="sd">        &quot;i&quot; and &quot;j&quot;). Can contain additional columns &quot;color&quot;</span>
+<span class="sd">        and &quot;size&quot; to assign these individual properties in the</span>
+<span class="sd">        plot for each plotted pair (i, j). If all values of</span>
+<span class="sd">        &quot;size&quot; are &lt;= 1, they will be treated as a fraction</span>
+<span class="sd">        of the point size defined in ec_style, and rescaled</span>
+<span class="sd">        if scale_sizes is True.</span>
+<span class="sd">    monomer : evcouplings.compare.distances.DistanceMap</span>
+<span class="sd">        Monomer distance map (intra-chain distances)</span>
+<span class="sd">    multimer : evcouplings.compare.distances.DistanceMap</span>
+<span class="sd">        Multimer distance map (multimeric inter-chain distances)</span>
+<span class="sd">    distance_cutoff : float, optional (default: 5)</span>
+<span class="sd">        Pairs with distance &lt;= this cutoff are considered</span>
+<span class="sd">        residue pair contacts</span>
+<span class="sd">    secondary_structure : dict or pandas.DataFrame</span>
+<span class="sd">        Secondary structure to be displayed on both axis</span>
+<span class="sd">        (if not given, will try to extract from monomer</span>
+<span class="sd">        distance map). For format of dict or DataFrame,</span>
+<span class="sd">        see documentation of plot_secondary_structure().</span>
+<span class="sd">        If symmetric is False, this has to be a two-element</span>
+<span class="sd">        tuple containing the secondary structures for the</span>
+<span class="sd">        x-axis and the y-axis, respectively.</span>
+<span class="sd">    show_secstruct : bool, optional (default: True)</span>
+<span class="sd">        Draw secondary structure on both axes (either</span>
+<span class="sd">        passed in explicitly using secondary_structure,</span>
+<span class="sd">        or extracted from monomer distancemap)</span>
+<span class="sd">    scale_sizes : bool, optional (default: True)</span>
+<span class="sd">        Rescale sizes of points on scatter plots as well as</span>
+<span class="sd">        secondery structure plotting width based on</span>
+<span class="sd">        overall size of protein</span>
+<span class="sd">    ec_style : dict, optional (default: STYLE_EC)</span>
+<span class="sd">        Style for EC plotting (kwargs to plt.scatter)</span>
+<span class="sd">    monomer_style : dict, optional (default: STYLE_CONTACT)</span>
+<span class="sd">        Style for monomer contact plotting (kwargs to plt.scatter)</span>
+<span class="sd">    multimer_style : dict, optional (default: STYLE_CONTACT_MULTIMER)</span>
+<span class="sd">        Style for multimer contact plotting (kwargs to plt.scatter)</span>
+<span class="sd">    secstruct_style : dict, optional (default: STYLE_SECSTRUCT)</span>
+<span class="sd">        Style for secondary structure plotting</span>
+<span class="sd">        (kwargs to secondary_structure_cartoon())</span>
+<span class="sd">    margin : int, optional (default: 5)</span>
+<span class="sd">        Space to add around contact map</span>
+<span class="sd">    invert_y : bool, optional (default: True)</span>
+<span class="sd">        Invert the y axis of the contact map so both sequences</span>
+<span class="sd">        run from N -to C- terminus starting from top left corner</span>
+<span class="sd">    boundaries : {&quot;union&quot;, &quot;intersection&quot;, &quot;ecs&quot;, &quot;structure&quot;} or tuple or list(tuple, tuple), optional (default: &quot;union&quot;)</span>
+<span class="sd">        Set axis range (min/max) of contact map as follows:</span>
+
+<span class="sd">        * &quot;union&quot;: Positions either in ECs or 3D structure</span>
+<span class="sd">        * &quot;intersection&quot;: Positions both in ECs and 3D structure</span>
+<span class="sd">        * &quot;ecs&quot;: Positions in ECs</span>
+<span class="sd">        * &quot;structure&quot;: Positions in 3D structure</span>
+<span class="sd">        * tuple(float, float): Specify upper/lower bound manually</span>
+<span class="sd">        * [(float, float), (float, float)]: Specify upper/lower bounds</span>
+<span class="sd">          for both x-axis (first tuple) and y-axis (second tuple)</span>
+
+<span class="sd">    symmetric : bool, optional (default: True)</span>
+<span class="sd">        Sets if distance maps and ECs are symmetric (intra-chain or homomultimer),</span>
+<span class="sd">        or not (inter-chain).</span>
+<span class="sd">    ax : Matplotlib Axes object, optional (default: None)</span>
+<span class="sd">        Axes the plot will be drawn on</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ecs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">monomer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">multimer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Need to specify at least one of ecs, monomer or multimer&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+    <span class="c1"># figure out how to set contact map boundaries</span>
+    <span class="p">(</span><span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span><span class="p">),</span> <span class="p">(</span><span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span><span class="p">)</span> <span class="o">=</span> <span class="n">find_boundaries</span><span class="p">(</span>
+        <span class="n">boundaries</span><span class="p">,</span> <span class="n">ecs</span><span class="p">,</span> <span class="n">monomer</span><span class="p">,</span> <span class="n">multimer</span><span class="p">,</span> <span class="n">symmetric</span>
+    <span class="p">)</span>
+
+    <span class="n">set_range</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="p">(</span><span class="n">min_x</span><span class="p">,</span> <span class="n">max_x</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="p">(</span><span class="n">min_y</span><span class="p">,</span> <span class="n">max_y</span><span class="p">),</span>
+        <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="n">margin</span><span class="p">,</span> <span class="n">invert_y</span><span class="o">=</span><span class="n">invert_y</span>
+    <span class="p">)</span>
+
+    <span class="c1"># enable rescaling of points and secondary structure if necessary</span>
+    <span class="k">if</span> <span class="n">scale_sizes</span><span class="p">:</span>
+        <span class="n">scale_func</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">scale</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>        
+        <span class="n">scale_func</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+
+    <span class="c1"># plot monomer contacts</span>
+    <span class="c1"># (distance maps will automatically be symmetric for</span>
+    <span class="c1"># intra/homomultimer, so do not request mirroring)</span>
+    <span class="k">if</span> <span class="n">monomer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plot_pairs</span><span class="p">(</span>
+            <span class="n">monomer</span><span class="o">.</span><span class="n">contacts</span><span class="p">(</span><span class="n">distance_cutoff</span><span class="p">),</span>
+            <span class="n">symmetric</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">scale_func</span><span class="p">(</span><span class="n">monomer_style</span><span class="p">),</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">ax</span>
+        <span class="p">)</span>
+
+    <span class="c1"># plot multimer contacts</span>
+    <span class="c1"># (distance maps will automatically be symmetric for</span>
+    <span class="c1"># intra/homomultimer, so again do not request mirroring)</span>
+    <span class="k">if</span> <span class="n">multimer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plot_pairs</span><span class="p">(</span>
+            <span class="n">multimer</span><span class="o">.</span><span class="n">contacts</span><span class="p">(</span><span class="n">distance_cutoff</span><span class="p">),</span>
+            <span class="n">symmetric</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">scale_func</span><span class="p">(</span><span class="n">multimer_style</span><span class="p">),</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">ax</span>
+        <span class="p">)</span>
+
+    <span class="c1"># plot ECs</span>
+    <span class="c1"># (may be symmetric or not, depending on use case)</span>
+    <span class="k">if</span> <span class="n">ecs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plot_pairs</span><span class="p">(</span>
+            <span class="n">ecs</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="n">symmetric</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">scale_func</span><span class="p">(</span><span class="n">ec_style</span><span class="p">),</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span>
+        <span class="p">)</span>
+
+    <span class="c1"># plot secondary structure</span>
+    <span class="k">if</span> <span class="n">show_secstruct</span><span class="p">:</span>
+        <span class="c1"># if secondary structure given explicitly, use it</span>
+        <span class="k">if</span> <span class="n">secondary_structure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+                <span class="n">secstruct_i</span> <span class="o">=</span> <span class="n">secondary_structure</span>
+                <span class="n">secstruct_j</span> <span class="o">=</span> <span class="n">secondary_structure</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">secondary_structure</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">secondary_structure</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;When symmetric is False, secondary structure must &quot;</span>
+                        <span class="s2">&quot;be a tuple (secstruct_i, secstruct_j).&quot;</span>
+                    <span class="p">)</span>
+                <span class="n">secstruct_i</span><span class="p">,</span> <span class="n">secstruct_j</span> <span class="o">=</span> <span class="n">secondary_structure</span>
+
+            <span class="n">plot_secondary_structure</span><span class="p">(</span>
+                <span class="n">secstruct_i</span><span class="p">,</span> <span class="n">secstruct_j</span><span class="p">,</span>
+                <span class="n">style</span><span class="o">=</span><span class="n">scale_func</span><span class="p">(</span><span class="n">secstruct_style</span><span class="p">),</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># otherwise, see if we can extract it from monomer</span>
+            <span class="c1"># distance map</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">plot_secondary_structure</span><span class="p">(</span>
+                    <span class="n">monomer</span><span class="o">.</span><span class="n">residues_i</span><span class="p">,</span> <span class="n">monomer</span><span class="o">.</span><span class="n">residues_j</span><span class="p">,</span>
+                    <span class="n">style</span><span class="o">=</span><span class="n">scale_func</span><span class="p">(</span><span class="n">secstruct_style</span><span class="p">),</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="c1"># DataFrame has no secondary structure, cannot do anything here</span>
+                <span class="c1"># (this happens when merging across multiple distance maps)</span>
+                <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="plot_pairs"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.plot_pairs">[docs]</a><span class="k">def</span> <span class="nf">plot_pairs</span><span class="p">(</span><span class="n">pairs</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot list of pairs (ECs/contacts)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pairs : pandas.DataFrame</span>
+<span class="sd">        DataFrame with coordinates to plot</span>
+<span class="sd">        (taken from columns i and j). If there</span>
+<span class="sd">        are columns &quot;color&quot; and &quot;size&quot;, these</span>
+<span class="sd">        will be used to assign individual colors</span>
+<span class="sd">        and sizes to the dots in the scatter plot.</span>
+<span class="sd">        If sizes are all &lt;= 1 and &quot;s&quot; is present as a</span>
+<span class="sd">        key in style, values will be treated as fraction</span>
+<span class="sd">        of &quot;s&quot;.</span>
+<span class="sd">    symmetric : bool, optional (default: False)</span>
+<span class="sd">        If true, for each pair (i, j) also plot</span>
+<span class="sd">        pair (j, i). This is for cases where</span>
+<span class="sd">        the input list pairs does not contain</span>
+<span class="sd">        both pairs.</span>
+<span class="sd">    ax : matplotlib Axes object</span>
+<span class="sd">        Axes to plot on</span>
+<span class="sd">    style : dict</span>
+<span class="sd">        Parameters to style pair scatter plot</span>
+<span class="sd">        (passed as **kwargs to matplotlib plt.scatter())</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    paths : list of PathCollection</span>
+<span class="sd">        Scatter plot paths drawn by this function</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">&quot;equal&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">style</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">style</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="s2">&quot;color&quot;</span> <span class="ow">in</span> <span class="n">pairs</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">style</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pairs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;color&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="k">if</span> <span class="s2">&quot;size&quot;</span> <span class="ow">in</span> <span class="n">pairs</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="c1"># if all sizes &lt;= 1, treat as fraction</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pairs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;size &gt; 1&quot;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s2">&quot;s&quot;</span> <span class="ow">in</span> <span class="n">style</span><span class="p">:</span>
+            <span class="n">style</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span> <span class="o">*=</span> <span class="n">pairs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;size&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="c1"># otherwise take as actual value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">style</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pairs</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;size&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="n">path1</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+        <span class="n">pairs</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+        <span class="n">pairs</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+        <span class="o">**</span><span class="n">style</span>
+    <span class="p">)</span>
+
+    <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">path1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+        <span class="n">path2</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+            <span class="n">pairs</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+            <span class="n">pairs</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+            <span class="o">**</span><span class="n">style</span>
+        <span class="p">)</span>
+        <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">paths</span></div>
+
+
+<div class="viewcode-block" id="set_range"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.set_range">[docs]</a><span class="k">def</span> <span class="nf">set_range</span><span class="p">(</span><span class="n">pairs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">invert_y</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set axes ranges for contact map based</span>
+<span class="sd">    on minimal/maximal values in pair list</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pairs : pandas.DataFrame, optional (default: None)</span>
+<span class="sd">        DataFrame with pairs (will be extracted</span>
+<span class="sd">        from columns named &quot;i&quot; and &quot;j&quot; and</span>
+<span class="sd">        converted to integer values and used</span>
+<span class="sd">        to define x- and y-axes, respectively).</span>
+<span class="sd">        If None, if x and y have to be specified.</span>
+<span class="sd">    symmetric : bool, optional (default:True)</span>
+<span class="sd">        If true, will define range on joint set</span>
+<span class="sd">        of values in columns i and j, resulting</span>
+<span class="sd">        in a square contact map</span>
+<span class="sd">    x : tuple(float, float), optional (default: None)</span>
+<span class="sd">        Set x-axis range with this range (min, max).</span>
+<span class="sd">        Will be extended by margin, and overrides any</span>
+<span class="sd">        value for x-axis derived using pairs.</span>
+<span class="sd">    y : tuple(float, float), optional (default: None)</span>
+<span class="sd">        Set y-axis range with this range (min, max)</span>
+<span class="sd">        Will be extended by margin, and overrides any</span>
+<span class="sd">        value for y-axis derived using pairs.</span>
+<span class="sd">    ax : matplotlib Axes object</span>
+<span class="sd">        Axes for which plot range will be changed</span>
+<span class="sd">    margin : int, optional (default: 0)</span>
+<span class="sd">        Add margin of this size around the actual</span>
+<span class="sd">        range defined by the data</span>
+<span class="sd">    invert_y : bool, optional (default: True)</span>
+<span class="sd">        Invert y-axis of contact map</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    x_range : tuple(int, int)</span>
+<span class="sd">        Set range for x-axis</span>
+<span class="sd">    y_range : tuple(int, int)</span>
+<span class="sd">        Set range for y-axis</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If any axis range remains unspecified</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+    <span class="n">x_range</span><span class="p">,</span> <span class="n">y_range</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="c1"># infer plot range from data</span>
+    <span class="k">if</span> <span class="n">pairs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">pairs</span><span class="o">.</span><span class="n">i</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">pairs</span><span class="o">.</span><span class="n">j</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">symmetric</span><span class="p">:</span>
+            <span class="n">x_range</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">min</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">j</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">-</span> <span class="n">margin</span><span class="p">,</span>
+                <span class="nb">max</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">j</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="n">margin</span>
+            <span class="p">)</span>
+            <span class="n">y_range</span> <span class="o">=</span> <span class="n">x_range</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="n">margin</span><span class="p">,</span> <span class="n">i</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="n">margin</span><span class="p">)</span>
+            <span class="n">y_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">-</span> <span class="n">margin</span><span class="p">,</span> <span class="n">j</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="n">margin</span><span class="p">)</span>
+
+    <span class="c1"># Override with user-specified values</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">x_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">margin</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">margin</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">y_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">margin</span><span class="p">,</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">margin</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">x_range</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">y_range</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Axis remained unspecified (make sure to either &quot;</span>
+            <span class="s2">&quot;set pairs pr x_range/y_range) :&quot;</span>
+            <span class="s2">&quot; x: </span><span class="si">{}</span><span class="s2"> y: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">x_range</span><span class="p">,</span> <span class="n">y_range</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># maintain axis inversion</span>
+    <span class="c1"># (which gets undone by setting x/ylim)</span>
+    <span class="n">inverted_x</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">xaxis_inverted</span><span class="p">()</span>
+    <span class="n">inverted_y</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">yaxis_inverted</span><span class="p">()</span>
+
+    <span class="c1"># set new range</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">x_range</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">y_range</span><span class="p">)</span>
+
+    <span class="c1"># recover axis orientation</span>
+    <span class="k">if</span> <span class="n">inverted_x</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">invert_xaxis</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">inverted_y</span> <span class="ow">or</span> <span class="p">(</span><span class="n">invert_y</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">inverted_y</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">invert_yaxis</span><span class="p">()</span>
+
+    <span class="c1"># make sure axis ticks are in right spot</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ax</span><span class="o">.</span><span class="n">yaxis_inverted</span><span class="p">():</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="s2">&quot;top&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_ticks_position</span><span class="p">(</span><span class="s2">&quot;bottom&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">x_range</span><span class="p">,</span> <span class="n">y_range</span></div>
+
+
+<div class="viewcode-block" id="scale"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.scale">[docs]</a><span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="n">style</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scale size of drawn elements based on size</span>
+<span class="sd">    of contact map plot</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+    <span class="n">x_range</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
+    <span class="n">y_range</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()</span>
+
+    <span class="n">L</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="nb">abs</span><span class="p">(</span><span class="n">x_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+        <span class="nb">abs</span><span class="p">(</span><span class="n">y_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="p">)</span>
+    <span class="n">style</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">style</span><span class="p">)</span>
+
+    <span class="c1"># dot size</span>
+    <span class="k">if</span> <span class="s2">&quot;s&quot;</span> <span class="ow">in</span> <span class="n">style</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">style</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">style</span><span class="p">[</span><span class="s2">&quot;s&quot;</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">L</span>
+
+    <span class="c1"># secondary structure width</span>
+    <span class="k">if</span> <span class="s2">&quot;width&quot;</span> <span class="ow">in</span> <span class="n">style</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">style</span><span class="p">[</span><span class="s2">&quot;width&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">style</span><span class="p">[</span><span class="s2">&quot;width&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">L</span> <span class="o">/</span> <span class="mi">100</span>
+
+    <span class="k">return</span> <span class="n">style</span></div>
+
+
+<div class="viewcode-block" id="plot_secondary_structure"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.plot_secondary_structure">[docs]</a><span class="k">def</span> <span class="nf">plot_secondary_structure</span><span class="p">(</span><span class="n">secstruct_i</span><span class="p">,</span> <span class="n">secstruct_j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot secondary structure along contact map.</span>
+
+<span class="sd">    Note: this function should only be used *after* the</span>
+<span class="sd">    orientation of the axes of the plot has been set.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    secstruct_i : dict or pd.DataFrame</span>
+<span class="sd">        Secondary structure for x-axis of plot.</span>
+<span class="sd">        Can be a dictionary of position (int) to</span>
+<span class="sd">        secondary structure character (&quot;H&quot;, &quot;E&quot;, &quot;C&quot;, &quot;-&quot;),</span>
+<span class="sd">        or a DataFrame with columns &quot;id&quot; and &quot;sec_struct_3state&quot;</span>
+<span class="sd">        (as returned by Chain.residues, and DistanceMap.residues_i</span>
+<span class="sd">        and DistanceMap.residues_j).</span>
+<span class="sd">    secstruct_j : dict or pd.DataFrame, optional (default: None)</span>
+<span class="sd">        Secondary structure for y-axis of plot.</span>
+<span class="sd">        See secstruct_i for possible values.</span>
+<span class="sd">        If None, will use secstruct_i for y-axis too</span>
+<span class="sd">        (assuming symmetric contact map).</span>
+<span class="sd">    ax : matplotlib Axes object</span>
+<span class="sd">        Axis to draw secondary structure on</span>
+<span class="sd">    style : dict, optional (default: None)</span>
+<span class="sd">        Parameters that will be passed on as kwargs</span>
+<span class="sd">        to secondary structure drawing function</span>
+<span class="sd">    margin : int, optional (default: None)</span>
+<span class="sd">        Add this much space between contact map</span>
+<span class="sd">        and secondary structure. If None, defaults</span>
+<span class="sd">        to the width of secondary structure * 3.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_extract_secstruct</span><span class="p">(</span><span class="n">secstruct</span><span class="p">,</span> <span class="n">axis_range</span><span class="p">):</span>
+        <span class="c1"># turn into dictionary representation if</span>
+        <span class="c1"># passed as a DataFrame</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">secstruct</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="c1"># first check we actually have a secondary</span>
+            <span class="c1"># structure column</span>
+            <span class="k">if</span> <span class="s2">&quot;sec_struct_3state&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">secstruct</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+            <span class="c1"># do not store any undefined secondary</span>
+            <span class="c1"># structure in dictionary, or NaN</span>
+            <span class="c1"># values will lead to problems</span>
+
+            <span class="n">secstruct</span> <span class="o">=</span> <span class="n">secstruct</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span>
+                <span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sec_struct_3state&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="n">secstruct</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="nb">zip</span><span class="p">(</span>
+                    <span class="n">secstruct</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+                    <span class="n">secstruct</span><span class="o">.</span><span class="n">sec_struct_3state</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># catch case where there is no secondary</span>
+        <span class="c1"># structure at all (e.g. because of dataframe</span>
+        <span class="c1"># full of NaNs)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">secstruct</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1"># make sure we only retain secondary structure</span>
+        <span class="c1"># inside the range of the plot, otherwise</span>
+        <span class="c1"># drawing artifacts occur</span>
+        <span class="n">range_min</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">axis_range</span><span class="p">)</span>
+        <span class="n">range_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">axis_range</span><span class="p">)</span>
+        <span class="n">secstruct</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">i</span><span class="p">:</span> <span class="n">sstr</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">sstr</span><span class="p">)</span> <span class="ow">in</span> <span class="n">secstruct</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">range_min</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">range_max</span>
+        <span class="p">}</span>
+
+        <span class="n">first_pos</span><span class="p">,</span> <span class="n">last_pos</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">secstruct</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">secstruct</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">secstruct_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">secstruct</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">first_pos</span><span class="p">,</span> <span class="n">last_pos</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">segments</span> <span class="o">=</span> <span class="n">find_secondary_structure_segments</span><span class="p">(</span>
+            <span class="n">secstruct_str</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">first_pos</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">segments</span>
+
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">style</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">style</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># make secondary structure symmetric if not given</span>
+    <span class="k">if</span> <span class="n">secstruct_j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">secstruct_j</span> <span class="o">=</span> <span class="n">secstruct_i</span>
+
+    <span class="c1"># get axis ranges to place secondary structure drawings</span>
+    <span class="n">x_range</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
+    <span class="n">y_range</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()</span>
+
+    <span class="c1"># i corresponds to x-axis, j to y-axis</span>
+    <span class="k">if</span> <span class="n">margin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">margin</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">style</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;width&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">margin</span> <span class="o">+=</span> <span class="n">style</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;width&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">start_i</span><span class="p">,</span> <span class="n">end_i</span><span class="p">,</span> <span class="n">segments_i</span> <span class="o">=</span> <span class="n">_extract_secstruct</span><span class="p">(</span><span class="n">secstruct_i</span><span class="p">,</span> <span class="n">x_range</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">segments_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">secondary_structure_cartoon</span><span class="p">(</span>
+            <span class="n">segments_i</span><span class="p">,</span>
+            <span class="o">**</span><span class="p">{</span>
+                <span class="o">**</span><span class="n">style</span><span class="p">,</span>
+                <span class="s2">&quot;center&quot;</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">y_range</span><span class="p">)</span> <span class="o">+</span> <span class="n">margin</span><span class="p">,</span>
+                <span class="s2">&quot;ax&quot;</span><span class="p">:</span> <span class="n">ax</span><span class="p">,</span>
+                <span class="s2">&quot;sequence_start&quot;</span><span class="p">:</span> <span class="n">start_i</span><span class="p">,</span>
+                <span class="s2">&quot;sequence_end&quot;</span><span class="p">:</span> <span class="n">end_i</span><span class="p">,</span>
+                <span class="s2">&quot;horizontal&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+    <span class="n">start_j</span><span class="p">,</span> <span class="n">end_j</span><span class="p">,</span> <span class="n">segments_j</span> <span class="o">=</span> <span class="n">_extract_secstruct</span><span class="p">(</span><span class="n">secstruct_j</span><span class="p">,</span> <span class="n">y_range</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">segments_j</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">secondary_structure_cartoon</span><span class="p">(</span>
+            <span class="n">segments_j</span><span class="p">,</span>
+            <span class="o">**</span><span class="p">{</span>
+                <span class="o">**</span><span class="n">style</span><span class="p">,</span>
+                <span class="s2">&quot;center&quot;</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">x_range</span><span class="p">)</span> <span class="o">+</span> <span class="n">margin</span><span class="p">,</span>
+                <span class="s2">&quot;ax&quot;</span><span class="p">:</span> <span class="n">ax</span><span class="p">,</span>
+                <span class="s2">&quot;sequence_start&quot;</span><span class="p">:</span> <span class="n">start_j</span><span class="p">,</span>
+                <span class="s2">&quot;sequence_end&quot;</span><span class="p">:</span> <span class="n">end_j</span><span class="p">,</span>
+                <span class="s2">&quot;horizontal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="secondary_structure_cartoon"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.secondary_structure_cartoon">[docs]</a><span class="k">def</span> <span class="nf">secondary_structure_cartoon</span><span class="p">(</span>
+        <span class="n">sse</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sequence_start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">sequence_end</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">horizontal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">flip_direction</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">center</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">helix_turn_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">strand_width_factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">line_width</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">min_sse_length</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">clipping</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">helix_color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">strand_color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">coil_color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span>
+        <span class="n">draw_coils</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot a 1D secondary structure cartoon.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sse : list</span>
+<span class="sd">        Secondary structure elements, as returned by</span>
+<span class="sd">        find_secondary_structure_segments(). Tuples</span>
+<span class="sd">        in the list have the form (type, start, end),</span>
+<span class="sd">        where type is either H (helix), E (sheet),</span>
+<span class="sd">        or C (coil/other)</span>
+<span class="sd">    ax: matplotlib Axes object</span>
+<span class="sd">        Axis to draw cartoon on</span>
+<span class="sd">    sequence_start : float, optional (default:0)</span>
+<span class="sd">        Plot coordinate of first position from which</span>
+<span class="sd">        cartoon will be drawn</span>
+<span class="sd">    sequence_end : float, optional (default: None)</span>
+<span class="sd">        Last coordinate up to which cartoon will</span>
+<span class="sd">        be drawn</span>
+<span class="sd">    horizontal : bool, optional (default: True)</span>
+<span class="sd">        If True, draw cartoon horizontally, vertically</span>
+<span class="sd">        otherwise</span>
+<span class="sd">    flip_direction : bool, optional (default: False)</span>
+<span class="sd">        Invert drawing direction (from right to left)</span>
+<span class="sd">    center : float, optional (default: True)</span>
+<span class="sd">        Center plot coordinate along which cartoon</span>
+<span class="sd">        will be drawn</span>
+<span class="sd">    width : float, optional (default: 1)</span>
+<span class="sd">        Width of secondary structure cartoon</span>
+<span class="sd">    helix_turn_length : float, optional (default: 1)</span>
+<span class="sd">        Length for a full helix turn in plot coordinates</span>
+<span class="sd">        (number of residues per sine)</span>
+<span class="sd">    strand_width_factor : float, optional (default: 0.5)</span>
+<span class="sd">        Width of strand relative to full width of cartoon</span>
+<span class="sd">    line_width : float, optional (default: 2)</span>
+<span class="sd">        Line width for drawing</span>
+<span class="sd">    min_sse_length : float, optional (default: 0)</span>
+<span class="sd">        Only draw secondary structure elements with</span>
+<span class="sd">        length greater than this threshold</span>
+<span class="sd">    clipping : bool, optional (default: False)</span>
+<span class="sd">        Clip drawing at plot axis (must be False</span>
+<span class="sd">        to draw outside contact map area)</span>
+<span class="sd">    helix_color : str or tuple, optional (default: &quot;k&quot;)</span>
+<span class="sd">        Matplotlib color to be used for helices</span>
+<span class="sd">    strand_color : str or tuple, optional (default: &quot;k&quot;)</span>
+<span class="sd">        Matplotlib color to be used for beta strands</span>
+<span class="sd">    coil_color : str or tuple, optional (default: &quot;k&quot;)</span>
+<span class="sd">        Matplotlib color to be used for all other positions</span>
+<span class="sd">    draw_coils : bool, optional (Default: True)</span>
+<span class="sd">        If true, draw line for coil segments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transform raw drawing coordinates if</span>
+<span class="sd">        axis or direction is flipped</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="n">x</span> <span class="k">if</span> <span class="n">flip_direction</span> <span class="k">else</span> <span class="n">x</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">horizontal</span> <span class="k">else</span> <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+    <span class="c1"># collect segments that are neither helix nor</span>
+    <span class="c1"># strand - this is important since ends of</span>
+    <span class="c1"># helix segments in plot are not exactly known</span>
+    <span class="c1"># a priori</span>
+    <span class="n">no_ss_segments</span> <span class="o">=</span> <span class="p">[</span><span class="n">sequence_start</span><span class="p">]</span>
+
+    <span class="c1"># draw secondary structure segments one by one</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">ss_type</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="ow">in</span> <span class="n">sse</span><span class="p">:</span>
+        <span class="c1"># do not draw very short elements if chosen</span>
+        <span class="k">if</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">min_sse_length</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">ss_type</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span><span class="p">:</span>  <span class="c1"># alpha helix</span>
+            <span class="c1"># length of segment (do not add 1</span>
+            <span class="c1"># since the number of intervals is</span>
+            <span class="c1"># one less than the number of residues)</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span>
+
+            <span class="c1"># unrounded number of helix turns</span>
+            <span class="n">turns</span> <span class="o">=</span> <span class="n">length</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">helix_turn_length</span><span class="p">)</span>
+
+            <span class="c1"># round up to number of complete turns</span>
+            <span class="c1"># (otherwise helix ends not aligned);</span>
+            <span class="c1"># make sure there is at least one turn,</span>
+            <span class="c1"># or code will crash</span>
+            <span class="n">full_turns</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">turns</span><span class="p">))</span>
+
+            <span class="c1"># mismatch between residues covered by rounded</span>
+            <span class="c1"># number of turns and how many turns the segments</span>
+            <span class="c1"># actually covers</span>
+            <span class="n">overhang</span> <span class="o">=</span> <span class="n">full_turns</span> <span class="o">-</span> <span class="n">turns</span>
+
+            <span class="n">x_sin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">full_turns</span><span class="p">),</span> <span class="n">step</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x_sin</span><span class="p">)</span> <span class="o">*</span> <span class="n">width</span> <span class="o">+</span> <span class="n">center</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="p">(</span><span class="n">x_sin</span> <span class="o">-</span> <span class="n">overhang</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">helix_turn_length</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="o">*</span><span class="n">_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">helix_color</span><span class="p">,</span>
+                <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="n">line_width</span><span class="p">,</span> <span class="n">clip_on</span><span class="o">=</span><span class="n">clipping</span>
+            <span class="p">)</span>
+
+            <span class="c1"># store beginning and end coordinates</span>
+            <span class="c1"># of helix to fill coil in between</span>
+
+            <span class="n">no_ss_segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+            <span class="n">no_ss_segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+
+        <span class="k">elif</span> <span class="n">ss_type</span> <span class="o">==</span> <span class="s2">&quot;E&quot;</span><span class="p">:</span>  <span class="c1"># beta strand</span>
+            <span class="c1"># rectangle part</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">x_t</span><span class="p">,</span> <span class="n">y_t</span> <span class="o">=</span> <span class="n">_transform</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">-</span> <span class="n">width</span><span class="p">],</span>
+                    <span class="p">[</span><span class="n">center</span> <span class="o">-</span> <span class="n">width</span> <span class="o">*</span> <span class="n">strand_width_factor</span><span class="p">,</span>
+                     <span class="n">center</span> <span class="o">+</span> <span class="n">width</span> <span class="o">*</span> <span class="n">strand_width_factor</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">Rectangle</span><span class="p">(</span>
+                        <span class="p">(</span><span class="n">x_t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_t</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                        <span class="n">x_t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y_t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_t</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">edgecolor</span><span class="o">=</span><span class="n">strand_color</span><span class="p">,</span>
+                        <span class="n">facecolor</span><span class="o">=</span><span class="n">strand_color</span><span class="p">,</span>
+                        <span class="n">clip_on</span><span class="o">=</span><span class="n">clipping</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="c1"># triangle part</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">end</span> <span class="o">-</span> <span class="n">width</span><span class="p">,</span> <span class="n">end</span> <span class="o">-</span> <span class="n">width</span><span class="p">,</span> <span class="n">end</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">center</span> <span class="o">-</span> <span class="n">width</span><span class="p">,</span> <span class="n">center</span> <span class="o">+</span> <span class="n">width</span><span class="p">,</span> <span class="n">center</span><span class="p">]</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">Polygon</span><span class="p">(</span>
+                    <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))),</span>
+                    <span class="n">edgecolor</span><span class="o">=</span><span class="n">strand_color</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="n">strand_color</span><span class="p">,</span>
+                    <span class="n">clip_on</span><span class="o">=</span><span class="n">clipping</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="c1"># store beginning and end coordinates</span>
+            <span class="c1"># of strand to fill coil in between</span>
+            <span class="n">no_ss_segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="n">no_ss_segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">ss_type</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">:</span>  <span class="c1"># skip drawing (no data)</span>
+            <span class="n">no_ss_segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="n">no_ss_segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+
+    <span class="c1"># draw coil until given endpoint</span>
+    <span class="k">if</span> <span class="n">sequence_end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">no_ss_segments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sequence_end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># finally, draw all coil segments</span>
+    <span class="k">if</span> <span class="n">draw_coils</span><span class="p">:</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">no_ss_segments</span><span class="p">[::</span><span class="mi">2</span><span class="p">],</span>
+            <span class="n">no_ss_segments</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="n">end</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">center</span><span class="p">,</span> <span class="n">center</span><span class="p">]</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="o">*</span><span class="n">_transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">coil_color</span><span class="p">,</span>
+                    <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="n">line_width</span><span class="p">,</span> <span class="n">clip_on</span><span class="o">=</span><span class="n">clipping</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="find_secondary_structure_segments"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.find_secondary_structure_segments">[docs]</a><span class="k">def</span> <span class="nf">find_secondary_structure_segments</span><span class="p">(</span><span class="n">sse_string</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify segments of secondary structure elements in string</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sse_string : str</span>
+<span class="sd">        String with secondary structure states of sequence</span>
+<span class="sd">        (&quot;H&quot;, &quot;E&quot;, &quot;-&quot;/&quot;C&quot;)</span>
+<span class="sd">    offset : int, optional (default: 0)</span>
+<span class="sd">        Shift start/end indices of segments by this offset</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    start : int</span>
+<span class="sd">        Index of first position (equal to &quot;offset&quot;)</span>
+<span class="sd">    end : int</span>
+<span class="sd">        Index of last position</span>
+<span class="sd">    segments : list</span>
+<span class="sd">        List of tuples with the following elements:</span>
+
+<span class="sd">        1. secondary structure element (str)</span>
+<span class="sd">        2. start position of segment (int)</span>
+<span class="sd">        3. end position of segment, exlusive (int)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sse_string</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Secondary structure string must have length &gt; 0.&quot;</span><span class="p">)</span>
+
+    <span class="n">end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sse_string</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="n">sse_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sse_string</span><span class="p">)</span>
+    <span class="n">change_points</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">))</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">c1</span><span class="p">,</span> <span class="n">c2</span><span class="p">))</span> <span class="ow">in</span>
+        <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">sse_list</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">sse_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+        <span class="k">if</span> <span class="n">c1</span> <span class="o">!=</span> <span class="n">c2</span>
+    <span class="p">]</span>
+
+    <span class="n">segments</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">last_start</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># set s2 for the case of only one continuous segment</span>
+    <span class="n">s2</span> <span class="o">=</span> <span class="n">sse_string</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">))</span> <span class="ow">in</span> <span class="n">change_points</span><span class="p">:</span>
+        <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">s1</span><span class="p">,</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">last_start</span><span class="p">,</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">p</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">last_start</span> <span class="o">=</span> <span class="n">p</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">segments</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">s2</span><span class="p">,</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">last_start</span><span class="p">,</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">offset</span><span class="p">,</span> <span class="n">end</span> <span class="o">+</span> <span class="n">offset</span><span class="p">,</span> <span class="n">segments</span></div>
+
+
+<div class="viewcode-block" id="ec_lines_pymol_script"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.ec_lines_pymol_script">[docs]</a><span class="k">def</span> <span class="nf">ec_lines_pymol_script</span><span class="p">(</span><span class="n">ec_table</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">distance_cutoff</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                          <span class="n">score_column</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Pymol .pml script to visualize ECs on a 3D</span>
+<span class="sd">    structure</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ec_table : pandas.DataFrame</span>
+<span class="sd">        Visualize all EC pairs (columns i, j) in this</span>
+<span class="sd">        table. If a column &quot;dist&quot; exists and distance_cutoff</span>
+<span class="sd">        is defined, will assign different colors based on</span>
+<span class="sd">        the 3D distance of the EC.</span>
+<span class="sd">    output_file : str</span>
+<span class="sd">        File path where to store pml script</span>
+<span class="sd">    distance_cutoff : float, optional (default: 5)</span>
+<span class="sd">        Color ECs with distance above this threshold</span>
+<span class="sd">        as false positives (only possible if a column</span>
+<span class="sd">        &quot;dist&quot; exists in ec_table). If None, will</span>
+<span class="sd">        use one color for all ECs.</span>
+<span class="sd">    score_column : str, optional (default: &quot;cn&quot;)</span>
+<span class="sd">        Use this column in ec_table to adjust radius</span>
+<span class="sd">        of lines. If None, all lines will be drawn</span>
+<span class="sd">        at equal radius.</span>
+<span class="sd">    chain : str, optional (default: None)</span>
+<span class="sd">        Use this PDB chain in residue selection</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># assign line styles</span>
+    <span class="k">for</span> <span class="n">prop</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;dash_radius&quot;</span><span class="p">,</span> <span class="mf">0.345</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;dash_gap&quot;</span><span class="p">,</span> <span class="mf">0.075</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;dash_length&quot;</span><span class="p">,</span> <span class="mf">0.925</span><span class="p">)</span>
+    <span class="p">]:</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="c1"># adjust line width/radius based on score, if selected</span>
+    <span class="k">if</span> <span class="n">score_column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">scaling_factor</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">score_column</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;dash_radius&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ec_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">score_column</span><span class="p">]</span> <span class="o">*</span> <span class="n">scaling_factor</span>
+
+    <span class="k">if</span> <span class="s2">&quot;dist&quot;</span> <span class="ow">in</span> <span class="n">ec_table</span> <span class="ow">and</span> <span class="n">distance_cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">dist</span> <span class="o">&lt;=</span> <span class="n">distance_cutoff</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;green&quot;</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">dist</span> <span class="o">&gt;</span> <span class="n">distance_cutoff</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;red&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;green&quot;</span>
+
+    <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;, chain &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;as cartoon</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain_sel</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;color grey80</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain_sel</span><span class="p">))</span>
+        <span class="n">pymol_pair_lines</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">chain</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="enrichment_pymol_script"><a class="viewcode-back" href="../../../evcouplings.visualize.html#evcouplings.visualize.pairs.enrichment_pymol_script">[docs]</a><span class="k">def</span> <span class="nf">enrichment_pymol_script</span><span class="p">(</span><span class="n">enrichment_table</span><span class="p">,</span> <span class="n">output_file</span><span class="p">,</span>
+                            <span class="n">sphere_view</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Pymol .pml script to visualize EC &quot;enrichment&quot;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    enrichment_table : pandas.DataFrame</span>
+<span class="sd">        Mapping of position (column i) to EC enrichment</span>
+<span class="sd">        (column enrichemnt), as returned by </span>
+<span class="sd">        evcouplings.couplings.pairs.enrichment()</span>
+<span class="sd">    output_file : str</span>
+<span class="sd">        File path where to store pml script</span>
+<span class="sd">    sphere_view : bool, optional (default: True)</span>
+<span class="sd">        If True, create pml that highlights enriched positions</span>
+<span class="sd">        with spheres and color; if False, create pml</span>
+<span class="sd">        that highlights enrichment using b-factor and</span>
+<span class="sd">        &quot;cartoon putty&quot;</span>
+<span class="sd">    chain : str, optional (default: None)</span>
+<span class="sd">        Use this PDB chain in residue selection</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">enrichment_table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;enrichment &gt; 1&quot;</span><span class="p">)</span>
+
+    <span class="c1"># compute boundaries for highly coupled residues</span>
+    <span class="c1"># that will be specially highlighted</span>
+    <span class="n">boundary1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.05</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>  <span class="c1"># top 5%</span>
+    <span class="n">boundary2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">0.15</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>  <span class="c1"># top 15%</span>
+
+    <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;b_factor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">enrichment</span>
+
+    <span class="c1"># set color for &quot;low&quot; enrichment (anything &gt; 1)</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;yelloworange&quot;</span>
+
+    <span class="c1"># high</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">boundary1</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;red&quot;</span>
+
+    <span class="c1"># medium</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">boundary1</span><span class="p">:</span><span class="n">boundary2</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;orange&quot;</span>
+
+    <span class="k">if</span> <span class="n">sphere_view</span><span class="p">:</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">boundary2</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;show&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;spheres&quot;</span>
+
+    <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;, chain &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">chain_sel</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_file</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;as cartoon</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain_sel</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;color grey80</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain_sel</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">chain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;alter all, b=0.0</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;alter chain &#39;</span><span class="si">{}</span><span class="s2">&#39;, b=0.0</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain</span><span class="p">))</span>
+
+        <span class="n">pymol_mapping</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">chain</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">sphere_view</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;cartoon putty</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chain_sel</span><span class="p">))</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,461 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.mutate.calculations &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.mutate.calculations</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.mutate.calculations</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">High-level mutation calculation functions for EVmutation</span>
+
+<span class="sd">.. todo::</span>
+
+<span class="sd">    implement segment handling</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">evcouplings.utils.calculations</span> <span class="k">import</span> <span class="n">entropy_map</span>
+
+
+<span class="n">COMPONENT_TO_INDEX</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;full&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;couplings&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="extract_mutations"><a class="viewcode-back" href="../../../evcouplings.mutate.html#evcouplings.mutate.calculations.extract_mutations">[docs]</a><span class="k">def</span> <span class="nf">extract_mutations</span><span class="p">(</span><span class="n">mutation_string</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Turns a string containing mutations of the format I100V into a list of tuples with</span>
+<span class="sd">    format (100, &#39;I&#39;, &#39;V&#39;) (index, from, to)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mutation_string : str</span>
+<span class="sd">        Comma-separated list of one or more mutations (e.g. &quot;K50R,I100V&quot;)</span>
+<span class="sd">    offset : int, default: 0</span>
+<span class="sd">        Offset to be added to the index/position of each mutation</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list of tuples</span>
+<span class="sd">        List of tuples of the form (index+offset, from, to)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">mutation_string</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;wild&quot;</span><span class="p">,</span> <span class="s2">&quot;wt&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]:</span>
+        <span class="n">mutations</span> <span class="o">=</span> <span class="n">mutation_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">offset</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">mutations</span>
+        <span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span></div>
+
+
+<div class="viewcode-block" id="predict_mutation_table"><a class="viewcode-back" href="../../../evcouplings.mutate.html#evcouplings.mutate.calculations.predict_mutation_table">[docs]</a><span class="k">def</span> <span class="nf">predict_mutation_table</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">table</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="s2">&quot;prediction_epistatic&quot;</span><span class="p">,</span>
+                           <span class="n">mutant_column</span><span class="o">=</span><span class="s2">&quot;mutant&quot;</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Predicts all mutants in a dataframe and adds predictions</span>
+<span class="sd">    as a new column.</span>
+
+<span class="sd">    If mutant_column is None, the dataframe index is used,</span>
+<span class="sd">    otherwise the given column.</span>
+
+<span class="sd">    Mutations which cannot be calculated (e.g. not covered</span>
+<span class="sd">    by alignment, or invalid substitution) using object are</span>
+<span class="sd">    set to NaN.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : CouplingsModel</span>
+<span class="sd">        CouplingsModel instance used to compute mutation</span>
+<span class="sd">        effects</span>
+<span class="sd">    table : pandas.DataFrame</span>
+<span class="sd">        DataFrame with mutants to which delta of</span>
+<span class="sd">        statistical energy will be added</span>
+<span class="sd">    mutant_column: str</span>
+<span class="sd">        Name of column in table that contains mutants</span>
+<span class="sd">    output_column : str</span>
+<span class="sd">        Name of column in returned dataframe that will</span>
+<span class="sd">        contain computed effects</span>
+<span class="sd">    hamiltonian: {&quot;full&quot;, &quot;couplings&quot;, &quot;fields&quot;},</span>
+<span class="sd">            default: &quot;full&quot;</span>
+<span class="sd">        Use full Hamiltonian of exponential model (default),</span>
+<span class="sd">        or only couplings / fields for statistical energy</span>
+<span class="sd">        calculation.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        Dataframe with added column (mutant_column) that contains computed</span>
+<span class="sd">        mutation effects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_predict_mutant</span><span class="p">(</span><span class="n">mutation_str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">extract_mutations</span><span class="p">(</span><span class="n">mutation_str</span><span class="p">)</span>
+            <span class="n">delta_E</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">delta_hamiltonian</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">delta_E</span><span class="p">[</span><span class="n">_component</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="c1"># select Hamiltonian component for prediction</span>
+    <span class="k">if</span> <span class="n">hamiltonian</span> <span class="ow">in</span> <span class="n">COMPONENT_TO_INDEX</span><span class="p">:</span>
+        <span class="n">_component</span> <span class="o">=</span> <span class="n">COMPONENT_TO_INDEX</span><span class="p">[</span><span class="n">hamiltonian</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid selection for hamiltonian. &quot;</span>
+            <span class="s2">&quot;Valid values are: &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">COMPONENT_TO_INDEX</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># make sure there is a target sequence for which we</span>
+    <span class="c1"># can compute statistical energy difference</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">model</span><span class="o">.</span><span class="n">has_target_seq</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;CouplingsModel object does not have a target &quot;</span>
+            <span class="s2">&quot;sequence (non-focus mode). &quot;</span>
+            <span class="s2">&quot;Set target sequence, or rerun inference in focus mode.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># get column which contains mutations</span>
+    <span class="k">if</span> <span class="n">mutant_column</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mutations</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">index</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mutations</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">mutant_column</span><span class="p">]</span>
+
+    <span class="c1"># predict mutations and add to table</span>
+    <span class="n">pred</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">output_column</span><span class="p">]</span> <span class="o">=</span> <span class="n">mutations</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_predict_mutant</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pred</span></div>
+
+
+<div class="viewcode-block" id="single_mutant_matrix"><a class="viewcode-back" href="../../../evcouplings.mutate.html#evcouplings.mutate.calculations.single_mutant_matrix">[docs]</a><span class="k">def</span> <span class="nf">single_mutant_matrix</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_column</span><span class="o">=</span><span class="s2">&quot;prediction_epistatic&quot;</span><span class="p">,</span>
+                         <span class="n">exclude_self_subs</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create table with all possible single substitutions of</span>
+<span class="sd">    target sequence in CouplingsModel object.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : CouplingsModel</span>
+<span class="sd">        Model that will be used to predict single mutants</span>
+<span class="sd">    output_column : str, default: &quot;prediction_epistatic&quot;</span>
+<span class="sd">        Name of column in Dataframe that will contain predictions</span>
+<span class="sd">    exclude_self_subs : bool, default: True</span>
+<span class="sd">        Exclude self-substitutions (e.g. A100A) from results</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        DataFrame with predictions for all single mutants</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cons</span> <span class="o">=</span> <span class="n">entropy_map</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="c1"># iterate all positions and substitutions per position</span>
+    <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">index_list</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">subs</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">alphabet</span><span class="p">:</span>
+            <span class="c1"># do not predict gaps</span>
+            <span class="k">if</span> <span class="n">subs</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">]:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># exclude self-substitutions?</span>
+            <span class="k">if</span> <span class="n">exclude_self_subs</span> <span class="ow">and</span> <span class="n">subs</span> <span class="o">==</span> <span class="n">model</span><span class="o">.</span><span class="n">seq</span><span class="p">(</span><span class="n">pos</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">mutant</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">seq</span><span class="p">(</span><span class="n">pos</span><span class="p">),</span> <span class="n">pos</span><span class="p">,</span> <span class="n">subs</span><span class="p">)</span>
+            <span class="n">wt</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">seq</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;mutant&quot;</span><span class="p">:</span> <span class="n">mutant</span><span class="p">,</span>
+                    <span class="s2">&quot;pos&quot;</span><span class="p">:</span> <span class="n">pos</span><span class="p">,</span>
+                    <span class="s2">&quot;wt&quot;</span><span class="p">:</span> <span class="n">wt</span><span class="p">,</span>
+                    <span class="s2">&quot;subs&quot;</span><span class="p">:</span> <span class="n">subs</span><span class="p">,</span>
+                    <span class="s2">&quot;frequency&quot;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">fi</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">subs</span><span class="p">),</span>
+                    <span class="s2">&quot;column_conservation&quot;</span><span class="p">:</span> <span class="n">cons</span><span class="p">[</span><span class="n">pos</span><span class="p">],</span>
+                    <span class="n">output_column</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">smm</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">subs</span><span class="p">),</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pred</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+        <span class="p">:,</span> <span class="p">[</span><span class="s2">&quot;mutant&quot;</span><span class="p">,</span> <span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="s2">&quot;wt&quot;</span><span class="p">,</span> <span class="s2">&quot;subs&quot;</span><span class="p">,</span> <span class="s2">&quot;frequency&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;column_conservation&quot;</span><span class="p">,</span> <span class="n">output_column</span><span class="p">]</span>
+    <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="split_mutants"><a class="viewcode-back" href="../../../evcouplings.mutate.html#evcouplings.mutate.calculations.split_mutants">[docs]</a><span class="k">def</span> <span class="nf">split_mutants</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mutant_column</span><span class="o">=</span><span class="s2">&quot;mutant&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Splits mutation strings into individual columns in DataFrame</span>
+<span class="sd">    (wild-type symbol(s), position(s), substitution(s), number of mutations).</span>
+<span class="sd">    This function is e.g. helpful when computing average</span>
+<span class="sd">    effects per position using pandas groupby() operations</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    x : pandas.DataFrame</span>
+<span class="sd">        Table with mutants</span>
+<span class="sd">    mutant_column : str, default: &quot;mutant&quot;</span>
+<span class="sd">        Column which contains mutants, set to None</span>
+<span class="sd">        to use index of DataFrame</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DataFrame</span>
+<span class="sd">        DataFrame with added columns &quot;num_subs&quot;, &quot;pos&quot;, &quot;wt&quot;</span>
+<span class="sd">        and &quot;subs&quot; that contain the number of mutations,</span>
+<span class="sd">        and split mutation strings (if higher-order mutations,</span>
+<span class="sd">        symbols/numbers are comma-separated)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_split</span><span class="p">(</span><span class="n">mut_str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">extract_mutations</span><span class="p">(</span><span class="n">mut_str</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="k">def</span> <span class="nf">_join</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">subs</span><span class="p">[</span><span class="n">index</span><span class="p">])</span> <span class="k">for</span> <span class="n">subs</span> <span class="ow">in</span> <span class="n">mutant</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">mutant</span> <span class="ow">in</span> <span class="n">spl</span>
+        <span class="p">]</span>
+
+    <span class="c1"># get column which contains mutations</span>
+    <span class="k">if</span> <span class="n">mutant_column</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mutations</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">index</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mutations</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">mutant_column</span><span class="p">]</span>
+
+    <span class="c1"># extract wt/pos/subs where possible</span>
+    <span class="n">spl</span> <span class="o">=</span> <span class="n">mutations</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_split</span><span class="p">)</span>
+
+    <span class="c1"># then store in individual columns</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s2">&quot;num_mutations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">mutant</span><span class="p">)</span> <span class="k">for</span> <span class="n">mutant</span> <span class="ow">in</span> <span class="n">spl</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">column</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="s2">&quot;pos&quot;</span><span class="p">,</span> <span class="s2">&quot;wt&quot;</span><span class="p">,</span> <span class="s2">&quot;subs&quot;</span><span class="p">]):</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">_join</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">x</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

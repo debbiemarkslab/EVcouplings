@@ -1,0 +1,1460 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.couplings.model &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html">Alignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#couplings-analysis">Couplings Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>evcouplings.couplings.model</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for evcouplings.couplings.model</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Class to store parameters of undirected graphical model of</span>
+<span class="sd">sequences and perform calculations using the model</span>
+<span class="sd">(statistical energies, coupling scores).</span>
+
+<span class="sd">Authors:</span>
+<span class="sd">  Thomas A. Hopf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="c1"># Constants</span>
+
+<span class="n">_SLICE</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">s_</span><span class="p">[:]</span>
+<span class="n">HAMILTONIAN_COMPONENTS</span> <span class="o">=</span> <span class="p">[</span><span class="n">FULL</span><span class="p">,</span> <span class="n">COUPLINGS</span><span class="p">,</span> <span class="n">FIELDS</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+<span class="n">NUM_COMPONENTS</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">HAMILTONIAN_COMPONENTS</span><span class="p">)</span>
+
+
+<span class="c1"># Methods for fast calculations (moved outside of class for numba jit)</span>
+
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_hamiltonians</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">J_ij</span><span class="p">,</span> <span class="n">h_i</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the Hamiltonian of the global probability distribution P(A_1, ..., A_L)</span>
+<span class="sd">    for a given sequence A_1,...,A_L from J_ij and h_i parameters</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sequences : np.array</span>
+<span class="sd">        Sequence matrix for which Hamiltonians will be computed</span>
+<span class="sd">    J_ij: np.array</span>
+<span class="sd">        L x L x num_symbols x num_symbols J_ij pair coupling parameter matrix</span>
+<span class="sd">    h_i: np.array</span>
+<span class="sd">        L x num_symbols h_i fields parameter matrix</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Float matrix of size len(sequences) x 3, where each row corresponds to the</span>
+<span class="sd">        1) total Hamiltonian of sequence and the 2) J_ij and 3) h_i sub-sums</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># iterate over sequences</span>
+    <span class="n">N</span><span class="p">,</span> <span class="n">L</span> <span class="o">=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">NUM_COMPONENTS</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">sequences</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+        <span class="n">hi_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">Jij_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">hi_sum</span> <span class="o">+=</span> <span class="n">h_i</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">L</span><span class="p">):</span>
+                <span class="n">Jij_sum</span> <span class="o">+=</span> <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">A</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+
+        <span class="n">H</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">Jij_sum</span> <span class="o">+</span> <span class="n">hi_sum</span><span class="p">,</span> <span class="n">Jij_sum</span><span class="p">,</span> <span class="n">hi_sum</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">H</span>
+
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_single_mutant_hamiltonians</span><span class="p">(</span><span class="n">target_seq</span><span class="p">,</span> <span class="n">J_ij</span><span class="p">,</span> <span class="n">h_i</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate matrix of all possible single-site substitutions</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    L : int</span>
+<span class="sd">        Length of model</span>
+<span class="sd">    num_symbols : int</span>
+<span class="sd">        Number of states of model</span>
+<span class="sd">    target_seq : np.array(int)</span>
+<span class="sd">        Target sequence for which mutant energy differences will be calculated</span>
+<span class="sd">    J_ij: np.array</span>
+<span class="sd">        L x L x num_symbols x num_symbols J_ij pair coupling parameter matrix</span>
+<span class="sd">    h_i: np.array</span>
+<span class="sd">        L x num_symbols h_i fields parameter matrix</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Float matrix of size L x num_symbols x 3, where the first two dimensions correspond to</span>
+<span class="sd">        Hamiltonian differences compared to target sequence for all possible substitutions in</span>
+<span class="sd">        all positions, and the third dimension corresponds to the deltas of</span>
+<span class="sd">        1) total Hamiltonian and the 2) J_ij and 3) h_i sub-sums</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span> <span class="o">=</span> <span class="n">h_i</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">,</span> <span class="n">NUM_COMPONENTS</span><span class="p">))</span>
+
+    <span class="c1"># iterate over all positions</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+        <span class="c1"># iterate over all substitutions</span>
+        <span class="k">for</span> <span class="n">A_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">):</span>
+            <span class="c1"># iterate over couplings to all other sites</span>
+            <span class="n">delta_hi</span> <span class="o">=</span> <span class="n">h_i</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">A_i</span><span class="p">]</span> <span class="o">-</span> <span class="n">h_i</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+            <span class="n">delta_Jij</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">:</span>
+                    <span class="n">delta_Jij</span> <span class="o">+=</span> <span class="p">(</span>
+                        <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">A_i</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span> <span class="o">-</span>
+                        <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+                    <span class="p">)</span>
+
+            <span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">A_i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">delta_Jij</span> <span class="o">+</span> <span class="n">delta_hi</span><span class="p">,</span> <span class="n">delta_Jij</span><span class="p">,</span> <span class="n">delta_hi</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">H</span>
+
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_delta_hamiltonian</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">,</span> <span class="n">J_ij</span><span class="p">,</span> <span class="n">h_i</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    pos : np.array(int)</span>
+<span class="sd">        Vector of substituted positions</span>
+<span class="sd">    subs : np.array(int)</span>
+<span class="sd">        Vector of symbols above positions are substituted to</span>
+<span class="sd">    target_seq : np.array(int)</span>
+<span class="sd">        Target sequence for which mutant energy differences will be calculated</span>
+<span class="sd">        relative to</span>
+<span class="sd">    J_ij: np.array</span>
+<span class="sd">        L x L x num_symbols x num_symbols J_ij pair coupling parameter matrix</span>
+<span class="sd">    h_i: np.array</span>
+<span class="sd">        L x num_symbols h_i fields parameter matrix</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    np.array</span>
+<span class="sd">        Vector of length 3, where elements correspond to delta of</span>
+<span class="sd">        1) total Hamiltonian and the 2) J_ij and 3) h_i sub-sums</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span> <span class="o">=</span> <span class="n">h_i</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">M</span> <span class="o">=</span> <span class="n">pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">delta_hi</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">delta_Jij</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># iterate over all changed positions</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+        <span class="n">A_i</span> <span class="o">=</span> <span class="n">subs</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+
+        <span class="c1"># change in fields</span>
+        <span class="n">delta_hi</span> <span class="o">+=</span> <span class="n">h_i</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">A_i</span><span class="p">]</span> <span class="o">-</span> <span class="n">h_i</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+
+        <span class="c1"># couplings to all other positions in sequence</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">:</span>
+                <span class="n">delta_Jij</span> <span class="o">+=</span> <span class="p">(</span>
+                    <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">A_i</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span> <span class="o">-</span>
+                    <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+                <span class="p">)</span>
+
+        <span class="c1"># correct couplings between substituted positions:</span>
+        <span class="c1"># 1) do not count coupling twice (remove forward</span>
+        <span class="c1">#     and backward coupling)</span>
+        <span class="c1"># 2) adjust background to new sequence</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">M</span><span class="p">):</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">pos</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+            <span class="n">A_j</span> <span class="o">=</span> <span class="n">subs</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+            <span class="c1"># remove forward and backward coupling delta</span>
+            <span class="n">delta_Jij</span> <span class="o">-=</span> <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">A_i</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+            <span class="n">delta_Jij</span> <span class="o">-=</span> <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">A_j</span><span class="p">]</span>
+            <span class="n">delta_Jij</span> <span class="o">+=</span> <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">target_seq</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+            <span class="c1"># the following line cancels out with line further down:</span>
+            <span class="c1"># delta_Jij += J_ij[i, j, target_seq[i], target_seq[j]]</span>
+
+            <span class="c1"># now add coupling delta once in correct background</span>
+            <span class="n">delta_Jij</span> <span class="o">+=</span> <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">A_i</span><span class="p">,</span> <span class="n">A_j</span><span class="p">]</span>
+            <span class="c1"># following line cancels out with line above:</span>
+            <span class="c1"># delta_Jij -= J_ij[i, j, target_seq[i], target_seq[j]]</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">delta_Jij</span> <span class="o">+</span> <span class="n">delta_hi</span><span class="p">,</span> <span class="n">delta_Jij</span><span class="p">,</span> <span class="n">delta_hi</span><span class="p">])</span>
+
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_zero_sum_gauge</span><span class="p">(</span><span class="n">J_ij</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Transform coupling matrix into zero-sum gauge</span>
+<span class="sd">    (i.e., row and column sums of each ij submatrix are 0)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    J_ij : np.array</span>
+<span class="sd">        Coupling matrix of size L x L x num_symbols x num_symbols</span>
+<span class="sd">        that should be transformed into zero-sum gauge</span>
+<span class="sd">    inplace : bool, optional (default: False)</span>
+<span class="sd">        Modify original matrix (True), or return transformed</span>
+<span class="sd">        matrix in a new matrix</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    J_ij_0 : np.array</span>
+<span class="sd">        J_ij transformed into zero-sum gauge</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">L</span><span class="p">,</span> <span class="n">L2</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">,</span> <span class="n">num_symbols2</span> <span class="o">=</span> <span class="n">J_ij</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">assert</span> <span class="n">L</span> <span class="o">==</span> <span class="n">L2</span> <span class="ow">and</span> <span class="n">num_symbols</span> <span class="o">==</span> <span class="n">num_symbols2</span>
+
+    <span class="k">if</span> <span class="n">inplace</span><span class="p">:</span>
+        <span class="n">J_ij_0</span> <span class="o">=</span> <span class="n">J_ij</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">J_ij_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">,</span> <span class="n">num_symbols</span><span class="p">))</span>
+
+    <span class="c1"># go through all pairs of positions</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">L</span><span class="p">):</span>
+            <span class="n">ij_mat</span> <span class="o">=</span> <span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+
+            <span class="c1"># calculate matrix, row and column averages</span>
+            <span class="n">avg_ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ij_mat</span><span class="p">)</span>
+
+            <span class="c1"># can&#39;t use axis argument of np.mean in numba,</span>
+            <span class="c1"># so have to calculate rows/cols manually</span>
+            <span class="n">avg_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">)</span>
+            <span class="n">avg_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">)</span>
+            <span class="n">ij_mat_T</span> <span class="o">=</span> <span class="n">ij_mat</span><span class="o">.</span><span class="n">T</span>
+
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">):</span>
+                <span class="n">avg_a</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ij_mat</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+                <span class="n">avg_b</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ij_mat_T</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+
+            <span class="c1"># subtract correction terms from each entry</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_symbols</span><span class="p">):</span>
+                    <span class="n">J_ij_0</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">ij_mat</span><span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="o">-</span> <span class="n">avg_a</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">-</span> <span class="n">avg_b</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">+</span> <span class="n">avg_ab</span>
+                    <span class="p">)</span>
+                    <span class="n">J_ij_0</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">J_ij_0</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">J_ij_0</span>
+
+
+<div class="viewcode-block" id="CouplingsModel"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel">[docs]</a><span class="k">class</span> <span class="nc">CouplingsModel</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to store parameters of pairwise undirected graphical model of sequences</span>
+<span class="sd">    and compute evolutionary couplings, sequence statistical energies, etc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="n">file_format</span><span class="o">=</span><span class="s2">&quot;plmc_v2&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the object with raw values read from binary .Jij file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Binary Jij file containing model parameters from plmc software</span>
+<span class="sd">        alphabet : str</span>
+<span class="sd">            Symbols corresponding to model states (e.g. &quot;-ACGT&quot;).</span>
+<span class="sd">        precision : {&quot;float32&quot;, &quot;float64&quot;}, default: &quot;float32&quot;</span>
+<span class="sd">            Sets if input file has single (float32) or double precision (float64)</span>
+<span class="sd">        }</span>
+<span class="sd">        file_format : {&quot;plmc_v2&quot;, &quot;plmc_v1&quot;}, default: &quot;plmc_v2&quot;</span>
+<span class="sd">            File format of parameter file.</span>
+
+<span class="sd">            Note: The use of &quot;plmc_v1&quot; is discouraged and only for backwards</span>
+<span class="sd">            compatibility as this format lacks crucial information about</span>
+<span class="sd">            parameters used by this class. Users are responsible for supplying</span>
+<span class="sd">            the missing values (e.g. regularization strength, alphabet or M_eff)</span>
+<span class="sd">            manually via the respective member variables/properties.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">file_format</span> <span class="o">==</span> <span class="s2">&quot;plmc_v2&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__read_plmc_v2</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">file_format</span> <span class="o">==</span> <span class="s2">&quot;plmc_v1&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__read_plmc_v1</span><span class="p">(</span>
+                <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;alphabet&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Illegal file format </span><span class="si">{}</span><span class="s2">, valid options are:&quot;</span>
+                <span class="s2">&quot;plmc_v2, plmc_v1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">file_format</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span><span class="p">)}</span>
+
+        <span class="c1"># in non-gap mode, focus sequence is still coded with a gap character,</span>
+        <span class="c1"># but gap is not part of model alphabet anymore; so if mapping crashes</span>
+        <span class="c1"># that means there is a non-alphabet character in sequence array</span>
+        <span class="c1"># and therefore there is no focus sequence.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_seq_mapped</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_target_seq</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_seq_mapped</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_seq_mapped</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_target_seq</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset_precomputed</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_reset_precomputed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Delete precomputed values (e.g. mutation matrices)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_single_mut_mat_full</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_double_mut_mat</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cn_scores</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fn_scores</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_raw</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_apc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ecs</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__read_plmc_v2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read updated Jij file format from plmc.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Binary Jij file containing model parameters</span>
+<span class="sd">        precision : {&quot;float32&quot;, &quot;float64&quot;}</span>
+<span class="sd">            Sets if input file has single or double precision</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="c1"># model length, number of symbols, valid/invalid sequences</span>
+            <span class="c1"># and iterations</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_valid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_invalid</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="c1"># theta, regularization weights, and effective number of samples</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_J</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_group</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_eff</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Read alphabet (make sure we get proper unicode rather than byte string)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="s2">&quot;S1&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;U1&quot;</span><span class="p">)</span>
+
+            <span class="c1"># weights of individual sequences (after clustering)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_valid</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_invalid</span>
+            <span class="p">)</span>
+
+            <span class="c1"># target sequence and index mapping, again ensure unicode</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_target_seq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;S1&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;U1&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+
+            <span class="c1"># single site frequencies f_i and fields h_i</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f_i</span><span class="p">,</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)),</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_i</span><span class="p">,</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)),</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+
+            <span class="c1"># pair frequencies f_ij and pair couplings J_ij / J_ij</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="c1"># TODO: could read triangle matrix from file in one block</span>
+            <span class="c1"># like in read_params.m, which would result in faster reading</span>
+            <span class="c1"># but also 50% higher memory usage... for now save memory</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)),</span>
+                        <span class="n">count</span><span class="o">=</span><span class="mi">1</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)),</span>
+                        <span class="n">count</span><span class="o">=</span><span class="mi">1</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">def</span> <span class="nf">__read_plmc_v1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">alphabet</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read original eij/Jij file format from plmc. Use of this old format</span>
+<span class="sd">        is discouraged (see constructor documentation for details)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Binary Jij file containing model parameters</span>
+<span class="sd">        precision : {&quot;float32&quot;, &quot;float64&quot;}</span>
+<span class="sd">            Sets if input file has single or double precision</span>
+<span class="sd">        alphabet : str, default: None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># local definitions of alphabets for backwards compatibility</span>
+        <span class="c1"># better: use v2 file format which includes this information</span>
+        <span class="n">GAP</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
+        <span class="n">ALPHABET_PROTEIN_NOGAP</span> <span class="o">=</span> <span class="s2">&quot;ACDEFGHIKLMNPQRSTVWY&quot;</span>
+        <span class="n">ALPHABET_PROTEIN</span> <span class="o">=</span> <span class="n">GAP</span> <span class="o">+</span> <span class="n">ALPHABET_PROTEIN_NOGAP</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="c1"># model length, number of symbols</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Old format does not have alphabet in file, so need</span>
+            <span class="c1"># to guess it or use user-supplied alphabet.</span>
+            <span class="c1"># if no alphabet is given, try to guess</span>
+            <span class="k">if</span> <span class="n">alphabet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span> <span class="o">==</span> <span class="mi">21</span><span class="p">:</span>
+                    <span class="n">alphabet</span> <span class="o">=</span> <span class="n">ALPHABET_PROTEIN</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span> <span class="o">==</span> <span class="mi">20</span><span class="p">:</span>
+                    <span class="n">alphabet</span> <span class="o">=</span> <span class="n">ALPHABET_PROTEIN_NOGAP</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Could not guess default alphabet for &quot;</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> states, specify alphabet parameter.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># verify if size of given alphabet matches model</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alphabet</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Size of alphabet (</span><span class="si">{}</span><span class="s2">) does not agree with &quot;</span>
+                        <span class="s2">&quot;number of states in model (</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="nb">len</span><span class="p">(</span><span class="n">alphabet</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">alphabet</span><span class="p">))</span>
+
+            <span class="c1"># target sequence and index mapping, again ensure unicode</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_target_seq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;S1&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;U1&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">)</span>
+
+            <span class="c1"># set all the information missing in v1 files to None</span>
+
+            <span class="c1"># valid/invalid sequences, number of iterations</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">N_valid</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">N_invalid</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># theta, regularization weights, and effective number of samples</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambda_h</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambda_J</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lambda_group</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">N_eff</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># weights of individual sequences (after clustering)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># single site frequencies f_i and fields h_i</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f_i</span><span class="p">,</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)),</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_i</span><span class="p">,</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                <span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)),</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+
+            <span class="c1"># pair frequencies f_ij and pair couplings J_ij / J_ij</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                    <span class="n">file_i</span><span class="p">,</span> <span class="n">file_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">!=</span> <span class="n">file_i</span> <span class="ow">or</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">!=</span> <span class="n">file_j</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;Error: column pair indices inconsistent. &quot;</span>
+                            <span class="s2">&quot;Expected: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">; File: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">file_i</span><span class="p">,</span> <span class="n">file_j</span><span class="p">)</span>
+                        <span class="p">)</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)),</span>
+                        <span class="n">count</span><span class="o">=</span><span class="mi">1</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span>
+                        <span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)),</span>
+                        <span class="n">count</span><span class="o">=</span><span class="mi">1</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target_seq</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Target/Focus sequence of model used for delta_hamiltonian</span>
+<span class="sd">        calculations (including single and double mutation matrices)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target_seq</span>
+
+    <span class="nd">@target_seq</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">target_seq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequence</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Define a new target sequence</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sequence : str, or list of chars</span>
+<span class="sd">            Define a new default sequence for relative Hamiltonian</span>
+<span class="sd">            calculations (e.g. energy difference relative to wild-type</span>
+<span class="sd">            sequence). Length of sequence must correspond to model length (self.L)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset_precomputed</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Sequence length inconsistent with model length: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">sequence</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target_seq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_seq_mapped</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_target_seq</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">index_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Target/Focus sequence of model used for delta_hamiltonian</span>
+<span class="sd">        calculations (including single and double mutation matrices)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_list</span>
+
+    <span class="nd">@index_list</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">index_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Define a new number mapping for sequences</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mapping: list of int</span>
+<span class="sd">            Sequence indices of the positions in the model.</span>
+<span class="sd">            Length of list must correspond to model length (self.L)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Mapping length inconsistent with model length: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">mapping</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_index_list</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">)}</span>
+
+        <span class="c1"># update ECs, if they were already calculated</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_ecs&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_ecs</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CouplingsModel.convert_sequences"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.convert_sequences">[docs]</a>    <span class="k">def</span> <span class="nf">convert_sequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequences</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts sequences in string format into internal symbol representation</span>
+<span class="sd">        according to alphabet of model</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sequences : list of str</span>
+<span class="sd">            List of sequences (must have same length and correspond to</span>
+<span class="sd">            model states)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Matrix of size len(sequences) x L of sequences converted to</span>
+<span class="sd">            integer symbols</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">seq_lens</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">sequences</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq_lens</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input sequences have different lengths: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq_lens</span><span class="p">))</span>
+
+        <span class="n">L_seq</span> <span class="o">=</span> <span class="n">seq_lens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">L_seq</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Sequence lengths do not correspond to model length: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">L_seq</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">sequences</span><span class="p">),</span> <span class="n">L_seq</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sequences</span><span class="p">):</span>
+                <span class="n">S</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">s</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid symbol in sequence </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">S</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.hamiltonians"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.hamiltonians">[docs]</a>    <span class="k">def</span> <span class="nf">hamiltonians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sequences</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the Hamiltonians of the global probability distribution P(A_1, ..., A_L)</span>
+<span class="sd">        for the given sequences A_1,...,A_L from J_ij and h_i parameters</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sequences : list of str</span>
+<span class="sd">            List of sequences for which Hamiltonian will be computed,</span>
+<span class="sd">            or converted np.array obtained using convert_sequences method</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Float matrix of size len(sequences) x 3, where each row corresponds to the</span>
+<span class="sd">            1) total Hamiltonian of sequence and the 2) J_ij and 3) h_i sub-sums</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">sequences</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_sequences</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_hamiltonians</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_i</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">single_mut_mat_full</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Hamiltonian difference for all possible single-site variants</span>
+
+<span class="sd">        L x num_symbol x 3 matrix (np.array) containing delta Hamiltonians</span>
+<span class="sd">        for all possible single mutants of target sequence.</span>
+<span class="sd">        Third dimension: 1) full Hamiltonian, 2) J_ij, 3) h_i</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_single_mut_mat_full</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_single_mut_mat_full</span> <span class="o">=</span> <span class="n">_single_mutant_hamiltonians</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target_seq_mapped</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_i</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_single_mut_mat_full</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">single_mut_mat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Hamiltonian difference for all possible single-site variants</span>
+
+<span class="sd">        L x num_symbol matrix (np.array) containing delta Hamiltonians</span>
+<span class="sd">        for all possible single mutants of target sequence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">single_mut_mat_full</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">FULL</span><span class="p">]</span>
+
+<div class="viewcode-block" id="CouplingsModel.delta_hamiltonian"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.delta_hamiltonian">[docs]</a>    <span class="k">def</span> <span class="nf">delta_hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">substitutions</span><span class="p">,</span> <span class="n">verify_mutants</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate difference in statistical energy relative to</span>
+<span class="sd">        self.target_seq by changing sequence according to list of</span>
+<span class="sd">        substitutions</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        substitutions : list of tuple(pos, subs_from, subs_to)</span>
+<span class="sd">            Substitutions to be applied to target sequence</span>
+<span class="sd">        verify_mutants : bool, optional</span>
+<span class="sd">            Test if subs_from is consistent with self.target_seq</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Vector of length 3 with 1) total delta Hamiltonian,</span>
+<span class="sd">            2) delta J_ij, 3) delta h_i</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">substitutions</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+        <span class="n">subs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">substitutions</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">subs_pos</span><span class="p">,</span> <span class="n">subs_from</span><span class="p">,</span> <span class="n">subs_to</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">substitutions</span><span class="p">):</span>
+                <span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_map</span><span class="p">[</span><span class="n">subs_pos</span><span class="p">]</span>
+                <span class="n">subs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">[</span><span class="n">subs_to</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">verify_mutants</span> <span class="ow">and</span> <span class="n">subs_from</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">[</span><span class="n">pos</span><span class="p">[</span><span class="n">i</span><span class="p">]]:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Inconsistency with target sequence: pos=</span><span class="si">{}</span><span class="s2"> target=</span><span class="si">{}</span><span class="s2"> subs=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">subs_pos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">subs_from</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Illegal substitution: </span><span class="si">{}{}{}</span><span class="se">\n</span><span class="s2">Alphabet: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">Positions: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">subs_from</span><span class="p">,</span> <span class="n">subs_pos</span><span class="p">,</span> <span class="n">subs_to</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_delta_hamiltonian</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq_mapped</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_i</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">double_mut_mat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Hamiltonian difference for all possible double mutant variants</span>
+
+<span class="sd">        L x L x num_symbol x num_symbol matrix containing delta Hamiltonians</span>
+<span class="sd">        for all possible double mutants of target sequence</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_double_mut_mat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_double_mut_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">)</span>
+            <span class="p">)</span>
+
+            <span class="n">seq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq_mapped</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_double_mut_mat</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_mut_mat</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_mut_mat</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:,</span> <span class="n">seq</span><span class="p">[</span><span class="n">j</span><span class="p">]],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">T</span> <span class="o">-</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">:],</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span>
+                        <span class="c1"># we are only interested in difference to WT, so normalize</span>
+                        <span class="c1"># for second couplings subtraction with last term</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">seq</span><span class="p">[</span><span class="n">j</span><span class="p">]])</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_double_mut_mat</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_double_mut_mat</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_double_mut_mat</span>
+
+<div class="viewcode-block" id="CouplingsModel.apc"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.apc">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">apc</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">matrix</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply average product correction (Dunn et al., Bioinformatics, 2008)</span>
+<span class="sd">        to matrix</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        matrix : np.array</span>
+<span class="sd">            Symmetric L x L matrix which should be corrected by APC</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            Symmetric L x L matrix with APC correction applied</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">L</span> <span class="o">!=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input matrix is not symmetric: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+
+        <span class="n">col_means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">L</span> <span class="o">/</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">matrix_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span> <span class="o">*</span> <span class="n">L</span> <span class="o">/</span> <span class="p">(</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">apc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
+            <span class="n">col_means</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">col_means</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="n">matrix_mean</span>
+
+        <span class="c1"># subtract APC and blank diagonal entries</span>
+        <span class="n">corrected_matrix</span> <span class="o">=</span> <span class="n">matrix</span> <span class="o">-</span> <span class="n">apc</span>
+        <span class="n">corrected_matrix</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">diag_indices</span><span class="p">(</span><span class="n">L</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">corrected_matrix</span></div>
+
+    <span class="k">def</span> <span class="nf">_calculate_ecs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates FN and CN scores as defined in Ekeberg et al., Phys Rev E, 2013,</span>
+<span class="sd">        as well as MI scores.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># calculate Frobenius norm for each pair of sites (i, j)</span>
+        <span class="c1"># also calculate mutual information</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fn_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">))</span>
+
+        <span class="c1"># transform couplings into zero-sum gauge</span>
+        <span class="n">J_ij_0</span> <span class="o">=</span> <span class="n">_zero_sum_gauge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fn_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">J_ij_0</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="s2">&quot;fro&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_fn_scores</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fn_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+
+                <span class="c1"># mutual information</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f_i</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_i</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_raw</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">p</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">p</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">m</span><span class="p">[</span><span class="n">p</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_raw</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_raw</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+
+        <span class="c1"># apply Average Product Correction (Dunn et al., Bioinformatics, 2008)</span>
+        <span class="c1"># subtract APC and blank diagonal entries</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cn_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fn_scores</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_apc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_raw</span><span class="p">)</span>
+
+        <span class="c1"># create internal dataframe representation</span>
+        <span class="n">ecs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                <span class="c1"># if we have custom indeces, cannot compute sequence distance</span>
+                <span class="c1"># easily, unless we use segment information</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">seqdist</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                    <span class="n">seqdist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+                <span class="n">ecs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">[</span><span class="n">j</span><span class="p">],</span>
+                    <span class="n">seqdist</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_raw</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_apc</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_fn_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cn_scores</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                <span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ecs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="n">ecs</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;A_i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;A_j&quot;</span><span class="p">,</span> <span class="s2">&quot;seqdist&quot;</span><span class="p">,</span> <span class="s2">&quot;mi_raw&quot;</span><span class="p">,</span> <span class="s2">&quot;mi_apc&quot;</span><span class="p">,</span> <span class="s2">&quot;fn&quot;</span><span class="p">,</span> <span class="s2">&quot;cn&quot;</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;cn&quot;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cn_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        L x L numpy matrix with CN (corrected norm) scores</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cn_scores</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_ecs</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cn_scores</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fn_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        L x L numpy matrix with FN (Frobenius norm) scores</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fn_scores</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_ecs</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fn_scores</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mi_scores_raw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        L x L numpy matrix with MI (mutual information) scores</span>
+<span class="sd">        without APC correction</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_raw</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_ecs</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_raw</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mi_scores_apc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        L x L numpy matrix with MI (mutual information) scores</span>
+<span class="sd">        with APC correction</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_apc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_ecs</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mi_scores_apc</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ecs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DataFrame with evolutionary couplings, sorted by CN score</span>
+<span class="sd">        (all scores: CN, FN, MI)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_ecs</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecs</span>
+
+<div class="viewcode-block" id="CouplingsModel.to_independent_model"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.to_independent_model">[docs]</a>    <span class="k">def</span> <span class="nf">to_independent_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Estimate parameters of a single-site model using</span>
+<span class="sd">        Gaussian prior/L2 regularization.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : float</span>
+<span class="sd">            Effective (reweighted) number of sequences</span>
+<span class="sd">        lambda_h : float</span>
+<span class="sd">            Strength of L2 regularization on h_i parameters</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        CouplingsModel</span>
+<span class="sd">            Copy of object turned into independent model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">fmin_bfgs</span>
+
+        <span class="k">def</span> <span class="nf">_log_post</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Log posterior of single-site model</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="n">lambda_h</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span> <span class="o">=</span> <span class="n">args</span>
+            <span class="n">logZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+            <span class="k">return</span> <span class="n">N</span> <span class="o">*</span> <span class="p">(</span><span class="n">logZ</span> <span class="o">-</span> <span class="p">(</span><span class="n">fi</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span> <span class="o">+</span> <span class="n">lambda_h</span> <span class="o">*</span> <span class="p">((</span><span class="n">x</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+
+        <span class="k">def</span> <span class="nf">_gradient</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Gradient of single-site model</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="p">(</span><span class="n">fi</span><span class="p">,</span> <span class="n">lambda_h</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span> <span class="o">=</span> <span class="n">args</span>
+            <span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">P</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">Z</span>
+            <span class="k">return</span> <span class="n">N</span> <span class="o">*</span> <span class="p">(</span><span class="n">P</span> <span class="o">-</span> <span class="n">fi</span><span class="p">)</span> <span class="o">+</span> <span class="n">lambda_h</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span>
+
+        <span class="n">h_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">))</span>
+            <span class="n">h_i</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fmin_bfgs</span><span class="p">(</span>
+                <span class="n">_log_post</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">_gradient</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f_i</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_eff</span><span class="p">),</span>
+                <span class="n">disp</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+
+        <span class="n">c0</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">c0</span><span class="o">.</span><span class="n">h_i</span> <span class="o">=</span> <span class="n">h_i</span>
+        <span class="n">c0</span><span class="o">.</span><span class="n">J_ij</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">c0</span><span class="o">.</span><span class="n">_reset_precomputed</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">c0</span></div>
+
+    <span class="c1"># syntactic sugar to access most important member variables in target numbering space</span>
+
+    <span class="k">def</span> <span class="nf">__map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">mapping</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies a mapping either to a single index, or to a list of indices</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        indices : Iterable, or single item of any type</span>
+<span class="sd">            Items that should be mapped into new space.</span>
+<span class="sd">            Tuples and strings will not be used as an</span>
+<span class="sd">            Iterable, but as single items.</span>
+<span class="sd">        mapping : dict</span>
+<span class="sd">            Mapping into new space</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Iterable, or single item</span>
+<span class="sd">            Items mapped into new space</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_sequence</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span>
+            <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_sequence</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">mapping</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mapping</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__4d_access</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provides shortcut access to column pair properties</span>
+<span class="sd">        (e.g. J_ij or f_ij matrices)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        i : Iterable(int) or int</span>
+<span class="sd">            Position(s) on first matrix axis</span>
+<span class="sd">        j : Iterable(int) or int</span>
+<span class="sd">            Position(s) on second matrix axis</span>
+<span class="sd">        A_i : Iterable(str) or str</span>
+<span class="sd">            Symbols corresponding to first matrix axis</span>
+<span class="sd">        A_j : Iterable(str) or str</span>
+<span class="sd">            Symbols corresponding to second matrix axis</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            4D matrix &quot;matrix&quot; sliced according to values i, j, A_i and A_j</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_SLICE</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_SLICE</span>
+        <span class="n">A_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">A_i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">A_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_SLICE</span>
+        <span class="n">A_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">A_j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">A_j</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_SLICE</span>
+        <span class="k">return</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">A_i</span><span class="p">,</span> <span class="n">A_j</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__2d_access</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provides shortcut access to single-column properties</span>
+<span class="sd">        (e.g. f_i or h_i matrices)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        i : Iterable(int) or int</span>
+<span class="sd">            Position(s) on first matrix axis</span>
+<span class="sd">        A_i : Iterable(str) or str</span>
+<span class="sd">            Symbols corresponding to first matrix axis</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            2D matrix &quot;matrix&quot; sliced according to values i and A_i</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_SLICE</span>
+        <span class="n">A_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">A_i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alphabet_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">A_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_SLICE</span>
+        <span class="k">return</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">A_i</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__2d_access_score_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provides shortcut access to quadratic 2D matrices</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        -----------</span>
+<span class="sd">        i : Iterable(int) or int</span>
+<span class="sd">            Position(s) on first matrix axis</span>
+<span class="sd">        j : Iterable(int) or int</span>
+<span class="sd">            Position(s) on first matrix axis</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array</span>
+<span class="sd">            2D matrix &quot;matrix&quot; sliced according to values i and j</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_SLICE</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_SLICE</span>
+        <span class="k">return</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+
+<div class="viewcode-block" id="CouplingsModel.Jij"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.Jij">[docs]</a>    <span class="k">def</span> <span class="nf">Jij</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quick access to J_ij matrix with automatic index mapping.</span>
+<span class="sd">        See __4d_access for explanation of parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__4d_access</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">A_i</span><span class="p">,</span> <span class="n">A_j</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.fij"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.fij">[docs]</a>    <span class="k">def</span> <span class="nf">fij</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quick access to f_ij matrix with automatic index mapping.</span>
+<span class="sd">        See __4d_access for explanation of parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__4d_access</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">A_i</span><span class="p">,</span> <span class="n">A_j</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.hi"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.hi">[docs]</a>    <span class="k">def</span> <span class="nf">hi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quick access to h_i matrix with automatic index mapping.</span>
+<span class="sd">        See __2d_access for explanation of parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__2d_access</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h_i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">A_i</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.fi"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.fi">[docs]</a>    <span class="k">def</span> <span class="nf">fi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quick access to f_i matrix with automatic index mapping.</span>
+<span class="sd">        See __2d_access for explanation of parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__2d_access</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">f_i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">A_i</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.cn"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.cn">[docs]</a>    <span class="k">def</span> <span class="nf">cn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quick access to cn_scores matrix with automatic index mapping.</span>
+<span class="sd">        See __2d_access_score_matrix for explanation of parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__2d_access_score_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cn_scores</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.fn"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.fn">[docs]</a>    <span class="k">def</span> <span class="nf">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quick access to fn_scores matrix with automatic index mapping.</span>
+<span class="sd">        See __2d_access_score_matrix for explanation of parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__2d_access_score_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn_scores</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.mi_apc"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.mi_apc">[docs]</a>    <span class="k">def</span> <span class="nf">mi_apc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quick access to mi_scores_apc matrix with automatic index mapping.</span>
+<span class="sd">        See __2d_access_score_matrix for explanation of parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__2d_access_score_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mi_scores_apc</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.mi_raw"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.mi_raw">[docs]</a>    <span class="k">def</span> <span class="nf">mi_raw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Quick access to mi_scores_raw matrix with automatic index mapping.</span>
+<span class="sd">        See __2d_access_score_matrix for explanation of parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__2d_access_score_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mi_scores_raw</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.mn"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.mn">[docs]</a>    <span class="k">def</span> <span class="nf">mn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Map model numbering to internal numbering</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : Iterable(int) or int</span>
+<span class="sd">            Position(s) to be mapped from model numbering space</span>
+<span class="sd">            into internal numbering space</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Iterable(int) or int</span>
+<span class="sd">            Remapped position(s)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_map</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_map</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.mui"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.mui">[docs]</a>    <span class="k">def</span> <span class="nf">mui</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Legacy method for backwards compatibility. See self.mn for explanation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mn</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.sn"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.sn">[docs]</a>    <span class="k">def</span> <span class="nf">sn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Map internal numbering to sequence numbering</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : Iterable(int) or int</span>
+<span class="sd">            Position(s) to be mapped from internal numbering space</span>
+<span class="sd">            into sequence numbering space.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Iterable(int) or int</span>
+<span class="sd">            Remapped position(s)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.itu"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.itu">[docs]</a>    <span class="k">def</span> <span class="nf">itu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Legacy method for backwards compatibility. See self.sn for explanation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sn</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.seq"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.seq">[docs]</a>    <span class="k">def</span> <span class="nf">seq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Access target sequence of model</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : Iterable(int) or int</span>
+<span class="sd">            Position(s) for which symbol should be retrieved</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Iterable(char) or char</span>
+<span class="sd">            Sequence symbols</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_map</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__map</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.smm"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.smm">[docs]</a>    <span class="k">def</span> <span class="nf">smm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Access delta_Hamiltonian matrix of single mutants of target sequence</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : Iterable(int) or int</span>
+<span class="sd">            Position(s) for which energy difference should be retrieved</span>
+<span class="sd">        A_i : Iterable(char) or char</span>
+<span class="sd">            Substitutions for which energy difference should be retrieved</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array(float)</span>
+<span class="sd">            2D matrix containing energy differences for slices along both</span>
+<span class="sd">            axes of single mutation matrix (first axis: position, second</span>
+<span class="sd">            axis: substitution).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__2d_access</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">single_mut_mat</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">A_i</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.dmm"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.dmm">[docs]</a>    <span class="k">def</span> <span class="nf">dmm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_i</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A_j</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Access delta_Hamiltonian matrix of double mutants of target sequence</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : Iterable(int) or int</span>
+<span class="sd">            Position(s) of first substitution(s)</span>
+<span class="sd">        j : Iterable(int) or int</span>
+<span class="sd">            Position(s) of second substitution(s)</span>
+<span class="sd">        A_i : Iterable(char) or char</span>
+<span class="sd">            Substitution(s) to first position</span>
+<span class="sd">        A_j : Iterable(char) or char</span>
+<span class="sd">            Substitution(s) to second position</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        np.array(float)</span>
+<span class="sd">            4D matrix containing energy differences for slices along both</span>
+<span class="sd">            axes of double mutation matrix (axes 1/2: position, axis 3/4:</span>
+<span class="sd">            substitutions).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__4d_access</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">double_mut_mat</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">A_i</span><span class="p">,</span> <span class="n">A_j</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CouplingsModel.to_file"><a class="viewcode-back" href="../../../evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel.to_file">[docs]</a>    <span class="k">def</span> <span class="nf">to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out_file</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="n">file_format</span><span class="o">=</span><span class="s2">&quot;plmc_v1&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the potentially modified model again to binary file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        out_file: str</span>
+<span class="sd">            A string specifying the path to a file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">file_format</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;plmc_v2&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_symbols</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">new</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">N_valid</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">N_invalid</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">num_iter</span><span class="p">],</span>
+                         <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">lambda_h</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">lambda_J</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">lambda_group</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">N_eff</span><span class="p">],</span>
+                         <span class="n">dtype</span><span class="o">=</span><span class="n">precision</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="s2">&quot;S1&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span> <span class="o">!=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">)]</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="s2">&quot;U1&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="s2">&quot;S1&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span> <span class="o">!=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">)]</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_seq</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="s2">&quot;U1&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index_list</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">f_i</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_i</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">new</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">f_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">J_ij</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span><span class="o">.</span><span class="n">tofile</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

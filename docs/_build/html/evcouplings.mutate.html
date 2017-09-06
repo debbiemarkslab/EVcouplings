@@ -1,0 +1,440 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>evcouplings.mutate package &mdash; EVcouplings 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="EVcouplings 0.0.1 documentation" href="index.html"/>
+        <link rel="up" title="Alignment" href="evcouplings.html"/>
+        <link rel="next" title="evcouplings.fold package" href="evcouplings.fold.html"/>
+        <link rel="prev" title="evcouplings.couplings package" href="evcouplings.couplings.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> EVcouplings
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html">Alignment</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="evcouplings.html#couplings-analysis">Couplings Analysis</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.compare.html">evcouplings.compare package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.complex.html">evcouplings.complex package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="evcouplings.couplings.html">evcouplings.couplings package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">evcouplings.mutate package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.mutate.calculations">evcouplings.mutate.calculations module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-evcouplings.mutate.protocol">evcouplings.mutate.protocol module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#folding-analysis">Folding Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#visualization">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evcouplings.html#utilities">Utilities</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">EVcouplings</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="evcouplings.html">Alignment</a> &raquo;</li>
+        
+      <li>evcouplings.mutate package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/evcouplings.mutate.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="evcouplings-mutate-package">
+<h1>evcouplings.mutate package<a class="headerlink" href="#evcouplings-mutate-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-evcouplings.mutate.calculations">
+<span id="evcouplings-mutate-calculations-module"></span><h2>evcouplings.mutate.calculations module<a class="headerlink" href="#module-evcouplings.mutate.calculations" title="Permalink to this headline">¶</a></h2>
+<p>High-level mutation calculation functions for EVmutation</p>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">implement segment handling</p>
+</div>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.mutate.calculations.extract_mutations">
+<code class="descclassname">evcouplings.mutate.calculations.</code><code class="descname">extract_mutations</code><span class="sig-paren">(</span><em>mutation_string</em>, <em>offset=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/mutate/calculations.html#extract_mutations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.mutate.calculations.extract_mutations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns a string containing mutations of the format I100V into a list of tuples with
+format (100, ‘I’, ‘V’) (index, from, to)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>mutation_string</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Comma-separated list of one or more mutations (e.g. “K50R,I100V”)</li>
+<li><strong>offset</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a><em>, </em><em>default: 0</em>) – Offset to be added to the index/position of each mutation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tuples of the form (index+offset, from, to)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list of tuples</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.mutate.calculations.predict_mutation_table">
+<code class="descclassname">evcouplings.mutate.calculations.</code><code class="descname">predict_mutation_table</code><span class="sig-paren">(</span><em>model</em>, <em>table</em>, <em>output_column='prediction_epistatic'</em>, <em>mutant_column='mutant'</em>, <em>hamiltonian='full'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/mutate/calculations.html#predict_mutation_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.mutate.calculations.predict_mutation_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predicts all mutants in a dataframe and adds predictions
+as a new column.</p>
+<p>If mutant_column is None, the dataframe index is used,
+otherwise the given column.</p>
+<p>Mutations which cannot be calculated (e.g. not covered
+by alignment, or invalid substitution) using object are
+set to NaN.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model</strong> (<a class="reference internal" href="evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel"><em>CouplingsModel</em></a>) – CouplingsModel instance used to compute mutation
+effects</li>
+<li><strong>table</strong> (<em>pandas.DataFrame</em>) – DataFrame with mutants to which delta of
+statistical energy will be added</li>
+<li><strong>mutant_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of column in table that contains mutants</li>
+<li><strong>output_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) – Name of column in returned dataframe that will
+contain computed effects</li>
+<li><strong>hamiltonian</strong> (<em>{&quot;full&quot;</em><em>, </em><em>&quot;couplings&quot;</em><em>, </em><em>&quot;fields&quot;}</em><em>,</em>) – default: “full”
+Use full Hamiltonian of exponential model (default),
+or only couplings / fields for statistical energy
+calculation.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Dataframe with added column (mutant_column) that contains computed
+mutation effects</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.mutate.calculations.single_mutant_matrix">
+<code class="descclassname">evcouplings.mutate.calculations.</code><code class="descname">single_mutant_matrix</code><span class="sig-paren">(</span><em>model</em>, <em>output_column='prediction_epistatic'</em>, <em>exclude_self_subs=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/mutate/calculations.html#single_mutant_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.mutate.calculations.single_mutant_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create table with all possible single substitutions of
+target sequence in CouplingsModel object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>model</strong> (<a class="reference internal" href="evcouplings.couplings.html#evcouplings.couplings.model.CouplingsModel" title="evcouplings.couplings.model.CouplingsModel"><em>CouplingsModel</em></a>) – Model that will be used to predict single mutants</li>
+<li><strong>output_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>default: &quot;prediction_epistatic&quot;</em>) – Name of column in Dataframe that will contain predictions</li>
+<li><strong>exclude_self_subs</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a><em>, </em><em>default: True</em>) – Exclude self-substitutions (e.g. A100A) from results</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">DataFrame with predictions for all single mutants</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.mutate.calculations.split_mutants">
+<code class="descclassname">evcouplings.mutate.calculations.</code><code class="descname">split_mutants</code><span class="sig-paren">(</span><em>x</em>, <em>mutant_column='mutant'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/mutate/calculations.html#split_mutants"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.mutate.calculations.split_mutants" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits mutation strings into individual columns in DataFrame
+(wild-type symbol(s), position(s), substitution(s), number of mutations).
+This function is e.g. helpful when computing average
+effects per position using pandas groupby() operations</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>pandas.DataFrame</em>) – Table with mutants</li>
+<li><strong>mutant_column</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a><em>, </em><em>default: &quot;mutant&quot;</em>) – Column which contains mutants, set to None
+to use index of DataFrame</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">DataFrame with added columns “num_subs”, “pos”, “wt”
+and “subs” that contain the number of mutations,
+and split mutation strings (if higher-order mutations,
+symbols/numbers are comma-separated)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">pandas.DataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-evcouplings.mutate.protocol">
+<span id="evcouplings-mutate-protocol-module"></span><h2>evcouplings.mutate.protocol module<a class="headerlink" href="#module-evcouplings.mutate.protocol" title="Permalink to this headline">¶</a></h2>
+<p>Sequence statistical energy and mutation effect computation
+protocols</p>
+<dl class="docutils">
+<dt>Authors:</dt>
+<dd>Thomas A. Hopf</dd>
+</dl>
+<dl class="function">
+<dt id="evcouplings.mutate.protocol.run">
+<code class="descclassname">evcouplings.mutate.protocol.</code><code class="descname">run</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/mutate/protocol.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.mutate.protocol.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run mutation protocol</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – protocol: EC protocol to run
+prefix: Output prefix for all generated files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of stage
+(see individual protocol for fields)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="evcouplings.mutate.protocol.standard">
+<code class="descclassname">evcouplings.mutate.protocol.</code><code class="descname">standard</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/evcouplings/mutate/protocol.html#standard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#evcouplings.mutate.protocol.standard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Protocol:
+Compare ECs for single proteins (or domains)
+to 3D structure information</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs arguments</strong> (<em>Mandatory</em>) – See list below in code where calling check_required</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>outcfg</strong> – Output configuration of the pipeline, including
+the following fields:<ul class="simple">
+<li>mutation_matrix_file</li>
+<li>[mutation_dataset_predicted_file]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="https://docs.python.org/2/library/stdtypes.html#dict" title="(in Python v2.7)">dict</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="evcouplings.fold.html" class="btn btn-neutral float-right" title="evcouplings.fold package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="evcouplings.couplings.html" class="btn btn-neutral" title="evcouplings.couplings package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Hopf.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
