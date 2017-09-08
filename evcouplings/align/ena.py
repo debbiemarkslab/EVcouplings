@@ -15,18 +15,9 @@ from collections import defaultdict
 from evcouplings.align.ids import retrieve_sequence_ids
 import pandas as pd
 
-def _split_annotation_string(annotation_string):
-    # reformat the ena string as a list of tuples
 
-    full_annotation = [
-        tuple(x.split(":")) for x in
-        annotation_string.split(",")
-    ]  # list of lists in format [read,cds]
-
-    return full_annotation
-
-def extract_uniprot_to_embl(alignment_file,
-                            uniprot_to_embl_table):
+def extract_cds_ids(alignment_file,
+                    uniprot_to_embl_table):
     """
     Extracts mapping from set of Uniprot IDs to EMBL 
     Coding DNA sequence (CDS) from precomputed ID mapping table. 
@@ -43,9 +34,22 @@ def extract_uniprot_to_embl(alignment_file,
 
     Returns
     -------
-    CDS
+    list of str
+        A list CDS ids that correspond to 
+        the uniprot IDs in the alignment file. 
+        Note these are not ordered as the alignment IDs.
 
     """
+
+    def _split_annotation_string(annotation_string):
+        # reformat the ena string as a list of tuples
+
+        full_annotation = [
+            tuple(x.split(":")) for x in
+            annotation_string.split(",")
+        ]  # list of lists in format [read,cds]
+
+        return full_annotation
 
     def _remove_redundant_genomes(genome_and_cds):
 
@@ -58,14 +62,14 @@ def extract_uniprot_to_embl(alignment_file,
 
             count_reads = defaultdict(list)
 
-            for read, cds in full_annotation:
-                count_reads[cds].append(read)
+            for genome, cds in full_annotation:
+                count_reads[cds].append(genome)
 
-            # check how many reads are associated with a particular CDS,
-            # only keep CDSs that can be matched to *one* read
-            for cds, reads in count_reads.items():
-                if len(reads) == 1:
-                    filtered_genome_and_cds.append((reads[0], cds))
+            # check how many genomes are associated with a particular CDS,
+            # only keep CDSs that can be matched to *one* genome
+            for cds, genomes in count_reads.items():
+                if len(genomes) == 1:
+                    filtered_genome_and_cds.append((genomes[0], cds))
 
         return filtered_genome_and_cds
 
@@ -92,15 +96,19 @@ def extract_uniprot_to_embl(alignment_file,
     # clean the uniprot to embl hits
     filtered_genome_and_cds = _remove_redundant_genomes(genome_and_cds)
 
-    # store mapping information for alignment to file
-    return filtered_genome_and_cds
+    # extract just the CDS
+    cds = [x for _,x in filtered_genome_and_cds]
 
-def extract_embl_annotation(uniprot_to_embl,
+    # store mapping information for alignment to file
+    return cds
+
+def extract_embl_annotation(cds_target_ids,
                             ena_genome_location_table,
                             genome_location_filename):
+
     """
-    Reads coding DNA sequence (CDS) genomic location information
-    for all entries mapped from Uniprot to EMBL; writes that
+    Reads genomic location information
+    for all input EMBL coding DNA sequences (CDS); writes that
     information to a csv file with the following columns:
 
     cds_id, genome_id, uniprot_ac, gene_start, gene_end
@@ -110,10 +118,10 @@ def extract_embl_annotation(uniprot_to_embl,
     
     Parameters
     ----------
-    uniprot_to_embl: str
-        Path to Uniprot to EMBL mapping file
+    cds_target_ids : list of str
+        A list of CDS ids for which to extract genome location
     ena_genome_location_table : str
-        Path to ENA genome location database table which is a 
+        Path to ENA genome location database table, which is a 
         a tsv file with the following columns:
         cds_id, genome_id, uniprot_ac, genome_start, genome_end
     genome_location_filename : str
@@ -122,11 +130,9 @@ def extract_embl_annotation(uniprot_to_embl,
 
     """
 
-    # initialize values
-    print(uniprot_to_embl)
-    cds_target_ids = [x for _,x in uniprot_to_embl]
-    print(cds_target_ids)
-    embl_cds_to_annotation = []
+    # initialize list of list
+    # will contain [[CDS,genome_id,uniprot_ac,gene_start,gene_end]]
+    embl_cds_annotation = [] 
 
     # extract the annotation
     with open(ena_genome_location_table) as inf:
@@ -136,14 +142,12 @@ def extract_embl_annotation(uniprot_to_embl,
             )
 
             if cds_id in cds_target_ids:
-                print('hi')
-                embl_cds_to_annotation.append([
+                embl_cds_annotation.append([
                     cds_id, genome_id, uniprot_id, start, end
                 ])
-    print(cds_id,genome_id,uniprot_id,start,end)
-    print(embl_cds_to_annotation)
-    genome_location_table = pd.DataFrame(embl_cds_to_annotation,columns=[
-        'cds','genome_id','uniprot_ac','gene_start','gene_end'
+
+    genome_location_table = pd.DataFrame(embl_cds_annotation,columns=[
+        "cds","genome_id","uniprot_ac","gene_start","gene_end"
     ])
 
     # write the annotation

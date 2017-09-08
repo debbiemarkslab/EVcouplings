@@ -3,6 +3,7 @@ Protein sequence alignment creation protocols/workflows.
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (complex protocol)
 """
 
 from collections import OrderedDict, Iterable
@@ -33,7 +34,7 @@ from evcouplings.utils.system import (
 
 from evcouplings.align.ena import (
     extract_embl_annotation,
-    extract_uniprot_to_embl
+    extract_cds_ids
 )
 
 
@@ -1182,17 +1183,17 @@ def complex(**kwargs):
             annotation_data = pd.read_csv(kwargs["override_annotation_file"])
             annotation_data.to_csv(outcfg["annotation_file"])
 
-    # extract uniprot to EMBL ID mapping
-    uniprot_to_embl = extract_uniprot_to_embl(
+    # extract cds identifiers for alignment uniprot IDs
+    cds_ids = extract_cds_ids(
         outcfg["alignment_file"],
         kwargs["uniprot_to_embl_table"]
     )
-    print(uniprot_to_embl)
-    # extract EMBL ID to genome location information from ENA
+    print(cds_ids)
+    # extractgenome location information from ENA
     genome_location_filename = prefix + "_genome_location.csv"
 
     extract_embl_annotation(
-        uniprot_to_embl,
+        cds_ids,
         kwargs["ena_genome_location_table"],
         genome_location_filename
     )

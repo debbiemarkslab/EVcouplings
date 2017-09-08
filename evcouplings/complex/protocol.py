@@ -3,8 +3,6 @@ Protocols for matching putatively interacting sequences
 in protein complexes to create a concatenated sequence
 alignment
 
-# TODO: this needs considerably more comments in the code
-
 Authors:
   Thomas A. Hopf
   Anna G. Green
@@ -191,19 +189,20 @@ def genome_distance(**kwargs):
     outcfg : dict
         Output configuration of the pipeline, including
         the following fields:
-F
-        alignment_file
-        raw_alignment_file
-        focus_mode
-        focus_sequence
-        segments
-        frequencies_file
-        identities_file
-        num_sequences
-        num_sites
-        raw_focus_alignment_file
-        statistics_file
+
+        * alignment_file
+        * raw_alignment_file
+        * focus_mode
+        * focus_sequence
+        * segments
+        * frequencies_file
+        * identities_file
+        * num_sequences
+        * num_sites
+        * raw_focus_alignment_file
+        * statistics_file
     """
+
     check_required(
         kwargs,
         [
@@ -218,7 +217,7 @@ F
 
     prefix = kwargs["prefix"]
 
-    # make sure input alignments
+    # make sure input alignments exist
     verify_resources(
         "Input alignment does not exist",
         kwargs["first_alignment_file"], kwargs["second_alignment_file"]
@@ -227,19 +226,21 @@ F
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    def _load_monomer_information(alignment, genome_location_filename):
-        seq_ids_ali, id_to_header = retrieve_sequence_ids(open(alignment))
-
-        gene_location_table = pd.read_csv(genome_location_filename,header=0)
-
-        return seq_ids_ali, id_to_header, gene_location_table
-
     # load the information for each monomer alignment
     alignment_1 = kwargs["first_alignment_file"]
     alignment_2 = kwargs["second_alignment_file"]
 
     genome_location_filename_1 = kwargs["first_genome_location_file"]
     genome_location_filename_2 = kwargs["second_genome_location_file"]
+
+    def _load_monomer_information(alignment, genome_location_filename):
+        # load the ids and full headers from the sequence alignment
+        seq_ids_ali, id_to_header = retrieve_sequence_ids(open(alignment))
+
+        # load the previously computed table of CDS locations
+        gene_location_table = pd.read_csv(genome_location_filename,header=0)
+
+        return seq_ids_ali, id_to_header, gene_location_table
 
     seq_ids_ali_1, id_to_header_1, gene_location_table_1 = \
         _load_monomer_information(
@@ -329,8 +330,8 @@ F
     outcfg["distance_plot_file"]=prefix + "_distplot.pdf"
     plot_distance_distribution(id_pairing_unfiltered, outcfg["distance_plot_file"])
 
+    # calculate some basic statistics on the concatenated alignment
     outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
-
     describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
                       kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],
                       outcfg["concatentation_statistics_file"])
@@ -397,7 +398,10 @@ def best_hit(**kwargs):
                            identities_file,
                            target_sequence,
                            alignment_file):
+
         id_to_organism = read_annotation_file(annotations_file)
+        # This dictionary maps identifiers used to calculate pairing
+        # to identifiers that will be used
         id_to_header = {x: [x] for x in id_to_organism.keys()}
 
         # TODO: fix this so that we don"t assume target sequence is the first sequence
