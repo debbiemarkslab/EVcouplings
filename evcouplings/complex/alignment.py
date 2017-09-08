@@ -25,9 +25,9 @@ def write_concatenated_alignment(id_pairing,
     
     Parameters
     ----------
-    id_pairing : list of tuple
-        List of tuples of paired sequence identifiers that should
-        be concatenated
+    id_pairing : pd.DataFrame
+        dataframe with columns uniprot_id_1 and uniprot_id_2
+        indicating the pairs of sequences to be concatenated
     id_to_full_header_1 : dict (str to list of str)
         Sequence identifiers pointing to list of full headers in
         the alignment corresponding to that sequence identifier
@@ -160,7 +160,7 @@ def write_concatenated_alignment(id_pairing,
     target_seq_idx = 0
 
     # create other headers and sequences
-    for id1, id2 in id_pairing:
+    for id1, id2 in zip(id_pairing.uniprot_id_1,id_pairing.uniprot_id_2):
         full_header_1 = _get_full_header(
             id1, id_to_full_header_1, ali_1, target_full_header_1
         )

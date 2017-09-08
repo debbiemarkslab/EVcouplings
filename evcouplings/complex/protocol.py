@@ -26,15 +26,12 @@ from evcouplings.align.protocol import modify_alignment
 from evcouplings.align.alignment import Alignment
 from evcouplings.align.ids import retrieve_sequence_ids
 
-from evcouplings.align.ena import (
-    load_uniprot_to_embl, load_embl_to_annotation
-)
 from evcouplings.complex.alignment import (
     write_concatenated_alignment
 )
 from evcouplings.complex.distance import (
     find_possible_partners, best_reciprocal_matching,
-    filter_ids_by_distance, plot_distance_distribution
+    plot_distance_distribution
 )
 from evcouplings.complex.similarity import (
     read_identity_file,
@@ -45,14 +42,28 @@ from evcouplings.complex.similarity import (
 
 
 def describe_concatenation(annotation_file_1, annotation_file_2,
-                           uniprot_to_embl_filename_1, uniprot_to_embl_filename_2,
                            genome_location_filename_1, genome_location_filename_2,
                            outfile):
     """
-    Runs sanity check on a concatenated sequence alignment and
-    describes properties of concatenated alignment
-    
-    # TODO: needs more comments on what is calculated
+    Describes properties of concatenated alignment. 
+
+    Writes a csv with the following columns
+
+    num_seqs_1 : number of sequences in the first monomer alignment
+    num_seqs_2 : number of sequences in the second monomer alignment
+    num_nonred_species_1 : number of unique species annotations in the 
+        first monomer alignment
+    num_nonred_species_2 : number of unique species annotations in the 
+        second monomer alignment
+    num_species_overlap: number of unique species found in both alignments
+    median_num_per_species_1 : median number of paralogs per species in the 
+        first monomer alignmment
+    median_num_per_species_2 : median number of paralogs per species in 
+        the second monomer alignment
+    num_with_embl_cds_1 : number of IDs for which we found an EMBL CDS in the 
+        first monomer alignment (relevant to distance concatention only)
+    num_with_embl_cds_2 : number of IDs for which we found an EMBL CDS in the 
+        first monomer alignment (relevant to distance concatention only)
     
     Parameters
     ----------
@@ -60,10 +71,6 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         Path to annotation.csv file for first monomer alignment
     annotation_file_2 : str
         Path to annotation.csv file for second monomer alignment
-    uniprot_to_embl_filename_1 : str
-        Path to Uniprot to EMBL mapping file for first alignment
-    uniprot_to_embl_filename_2 : str
-        Path to Uniprot to EMBL mapping file for second alignment
     genome_location_filename_1 : str
         Path to Uniprot to CDS genome location mapping file for
         first alignment
@@ -73,20 +80,8 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
     outfile: str
         Path to output file
     """
-    
-    def _calculate_total_theoretical(annotations_1, annotations_2,
-                                     overlap_species):
-        total_theoretical = 0
-        species_count_1 = Counter(annotations_1.values())
-        species_count_2 = Counter(annotations_2.values())
-        for identifier in overlap_species:
-            n_1 = species_count_1[identifier]
-            n_2 = species_count_2[identifier]
-            total_theoretical += min(n_1, n_2)
 
-        return total_theoretical
-    
-    # number of species in the alignment
+    # load the annotations for each alignment
     annotations_1 = read_annotation_file(
         annotation_file_1
     )
@@ -95,9 +90,12 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         annotation_file_2
     )
     
+    #calculate the number of sequences found in each alignment
     num_seqs_1 = len(annotations_1)
     num_seqs_2 = len(annotations_2)
     
+    #calculate the number of species found in each alignment
+    #where a species is defined as a unique OS or Tax annotation field
     nonredundant_annotations_1 = len(
         list(set(annotations_1.values()))
     )
@@ -106,18 +104,15 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         list(set(annotations_2.values()))
     )
 
+    #calculate the number of overlapping species
     species_overlap = list(
         set(annotations_1.values()).intersection(
             set(annotations_2.values())
         )
     )
-
     n_species_overlap = len(species_overlap)
     
-    total_theoretical = _calculate_total_theoretical(
-        annotations_1, annotations_2, species_overlap
-    )
-    
+    #calculate the median number of paralogs per species
     n_paralogs_1 = float(
         np.median(list(Counter(annotations_1.values()).values()))
     )
@@ -126,31 +121,23 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         np.median(list(Counter(annotations_2.values()).values()))
     )
     
-    # genome distance
-    if uniprot_to_embl_filename_1 is not None:
-        embl_to_annotation_1 = load_embl_to_annotation(
-            genome_location_filename_1
-        )
+    # If the user provided genome location files, calculate the number
+    # of ids for which we found an embl CDS
+    if genome_location_filename_1 is not None and \
+        genome_location_filename_2 is not None:
 
-        embl_to_annotation_2 = load_embl_to_annotation(
-            genome_location_filename_2
-        )
+        genome_location_table_1 = pd.read_csv(genome_location_filename_1)
+        genome_location_table_2 = pd.read_csv(genome_location_filename_2)
 
-        embl_seq1 = len([x for x in embl_to_annotation_1.keys()])
-        embl_seq2 = len([x for x in embl_to_annotation_2.keys()])
+        #Number uniprot IDs with EMBL CDS that is not NA
+        genome_location_table_1 = genome_location_table_1.dropna(inplace=True)
+        genome_location_table_2 = genome_location_table_2.dropna(inplace=True)
+        embl_cds1 = len(list(set(genome_location_filename_1.uniprot_ac)))
+        embl_cds2 = len(list(set(genome_location_filename_2.uniprot_ac)))
 
-        embl_cds1 = len(
-            [x[0] for x in embl_to_annotation_1.values() if len(x[0]) > 1]
-        )
-
-        embl_cds2 = len(
-            [x[0] for x in embl_to_annotation_2.values() if len(x[0]) > 1]
-        )
     else:
         embl_cds1 = None
         embl_cds2 = None
-        embl_seq1 = None
-        embl_seq2 = None
 
     concatenation_data = [
         num_seqs_1,
@@ -158,11 +145,8 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         nonredundant_annotations_1,
         nonredundant_annotations_2,
         n_species_overlap,
-        total_theoretical,
         n_paralogs_1,
         n_paralogs_2,
-        embl_seq1,
-        embl_seq2,
         embl_cds1,
         embl_cds2,
     ]
@@ -173,11 +157,8 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         "num_nonred_species_1",
         "num_nonred_species_2",
         "num_species_overlap",
-        "max_concatenation",
         "median_num_per_species_1",
         "median_num_per_species_2",
-        "num_with_embl_annot_1",
-        "num_with_embl_annot_2",
         "num_with_embl_cds_1",
         "num_with_embl_cds_2",
     ]
@@ -271,7 +252,7 @@ F
             alignment_2,
             genome_location_filename_2
         )
-
+    print(gene_location_table_1.head())
     id_to_header_1[kwargs["first_focus_sequence"]] = [kwargs["first_focus_sequence"]]
     id_to_header_2[kwargs["second_focus_sequence"]] = [kwargs["second_focus_sequence"]]
 
@@ -284,19 +265,19 @@ F
     )
 
     # find the best reciprocal matches
-    id_pairing_unfiltered, id_pair_to_distance = best_reciprocal_matching(possible_partners)
+    id_pairing_unfiltered = best_reciprocal_matching(possible_partners)
 
     # filter best reciprocal matches by genome distance threshold
-
-    id_pairing = filter_ids_by_distance(
-        id_pairing_unfiltered,
-        id_pair_to_distance,
-        kwargs["genome_distance_threshold"]
-    )
+    if kwargs["genome_distance_threshold"]:
+        distance_threshold = kwargs['genome_distance_threshold']
+        id_pairing = id_pairing_unfiltered.query("distance < @distance_threshold")
+    else:
+        id_pairing = id_pairing_unfiltered
 
     raw_alignment_file = prefix + "_raw.fasta"
 
     # write concatenated alignment with distance filtering
+    id_pair_tuples = zip(id_pairing["uniprot_id_1"],id_pairing["uniprot_id_2"])
     target_seq_id, target_seq_index = write_concatenated_alignment(
         id_pairing,
         id_to_header_1,
@@ -346,15 +327,11 @@ F
 
     # plot the genome distance distribution
     outcfg["distance_plot_file"]=prefix + "_distplot.pdf"
-    plot_distance_distribution(id_pair_to_distance, outcfg["distance_plot_file"])
-
-    alignment_1 = kwargs["first_alignment_file"]
-    alignment_2 = kwargs["second_alignment_file"]
+    plot_distance_distribution(id_pairing_unfiltered, outcfg["distance_plot_file"])
 
     outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
 
     describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
-                      kwargs["first_embl_mapping_file"],kwargs["second_embl_mapping_file"],
                       kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],
                       outcfg["concatentation_statistics_file"])
 
@@ -503,7 +480,6 @@ def best_hit(**kwargs):
 
     outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
     describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
-                      kwargs["first_embl_mapping_file"],kwargs["second_embl_mapping_file"],
                       kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],
                       outcfg["concatentation_statistics_file"])
 
@@ -584,8 +560,8 @@ def best_reciprocal_hit(**kwargs):
         '''
 
 
-        annotations = pd.read_csv(annotation_file)
-        base_query = query_id.split('/')[0]
+        annotations = pd.read_csv(annotation_file,na_values=None)
+        base_query = query_id.split("/")[0]
 
         identities = read_identity_file(identity_file)
 
@@ -594,21 +570,28 @@ def best_reciprocal_hit(**kwargs):
             self_hit_row = annotations[[True if base_query in x else False
                                         for x in list(annotations.id)]
             ]
-            self_hit_annotation = self_hit_row.iloc[-1, :]['OS']
+            self_hit_annotation = self_hit_row.iloc[-1, :]["OS"]
             paralogs = list(annotations[annotations.OS == self_hit_annotation].id)
 
         # if it's uniref, extract based on having the same RepID
         else:
-            paralogs = list(annotations.iloc[0, :].id)
-            paralogs += annotations[annotations.RepID == base_query].id
+            self_hit_annotation = base_query.split("_")[1]
+            paralogs = [annotations.iloc[0, :].id]
+            annots = [""]+list(annotations.RepID)[1::]
+            paralog_rows = annotations[[True if self_hit_annotation in x else False
+                                        for x in annots]
+            ]
+            paralogs += list(paralog_rows.id)
 
         # confirm that paralogs are below the similarity threshold
         # ie, are diverged in sequence space from the query
         filtered_paralogs = [paralogs[0]]
         for paralog in paralogs[1::]:  # first entry is query
+            if not paralog in identities:
+                continue
             if identities[paralog] < identity_threshold:
                 filtered_paralogs.append(paralog)
-
+        print(len(filtered_paralogs))
         return filtered_paralogs
 
     def _load_monomer_info(annotations_file,
@@ -707,7 +690,6 @@ def best_reciprocal_hit(**kwargs):
 
     describe_concatenation(
         kwargs["first_annotation_file"], kwargs["second_annotation_file"],
-        kwargs["first_embl_mapping_file"], kwargs["second_embl_mapping_file"],
         kwargs["first_genome_location_file"], kwargs["second_genome_location_file"],
         outcfg["concatentation_statistics_file"]
     )

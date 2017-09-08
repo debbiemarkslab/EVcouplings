@@ -105,8 +105,8 @@ def most_similar_by_organism(similarities, id_to_organism):
 
     return species_to_most_similar
 
-
 def filter_best_reciprocal(alignment, paralogs, species_to_most_similar, allowed_error=0.02):
+    
     """
     Takes in a dictionary of the best hit to each genome
     Removes sequences that are not the best reciprocal hit to the query sequence

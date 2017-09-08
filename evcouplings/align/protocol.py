@@ -1187,7 +1187,7 @@ def complex(**kwargs):
         outcfg["alignment_file"],
         kwargs["uniprot_to_embl_table"]
     )
-
+    print(uniprot_to_embl)
     # extract EMBL ID to genome location information from ENA
     genome_location_filename = prefix + "_genome_location.csv"
 
