@@ -266,7 +266,8 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
         Simple wrapper for contact map plotting
         """
         with misc.plot_context("Arial"):
-            fig = plt.figure(figsize=(8, 8))
+            print(output_file)
+
 
             if kwargs["scale_sizes"]:
                 ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
@@ -275,7 +276,22 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 ecs_i = ecs.query("segment_i == segment_j == @first_segment_name")
                 ecs_j = ecs.query("segment_i == segment_j == @second_segment_name")
                 ecs_inter = ecs.query("segment_i != segment_j")
+
+                if len(ecs_i) == 0:
+                    ecs_i = None
+                if len(ecs_j) == 0:
+                    ecs_j = None
+                if len(ecs_inter) == 0:
+                    ecs_inter = None
                 
+            # Currently, we require at least one of the monomer to have some contacts to make the plot
+            if ecs_i is None and ecs_j is None:
+                print("Warning, you must provide at least one contact for at least "+
+                    "one of the monomers. Contact map {} not generated".format(output_file))
+                return None
+
+            fig = plt.figure(figsize=(8, 8))
+
             pairs.complex_contact_map(
                 ecs_i, ecs_j, ecs_inter,
                 d_intra_i, d_multimer_i,
@@ -693,6 +709,20 @@ def complex_compare(**kwargs):
             raise_missing=False
         )
 
+        #prepare a sequence map to remap the structures we have found
+        verify_resources(
+            "Target sequence file does not exist",
+            kwargs[name_prefix + "_target_sequence_file"]
+        )
+
+        # create target sequence map for remapping structure
+        with open(kwargs[name_prefix + "_target_sequence_file"]) as f:
+            header, seq = next(read_fasta(f))
+
+        # create target sequence map for remapping structure
+        seq_id, seq_start, seq_end = parse_header(header)
+        seqmap = dict(zip(range(seq_start, seq_end + 1), seq))
+
         # compute distance maps and save
         # (but only if we found some structure)
         if len(sifts_map.hits) > 0:
@@ -735,20 +765,8 @@ def complex_compare(**kwargs):
             else:
                 outcfg[name_prefix + "_distmap_multimer"] = None
 
-            # at this point, also create remapped structures (e.g. for
+            # create remapped structures (e.g. for
             # later comparison of folding results)
-            verify_resources(
-                "Target sequence file does not exist",
-                kwargs[name_prefix + "_target_sequence_file"]
-            )
-
-            # create target sequence map for remapping structure
-            with open(kwargs[name_prefix + "_target_sequence_file"]) as f:
-                header, seq = next(read_fasta(f))
-
-            seq_id, seq_start, seq_end = parse_header(header)
-            seqmap = dict(zip(range(seq_start, seq_end + 1), seq))
-
             # remap structures, swap mapping index and filename in
             # dictionary so we have a list of files in the dict keys
             outcfg[name_prefix + "_remapped_pdb_files"] = {
@@ -875,12 +893,13 @@ def complex_compare(**kwargs):
             chain={first_segment_name:"A",second_segment_name:"B"}
         )
 
-    outcfg["complex_remapped_pdb_files"] = {
-        filename: mapping_index for mapping_index, filename in
-        remap_complex_chains(first_sifts_map, second_sifts_map,
-                             seqmap_i,seqmap_j,output_prefix=aux_prefix,
-                             raise_missing=kwargs["raise_missing"]).items()
-    }
+    if len(first_sifts_map.hits) > 0 or len(second_sifts_map.hits) > 0:
+        outcfg["complex_remapped_pdb_files"] = {
+            filename: mapping_index for mapping_index, filename in
+            remap_complex_chains(first_sifts_map, second_sifts_map,
+                                 seqmap_i,seqmap_j,output_prefix=aux_prefix,
+                                 raise_missing=kwargs["raise_missing"]).items()
+        }
 
     # Step 4: Make contact map plots
     # if no structures available, defaults to EC-only plot

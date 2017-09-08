@@ -130,10 +130,11 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
             if len(structure_pos) > 0:
                 min_ec, max_ec = min(structure_pos), max(structure_pos)
             else:
-                raise ValueError(
-                    "must provide at least one EC or structural contact for" + \
-                    "each subplot of complex contact map"
-                )
+                # raise ValueError(
+                #     "must provide at least one EC or structural contact for" + \
+                #     "each subplot of complex contact map"
+                # )
+                min_ec, max_ec = 0,0
 
         if len(structure_pos) > 0:
             min_struct, max_struct = min(structure_pos), max(structure_pos)
@@ -141,10 +142,11 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
             if len(ec_pos) > 0:
                 min_struct, max_struct = min(ec_pos), max(ec_pos)
             else:
-                raise ValueError(
-                    "must provide at least one EC or structural contact for"+ \
-                    "each subplot of complex contact map"
-                )
+                # raise ValueError(
+                #     "must provide at least one EC or structural contact for"+ \
+                #     "each subplot of complex contact map"
+                # )
+                min_struct, max_struct = 0,0
 
 
         # determine and set plot boundaries
@@ -423,6 +425,10 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
     mon1_len = intra1_boundaries[0][1] - intra1_boundaries[0][0]
     mon2_len = intra2_boundaries[0][1] - intra2_boundaries[0][0]
 
+    if (mon1_len == 0) and (mon2_len ==0):
+        raise ValueError("Warning, you must provide at least one contact to plot "+
+            "for at least one of the monomers. Contact map not generated.")
+
     ratio1 = mon1_len / (mon1_len + mon2_len)
     ratio2 = mon2_len / (mon1_len + mon2_len)
 
@@ -438,35 +444,37 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
     ax4 = plt.subplot(gs[3])  # intra 2, lower right
 
     # intra 1, upper left
-    new_kwargs = deepcopy(kwargs)
-    new_kwargs["boundaries"] = intra1_boundaries
-    print(d_intra_i)
-    plot_contact_map(ax=ax1,
-                     symmetric=True,
-                     ecs=intra1_ecs,
-                     monomer=d_intra_i,
-                     multimer=d_multimer_i,
-                     **new_kwargs)
+    if not (intra1_ecs is None and d_intra_i is None and d_multimer_i is None):
+        new_kwargs = deepcopy(kwargs)
+        new_kwargs["boundaries"] = intra1_boundaries
+        plot_contact_map(ax=ax1,
+                         symmetric=True,
+                         ecs=intra1_ecs,
+                         monomer=d_intra_i,
+                         multimer=d_multimer_i,
+                         **new_kwargs)
 
     # intra 2, lower right
-    new_kwargs = deepcopy(kwargs)
-    new_kwargs["boundaries"] = intra2_boundaries
-    plot_contact_map(ax=ax4,
-                     symmetric=True,
-                     ecs=intra2_ecs,
-                     monomer=d_intra_j,
-                     multimer=d_multimer_j,
-                     **new_kwargs)
+    if not (intra2_ecs is None and d_intra_j is None and d_multimer_j is None):
+        new_kwargs = deepcopy(kwargs)
+        new_kwargs["boundaries"] = intra2_boundaries
+        plot_contact_map(ax=ax4,
+                         symmetric=True,
+                         ecs=intra2_ecs,
+                         monomer=d_intra_j,
+                         multimer=d_multimer_j,
+                         **new_kwargs)
 
     # inter, lower left
-    new_kwargs = deepcopy(kwargs)
-    new_kwargs["boundaries"] = inter_boundaries
-    plot_contact_map(ax=ax3,
-                     symmetric=False,
-                     ecs=inter_ecs,
-                     multimer=d_inter,
-                     distance_cutoff=8,
-                     **new_kwargs)
+    if not (inter_ecs is None and d_inter is None):
+        new_kwargs = deepcopy(kwargs)
+        new_kwargs["boundaries"] = inter_boundaries
+        plot_contact_map(ax=ax3,
+                         symmetric=False,
+                         ecs=inter_ecs,
+                         multimer=d_inter,
+                         distance_cutoff=8,
+                         **new_kwargs)
 
     # inter, upper right
     if inter_ecs is None:
@@ -488,7 +496,6 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
                      multimer=d_inter_T,
                      distance_cutoff=8,
                      **new_kwargs)
-
 
 def plot_pairs(pairs, symmetric=False, ax=None, style=None):
     """
@@ -521,6 +528,7 @@ def plot_pairs(pairs, symmetric=False, ax=None, style=None):
     paths : list of PathCollection
         Scatter plot paths drawn by this function
     """
+
     if ax is None:
         ax = plt.gca()
 
