@@ -698,7 +698,7 @@ class SGESubmitter(AClusterSubmitter):
     Implements an LSF submitter
     """
     __name = "sge"
-    __submit = "'{cmd}' | qsub -V -b y --N {name} -hold_jid {dependent} {resources} "
+    __submit = "'{cmd}' | qsub -V -b y -N {name} -hold_jid {dependent} {resources} "
     __monitor = "qstat"
     __cancel = "qdel {job_id}"
     __resources = ""
