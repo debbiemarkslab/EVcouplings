@@ -78,7 +78,7 @@ class Command(object):
             A dictionary defining resources that can be used by the job (time, memory,
         """
 
-        self.command_id = str(uuid.uuid4())
+        self.command_id = "c"+str(uuid.uuid4())
         self.name = name
 
         self.command = [command] if isinstance(command, str) else command
@@ -330,7 +330,7 @@ class AClusterSubmitter(ASubmitter):
         """
         if not unfinished:
             # initial call
-            for k, v in self.db.RangeIter():
+            for k, v in self.db.items():
                 status = self._internal_monitor(k)
                 if status in [EStatus.PEND, EStatus.RUN]:
                     unfinished.append(k)
@@ -359,14 +359,16 @@ class AClusterSubmitter(ASubmitter):
 
     def cancel(self, command):
         try:
-            job_id = yaml.load(self.db[command.command_id], yaml.RoundTripLoader)["job_id"]
+           job = yaml.load(self.db[command.command_id], yaml.RoundTripLoader)
+           job_id = job["job_id"]
+           if job["status"] in [EStatus.DONE, EStatus.EXIT]:
+              return True
         except KeyError:
             raise ValueError(
                 "Command " + repr(command) + " has not been submitted yet."
             )
 
         submit = self.cancel_command.format(job_id=job_id)
-
         try:
             p = subprocess.Popen(submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, universal_newlines=True)
@@ -399,7 +401,6 @@ class AClusterSubmitter(ASubmitter):
             dependent=dep,
             name=command.command_id
         )
-
         try:
             p = subprocess.Popen(
                 submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -414,7 +415,6 @@ class AClusterSubmitter(ASubmitter):
                 )
         except Exception as e:
             raise RuntimeError(e)
-
         # get job id and submit to db
         job_id = self._get_job_id(stdo)
         try:
@@ -698,17 +698,17 @@ class SGESubmitter(AClusterSubmitter):
     Implements an LSF submitter
     """
     __name = "sge"
-    __submit = "'{cmd}' | qsub -V -b y -N {name} -hold_jid {dependent} {resources} "
+    __submit = "echo '{cmd}' | qsub -N {name} {dependent} {resources}"
     __monitor = "qstat"
     __cancel = "qdel {job_id}"
     __resources = ""
-    __resources_flag = {EResource.queue: "-p",
-                        EResource.time: "-l h_rt=",
-                        EResource.mem: "-l h_vmem=",
+    __resources_flag = {EResource.queue: "-q",
+                        EResource.time: '-l h_rt=',
+                        EResource.mem: '-l h_vmem=',
                         EResource.nodes: "-pe smp",
                         EResource.error: "-e",
                         EResource.out: "-o"}
-    __job_id_pattern = re.compile(r'Your job ([0-9]+) \("STDIN"\) has been submitted')
+    __job_id_pattern = re.compile(r'Your job ([0-9]+) .*')
 
     def __init__(self, blocking=False, db_path=None):
         """
@@ -770,7 +770,6 @@ class SGESubmitter(AClusterSubmitter):
     def db(self):
         return self.__db
 
-
     @property
     def cancel_command(self):
         return self.__cancel
@@ -783,7 +782,7 @@ class SGESubmitter(AClusterSubmitter):
     def _prepare_resources(self, resources):
         special_res = {EResource.mem, EResource.time}
         return " ".join(
-            "{} {}".format(self.resource_flags[k], v) if k not in special_res else "{}{}'".format(
+            "{} {}".format(self.resource_flags[k], v) if k not in special_res else "{}{}".format(
                 self.resource_flags[k], v) for k, v in resources.items())
 
     def _prepare_dependencies(self, dependent):
@@ -799,6 +798,7 @@ class SGESubmitter(AClusterSubmitter):
                         d_info = yaml.load(self.__db[d.command_id], yaml.RoundTripLoader)
                         dep_jobs.append(d_info["job_id"])
                     dep = ",".join(dep_jobs)
+                dep = "-hold_jid "+dep
             except KeyError:
                 raise ValueError("Specified depended jobs have not been submitted yet.")
         return dep
@@ -847,14 +847,14 @@ class SGESubmitter(AClusterSubmitter):
             else:
                 return EStatus.EXIT
 
-        if "" == stdo.strip():
-            return EStatus.DONE
-        else:
-            # search in list for command_id and extract status
-            for l in stdo.split("\n"):
+        # search in list for command_id and extract status
+        for l in stdo.split("\n"):
+                if "" == l.strip():
+                    continue
                 splits = l.split()
                 if job_id == splits[0]:
                     return status_map(splits[4])
+        return EStatus.DONE
 
 
 
