@@ -78,7 +78,7 @@ class Command(object):
             A dictionary defining resources that can be used by the job (time, memory,
         """
 
-        self.command_id = str(uuid.uuid4())
+        self.command_id = "c"+str(uuid.uuid4())
         self.name = name
 
         self.command = [command] if isinstance(command, str) else command
@@ -330,7 +330,7 @@ class AClusterSubmitter(ASubmitter):
         """
         if not unfinished:
             # initial call
-            for k, v in self.db.RangeIter():
+            for k, v in self.db.items():
                 status = self._internal_monitor(k)
                 if status in [EStatus.PEND, EStatus.RUN]:
                     unfinished.append(k)
@@ -359,14 +359,16 @@ class AClusterSubmitter(ASubmitter):
 
     def cancel(self, command):
         try:
-            job_id = yaml.load(self.db[command.command_id], yaml.RoundTripLoader)["job_id"]
+           job = yaml.load(self.db[command.command_id], yaml.RoundTripLoader)
+           job_id = job["job_id"]
+           if job["status"] in [EStatus.DONE, EStatus.EXIT]:
+              return True
         except KeyError:
             raise ValueError(
                 "Command " + repr(command) + " has not been submitted yet."
             )
 
         submit = self.cancel_command.format(job_id=job_id)
-
         try:
             p = subprocess.Popen(submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, universal_newlines=True)
@@ -399,7 +401,6 @@ class AClusterSubmitter(ASubmitter):
             dependent=dep,
             name=command.command_id
         )
-
         try:
             p = subprocess.Popen(
                 submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -414,7 +415,6 @@ class AClusterSubmitter(ASubmitter):
                 )
         except Exception as e:
             raise RuntimeError(e)
-
         # get job id and submit to db
         job_id = self._get_job_id(stdo)
         try:
@@ -685,9 +685,178 @@ class SlurmSubmitter(AClusterSubmitter):
                 return EStatus.EXIT
             else:
                 return EStatus.SUSP
-        print("Total input", stdo)
-        print("Split:", stdo.split("\n")[1].split()[4].strip())
         return status_map(stdo.split("\n")[1].split()[4].strip())
+
+########################################################################################################################
+#
+# Sun Grid Engine Submitter
+#
+########################################################################################################################
+
+class SGESubmitter(AClusterSubmitter):
+    """
+    Implements an LSF submitter
+    """
+    __name = "sge"
+    __submit = "echo '{cmd}' | qsub -N {name} {dependent} {resources}"
+    __monitor = "qstat"
+    __cancel = "qdel {job_id}"
+    __resources = ""
+    __resources_flag = {EResource.queue: "-q",
+                        EResource.time: '-l h_rt=',
+                        EResource.mem: '-l h_vmem=',
+                        EResource.nodes: "-pe smp",
+                        EResource.error: "-e",
+                        EResource.out: "-o"}
+    __job_id_pattern = re.compile(r'Your job ([0-9]+) .*')
+
+    def __init__(self, blocking=False, db_path=None):
+        """
+        Init function
+
+        Parameters
+        ----------
+        blocking: bool
+            determines whether join() blocks or not
+        db_path: str
+            the string to a LevelDB for command persistence
+        """
+        self.__blocking = blocking
+        if db_path is None:
+            tmp_db = NamedTemporaryFile(delete=False, dir=os.getcwd(), suffix=".db")
+            tmp_db.close()
+            self.__is_temp_db = True
+            self.__db_path = tmp_db.name
+        else:
+            self.__is_temp_db = False
+            self.__db_path = db_path
+
+        self.__db = PersistentDict(self.__db_path)
+
+    def __del__(self):
+        try:
+            self.__db.close()
+            if self.__is_temp_db:
+                os.remove(self.__db_path)
+        except AttributeError:
+            pass
+
+
+    @property
+    def isBlocking(self):
+        return self.__blocking
+
+
+    @property
+    def name(self):
+        return self.__name
+
+
+    @property
+    def monitor_command(self):
+        return self.__monitor
+
+
+    @property
+    def resource_flags(self):
+        return self.__resources_flag
+
+
+    @property
+    def submit_command(self):
+        return self.__submit
+
+    @property
+    def db(self):
+        return self.__db
+
+    @property
+    def cancel_command(self):
+        return self.__cancel
+
+
+    @property
+    def job_id_pattern(self):
+        return self.__job_id_pattern
+
+    def _prepare_resources(self, resources):
+        special_res = {EResource.mem, EResource.time}
+        return " ".join(
+            "{} {}".format(self.resource_flags[k], v) if k not in special_res else "{}{}".format(
+                self.resource_flags[k], v) for k, v in resources.items())
+
+    def _prepare_dependencies(self, dependent):
+        dep = ""
+        if dependent is not None:
+            try:
+                if isinstance(dependent, Command):
+                    d_info = yaml.load(self.__db[dependent.command_id], yaml.RoundTripLoader)
+                    dep = "{}".format(d_info["job_id"])
+                else:
+                    dep_jobs = []
+                    for d in dependent:
+                        d_info = yaml.load(self.__db[d.command_id], yaml.RoundTripLoader)
+                        dep_jobs.append(d_info["job_id"])
+                    dep = ",".join(dep_jobs)
+                dep = "-hold_jid "+dep
+            except KeyError:
+                raise ValueError("Specified depended jobs have not been submitted yet.")
+        return dep
+
+    def _internal_monitor(self, command_id):
+        try:
+            job_id = yaml.load(self.db[command_id], yaml.RoundTripLoader)["job_id"]
+        except KeyError:
+            raise ValueError(
+                "Command " + repr(command_id) + " has not been submitted yet."
+            )
+
+        submit = self.monitor_command.format(job_id=job_id)
+
+        try:
+            p = subprocess.Popen(submit, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, universal_newlines=True)
+            stdo, stde = p.communicate()
+            stdr = p.returncode
+            if stdr > 0:
+                raise RuntimeError(
+                    "Unsuccessful monitoring of " + repr(command_id) +
+                    " (EXIT!=0) with error: " + stde
+                )
+
+        except Exception as e:
+            raise RuntimeError(e)
+
+        status = self._get_status(stdo, job_id)
+
+        entry = yaml.load(self.db[command_id], yaml.RoundTripLoader)
+        entry["status"] = status
+        self.db[command_id] = yaml.dump(entry, Dumper=yaml.RoundTripDumper)
+        self.db.sync()
+
+        return status
+
+    def _get_status(self, stdo, job_id):
+        def status_map(status):
+            if status == "r":
+                return EStatus.RUN
+            elif status == "qw":
+                return EStatus.PEND
+            elif status in ["Ewq", "e", "E"]:
+                return EStatus.SUSP
+            else:
+                return EStatus.EXIT
+
+        # search in list for command_id and extract status
+        for l in stdo.split("\n"):
+                if "" == l.strip():
+                    continue
+                splits = l.split()
+                if job_id == splits[0]:
+                    return status_map(splits[4])
+        return EStatus.DONE
+
+
 
 ########################################################################################################################
 #
