@@ -25,10 +25,13 @@ from evcouplings.align.alignment import (
 from evcouplings.align.protocol import jackhmmer_search
 from evcouplings.align.tools import read_hmmer_domtbl
 from evcouplings.compare.mapping import alignment_index_mapping, map_indices
+from evcouplings.compare.hmmer_wrappers import hmmbuild_and_search
 from evcouplings.utils.system import (
     get_urllib, ResourceError, valid_file, tempdir
 )
-from evcouplings.utils.config import parse_config
+from evcouplings.utils.config import (
+    parse_config, check_required
+)
 from evcouplings.utils.helpers import range_overlap
 
 UNIPROT_MAPPING_URL = "http://www.uniprot.org/mapping/"
@@ -106,9 +109,9 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
     return r.text
 
 
-def find_homologs_jackhmmer(**kwargs):
+def find_homologs(use_jackhmmer=False, **kwargs):
     """
-    Identify homologs using jackhmmer
+    Identify homologs
 
     Parameters
     ----------
@@ -137,8 +140,37 @@ def find_homologs_jackhmmer(**kwargs):
     if config["prefix"] is None:
         config["prefix"] = path.join(tempdir(), "compare")
 
-    # run jackhmmer against sequence database
-    ar = jackhmmer_search(**config)
+    check_required(
+        config,
+        [
+            "database", "prefix", "use_bitscores",
+            "domain_threshold", "sequence_threshold",
+            "nobias", "cpu",
+        ]
+    )
+
+    # run hmmsearch (possibly preceded by hmmbuild)
+    if not use_jackhmmer:
+        hmmsearch_result = hmmbuild_and_search(
+            database = config["sequence_database"],
+            prefix = config["prefix"],
+            use_bitscores = config["use_bitscores"],
+            domain_threshold = config["domain_threshold"],
+            seq_threshold = config["sequence_threshold"],
+            nobias = config["nobias"],
+            cpu = config["cpu"],
+            binary = [path.join(config["hmmer"], "hmmbuild"), 
+                        path.join(config["hmmer"], "hmmsearch")],
+        )
+
+        ar = {
+            "hittable_file": hmmsearch_result.domtblout,
+            "raw_alignment_file": hmmsearch_result.alignment,
+        }
+    
+    else:
+        # run jackhmmer against sequence database
+        ar = jackhmmer_search(**config)
 
     with open(ar["raw_alignment_file"]) as a:
         ali = Alignment.from_file(a, "stockholm")
@@ -644,7 +676,7 @@ class SIFTS:
                 "method or constructor."
             )
 
-        ali, hits = find_homologs_jackhmmer(
+        ali, hits = find_homologs(
             sequence_database=self.sequence_file, **kwargs
         )
 

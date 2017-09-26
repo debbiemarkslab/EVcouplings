@@ -892,7 +892,7 @@ def jackhmmer_search(**kwargs):
             "sequence_download_url", "region", "first_index",
             "use_bitscores", "domain_threshold", "sequence_threshold",
             "database", "iterations", "cpu", "nobias", "reuse_alignment",
-            "checkpoints_hmm", "checkpoints_ali", "jackhmmer",
+            "checkpoints_hmm", "checkpoints_ali", "hmmer",
             "extract_annotation"
         ]
     )
@@ -961,7 +961,7 @@ def jackhmmer_search(**kwargs):
             cpu=kwargs["cpu"],
             checkpoints_hmm=kwargs["checkpoints_hmm"],
             checkpoints_ali=kwargs["checkpoints_ali"],
-            binary=kwargs["jackhmmer"],
+            binary=os.path.join(kwargs["hmmer"], "jackhmmer"),
         )
 
         # get rid of huge stdout log file immediately

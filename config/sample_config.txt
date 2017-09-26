@@ -371,7 +371,7 @@ databases:
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
-    jackhmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
+    hmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/
     plmc: /groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
     hhfilter: /groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
     psipred: /groups/marks/software/runpsipred
