@@ -1,0 +1,521 @@
+{+ file: generate_seq.inp +}
+{+ directory: general +}
+{+ description: Generate structure file for protein, dna/rna, water, 
+                ligands and/or carbohydrate from sequence information only +}
+{+ comment: modified by Brian Smith (Edinburgh University) to allow protein
+            residue renumbering +}
+{+ authors: Paul Adams, and Axel Brunger +}
+{+ copyright: Yale University +}
+
+{- Guidelines for using this file:
+   - all strings must be quoted by double-quotes
+   - logical variables (true/false) are not quoted
+   - do not remove any evaluate statements from the file -}
+
+{- Special patches will have to be entered manually at the relevant points
+   in the file - see comments throughout the file -}
+
+{- begin block parameter definition -} define(
+
+{============================= input files =================================}
+
+{* multiple sequence files of the same type can be defined by duplicating
+   the entries below and incrementing the file number *}
+
+{* protein sequence file *}
+{===>} prot_sequence_infile_1="{{ sequence_infile }}";
+{* segid *}
+{===>} prot_segid_1="";
+{* start residue numbering at *}
+{===>} renumber_1={{ renumber_index }};
+
+{* nucleic acid sequence file *}
+{===>} nucl_sequence_infile_1="";
+{* segid *}
+{===>} nucl_segid_1="";
+
+{* water sequence file *}
+{===>} water_sequence_infile_1="";
+{* segid *}
+{===>} water_segid_1="";
+
+{* carbohydrate sequence file *}
+{===>} carbo_sequence_infile_1="";
+{* segid *}
+{===>} carbo_segid_1="";
+
+{* prosthetic group sequence file *}
+{===>} prost_sequence_infile_1="";
+{* segid *}
+{===>} prost_segid_1="";
+
+{* ligand sequence file *}
+{===>} lig_sequence_infile_1="";
+{* segid *}
+{===>} lig_segid_1="";
+
+{* ion sequence file *}
+{===>} ion_sequence_infile_1="";
+{* segid *}
+{===>} ion_segid_1="";
+
+{============================= output files ================================}
+
+{* output structure file *}
+{===>} structure_outfile="{{ mtf_outfile }}";
+
+{=========================== disulphide bonds ==============================}
+
+{* Select pairs of cysteine residues that form disulphide bonds *}
+{* First 2 entries are the segid and resid of the first cysteine (CYS A). *}
+{* Second 2 entries are the segid and resid of the second cysteine (CYS B). *}
+{+ table: rows={{disulfide_list|length}} numbered
+   cols=5 "use" "segid CYS A" "resid CYS A" "segid CYS B" "resid CYS B" +}
+
+{% for pair in disulfide_list %}
+{+ choice: true false +}
+{===>} ss_use_{{ pair[0] }}=true;
+{===>} ss_i_segid_{{ pair[0] }}=""; ss_i_resid_{{ pair[0] }}={{ pair[1] }};
+{===>} ss_j_segid_{{ pair[0] }}=""; ss_j_resid_{{ pair[0] }}={{ pair[2] }};
+
+{% endfor %}
+{=========================== carbohydrate links  ===========================}
+
+{* Select pairs of residues that are linked *}
+{* First entry is the name of the patch residue. *}
+{* Second and third entries are the resid and segid for the atoms
+   referenced by "-" in the patch. *}
+{* Fourth and fifth entries are the resid and segid for the atoms
+   referenced by "+" in the patch *}
+{+ table: rows=6 numbered
+          cols=6 "use" "patch name" "segid -" "resid -" "segid +" "resid +" +}
+
+{+ choice: true false +}
+{===>} carbo_use_1=false;
+{===>} carbo_patch_1="B1N";
+{===>} carbo_i_segid_1="BBBB"; carbo_i_resid_1=401;
+{===>} carbo_j_segid_1="AAAA"; carbo_j_resid_1=56;
+
+{+ choice: true false +}
+{===>} carbo_use_2=false;
+{===>} carbo_patch_2="B1N";
+{===>} carbo_i_segid_2="BBBB"; carbo_i_resid_2=402;
+{===>} carbo_j_segid_2="AAAA"; carbo_j_resid_2=182;
+
+{+ choice: true false +}
+{===>} carbo_use_3=false;
+{===>} carbo_patch_3="";
+{===>} carbo_i_segid_3=""; carbo_i_resid_3=0;
+{===>} carbo_j_segid_3=""; carbo_j_resid_3=0;
+
+{+ choice: true false +}
+{===>} carbo_use_4=false;
+{===>} carbo_patch_4="";
+{===>} carbo_i_segid_4=""; carbo_i_resid_4=0;
+{===>} carbo_j_segid_4=""; carbo_j_resid_4=0;
+
+{+ choice: true false +}
+{===>} carbo_use_5=false;
+{===>} carbo_patch_5="";
+{===>} carbo_i_segid_5=""; carbo_i_resid_5=0;
+{===>} carbo_j_segid_5=""; carbo_j_resid_5=0;
+
+{+ choice: true false +}
+{===>} carbo_use_6=false;
+{===>} carbo_patch_6="";
+{===>} carbo_i_segid_6=""; carbo_i_resid_6=0;
+{===>} carbo_j_segid_6=""; carbo_j_resid_6=0;
+
+{========================= generate parameters =============================}
+
+{* hydrogen flag - determines whether hydrogens will be retained *}
+{* must be true for NMR, atomic resolution X-ray crystallography 
+   or modelling.  Set to false for most X-ray crystallographic 
+   applications at resolution > 1A *}
+{+ choice: true false +}
+{===>} hydrogen_flag=false;
+
+{* set bfactor flag *}
+{+ choice: true false +}
+{===>} set_bfactor=true;
+
+{* set bfactor value *}
+{===>} bfactor=15.0;
+
+{* set occupancy flag *}
+{+ choice: true false +}
+{===>} set_occupancy=true;
+
+{* set occupancy value *}
+{===>} occupancy=1.0;
+
+{================== protein topology and parameter files ===================}
+
+{* protein topology file *}
+{===>} prot_topology_infile="CNS_TOPPAR:protein-allhdg.top";
+
+{* protein linkage file *}
+{===>} prot_link_infile="CNS_TOPPAR:protein.link";
+
+{* protein parameter file *}
+{===>} prot_parameter_infile="CNS_TOPPAR:protein-allhdg.param";
+
+{================nucleic acid topology and parameter files =================}
+
+{* nucleic acid topology file *}
+{===>} nucl_topology_infile="CNS_TOPPAR:dna-rna-allatom.top";
+
+{* nucleic acid linkage file *}
+{===>} nucl_link_infile="CNS_TOPPAR:dna-rna.link";
+
+{* nucleic acid parameter file *}
+{===>} nucl_parameter_infile="CNS_TOPPAR:dna-rna-allatom.param";
+
+{=================== water topology and parameter files ====================}
+
+{* water topology file *}
+{===>} water_topology_infile="CNS_TOPPAR:water.top";
+
+{* water parameter file *}
+{===>} water_parameter_infile="CNS_TOPPAR:water.param";
+
+{================= carbohydrate topology and parameter files ===============}
+
+{* carbohydrate topology file *}
+{===>} carbo_topology_infile="CNS_TOPPAR:carbohydrate.top";
+
+{* carbohydrate parameter file *}
+{===>} carbo_parameter_infile="CNS_TOPPAR:carbohydrate.param";
+
+{============= prosthetic group topology and parameter files ===============}
+
+{* prosthetic group topology file *}
+{===>} prost_topology_infile="";
+
+{* prosthetic group parameter file *}
+{===>} prost_parameter_infile="";
+
+{=================== ligand topology and parameter files ===================}
+
+{* ligand topology file *}
+{===>} lig_topology_infile="";
+
+{* ligand parameter file *}
+{===>} lig_parameter_infile="";
+
+{===================== ion topology and parameter files ====================}
+
+{* ion topology file *}
+{===>} ion_topology_infile="CNS_TOPPAR:ion.top";
+
+{* ion parameter file *}
+{===>} ion_parameter_infile="CNS_TOPPAR:ion.param";
+
+{===========================================================================}
+{         things below this line do not need to be changed unless           }
+{         you need to apply patches - at the appropriate places marked      }
+{===========================================================================}
+
+ ) {- end block parameter definition -}
+
+ checkversion 1.2
+
+ evaluate ($log_level=quiet)
+
+ topology
+   if ( &BLANK%prot_topology_infile = false ) then
+     @@&prot_topology_infile
+   end if
+   if ( &BLANK%nucl_topology_infile = false ) then
+     @@&nucl_topology_infile
+   end if
+   if ( &BLANK%water_topology_infile = false ) then
+     @@&water_topology_infile
+   end if
+   if ( &BLANK%carbo_topology_infile = false ) then
+     @@&carbo_topology_infile
+   end if
+   if ( &BLANK%prost_topology_infile = false ) then
+     @@&prost_topology_infile
+   end if
+   if ( &BLANK%lig_topology_infile = false ) then
+     @@&lig_topology_infile
+   end if
+   if ( &BLANK%ion_topology_infile = false ) then
+     @@&ion_topology_infile
+   end if
+ end
+
+ parameter
+   if ( &BLANK%prot_parameter_infile = false ) then
+     @@&prot_parameter_infile
+   end if
+   if ( &BLANK%nucl_parameter_infile = false ) then
+     @@&nucl_parameter_infile
+   end if
+   if ( &BLANK%water_parameter_infile = false ) then
+     @@&water_parameter_infile
+   end if
+   if ( &BLANK%carbo_parameter_infile = false ) then
+     @@&carbo_parameter_infile
+   end if
+   if ( &BLANK%prost_parameter_infile = false ) then
+     @@&prost_parameter_infile
+   end if
+   if ( &BLANK%lig_parameter_infile = false ) then
+     @@&lig_parameter_infile
+   end if
+   if ( &BLANK%ion_parameter_infile = false ) then
+     @@&ion_parameter_infile
+   end if
+ end
+
+ evaluate ($counter=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop prot
+   if ( &exist_prot_sequence_infile_$counter = true ) then
+     if ( &BLANK%prot_sequence_infile_$counter = false ) then
+       do (refx=0) (all)
+       segment
+         chain
+           @@&prot_link_infile
+           sequence @@&prot_sequence_infile_$counter end
+         end
+       end
+       do (segid="T^" + encode($counter)) (attr refx=9999)
+     end if
+     if ( &exist_renumber_$counter = true ) then
+         if ( &BLANK%renumber_$counter = false ) then
+           evaluate ($segid="T^" + encode($counter))
+           do ( resid = encode(decode(resid) + &renumber_$counter - 1)) 
+              ( (attr refx=9999) and segid $segid )
+         end if
+     end if
+     evaluate ($counter=$counter+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop prot
+
+ evaluate ($counter=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop nseg
+   if ( &exist_prot_sequence_infile_$counter = true ) then
+     if ( &BLANK%prot_sequence_infile_$counter = false ) then
+       evaluate ($segtmp="T^" + encode($counter))
+       do (segid=capitalize(&prot_segid_$counter)) (segid $segtmp)
+     end if
+     evaluate ($counter=$counter+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop nseg
+
+ evaluate ($ssc=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop ssbr
+   if ( &exist_ss_use_$ssc = true ) then
+     if ( &ss_use_$ssc = true ) then
+       evaluate ($segidtmp1=capitalize(&ss_i_segid_$ssc))
+       evaluate ($segidtmp2=capitalize(&ss_j_segid_$ssc))
+       patch disu
+         reference=1=(segid $QUOTE%segidtmp1 and resid &ss_i_resid_$ssc)
+         reference=2=(segid $QUOTE%segidtmp2 and resid &ss_j_resid_$ssc)
+       end
+     end if
+     evaluate ($ssc=$ssc+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop ssbr
+
+ {* any special protein patches can be applied here *}
+ {===>}
+ {<===}
+
+ evaluate ($counter=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop nucl
+   if ( &exist_nucl_sequence_infile_$counter = true ) then
+     if ( &BLANK%nucl_sequence_infile_$counter = false ) then
+       do (refx=0) (all)
+       segment
+         chain
+           @@&nucl_link_infile
+           sequence @@&nucl_sequence_infile_$counter end
+         end
+       end
+       do (segid=capitalize(&nucl_segid_$counter)) (attr refx=9999)
+     end if
+     evaluate ($counter=$counter+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop nucl
+
+ {* patch rna sugars to dna here if needed - select the residues *}
+ {===>} 
+ for $resid in () loop dna
+   patch deox reference=nil=(resid $resid) end
+ end loop dna
+ {<===}
+
+ {* any special nucleic acid patches can be applied here *}
+ {===>}
+ {<===}
+
+ evaluate ($counter=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop carbo
+   if ( &exist_carbo_sequence_infile_$counter = true ) then
+     if ( &BLANK%carbo_sequence_infile_$counter = false ) then
+       do (refx=0) (all)
+       segment
+         chain
+           sequence @@&carbo_sequence_infile_$counter end
+         end
+       end
+       do (segid=capitalize(&carbo_segid_$counter)) (attr refx=9999)
+     end if
+     evaluate ($counter=$counter+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop carbo
+
+ evaluate ($carc=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop cabr
+   if ( &exist_carbo_use_$carc = true ) then
+     if ( &carbo_use_$carc = true ) then
+       evaluate ($segidtmp1=capitalize(&carbo_i_segid_$carc))
+       evaluate ($segidtmp2=capitalize(&carbo_j_segid_$carc))
+       patch &carbo_patch_$carc
+         reference=-=(segid $QUOTE%segidtmp1 and
+                      resid &carbo_i_resid_$carc)
+         reference=+=(segid $QUOTE%segidtmp2 and
+                      resid &carbo_j_resid_$carc)
+       end
+     end if
+     evaluate ($carc=$carc+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop cabr
+
+ {* any special carbohydrate patches can be applied here *}
+ {===>}
+ {<===}
+
+ evaluate ($counter=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop prost
+   if ( &exist_prost_sequence_infile_$counter = true ) then
+     if ( &BLANK%prost_sequence_infile_$counter = false ) then
+       do (refx=0) (all)
+       segment
+         chain
+           sequence @@&prost_sequence_infile_$counter end
+         end
+       end
+       do (segid=capitalize(&prost_segid_$counter)) (attr refx=9999)
+     end if
+     evaluate ($counter=$counter+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop prost
+
+ {* any special prosthetic group patches can be applied here *}
+ {===>}
+ {<===}
+
+ evaluate ($counter=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop liga
+   if ( &exist_lig_sequence_infile_$counter = true ) then
+     if ( &BLANK%lig_sequence_infile_$counter = false ) then
+       do (refx=0) (all)
+       segment
+         chain
+           sequence @@&lig_sequence_infile_$counter end
+         end
+       end
+       do (segid=capitalize(&lig_segid_$counter)) (attr refx=9999)
+     end if
+     evaluate ($counter=$counter+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop liga
+
+ {* any special ligand patches can be applied here *}
+ {===>}
+ {<===}
+
+ evaluate ($counter=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop ion
+   if ( &exist_ion_sequence_infile_$counter = true ) then
+     if ( &BLANK%ion_sequence_infile_$counter = false ) then
+       do (refx=0) (all)
+       segment
+         chain
+           sequence @@&ion_sequence_infile_$counter end
+         end
+       end
+       do (segid=capitalize(&ion_segid_$counter)) (attr refx=9999)
+     end if
+     evaluate ($counter=$counter+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop ion
+
+ {* any special ion patches can be applied here *}
+ {===>}
+ {<===}
+
+ evaluate ($counter=1)
+ evaluate ($done=false)
+ while ( $done = false ) loop water
+   if ( &exist_water_sequence_infile_$counter = true ) then
+     if ( &BLANK%water_sequence_infile_$counter = false ) then
+       do (refx=0) (all)
+       segment
+         chain
+           sequence @@&water_sequence_infile_$counter end
+         end
+       end
+       do (segid=capitalize(&water_segid_$counter)) (attr refx=9999)
+     end if
+     evaluate ($counter=$counter+1)
+   else
+     evaluate ($done=true)
+   end if
+ end loop water
+
+ {* any special water patches can be applied here *}
+ {===>}
+ {<===}
+
+ {* any final patches can be applied here *}
+ {===>}
+ {<===}
+
+ if (&hydrogen_flag=false) then
+   delete selection=( hydrogen ) end
+ end if
+
+ if (&set_bfactor=true) then
+   do (b=&bfactor) ( all )
+ end if
+
+ if (&set_occupancy=true) then
+   do (q=&occupancy) ( all )
+ end if
+
+ write structure output=&structure_outfile end
+
+ stop
+

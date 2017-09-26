@@ -1,0 +1,705 @@
+{+ file: generate_easy.inp +}
+{+ directory: general +}
+{+ description: Generate coordinate and structure file for simple models +}
+{+ comment:
+           This is designed to be a means of generating a coordinate
+           and structure file for commonly encountered models: protein
+           and/or DNA/RNA plus waters and maybe ligands. The coordinates
+           are provided by the user in a single input PDB file.
+           Disulphide bonds will be automatically determined by distance.
+           If required generate hydrogens. Any atoms with unknown
+           coordinates can be automatically generated +}
+{+ authors: Paul Adams and Axel Brunger +}
+{+ copyright: Yale University +}
+
+{- Guidelines for using this file:
+   - all strings must be quoted by double-quotes
+   - logical variables (true/false) are not quoted
+   - do not remove any evaluate statements from the file -}
+
+{- Special patches will have to be entered manually at the relevant points
+   in the file - see comments throughout the file -}
+
+{- begin block parameter definition -} define(
+
+{============================== important =================================}
+
+{* Different chains in the structure must have either unique segid or
+   chainid records. If this is no the case, the end of a chain must
+   be delimited by a TER card. *}
+
+{* A break in a chain can be detected automatically or should be delimited
+   by a BREAK card. In this case no patch (head, tail or link) will be 
+   applied between the residues that bound the chain break. *}
+
+{* NB. The input PDB file must finish with an END statement *}
+
+{=========================== coordinate files =============================}
+
+{* coordinate file *}
+{===>} coordinate_infile="{{ pdb_infile }}";
+
+{* convert chainid to segid if chainid is non-blank *}
+{+ choice: true false +}
+{===>} convert=true;
+
+{* separate chains by segid - a new segid starts a new chain *}
+{+ choice: true false +}
+{===>} separate=true;
+
+{============================ renaming atoms ===============================}
+
+{* some atoms may need to be renamed in the topology database to conform
+   to what is present in the coordinate file *}
+
+{* delta carbon in isoleucine is named CD in CNS
+   what is it currently called in the coordinate file? *}
+{* this will not be changed if left blank *}
+{===>} ile_CD_becomes="{{ ile_cd_becomes }}";
+
+{* terminal oxygens are named OT1 and OT2 in CNS
+   what are they currently called in the coordinate file? *}
+{* these will not be changed if left blank *}
+{===>} OT1_becomes="{{ ot1_becomes }}";
+{===>} OT2_becomes="{{ ot2_becomes }}";
+
+{======================= automatic mainchain breaks ========================}
+
+{* automatically detect mainchain breaks in proteins based on distance *}
+{* the peptide link at break points will be removed *}
+{+ choice: true false +}
+{===>} auto_break=true;
+
+{* cutoff distance in Angstroms for identification of breaks *}
+{* the default of 2.5A should be reasonable for most cases. If the input
+   structure has bad geometry it may be necessary to increase this distance *}
+{===>} break_cutoff=2.5;
+
+{* file containing patches to delete peptide links *}
+{===>} prot_break_infile="CNS_TOPPAR:protein_break.top";
+
+{======================= automatic disulphide bonds ========================}
+
+{* cutoff distance in Angstroms for identification of disulphides *}
+{* the default of 3.0A should be reasonable for most cases. If the input
+   structure has bad geometry it may be necessary to increase this distance *}
+{* Note: the atom positions for the sulfurs have to be known *}
+{===>} disulphide_dist=3.0;
+
+{========================= RNA to DNA conversion  ==========================}
+
+{* All nucleic acid residues initially have ribose sugars (rather than
+   deoxyribose). A patch must be applied to convert the ribose to deoxyribose
+   for DNA residues. Select those residues which need to have the patch
+   applied to make them DNA. *}
+{* Make sure that the atom selection is specific for the nucleic acid
+   residues *}
+{===>} dna_sele=(none);
+	    
+{========================= generate parameters =============================}
+
+{* hydrogen flag - determines whether hydrogens will be output *}
+{* must be true for NMR, atomic resolution X-ray crystallography 
+   or modelling.  Set to false for most X-ray crystallographic 
+   applications at resolution > 1A *}
+{+ choice: true false +}
+{===>} hydrogen_flag={{ hydrogen_flag }};
+
+{* which hydrogens to build *}
+{+ choice: "all" "unknown" +}
+{===>} hydrogen_build="all";
+
+{* selection of atoms other than hydrogens for which coordinates
+   will be generated *}
+{* to generate coordinates for all unknown atoms use: (not(known)) *}
+{===>} atom_build=(not(known));
+
+{* selection of atoms to be deleted *}
+{* to delete no atoms use: (none) *}
+{===>} atom_delete=(none);
+
+{* set bfactor flag *}
+{+ choice: true false +}
+{===>} set_bfactor=false;
+
+{* set bfactor value *}
+{===>} bfactor=15.0;
+
+{* set occupancy flag *}
+{+ choice: true false +}
+{===>} set_occupancy=false;
+
+{* set occupancy value *}
+{===>} occupancy=1.0;
+
+{============================= output files ================================}
+
+{* output structure file *}
+{===>} structure_outfile="{{ mtf_outfile }}";
+
+{* output coordinate file *}
+{===>} coordinate_outfile="{{ pdb_outfile }}";
+
+{* format output coordinates for use in o *}
+{* if false then the default CNS output coordinate format will be used *}
+{+ choice: true false +}
+{===>} pdb_o_format={{ pdb_o_format }};
+
+{================== protein topology and parameter files ===================}
+
+{* protein topology file *}
+{===>} prot_topology_infile="CNS_TOPPAR:protein.top";
+
+{* protein linkage file *}
+{===>} prot_link_infile="CNS_TOPPAR:protein.link";
+
+{* protein parameter file *}
+{===>} prot_parameter_infile="CNS_TOPPAR:protein_rep.param";
+
+{================ nucleic acid topology and parameter files =================}
+
+{* nucleic acid topology file *}
+{===>} nucl_topology_infile="CNS_TOPPAR:dna-rna.top";
+
+{* nucleic acid linkage file *}
+{* use CNS_TOPPAR:dna-rna-pho.link for 5'-phosphate *}
+{===>} nucl_link_infile="CNS_TOPPAR:dna-rna.link";
+
+{* nucleic acid parameter file *}
+{===>} nucl_parameter_infile="CNS_TOPPAR:dna-rna_rep.param";
+
+{=================== water topology and parameter files ====================}
+
+{* water topology file *}
+{===>} water_topology_infile="CNS_TOPPAR:water.top";
+
+{* water parameter file *}
+{===>} water_parameter_infile="CNS_TOPPAR:water_rep.param";
+
+{================= carbohydrate topology and parameter files ===============}
+
+{* carbohydrate topology file *}
+{===>} carbo_topology_infile="CNS_TOPPAR:carbohydrate.top";
+
+{* carbohydrate parameter file *}
+{===>} carbo_parameter_infile="CNS_TOPPAR:carbohydrate.param";
+
+{============= prosthetic group topology and parameter files ===============}
+
+{* prosthetic group topology file *}
+{===>} prost_topology_infile="";
+
+{* prosthetic group parameter file *}
+{===>} prost_parameter_infile="";
+
+{=================== ligand topology and parameter files ===================}
+
+{* ligand topology file *}
+{===>} ligand_topology_infile="";
+
+{* ligand parameter file *}
+{===>} ligand_parameter_infile="";
+
+{===================== ion topology and parameter files ====================}
+
+{* ion topology file *}
+{===>} ion_topology_infile="CNS_TOPPAR:ion.top";
+
+{* ion parameter file *}
+{===>} ion_parameter_infile="CNS_TOPPAR:ion.param";
+
+{===========================================================================}
+{         things below this line do not need to be changed                  }
+{===========================================================================}
+
+ ) {- end block parameter definition -}
+
+ checkversion 1.2
+
+ evaluate ($log_level=quiet)
+
+ topology
+   if ( &BLANK%prot_topology_infile = false ) then
+     @@&prot_topology_infile
+   end if
+   if ( &BLANK%nucl_topology_infile = false ) then
+     @@&nucl_topology_infile
+   end if
+   if ( &BLANK%water_topology_infile = false ) then
+     @@&water_topology_infile
+   end if
+   if ( &BLANK%carbo_topology_infile = false ) then
+     @@&carbo_topology_infile
+   end if
+   if ( &BLANK%prost_topology_infile = false ) then
+     @@&prost_topology_infile
+   end if
+   if ( &BLANK%ligand_topology_infile = false ) then
+     @@&ligand_topology_infile
+   end if
+   if ( &BLANK%ion_topology_infile = false ) then
+     @@&ion_topology_infile
+   end if
+ end
+
+ topology
+   if ( &BLANK%prot_break_infile = false ) then
+     @@&prot_break_infile
+   end if
+ end
+
+ parameter
+   if ( &BLANK%prot_parameter_infile = false ) then
+     @@&prot_parameter_infile
+   end if
+   if ( &BLANK%nucl_parameter_infile = false ) then
+     @@&nucl_parameter_infile
+   end if
+   if ( &BLANK%water_parameter_infile = false ) then
+     @@&water_parameter_infile
+   end if
+   if ( &BLANK%carbo_parameter_infile = false ) then
+     @@&carbo_parameter_infile
+   end if
+   if ( &BLANK%prost_parameter_infile = false ) then
+     @@&prost_parameter_infile
+   end if
+   if ( &BLANK%ligand_parameter_infile = false ) then
+     @@&ligand_parameter_infile
+   end if
+   if ( &BLANK%ion_parameter_infile = false ) then
+     @@&ion_parameter_infile
+   end if
+ end
+
+ segment
+   chain
+     if ( &convert = true ) then
+       convert=true
+     end if
+     if ( &separate = true ) then
+       separate=true
+     end if
+     @@&prot_link_infile
+     @@&nucl_link_infile
+     coordinates @@&coordinate_infile
+   end
+ end
+
+ if ( &BLANK%ile_CD_becomes = false ) then
+   do (name=&ile_CD_becomes) (resname ILE and name CD)
+ end if
+ if ( &BLANK%OT1_becomes = false ) then
+   do (name=&OT1_becomes) (name OT1)
+ end if
+ if ( &BLANK%OT2_becomes = false ) then
+   do (name=&OT2_becomes) (name OT2)
+ end if
+
+ coordinates 
+   if ( &convert = true ) then
+     convert=true
+   end if
+   @@&coordinate_infile
+
+ set echo=off end
+ show sum(1) ( not(hydrogen) and not(known) )
+ if ( $select = 0 ) then
+   display  %INFO: There are no coordinates missing for non-hydrogen atoms
+ end if
+ set echo=on end
+
+ if ( $log_level = verbose ) then
+   set message=normal echo=on end
+ else
+   set message=off echo=off end
+ end if
+
+ if ( &auto_break = true ) then
+
+   evaluate ($break=0)
+
+   for $id1 in id ( name C and bondedto(name CA) and bondedto(name O) ) loop break
+
+     show (segid) (id $id1)
+     evaluate ($segid1=$result)
+     show (resid) (id $id1)
+     evaluate ($resid1=$result)
+     show (resname) (id $id1)
+     evaluate ($resname1=$result)
+
+     show sum(1) (id $id1 and known)
+     if ( $result = 0 ) then
+       display unknown coordinates for segid $segid1 resname $resname1 resid $resid1 name C
+       display this coordinate must be known for automatic chain break detection
+       abort
+     end if
+
+     identity (store1) ( name N and bondedto( segid $segid1 and resid $resid1 and name c ) )
+
+     if ( $select = 1 ) then
+       show element (store1) (attribute store1 > 0)
+       evaluate ($id2=$result)
+       show (segid) (id $id2)
+       evaluate ($segid2=$result)
+       show (resid) (id $id2)
+       evaluate ($resid2=$result)
+       show (resname) (id $id2)
+       evaluate ($resname2=$result)
+
+       show sum(1) (id $id2 and known)
+       if ( $result = 0 ) then
+         display unknown coordinates for segid $segid2 resname $resname2 resid $resid2 name N
+         display this coordinate must be known for automatic chain break detection
+         abort
+       end if
+
+       pick bond
+         (name c and segid $segid1 and resid $resid1)
+         (name n and segid $segid2 and resid $resid2)
+         geometry
+
+       if ( $result > &break_cutoff ) then
+         evaluate ($break=$break+1)
+         evaluate ($seg1.$break=$segid1)
+         evaluate ($res1.$break=$resid1)
+         evaluate ($seg2.$break=$segid2)
+         evaluate ($res2.$break=$resid2)
+         if ( $resname2 = PRO ) then
+           evaluate ($patch.$break=DPPP)
+         elseif ( $resname2 = CPR ) then
+           evaluate ($patch.$break=DPPP)
+         else
+           evaluate ($patch.$break=DPEP)
+         end if
+       end if
+     end if
+
+   end loop break
+
+   evaluate ($counter=1)
+
+   while ($counter <= $break) loop delete
+     patch $patch.$counter
+       reference=-=(segid $seg1.$counter and resid $res1.$counter)
+       reference=+=(segid $seg2.$counter and resid $res2.$counter)
+     end
+     buffer message
+       display peptide link removed (applied $patch.$counter): from \
+$seg1.$counter[a4] $res1.$counter[a4] to $seg2.$counter[a4] $res2.$counter[a4]
+     end
+     evaluate ($counter=$counter+1)
+   end loop delete
+
+ end if
+
+ evaluate ($disu=0)
+ 
+!
+! modification ATB 4/31/08 - known atoms only
+ for $id1 in id ( resname CYS and name SG and known ) loop dis1
+
+   show (segid) (id $id1)
+   evaluate ($segid1=$result)
+   show (resid) (id $id1)
+   evaluate ($resid1=$result)
+
+   identity (store1) (all)
+
+   for $id2 in id ( resname CYS and name SG and 
+                  ( attr store1 > $id1 ) ) loop dis2
+
+     show (segid) (id $id2)
+     evaluate ($segid2=$result)
+     show (resid) (id $id2)
+     evaluate ($resid2=$result)
+
+     pick bond (id $id1) (id $id2) geometry
+
+     if ( $result <= &disulphide_dist ) then
+       evaluate ($disu=$disu+1)
+       evaluate ($seg1.$disu=$segid1)
+       evaluate ($seg2.$disu=$segid2)
+       evaluate ($res1.$disu=$resid1)
+       evaluate ($res2.$disu=$resid2)
+     end if
+
+   end loop dis2
+
+ end loop dis1
+
+ evaluate ($counter=1)
+ while ( $counter <= $disu ) loop disu
+   patch disu
+     reference=1=(segid $seg1.$counter and resid $res1.$counter)
+     reference=2=(segid $seg2.$counter and resid $res2.$counter)
+   end
+   buffer message
+     display disulphide added: from \
+$seg1.$counter[a4] $res1.$counter[a4] to $seg2.$counter[a4] $res2.$counter[a4]
+   end
+   evaluate ($counter=$counter+1)
+ end loop disu
+
+ {- patching of RNA to DNA -}
+ evaluate ($counter=0)
+ for $id in id ( tag and (&dna_sele) ) loop dna
+   evaluate ($counter=$counter+1)
+   show (segid) (id $id)
+   evaluate ($dna.segid.$counter=$result)
+   show (resid) (id $id)
+   evaluate ($dna.resid.$counter=$result)
+ end loop dna
+ evaluate ($dna.num=$counter)
+
+ evaluate ($counter=0)
+ while ($counter < $dna.num) loop dnap
+   evaluate ($counter=$counter+1)
+   patch deox reference=nil=(segid $dna.segid.$counter and
+                             resid $dna.resid.$counter) end
+ end loop dnap
+
+ set messages=normal end
+ set echo=on end
+
+ if (&hydrogen_flag=false) then
+   delete selection=( hydrogen ) end
+ end if
+
+ delete selection=( &atom_delete ) end
+
+ identity (store1) (none)
+
+ identity (store1) (&atom_build)
+ if ( &hydrogen_build = "all" ) then
+   identity (store1) (store1 or hydrogen)
+ elseif ( &hydrogen_build = "unknown" ) then
+   identity (store1) (store1 or (not(known) and hydrogen))
+ end if
+
+ show sum(1) (store1)
+ evaluate ($tobuild=$result)
+
+ if ( $tobuild > 0 ) then
+
+   fix selection=(not(store1)) end
+
+   show sum(1) (store1)
+   evaluate ($moving=$result)
+
+   if ( $moving > 0 ) then
+     for $id in id (tag and byres(store1)) loop avco
+
+       show ave(x) (byres(id $id) and known)
+       evaluate ($ave_x=$result)
+       show ave(y) (byres(id $id) and known)
+       evaluate ($ave_y=$result)
+       show ave(z) (byres(id $id) and known)
+       evaluate ($ave_z=$result)
+
+       do (x=$ave_x) (byres(id $id) and store1)
+       do (y=$ave_y) (byres(id $id) and store1)
+       do (z=$ave_z) (byres(id $id) and store1)
+ 
+     end loop avco 
+
+     do (x=x+random(2.0)) (store1)
+     do (y=y+random(2.0)) (store1)
+     do (z=z+random(2.0)) (store1)
+
+     {- start parameter for the side chain building -}
+     parameter
+       nbonds
+         rcon=20. nbxmod=-2 repel=0.9  wmin=0.1 tolerance=1.
+         rexp=2 irexp=2 inhibit=0.25
+       end
+     end
+
+     {- Friction coefficient, in 1/ps. -}
+     do (fbeta=100) (store1)
+
+     evaluate ($bath=300.0)
+     evaluate ($nstep=500)
+     evaluate ($timestep=0.0005)
+
+     do (refy=mass) (store1)
+
+     do (mass=20) (store1)
+
+     igroup interaction 
+       (store1) (store1 or known)
+     end
+
+     {- turn on initial energy terms -}
+     flags exclude * include bond angle vdw end
+ 
+     minimize powell nstep=50  nprint=10 end
+
+     do (vx=maxwell($bath)) (store1)
+     do (vy=maxwell($bath)) (store1)
+     do (vz=maxwell($bath)) (store1)
+
+     flags exclude vdw include impr end
+
+     dynamics cartesian
+       nstep=50
+       timestep=$timestep
+       tcoupling=true temperature=$bath
+       nprint=$nstep
+       cmremove=false
+     end
+
+     flags include vdw end
+
+     minimize powell nstep=50 nprint=10 end
+
+     do (vx=maxwell($bath)) (store1)
+     do (vy=maxwell($bath)) (store1)
+     do (vz=maxwell($bath)) (store1)
+
+     dynamics cartesian
+       nstep=50
+       timestep=$timestep
+       tcoupling=true temperature=$bath
+       nprint=$nstep
+       cmremove=false
+     end
+
+     parameter
+       nbonds
+         rcon=2. nbxmod=-3 repel=0.75
+       end
+     end
+
+     minimize powell nstep=100 nprint=25 end
+
+     do (vx=maxwell($bath)) (store1)
+     do (vy=maxwell($bath)) (store1)
+     do (vz=maxwell($bath)) (store1)
+
+     dynamics cartesian
+       nstep=$nstep
+       timestep=$timestep
+       tcoupling=true temperature=$bath
+       nprint=$nstep
+       cmremove=false
+     end
+
+     {- turn on all energy terms -}
+     flags include dihe ? end
+
+     {- set repel to ~vdw radii -}
+     parameter
+       nbonds
+         repel=0.89
+       end
+     end
+
+     minimize powell nstep=500 nprint=50 end
+
+     flags exclude * include bond angl impr dihe vdw end
+
+     {- return masses to something sensible -}
+     do (mass=refy) (store1)
+
+     do (vx=maxwell($bath)) (store1)
+     do (vy=maxwell($bath)) (store1)
+     do (vz=maxwell($bath)) (store1)
+
+     dynamics cartesian
+       nstep=$nstep
+       timestep=$timestep
+       tcoupling=true temperature=$bath
+       nprint=$nstep
+       cmremove=false
+     end
+
+     {- some final minimisation -}
+     minimize powell
+       nstep=500
+       drop=40.0
+       nprint=50
+     end
+
+     print thres=0.02 bonds
+     print thres=5. angles
+
+   end if
+  
+   fix selection=( none ) end
+
+ end if
+
+ set echo=false end
+ show sum(1) (not(known))
+ if ( $result < 100 ) then
+   for $id in id (not(known)) loop print
+     show (segid) (id $id)
+     evaluate ($segid=$result)
+     show (resname) (id $id)
+     evaluate ($resname=$result)
+     show (resid) (id $id)
+     evaluate ($resid=$result)
+     show (name) (id $id)
+     evaluate ($name=$result)
+     buffer message
+       display unknown coordinates for atom: $segid[a4] $resname[a4] $resid[a4] $name[a4]
+     end
+   end loop print
+ else
+   buffer message
+     display unknown coordinates for more than 100 atoms
+   end
+ end if
+ set echo=true end
+
+ if (&set_bfactor=true) then
+   do (b=&bfactor) ( all )
+ else
+   show ave(b) (known and not(store1))
+   do (b=$result) (store1 and (attr b < 0.01))
+ end if
+
+ if (&set_occupancy=true) then
+   do (q=&occupancy) ( all )
+ end if
+
+ set echo=false end
+ show sum(1) (store1)
+ if ( $result < 100 ) then
+   for $id in id (store1) loop print
+     show (segid) (id $id)
+     evaluate ($segid=$result)
+     show (resname) (id $id)
+     evaluate ($resname=$result)
+     show (resid) (id $id)
+     evaluate ($resid=$result)
+     show (name) (id $id)
+     evaluate ($name=$result)
+     buffer message
+       display coordinates built for atom: $segid[a4] $resname[a4] $resid[a4] $name[a4]
+     end 
+   end loop print
+ else
+   buffer message
+     display coordinates built for more than 100 hundred atoms
+   end
+ end if
+ set echo=true end
+
+ set remarks=reset end
+
+ buffer message
+   to=remarks
+   dump
+ end
+
+ write structure output=&structure_outfile end
+
+ if ( &pdb_o_format = true ) then
+   write coordinates format=PDBO output=&coordinate_outfile end
+ else
+   write coordinates output=&coordinate_outfile end
+ end if
+
+ stop

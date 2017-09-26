@@ -1,0 +1,184 @@
+# EC-derived distance restraints
+pair_distance_restraints:
+    c_alpha:
+        use: True
+        dist: 4
+        lower: 4
+        upper: 3
+        weight:
+        atoms: CA
+    c_beta:
+        use: True
+        dist: 4
+        lower: 4
+        upper: 3
+        weight:
+        atoms: CB
+
+    # additional distance restraint on side chain atom
+    tertiary_atom:
+        use: False
+        dist: 3
+        lower: 1
+        upper: 1
+        weight:
+        # determines which atom will be used depending
+        # on residue type
+        atoms:
+            A: CB
+            C: SG
+            D: OD1
+            E: OE1
+            F: CZ
+            G: CA
+            H: CE1
+            I: CD1
+            K: NZ
+            L: CD1
+            M: CE
+            N: OD1
+            P: CG
+            Q: OE1
+            R: NH1
+            S: OG
+            T: OG1
+            V: CG1
+            W: CH2
+            Y: OH
+
+# Dihedral angle restraints derived from secondary
+# structure predictions
+secstruct_angle_restraints:
+    helix:
+        phi:
+            energy_constant: 0.5
+            degrees: -57.0
+            range: 7.0
+            exponent: 2
+        psi:
+            energy_constant: 0.5
+            degrees: -47.0
+            range:  7.0
+            exponent: 2
+
+    strand:
+        phi:
+            energy_constant: 0.5
+            degrees: -127.0
+            range: 20.0
+            exponent: 2
+        psi:
+            energy_constant: 0.5
+            degrees: 122.0
+            range: 20.0
+            exponent: 2
+
+# Distance restraints derived from secondary
+# structure predictions
+secstruct_distance_restraints:
+    weight: 5
+    helix:
+        1:
+            [O, O]: [3.07, 0.2]
+            [N, N]: [2.81, 0.2]
+            [CA, O]: [4.45, 0.2]
+            [CA, CA]: [3.82, 0.2]
+            [CB, CB]: [3.6, 0.4]
+        2:
+            [O, O]: [4.65, 0.4]
+            [N, N]: [4.4, 0.4]
+            [O, N]: [3.3, 0.3]
+            [CA, CA]: [5.5, 0.3]
+            [CA, O]: [5.6, 0.4]
+            [CB, CB]: [5.15, 0.5]
+        3:
+            [O, O]: [5.05, 0.65]
+            [N, N]: [5.0, 0.6]
+            [O, N]: [3.95, 0.5]
+            [CA, CA]: [5.3, 0.65]
+            [CA, O]: [5.9, 0.8]
+            [CB, CB]: [5.2, 0.8]
+        4:
+            [O, O]: [6.3, 0.65]
+            [N, N]: [6.25, 0.8]
+            [O, N]: [4.3, 0.7]
+            [CA, CA]: [6.35, 0.7]
+            [CA, O]: [7.5, 0.7]
+            [CB, CB]: [6.35, 0.8]
+        5:
+            [O, O]: [8.3, 0.55]
+            [N, N]: [8.2, 0.5]
+            [O, N]: [6.1, 0.6]
+            [CA, CA]: [8.7, 0.6]
+            [CA, O]: [9.55, 0.6]
+            [CB, CB]: [8.55, 0.65]
+        6:
+            [O, O]: [9.7, 0.6]
+            [N, N]: [9.6, 0.55]
+            [O, N]: [7.95, 0.6]
+            [CA, CA]: [10.05, 0.6]
+            [CA, O]: [10.65, 0.65]
+            [CB, CB]: [9.9, 0.75]
+        7:
+            [O, O]: [10.75, 0.75]
+            [N, N]: [10.75, 0.65]
+            [O, N]: [9.05, 0.7]
+            [CA, CA]: [10.8, 0.75]
+            [CA, O]: [11.7, 0.75]
+            [CB, CB]: [10.8, 1.0]
+        8:
+            [O, O]: [12.3, 0.8]
+            [N, N]: [12.3, 0.7]
+            [O, N]: [10.3, 0.75]
+            [CA, CA]: [12.45, 0.8]
+            [CA, O]: [13.5, 0.75]
+            [CB, CB]: [12.45, 1.0]
+
+    strand:
+        1:
+            [O, O]: [3.4, 0.3]
+            [N, N]: [3.4, 0.3]
+            [CA, O]: [4.6, 0.2]
+            [CB, CB]: [4.4, 0.5]
+        2:
+            [O, O]: [6.45, 0.6]
+            [N, N]: [6.45, 0.6]
+            [O, N]: [4.2, 0.5]
+            [CA, CA]: [6.6, 0.5]
+            [CA, O]: [7.6, 0.7]
+            [CB, CB]: [6.6, 0.7]
+        3:
+            [O, O]: [9.5, 1.2]
+            [N, N]: [9.5, 1.2]
+            [O, N]: [7.3, 0.8]
+            [CA, CA]: [9.7, 1.2]
+            [CA, O]: [10.6, 1.3]
+            [CB, CB]: [9.9, 1.3]
+        4:
+            [O, O]: [12.5, 1.6]
+            [N, N]: [12.5, 1.6]
+            [O, N]: [10.3, 1.4]
+            [CA, CA]: [12.6, 1.6]
+            [CA, O]: [13.6, 1.7]
+            [CB, CB]: [12.7, 1.7]
+        5:
+            [O, O]: [15.4, 2.2]
+            [N, N]: [15.4, 2.2]
+            [O, N]: [13.3, 1.9]
+            [CA, CA]: [15.5, 2.3]
+            [CA, O]: [16.4, 2.3]
+            [CB, CB]: [15.6, 2.3]
+        6:
+            [O, O]: [18.0, 3.0]
+            [N, N]: [18.0, 3.0]
+            [O, N]: [16.0, 2.6]
+            [CA, CA]: [18.1, 3.0]
+            [CA, O]: [19.0, 3.2]
+            [CB, CB]: [18.2, 3.1]
+        7:
+            [O, O]: [20.5, 4.0]
+            [N, N]: [20.5, 4.0]
+            [O, N]: [18.6, 3.6]
+            [CA, CA]: [20.5, 4.1]
+            [CA, O]: [21.3, 4.2]
+            [CB, CB]: [20.6, 4.1]
