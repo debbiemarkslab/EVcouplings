@@ -401,9 +401,10 @@ def best_hit(**kwargs):
 
         id_to_organism = read_annotation_file(annotations_file)
         # This dictionary maps identifiers used to calculate pairing
-        # to identifiers that will be used
+        # to identifiers used to index into the sequence alignment
         id_to_header = {x: [x] for x in id_to_organism.keys()}
 
+        # Make sure the target sequence is included in this dictionary
         # TODO: fix this so that we don"t assume target sequence is the first sequence
         id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file)).ids[0]]
 
@@ -428,15 +429,19 @@ def best_hit(**kwargs):
     )
 
 
-    # determine the species intersection
-    species_intersection = [x for x in species_to_most_similar_1.keys() if x in species_to_most_similar_2.keys()]
+    # get a list of species found in both alignments
+    species_intersection = [x for x in species_to_most_similar_1.keys() \
+        if x in species_to_most_similar_2.keys()]
     
-    # pair the sequence identifiers
+    # make a list of tuples of paired sequence identifiers 
+    # ie, sequence identifiers found in the same genome 
+    # that are the best hit to their respective query
     sequence_pairing = [(species_to_most_similar_1[x][1], species_to_most_similar_2[x][1]) for x in
                         species_intersection]
 
     raw_alignment_file = prefix + "_raw.fasta"
 
+    # write the raw concatenated alignment
     target_seq_id, target_seq_index = write_concatenated_alignment(
         sequence_pairing,
         id_to_header_1, id_to_header_2,
@@ -447,7 +452,7 @@ def best_hit(**kwargs):
         raw_alignment_file
     )
 
-    # filter the alignment
+    # filter the raw concatenated alignment
     raw_ali = Alignment.from_file(open(raw_alignment_file))
     aln_outcfg, _ = modify_alignment(
         raw_ali,
@@ -482,6 +487,7 @@ def best_hit(**kwargs):
     outcfg["segments"] = [s.to_list() for s in segments_complex]
     outcfg["focus_sequence"] = target_seq_id
 
+    # save basic statistics of the concatenation
     outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
     describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
                       kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],

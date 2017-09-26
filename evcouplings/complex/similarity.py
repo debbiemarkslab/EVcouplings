@@ -11,18 +11,21 @@ from evcouplings.align.alignment import (
     Alignment
 )
 
+SPECIES_ANNOTATION_COLUMNS = ["OS","Tax"]
 
 def read_identity_file(identity_file):
     """
     Parameters
     ----------
-    identity_file:str
+    identity_file : str
         path to identity file
 
     Returns
     -------
-    dict of str:str
-        sequence identifier to species annotation
+    dict of str : float
+        keyed on sequence identifier, values
+        are the percent identity of that sequence to 
+        the target sequence
         
     """
     data = pd.read_csv(identity_file)
@@ -32,36 +35,41 @@ def read_identity_file(identity_file):
     return id_to_identity
 
 
-def read_annotation_file(annotation_file, column_1="OS", column_2 = "Tax"):
+def read_annotation_file(annotation_file, annotation_column = "OS",
+                         remove_taxid = True):
     """
     Parameters
     ----------
-    annotation_file: str
+    annotation_file : str
         path to annotation file
-    column: str, optional (default="OS")
-        the column to use for species information
+    annotation_columns :  str, optional (default="OS")
+        column to use for species information. 
+        For uniprot alignment, "OS" is best, 
+        For uniref alignment, "Tax" is best. 
+    remove_taxid : Boolean, optional (default=None)
+        if True, will remove the string " TaxID=" from 
+        the species annotation field. This is needed to 
+        correctly pair alignments where one is made against
+        uniprot and one against uniref. 
 
     Returns
     -------
-    dict of str:str
+    dict of str : str
         sequence identifier to species annotation
         
     """
     data = pd.read_csv(annotation_file, dtype=str)
     data = data.fillna(value="None")
+
+
     id_to_species = {}
-    for id, species1, species2 in zip(data.id, data[column_1],data[column_2]):
 
-        if not species1 is "None":
+    for id, species_annotation in zip(data.id, data[column_1]):
 
-            if "TaxID=" in species1:
-                species1 = species1.split(" TaxID=")[0]
-            id_to_species[id] = species1
-        else:
+        if remove_taxid:
+            species_annotation = species1_annotation.split(" TaxID=")[0]
 
-            if "TaxID=" in species2:
-                species2 = species2.split(" TaxID=")[0]
-            id_to_species[id] = species2
+        id_to_species[id] = species_annotation
 
     return id_to_species
 

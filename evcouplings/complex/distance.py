@@ -58,8 +58,8 @@ def best_reciprocal_matching(possible_partners):
 
     """
     Amongst all possible pairings of CDSs, finds
-    those where both sequences are closest neighbors
-    to each other
+    those where both sequences are closest 
+    on the genome to each other
 
     Parameters
     ----------
@@ -79,31 +79,39 @@ def best_reciprocal_matching(possible_partners):
         closest to one another in a genome.
 
     """
-
+    # initialize list to store the matches
     id_pairing_list = []
 
-    id_group_1 = possible_partners.groupby("uniprot_id_1").groups
-    id_group_2 = possible_partners.groupby("uniprot_id_2").groups
+    # group the table by first and second uniprot identifier
+    id_group_1 = possible_partners.groupby("uniprot_id_1")
+    id_group_2 = possible_partners.groupby("uniprot_id_2")
 
     # loop through all sequences in first alignment, and find the closest reciprocal
     # partner for each
-    for uniprot_id_1,id_subset_1 in id_group_1.items():
+    for uniprot_id_1 in id_group_1.groups.keys():
 
-        # what is the closest sequence in second alignment wrt to genome distance?
-        closest_to_uniprot_1 = id_subset_1.loc[id_subset_1["distance"].idxmin()]["uniprot_id_2"]
+        # get the table that corresponds to the current uniprot id
+        id_subset_1 = id_group_1.get_group(uniprot_id_1)
+
+        # what is the closest sequence in second alignment (w.r.t. to genome distance)?
+        _index_of_closest = id_subset_1["distance"].idxmin()
+        closest_to_uniprot_1 = id_subset_1.loc[_index_of_closest]["uniprot_id_2"]
 
         # get all of the rows that contain the closest hit in the second alignment
-        id_subset_2 = id_gropu_2[closest_to_uniprot_1]
+        id_subset_2 = id_group_2.get_group(closest_to_uniprot_1)
 
         # find the closest sequence in first alignment to the above sequence in second alignment
-        closest_to_uniprot_2 = id_subset_2.loc[id_subset_2["distance"].idxmin()]["uniprot_id_1"]
+        _index_of_closest = id_subset_2["distance"].idxmin()
+        closest_to_uniprot_2 = id_subset_2.loc[_index_of_closest]["uniprot_id_1"]
 
         # check if matched sequences are reciprocally the closest on the genome
         if closest_to_uniprot_2 == uniprot_id_1:
             distance = id_subset_1["distance"].min()
-            id_pairing_list.append[(uniprot_id_1, closest_to_uniprot_1,distance)]
+            id_pairing_list.append((uniprot_id_1, closest_to_uniprot_1, distance))
 
-    id_pairing = pd.DataFrame(id_pairing_list,
+    # convert the data to a pandas dataframe
+    id_pairing = pd.DataFrame(
+        id_pairing_list,
         columns = ["uniprot_id_1", "uniprot_id_2", "distance"]
     )
 
@@ -144,15 +152,19 @@ def find_possible_partners(seq_ids_ali_1, seq_ids_ali_2,
     gene_location_table_1.drop_duplicates(inplace=True)
     gene_location_table_2.drop_duplicates(inplace=True)
 
-    location_groups_1 = gene_location_table_1.groupby("genome_id").groups
-    location_groups_2 = gene_location_table_2.groupby("genome_id").groups
+    # group the gene location tables by genome ID
+    location_groups_1 = gene_location_table_1.groupby("genome_id")
+    location_groups_2 = gene_location_table_2.groupby("genome_id")
 
     # iterate over EMBL genomes found in the first alignment
-    for genome,gene_location_subset_1 in location_groups_1.items():
+    for genome in location_groups_1.groups.keys():
 
         #if the same genome is found in the second alignment
-        if genome in location_groups_2:
-            gene_location_subset_2 = location_groups_2[genome]
+        if genome in location_groups_2.groups.keys():
+
+            #extract the entries corresponding to the current genome
+            gene_location_subset_1 = location_groups_1.get_group(genome)
+            gene_location_subset_2 = location_groups_2.get_group(genome)
 
             # compare all pairs of CDSs 
             # that originate from the current genome

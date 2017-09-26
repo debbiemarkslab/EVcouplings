@@ -89,7 +89,9 @@ def write_concatenated_alignment(id_pairing,
         """
         if len(id_to_header[id_]) == 1:
             return id_to_header[id_][0]
+
         else:
+            print(id_,id_to_header[id_])
             sequence_to_identity = []
             target_seq = ali[ali.id_to_index[target_header]]
 
