@@ -33,7 +33,7 @@ from evcouplings.complex.distance import (
 )
 from evcouplings.complex.similarity import (
     read_identity_file,
-    read_annotation_file,
+    create_species_annotation_dict,
     most_similar_by_organism,
     filter_best_reciprocal
 )
@@ -70,53 +70,49 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
     annotation_file_2 : str
         Path to annotation.csv file for second monomer alignment
     genome_location_filename_1 : str
-        Path to Uniprot to CDS genome location mapping file for
-        first alignment
+        Path to genome location mapping file for first alignment
     genome_location_filename_2 : str
-        Path to Uniprot to CDS genome location mapping file for
-        second alignment
+        PPath to genome location mapping file for second alignment
     outfile: str
         Path to output file
     """
 
     # load the annotations for each alignment
-    annotations_1 = read_annotation_file(
+    # as {id:species}
+    annotations_1 = create_species_annotation_dict(
         annotation_file_1
     )
+    species_1 = list(annotations_1.values())
 
-    annotations_2 = read_annotation_file(
+    annotations_2 = create_species_annotation_dict(
         annotation_file_2
     )
+    species_2 = list(annotations_1.values())
     
-    # calculate the number of sequences found in each alignment
+    #calculate the number of sequences found in each alignment
     num_seqs_1 = len(annotations_1)
     num_seqs_2 = len(annotations_2)
     
-    # calculate the number of species found in each alignment
-    # where a species is defined as a unique OS or Tax annotation field
-    nonredundant_annotations_1 = len(
-        list(set(annotations_1.values()))
-    )
+    #calculate the number of species found in each alignment
+    #where a species is defined as a unique OS or Tax annotation field
+    nonredundant_annotations_1 = len(set(species_1))
+    nonredundant_annotations_2 = len(set(species_2))
 
-    nonredundant_annotations_2 = len(
-        list(set(annotations_2.values()))
-    )
-
-    # calculate the number of overlapping species
+    #calculate the number of overlapping species
     species_overlap = list(
-        set(annotations_1.values()).intersection(
-            set(annotations_2.values())
-        )
+        set(species_1).intersection(set(species_2))
     )
     n_species_overlap = len(species_overlap)
     
-    # calculate the median number of paralogs per species
+    #calculate the median number of paralogs per species
     n_paralogs_1 = float(
-        np.median(list(Counter(annotations_1.values()).values()))
+        # counts the number of times each species occurs in the list
+        # then takes the median
+        np.median(list(Counter(species_1).values()))
     )
 
     n_paralogs_2 = float(
-        np.median(list(Counter(annotations_2.values()).values()))
+        np.median(list(Counter(species_2).values()))
     )
     
     # If the user provided genome location files, calculate the number
@@ -127,11 +123,11 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         genome_location_table_1 = pd.read_csv(genome_location_filename_1)
         genome_location_table_2 = pd.read_csv(genome_location_filename_2)
 
-        # Number uniprot IDs with EMBL CDS that is not NA
+        #Number uniprot IDs with EMBL CDS that is not NA
         genome_location_table_1 = genome_location_table_1.dropna(inplace=True)
         genome_location_table_2 = genome_location_table_2.dropna(inplace=True)
-        embl_cds1 = len(list(set(genome_location_table_1.uniprot_ac)))
-        embl_cds2 = len(list(set(genome_location_table_2.uniprot_ac)))
+        embl_cds1 = len(set(genome_location_filename_1.uniprot_ac))
+        embl_cds2 = len(set(genome_location_filename_2.uniprot_ac))
 
     else:
         embl_cds1 = None
@@ -238,7 +234,7 @@ def genome_distance(**kwargs):
         seq_ids_ali, id_to_header = retrieve_sequence_ids(open(alignment))
 
         # load the previously computed table of CDS locations
-        gene_location_table = pd.read_csv(genome_location_filename, header=0)
+        gene_location_table = pd.read_csv(genome_location_filename,header=0)
 
         return seq_ids_ali, id_to_header, gene_location_table
 
@@ -278,6 +274,7 @@ def genome_distance(**kwargs):
     raw_alignment_file = prefix + "_raw.fasta"
 
     # write concatenated alignment with distance filtering
+    id_pair_tuples = zip(id_pairing["uniprot_id_1"],id_pairing["uniprot_id_2"])
     target_seq_id, target_seq_index = write_concatenated_alignment(
         id_pairing,
         id_to_header_1,
@@ -326,16 +323,14 @@ def genome_distance(**kwargs):
     outcfg["focus_sequence"] = target_seq_id
 
     # plot the genome distance distribution
-    outcfg["distance_plot_file"] = prefix + "_distplot.pdf"
+    outcfg["distance_plot_file"]=prefix + "_distplot.pdf"
     plot_distance_distribution(id_pairing_unfiltered, outcfg["distance_plot_file"])
 
     # calculate some basic statistics on the concatenated alignment
-    outcfg["concatenation_statistics_file"] = prefix + "_concatenation_statistics.csv"
-    describe_concatenation(
-        kwargs["first_annotation_file"], kwargs["second_annotation_file"],
-        kwargs["first_genome_location_file"], kwargs["second_genome_location_file"],
-        outcfg["concatenation_statistics_file"]
-    )
+    outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
+    describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
+                      kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],
+                      outcfg["concatentation_statistics_file"])
 
     return outcfg
 
@@ -429,11 +424,10 @@ def best_hit(**kwargs):
         kwargs["second_alignment_file"]
     )
 
+
     # get a list of species found in both alignments
-    species_intersection = [
-        x for x in species_to_most_similar_1.keys()
-        if x in species_to_most_similar_2.keys()
-    ]
+    species_intersection = [x for x in species_to_most_similar_1.keys() \
+        if x in species_to_most_similar_2.keys()]
     
     # make a list of tuples of paired sequence identifiers 
     # ie, sequence identifiers found in the same genome 
@@ -490,12 +484,10 @@ def best_hit(**kwargs):
     outcfg["focus_sequence"] = target_seq_id
 
     # save basic statistics of the concatenation
-    outcfg["concatenation_statistics_file"] = prefix+"_concatenation_statistics.csv"
-    describe_concatenation(
-        kwargs["first_annotation_file"], kwargs["second_annotation_file"],
-        kwargs["first_genome_location_file"], kwargs["second_genome_location_file"],
-        outcfg["concatenation_statistics_file"]
-    )
+    outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
+    describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
+                      kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],
+                      outcfg["concatentation_statistics_file"])
 
     return outcfg
 
@@ -557,9 +549,10 @@ def best_reciprocal_hit(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
+
     def _find_paralogs(query_id, annotation_file, identity_file,
                        identity_threshold):
-        """
+        '''
         Parameters
         ----------
         identity_threshold: float
@@ -570,19 +563,19 @@ def best_reciprocal_hit(**kwargs):
         filtered_paralogs: list of str
             full sequence identities of paralogs found in the same genome as
             the query id
-        """
+        '''
 
-        annotations = pd.read_csv(annotation_file, na_values=None)
+
+        annotations = pd.read_csv(annotation_file,na_values=None)
         base_query = query_id.split("/")[0]
 
         identities = read_identity_file(identity_file)
 
         # if it's uniprot, extract based on having the same species annotation
         if annotations.RepID.isnull().all():
-            self_hit_row = annotations[[
-                True if base_query in x else False
-                for x in list(annotations.id)
-            ]]
+            self_hit_row = annotations[[True if base_query in x else False
+                                        for x in list(annotations.id)]
+            ]
             self_hit_annotation = self_hit_row.iloc[-1, :]["OS"]
             paralogs = list(annotations[annotations.OS == self_hit_annotation].id)
 
@@ -591,17 +584,16 @@ def best_reciprocal_hit(**kwargs):
             self_hit_annotation = base_query.split("_")[1]
             paralogs = [annotations.iloc[0, :].id]
             annots = [""]+list(annotations.RepID)[1::]
-            paralog_rows = annotations[[
-                True if self_hit_annotation in x else False
-                for x in annots
-            ]]
+            paralog_rows = annotations[[True if self_hit_annotation in x else False
+                                        for x in annots]
+            ]
             paralogs += list(paralog_rows.id)
 
         # confirm that paralogs are below the similarity threshold
         # ie, are diverged in sequence space from the query
         filtered_paralogs = [paralogs[0]]
         for paralog in paralogs[1::]:  # first entry is query
-            if paralog not in identities:
+            if not paralog in identities:
                 continue
             if identities[paralog] < identity_threshold:
                 filtered_paralogs.append(paralog)
@@ -625,9 +617,7 @@ def best_reciprocal_hit(**kwargs):
         paralogs = _find_paralogs(target_sequence, annotations_file, identities_file,
                                   identity_threshold)
 
-        species_to_bestreciprocal, _ = filter_best_reciprocal(
-            alignment_file, paralogs, species_to_most_similar
-        )
+        species_to_bestreciprocal,_ = filter_best_reciprocal(alignment_file,paralogs,species_to_most_similar)
 
         return species_to_bestreciprocal, id_to_header
 
@@ -702,12 +692,12 @@ def best_reciprocal_hit(**kwargs):
     outcfg["segments"] = [s.to_list() for s in segments_complex]
     outcfg["focus_sequence"] = target_seq_id
 
-    outcfg["concatenation_statistics_file"] = prefix + "_concatenation_statistics.csv"
+    outcfg["concatentation_statistics_file"] = prefix + "_concatenation_statistics.csv"
 
     describe_concatenation(
         kwargs["first_annotation_file"], kwargs["second_annotation_file"],
         kwargs["first_genome_location_file"], kwargs["second_genome_location_file"],
-        outcfg["concatenation_statistics_file"]
+        outcfg["concatentation_statistics_file"]
     )
 
     return outcfg

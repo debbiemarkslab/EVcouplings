@@ -35,17 +35,12 @@ def read_identity_file(identity_file):
     return id_to_identity
 
 
-def read_annotation_file(annotation_file, annotation_column = "OS",
-                         remove_taxid = True):
+def create_species_annotation_dict(annotation_file, remove_taxid = True):
     """
     Parameters
     ----------
     annotation_file : str
         path to annotation file
-    annotation_columns :  str, optional (default="OS")
-        column to use for species information. 
-        For uniprot alignment, "OS" is best, 
-        For uniref alignment, "Tax" is best. 
     remove_taxid : Boolean, optional (default=None)
         if True, will remove the string " TaxID=" from 
         the species annotation field. This is needed to 
@@ -59,15 +54,29 @@ def read_annotation_file(annotation_file, annotation_column = "OS",
         
     """
     data = pd.read_csv(annotation_file, dtype=str)
-    data = data.fillna(value="None")
 
-
+    # Initialize the dictionary of id to species annotation
     id_to_species = {}
 
-    for id, species_annotation in zip(data.id, data[column_1]):
+    # initialize the column to extract the species information from
+    annotation_column = None
 
+    # Determine whether to extract based on the "OS" field
+    # or the "Tax" field. Generally, OS is for Uniprot
+    # and "Tax" is for Uniref
+    for column in SPECIES_ANNOTATION_COLUMNS:
+        # if this column contains non-null values
+        if not data[column].isnull().all():
+            # use that column to extract data
+            annotation_column = column
+            break
+
+    # loop through the id,species pairs
+    for id, species_annotation in zip(data.id, data[annotation_column]):
+
+        # remove the " TaxID=" string
         if remove_taxid:
-            species_annotation = species1_annotation.split(" TaxID=")[0]
+            species_annotation = species_annotation.split(" TaxID=")[0]
 
         id_to_species[id] = species_annotation
 
