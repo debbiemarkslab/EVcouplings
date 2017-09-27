@@ -8,7 +8,7 @@ from evcouplings.utils.system import (
 from os import path
 
 
-# output fields for storing results of a jackhmmer run
+# output fields for storing results of a hmmbuild run
 # (returned by run_jackhmmer)
 HmmbuildResult = namedtuple(
     "HmmbuildResult",
