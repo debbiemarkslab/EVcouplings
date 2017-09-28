@@ -116,7 +116,7 @@ def find_homologs(use_jackhmmer=True, **kwargs):
     Parameters
     ----------
     **kwargs
-        Passed into hmmer_search protocol
+        Passed into jackhmmer / hmmbuild_and_search protocol
         (see documentation for available options)
 
     Returns
