@@ -25,7 +25,7 @@ from evcouplings.align.alignment import (
 from evcouplings.align.protocol import jackhmmer_search
 from evcouplings.align.tools import read_hmmer_domtbl
 from evcouplings.compare.mapping import alignment_index_mapping, map_indices
-from evcouplings.compare.hmmer_wrappers import hmmbuild_and_search
+from evcouplings.align.tools import hmmbuild_and_search
 from evcouplings.utils.system import (
     get_urllib, ResourceError, valid_file, tempdir
 )
@@ -109,9 +109,9 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
     return r.text
 
 
-def find_homologs(use_jackhmmer=False, **kwargs):
+def find_homologs(use_jackhmmer=True, **kwargs):
     """
-    Identify homologs
+    Identify homologs using jackhmmer or hmmbuild/hmmsearch
 
     Parameters
     ----------
@@ -150,27 +150,17 @@ def find_homologs(use_jackhmmer=False, **kwargs):
     )
 
     # run hmmsearch (possibly preceded by hmmbuild)
-    if not use_jackhmmer:
-        hmmsearch_result = hmmbuild_and_search(
-            database = config["sequence_database"],
-            prefix = config["prefix"],
-            use_bitscores = config["use_bitscores"],
-            domain_threshold = config["domain_threshold"],
-            seq_threshold = config["sequence_threshold"],
-            nobias = config["nobias"],
-            cpu = config["cpu"],
-            binary = [path.join(config["hmmer"], "hmmbuild"), 
-                        path.join(config["hmmer"], "hmmsearch")],
-        )
+    if use_jackhmmer:
+        # run jackhmmer against sequence database
+        ar = jackhmmer_search(**config)
+
+    else:
+        hmmsearch_result = hmmbuild_and_search(**config)
 
         ar = {
             "hittable_file": hmmsearch_result.domtblout,
             "raw_alignment_file": hmmsearch_result.alignment,
         }
-    
-    else:
-        # run jackhmmer against sequence database
-        ar = jackhmmer_search(**config)
 
     with open(ar["raw_alignment_file"]) as a:
         ali = Alignment.from_file(a, "stockholm")

@@ -9,17 +9,17 @@ from os import path
 
 
 # output fields for storing results of a hmmbuild run
-# (returned by run_jackhmmer)
+# (returned by run_hmmbuild)
 HmmbuildResult = namedtuple(
     "HmmbuildResult",
     ["prefix", "hmmfile", "output"]
 )
 
 
-def run_hmmbuild(msafile, prefix,
-                  cpu=None,
-                  stdout_redirect=None,
-                  binary="hmmbuild"):
+# TODO: Wrong indentation?
+def run_hmmbuild(msafile, prefix, cpu=None,
+                 stdout_redirect=None,
+                 binary="hmmbuild"):
     """
     Profile HMM construction from multiple sequence alignments
     Refer to HMMER documentation for details.
@@ -33,8 +33,6 @@ def run_hmmbuild(msafile, prefix,
     prefix : str
         Prefix path for output files. Folder structure in
         the prefix will be created if not existing.
-    hmmfile_out : str
-        File containing the profile HMM
     cpu : int, optional (default: None)
         Number of CPUs to use for search. Uses all if None.
     stdout_redirect : str, optional (default: None)
@@ -224,7 +222,7 @@ def hmmbuild_and_search(database, prefix,
                   use_bitscores, domain_threshold, seq_threshold,
                   nobias=False, cpu=None,
                   stdout_redirect=None,
-                  binary=["hmmbuild", "hmmsearch"]):
+                  hmmbuild="hmmbuild", hmmsearch="hmmsearch"):
     """
     Search profile(s) against a sequence database.
     Refer to HMMER documentation for details.
@@ -241,7 +239,7 @@ def hmmbuild_and_search(database, prefix,
     use_bitscores : bool
         Use bitscore inclusion thresholds rather than E-values.
 
-   domain_threshold : int or float or str
+    domain_threshold : int or float or str
         Inclusion threshold applied on the domain level
         (e.g. "1E-03" or 0.001 or 50)
     seq_threshold : int or float or str
@@ -281,10 +279,9 @@ def hmmbuild_and_search(database, prefix,
 
     # path to the compare directory
     compare_dir = path.join(main_dir, 'compare')
-    
-    # path to the align directory
-    align_dir = path.join(main_dir, 'align')    
 
+    # path to the align directory
+    align_dir = path.join(main_dir, 'align')
 
     # path to the directory to save the hmmfile in
     hmmfile = path.join(compare_dir, protein_name + ".hmm")
@@ -295,15 +292,17 @@ def hmmbuild_and_search(database, prefix,
     # create a hmm file from a2m file if
     # hmm file doesn't exist
     if not path.isfile(hmmfile):
-        run_hmmbuild(msafile, path.join(compare_dir, protein_name), cpu,
-                stdout_redirect, binary = binary[0])
+        run_hmmbuild(
+            msafile, path.join(compare_dir, protein_name), cpu,
+            stdout_redirect, binary=hmmbuild
+        )
 
     # running hmmsearch binary with the hmmfile
-    result = run_hmmsearch(hmmfile, database, prefix,
+    result = run_hmmsearch(
+                hmmfile, database, prefix,
                 use_bitscores, domain_threshold,
                 seq_threshold, nobias, cpu, stdout_redirect,
-                binary = binary[1])
+                binary=hmmsearch
+            )
 
     return result
-
-
