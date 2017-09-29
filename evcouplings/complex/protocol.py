@@ -89,22 +89,22 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
     )
     species_2 = list(annotations_2.species)
     
-    #calculate the number of sequences found in each alignment
+    # calculate the number of sequences found in each alignment
     num_seqs_1 = len(annotations_1)
     num_seqs_2 = len(annotations_2)
     
-    #calculate the number of species found in each alignment
-    #where a species is defined as a unique OS or Tax annotation field
+    # calculate the number of species found in each alignment
+    # where a species is defined as a unique OS or Tax annotation field
     nonredundant_annotations_1 = len(set(species_1))
     nonredundant_annotations_2 = len(set(species_2))
 
-    #calculate the number of overlapping species
+    # calculate the number of overlapping species
     species_overlap = list(
         set(species_1).intersection(set(species_2))
     )
     n_species_overlap = len(species_overlap)
     
-    #calculate the median number of paralogs per species
+    # calculate the median number of paralogs per species
     n_paralogs_1 = float(
         # counts the number of times each species occurs in the list
         # then takes the median
@@ -123,7 +123,7 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         genome_location_table_1 = pd.read_csv(genome_location_filename_1)
         genome_location_table_2 = pd.read_csv(genome_location_filename_2)
 
-        #Number uniprot IDs with EMBL CDS that is not NA
+        # Number uniprot IDs with EMBL CDS that is not NA
         embl_cds1 = len(list(set(genome_location_table_1.uniprot_ac)))
         embl_cds2 = len(list(set(genome_location_table_2.uniprot_ac)))
 
@@ -232,7 +232,7 @@ def genome_distance(**kwargs):
         seq_ids_ali, id_to_header = retrieve_sequence_ids(open(alignment))
 
         # load the previously computed table of CDS locations
-        gene_location_table = pd.read_csv(genome_location_filename,header=0)
+        gene_location_table = pd.read_csv(genome_location_filename, header=0)
 
         return seq_ids_ali, id_to_header, gene_location_table
 
@@ -321,14 +321,18 @@ def genome_distance(**kwargs):
     outcfg["focus_sequence"] = target_seq_id
 
     # plot the genome distance distribution
-    outcfg["distance_plot_file"]=prefix + "_distplot.pdf"
+    outcfg["distance_plot_file"] = prefix + "_distplot.pdf"
     plot_distance_distribution(id_pairing_unfiltered, outcfg["distance_plot_file"])
 
     # calculate some basic statistics on the concatenated alignment
-    outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
-    describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
-                      kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],
-                      outcfg["concatentation_statistics_file"])
+    outcfg["concatentation_statistics_file"] = prefix + "_concatenation_statistics.csv"
+    describe_concatenation(
+        kwargs["first_annotation_file"],
+        kwargs["second_annotation_file"],
+        kwargs["first_genome_location_file"],
+        kwargs["second_genome_location_file"],
+        outcfg["concatentation_statistics_file"]
+    )
 
     return outcfg
 
@@ -429,9 +433,9 @@ def best_hit(**kwargs):
     # both alignments
     species_intersection = most_similar_in_species_1.merge(
         most_similar_in_species_2,
-        how="inner", # takes the intersection
-        on="species", # merges on species identifiers
-        suffixes=("_1","_2") 
+        how="inner",  # takes the intersection
+        on="species",  # merges on species identifiers
+        suffixes=("_1", "_2")
     )
 
     raw_alignment_file = prefix + "_raw.fasta"
@@ -483,10 +487,14 @@ def best_hit(**kwargs):
     outcfg["focus_sequence"] = target_seq_id
 
     # save basic statistics of the concatenation
-    outcfg["concatentation_statistics_file"]=prefix+"_concatenation_statistics.csv"
-    describe_concatenation(kwargs["first_annotation_file"],kwargs["second_annotation_file"],
-                      kwargs["first_genome_location_file"],kwargs["second_genome_location_file"],
-                      outcfg["concatentation_statistics_file"])
+    outcfg["concatentation_statistics_file"] = prefix + "_concatenation_statistics.csv"
+    describe_concatenation(
+        kwargs["first_annotation_file"],
+        kwargs["second_annotation_file"],
+        kwargs["first_genome_location_file"],
+        kwargs["second_genome_location_file"],
+        outcfg["concatentation_statistics_file"]
+    )
 
     return outcfg
 
@@ -565,12 +573,16 @@ def best_reciprocal_hit(**kwargs):
 
         # read identity file, then do a quick groupby / max
         similarities = pd.read_csv(identities_file)
-        most_similar_in_species  = most_similar_by_organism(similarities, id_to_organism)
+        most_similar_in_species = most_similar_by_organism(similarities, id_to_organism)
 
-        paralogs = find_paralogs(target_sequence, id_to_organism, similarities,
-                                  identity_threshold)
+        paralogs = find_paralogs(
+            target_sequence, id_to_organism,
+            similarities, identity_threshold
+        )
 
-        species_to_bestreciprocal = filter_best_reciprocal(alignment_file,paralogs,most_similar_in_species )
+        species_to_bestreciprocal = filter_best_reciprocal(
+            alignment_file, paralogs, most_similar_in_species
+        )
 
         return species_to_bestreciprocal, id_to_header
 
@@ -595,9 +607,9 @@ def best_reciprocal_hit(**kwargs):
     # both alignments
     species_intersection = species_to_bestreciprocal_1.merge(
         species_to_bestreciprocal_2,
-        how="inner", # takes the intersection
-        on="species", # merges on species identifiers
-        suffixes=("_1","_2") 
+        how="inner",  # takes the intersection
+        on="species",  # merges on species identifiers
+        suffixes=("_1", "_2")
     )
 
     raw_alignment_file = prefix + "_raw.fasta"
@@ -650,8 +662,10 @@ def best_reciprocal_hit(**kwargs):
     outcfg["concatentation_statistics_file"] = prefix + "_concatenation_statistics.csv"
 
     describe_concatenation(
-        kwargs["first_annotation_file"], kwargs["second_annotation_file"],
-        kwargs["first_genome_location_file"], kwargs["second_genome_location_file"],
+        kwargs["first_annotation_file"],
+        kwargs["second_annotation_file"],
+        kwargs["first_genome_location_file"],
+        kwargs["second_genome_location_file"],
         outcfg["concatentation_statistics_file"]
     )
 

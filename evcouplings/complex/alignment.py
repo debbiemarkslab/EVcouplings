@@ -26,7 +26,7 @@ def write_concatenated_alignment(id_pairing,
     Parameters
     ----------
     id_pairing : pd.DataFrame
-        dataframe with columns uniprot_id_1 and uniprot_id_2
+        dataframe with columns id_1 and id_2
         indicating the pairs of sequences to be concatenated
     id_to_full_header_1 : dict (str to list of str)
         Sequence identifiers pointing to list of full headers in
@@ -91,7 +91,6 @@ def write_concatenated_alignment(id_pairing,
             return id_to_header[id_][0]
 
         else:
-            print(id_,id_to_header[id_])
             sequence_to_identity = []
             target_seq = ali[ali.id_to_index[target_header]]
 
@@ -162,14 +161,14 @@ def write_concatenated_alignment(id_pairing,
     target_seq_idx = 0
 
     # create other headers and sequences
-    for id1, id2 in zip(id_pairing.id_1,id_pairing.id_2):
+    for id1, id2 in zip(id_pairing.id_1, id_pairing.id_2):
 
-    	# get the full header for sequence 1 in the original alignment
+        # get the full header for sequence 1 in the original alignment
         full_header_1 = _get_full_header(
             id1, id_to_full_header_1, ali_1, target_full_header_1
         )
 
-		# get the full header for sequence 2 in the original alignment
+        # get the full header for sequence 2 in the original alignment
         full_header_2 = _get_full_header(
             id2, id_to_full_header_2, ali_2, target_full_header_2
         )
