@@ -229,7 +229,7 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
 def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                                d_intra_j, d_multimer_j,
                                d_inter, first_segment_name,
-                               second_segment_name,**kwargs):
+                               second_segment_name, **kwargs):
     """
        Plot contact maps with all ECs above a certain probability threshold,
        or a given count of ECs
@@ -245,9 +245,9 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             Computed residue-residue distances between homomultimeric
             chains for monomers i and j
         d_inter: DistanceMap
-            Computer residue-residue distances between heteromultimeric
+            Computed residue-residue distances between heteromultimeric
             chains
-        first_segment_name,second_segment_name: str
+        first_segment_name, second_segment_name: str
             Name of segment i and segment j in the ec_table
         **kwargs
             Further plotting parameters, see check_required in code
@@ -261,20 +261,23 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
 
     def plot_complex_cm(ecs_i, ecs_j, ecs_inter, 
                         first_segment_name,
-                        second_segment_name,output_file=None):
+                        second_segment_name, output_file=None):
         """
         Simple wrapper for contact map plotting
         """
         with misc.plot_context("Arial"):
 
             if kwargs["scale_sizes"]:
+                # to scale sizes, combine all ecs to rescale together
                 ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
                 ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
 
+                # split back into three separate DataFrames
                 ecs_i = ecs.query("segment_i == segment_j == @first_segment_name")
                 ecs_j = ecs.query("segment_i == segment_j == @second_segment_name")
                 ecs_inter = ecs.query("segment_i != segment_j")
 
+                # if any of these groups are entry, replace with None
                 if len(ecs_i) == 0:
                     ecs_i = None
                 if len(ecs_j) == 0:
@@ -284,17 +287,13 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 
             # Currently, we require at least one of the monomer to have some contacts to make the plot
             if ecs_i is None and ecs_j is None:
-                print("Warning, you must provide at least one contact for at least "+
-                    "one of the monomers. Contact map {} not generated".format(output_file))
-                return None
-
-            if ecs_i is None and ecs_j is None:
-                print("Warning, you must provide at least one contact for at least "+
-                    "one of the monomers. Contact map {} not generated".format(output_file))
+                print("Warning, you must provide at least one contact for at least " +
+                      "one of the monomers. Contact map {} not generated".format(output_file))
                 return None
 
             fig = plt.figure(figsize=(8, 8))
 
+            # create the contact map
             pairs.complex_contact_map(
                 ecs_i, ecs_j, ecs_inter,
                 d_intra_i, d_multimer_i,
@@ -304,13 +303,15 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 boundaries=kwargs["boundaries"],
                 scale_sizes=kwargs["scale_sizes"]
             )
+
+            # Add title to the plot
             if ecs_inter is None:
                 ec_len = 'None'
             else:
                 ec_len = len(ecs_inter)
-
             plt.suptitle("{} inter-molecule evolutionary couplings".format(ec_len), fontsize=14)
 
+            # save to output
             if output_file is not None:
                 plt.savefig(output_file, bbox_inches="tight")
                 plt.close(fig)
@@ -321,7 +322,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             "prefix", "min_sequence_distance",
             "plot_probability_cutoffs",
             "boundaries",
-            "draw_secondary_structure","plot_lowest_count",
+            "draw_secondary_structure", "plot_lowest_count",
             "plot_highest_count", "plot_increase",
             "scale_sizes"
         ]
@@ -343,6 +344,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
 
         for c in cutoffs:
             ec_set = ecs_longrange.query("probability >= @c")
+
             # only can plot if we have any significant ECs above threshold
             if len(ec_set) > 0:
                 ec_set_i = ec_set.query("segment_i == segment_j == @first_segment_name")
@@ -352,13 +354,10 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 output_file = prefix + "_significant_ECs_{}.pdf".format(c)
                 plot_complex_cm(
                     ec_set_i, ec_set_j, ec_set_inter,
-                    first_segment_name,second_segment_name,
+                    first_segment_name, second_segment_name,
                     output_file=output_file
                 )
                 cm_files.append(output_file)
-
-
-    # create plots based on user input number to plot
 
     # range of plots to make
     lowest = int(kwargs["plot_lowest_count"])
@@ -366,10 +365,17 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
     step = int(kwargs["plot_increase"])
 
     for c in range(lowest, highest + 1, step):
+
+        # get the inter ECs to plot
         ec_set_inter = ecs_longrange.query("segment_i != segment_j")[0:c]
+
+        # get the index of the lowest inter EC
         last_inter_index = ec_set_inter.index[-1]
+
+        # take all intra-protein ECs that score higher than the lowest plotted inter-protein EC
         ec_set_i = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == @first_segment_name")
         ec_set_j = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == @second_segment_name")
+
         output_file = prefix + "_{}_ECs.pdf".format(c)
         plot_complex_cm(
             ec_set_i, ec_set_j, ec_set_inter,
@@ -616,8 +622,7 @@ def complex_compare(**kwargs):
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter",
             "first_compare_multimer", "second_compare_multimer",
-            "distance_cutoff_intra",
-            "distance_cutoff_inter",
+            "distance_cutoff",
             "first_sequence_id", "second_sequence_id",
             "first_sequence_file", "second_sequence_file",
             "first_segments", "second_segments",
@@ -634,7 +639,7 @@ def complex_compare(**kwargs):
         "ec_compared_inter_file": prefix + "_CouplingsScoresCompared_inter.csv",
 
         # pdb comparison for first monomer
-        # cannot have the distmap files end with "_file" because there are
+        # Note: cannot have the distmap files end with "_file" because there are
         # two files (.npy and .csv), which would cause problems with automatic
         # checking if those files exist
         "first_pdb_structure_hits_file": prefix + "_first_structure_hits.csv",
@@ -708,7 +713,6 @@ def complex_compare(**kwargs):
     second_segment_name = kwargs["segments"][1][0]
 
     # Step 2: Compute distance maps
-
     def _compute_monomer_distance_maps(sifts_map, name_prefix, chain_name):
         # load all structures at once
         structures = load_structures(
@@ -717,7 +721,7 @@ def complex_compare(**kwargs):
             raise_missing=False
         )
 
-        #prepare a sequence map to remap the structures we have found
+        # prepare a sequence map to remap the structures we have found
         verify_resources(
             "Target sequence file does not exist",
             kwargs[name_prefix + "_target_sequence_file"]
@@ -743,7 +747,7 @@ def complex_compare(**kwargs):
             # save contacts to separate file
             outcfg[name_prefix + "_monomer_contacts_file"] = prefix + "_" + name_prefix + "_contacts_monomer.csv"
             d_intra.contacts(
-                kwargs["distance_cutoff_intra"]
+                kwargs["distance_cutoff"]
             ).to_csv(
                 outcfg[name_prefix + "_monomer_contacts_file"], index=False
             )
@@ -759,14 +763,14 @@ def complex_compare(**kwargs):
             else:
                 d_multimer = None
 
-            # if we have a multimer contact mapin the end, save it
+            # if we have a multimer contact map, save it
             if d_multimer is not None:
                 d_multimer.to_file(outcfg[name_prefix + "_distmap_multimer"])
                 outcfg[name_prefix + "_multimer_contacts_file"] = prefix + name_prefix + "_contacts_multimer.csv"
 
                 # save contacts to separate file
                 d_multimer.contacts(
-                    kwargs["distance_cutoff_inter"]
+                    kwargs["distance_cutoff"]
                 ).to_csv(
                     outcfg[name_prefix + "_multimer_contacts_file"], index=False
                 )
@@ -781,6 +785,7 @@ def complex_compare(**kwargs):
                 filename: mapping_index for mapping_index, filename in
                 remap_chains(sifts_map, aux_prefix, seqmap, chain_name=chain_name).items()
             }
+
         else:
             # if no structures, can not compute distance maps
             d_intra = None
@@ -793,28 +798,27 @@ def complex_compare(**kwargs):
     d_intra_i, d_multimer_i, seqmap_i = _compute_monomer_distance_maps(first_sifts_map, "first", "A")
     d_intra_j, d_multimer_j, seqmap_j = _compute_monomer_distance_maps(second_sifts_map, "second", "B")
 
-    #compute inter distance map if sifts map for each monomer exists
+    # compute inter distance map if sifts map for each monomer exists
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
         d_inter = inter_dists(first_sifts_map, second_sifts_map,
                               raise_missing=kwargs["raise_missing"])
-
-        if d_inter is not None:  # save results
+        # if there were overlapping PDBs, save the results
+        if d_inter is not None:
             d_inter.to_file(outcfg["distmap_inter"])
 
             # save contacts to separate file
             d_inter.contacts(
-                kwargs["distance_cutoff_inter"]
+                kwargs["distance_cutoff"]
             ).to_csv(
                 outcfg["inter_contacts_file"], index=False
             )
 
-        else:  # no overlapping pdbs
+        else:
             outcfg["inter_contacts_file"] = None
     else:
         d_inter = None
 
     # # Step 3: Compare ECs to distance maps
-    #
     ec_table = pd.read_csv(kwargs["ec_file"])
 
     for out_file, min_seq_dist in [
@@ -822,20 +826,22 @@ def complex_compare(**kwargs):
         ("ec_compared_all_file", 0),
     ]:
 
-        # compare ECs only if we minimally have an intra distance map
-        # for one monomer
+        # compare ECs only if we have an intra distance map
+        # for at least one monomer - inter can't exist unless
+        # we have both monomers
         if (d_intra_i is not None) or (d_intra_j is not None):
             # compare distances individually for each segment pair
             ecs_intra_i = ec_table.query("segment_i == segment_j == @first_segment_name")
             if d_intra_i is not None:
                 ecs_intra_i_compared = coupling_scores_compared(
                     ecs_intra_i, d_intra_i, d_multimer_i,
-                    dist_cutoff=kwargs["distance_cutoff_intra"],
+                    dist_cutoff=kwargs["distance_cutoff"],
                     output_file=None,
                     score="cn",
                     min_sequence_dist=min_seq_dist
                 )
             else:
+                # If no distance map, the distance is saved as np.nan
                 ecs_intra_i_compared = deepcopy(ecs_intra_i)
                 ecs_intra_i_compared["dist"] = np.nan
 
@@ -843,7 +849,7 @@ def complex_compare(**kwargs):
             if d_intra_j is not None:
                 ecs_intra_j_compared = coupling_scores_compared(
                     ecs_intra_j, d_intra_j, d_multimer_j,
-                    dist_cutoff=kwargs["distance_cutoff_intra"],
+                    dist_cutoff=kwargs["distance_cutoff"],
                     output_file=None,
                     score="cn",
                     min_sequence_dist=min_seq_dist
@@ -856,10 +862,10 @@ def complex_compare(**kwargs):
             if d_inter is not None:
                 ecs_inter_compared = coupling_scores_compared(
                     ecs_inter, d_inter, dist_map_multimer=None,
-                    dist_cutoff=kwargs["distance_cutoff_inter"],
+                    dist_cutoff=kwargs["distance_cutoff"],
                     output_file=None,
                     score="cn",
-                    min_sequence_dist=None #does not apply for inter-protein ECs
+                    min_sequence_dist=None  # does not apply for inter-protein ECs
                 )
             else:
                 ecs_inter_compared = deepcopy(ecs_inter)
@@ -876,6 +882,7 @@ def complex_compare(**kwargs):
             ])
 
             # rename the precision column to "segmentwise_precision"
+            # because we calculated precision for each segment independently
             ec_table_compared = ec_table_compared.rename(columns={"precision": "segmentwise_precision"})
             ec_table_compared = ec_table_compared.sort_values("cn", ascending=False)
 
@@ -883,7 +890,7 @@ def complex_compare(**kwargs):
             # TODO: implement different cutoffs for intra vs inter contacts
             ec_table_compared = add_precision(
                 ec_table_compared,
-                dist_cutoff=kwargs["distance_cutoff_intra"]
+                dist_cutoff=kwargs["distance_cutoff"]
             )
 
             # save to file
@@ -893,24 +900,26 @@ def complex_compare(**kwargs):
         else:
             outcfg[out_file] = None
 
-    if outcfg["ec_compared_longrange_file"] is not None and kwargs["plot_highest_count"] is not None:
-        ecs_longrange = pd.read_csv(outcfg["ec_compared_longrange_file"])
-        inter_ecs = ecs_longrange.query("segment_i != segment_j")
+    # create the inter-ecs line drawing script
+    if outcfg["ec_compared_inter_file"] is not None and kwargs["plot_highest_count"] is not None:
+        inter_ecs = pd.read_csv(outcfg["ec_compared_inter_file"])
 
         outcfg["ec_lines_compared_pml_file"] = prefix + "_draw_ec_lines_compared.pml"
+
         pairs.ec_lines_pymol_script(
             inter_ecs.iloc[:kwargs["plot_highest_count"], :],
             outcfg["ec_lines_compared_pml_file"],
-            distance_cutoff=kwargs["distance_cutoff_inter"],
-            chain={first_segment_name:"A",second_segment_name:"B"}
+            distance_cutoff=kwargs["distance_cutoff"],
+            chain={first_segment_name: "A", second_segment_name: "B"}
         )
 
+    # Remap the complex crystal structures, if available
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
 
         outcfg["complex_remapped_pdb_files"] = {
             filename: mapping_index for mapping_index, filename in
             remap_complex_chains(first_sifts_map, second_sifts_map,
-                                 seqmap_i,seqmap_j,output_prefix=aux_prefix,
+                                 seqmap_i, seqmap_j, output_prefix=aux_prefix,
                                  raise_missing=kwargs["raise_missing"]).items()
         }
 
@@ -920,7 +929,7 @@ def complex_compare(**kwargs):
         ec_table, d_intra_i, d_multimer_i,
         d_intra_j, d_multimer_j,
         d_inter, first_segment_name,
-        second_segment_name,**kwargs
+        second_segment_name, **kwargs
     )
 
     return outcfg

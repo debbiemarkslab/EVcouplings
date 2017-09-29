@@ -3,6 +3,7 @@ Distance calculations on PDB 3D coordinates
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (remap_complex_chains)
 """
 
 from collections import Counter
@@ -1171,7 +1172,6 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
         #if the user specified a new chain name, change the chain name
         original_pdb_chain = r["pdb_chain"]
 
-
         # save model coordinates to .pdb file
         filename = "{}_{}_{}_{}.pdb".format(
             output_prefix,
@@ -1180,7 +1180,7 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
 
         # save to file
         with open(filename, "w") as f:
-            chain.to_file(f,chain_id=chain_name)
+            chain.to_file(f, chain_id=chain_name)
 
         # typecast index so it is regular python type, not numpy
         # (important for yaml dump)
@@ -1188,17 +1188,16 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
 
     return remapped
 
+
 def remap_complex_chains(sifts_result_i, sifts_result_j,
                          sequence_i=None, sequence_j=None, structures=None,
                          atom_filter=None, intersect=False, output_prefix=None,
                          raise_missing=True, chain_name_i="A",
                          chain_name_j="B", model=0):
     """
-    Compute inter-chain distances (between different entities)
-    in PDB file. Resulting distance map is typically not
-    symmetric, with either axis corresponding to either chain.
-    Inter-distances are calculated on all combinations of chains
-    that have the same PDB id in sifts_result_i and sifts_result_j.
+    Remap a pair of PDB chains from the same structure
+    into the numbering scheme (and amino acid sequence) of a
+    target sequence.
 
     Parameters
     ----------
@@ -1212,7 +1211,6 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
         If str: Load structures from directory this string
         points to. Missing structures will be fetched
         from web.
-
         If dict: dictionary with lower-case PDB ids as keys
         and PDB objects as values. This dictionary has to
         contain all necessary structures, missing ones will
@@ -1236,6 +1234,10 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
     raise_missing : bool, optional (default: True)
         Raise a ResourceError if any of the input structures can
         not be loaded; otherwise, ignore missing entries.
+    chain_name_i : str, optional (default: "A")
+        renames the first chain to this string
+    chain_name_j : str, optional (default: "B")
+        renames the second chain to this string
 
     Returns
     -------
@@ -1257,7 +1259,6 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
             "sifts_result_i or sifts_result_j is empty "
             "(no structure hits, but at least one required)"
         )
-
 
     # make sure keys in sequence map are strings,
     # since indices in structures are stored as strings
@@ -1292,8 +1293,6 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
     # go through all chain combinations
     for i, r in combis.iterrows():
 
-        ### chain i
-
         # extract and remap PDB chain
         chain_i = _prepare_chain(
             structures, r["pdb_id"], r["pdb_chain_i"],
@@ -1319,10 +1318,8 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
                 subset=["one_letter_code", "three_letter_code"]
             )
 
-        #if the user specified a new chain name, change the chain name
+        # if the user specified a new chain name, change the chain name
         original_pdb_chain_i = r["pdb_chain_i"]
-
-        ### chain j
 
         # extract and remap PDB chain
         chain_j = _prepare_chain(
@@ -1349,7 +1346,7 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
                 subset=["one_letter_code", "three_letter_code"]
             )
 
-        #if the user specified a new chain name, change the chain name
+        # if the user specified a new chain name, change the chain name
         original_pdb_chain_j = r["pdb_chain_j"]
 
         # save model coordinates to .pdb file
@@ -1363,8 +1360,8 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
 
         # save to file
         with open(filename, "w") as f:
-            chain_i.to_file(f,chain_id=chain_name_i)
-            chain_j.to_file(f,chain_id=chain_name_j)
+            chain_i.to_file(f, chain_id=chain_name_i)
+            chain_j.to_file(f, chain_id=chain_name_j)
 
         # typecast index so it is regular python type, not numpy
         # (important for yaml dump)
