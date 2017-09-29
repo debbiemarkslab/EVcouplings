@@ -162,24 +162,30 @@ def write_concatenated_alignment(id_pairing,
     target_seq_idx = 0
 
     # create other headers and sequences
-    for id1, id2 in zip(id_pairing.uniprot_id_1,id_pairing.uniprot_id_2):
+    for id1, id2 in zip(id_pairing.id_1,id_pairing.id_2):
+
+    	# get the full header for sequence 1 in the original alignment
         full_header_1 = _get_full_header(
             id1, id_to_full_header_1, ali_1, target_full_header_1
         )
 
+		# get the full header for sequence 2 in the original alignment
         full_header_2 = _get_full_header(
             id2, id_to_full_header_2, ali_2, target_full_header_2
         )
 
+        # prepare the concatenated header
         concatenated_header = _prepare_header(
             id1, id2, full_header_1, full_header_2
         )
 
+        # concatenate the seqs
         concatenated_sequences = (
             _prepare_sequence(ali_1, full_header_1),
             _prepare_sequence(ali_2, full_header_2)
         )
 
+        # save the information
         sequences_to_write.append(
             (
                 concatenated_header,

@@ -32,10 +32,10 @@ from evcouplings.complex.distance import (
     plot_distance_distribution
 )
 from evcouplings.complex.similarity import (
-    read_identity_file,
-    create_species_annotation_dict,
+    read_species_annotation_table,
     most_similar_by_organism,
-    filter_best_reciprocal
+    filter_best_reciprocal,
+    find_paralogs
 )
 
 
@@ -79,15 +79,15 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
 
     # load the annotations for each alignment
     # as {id:species}
-    annotations_1 = create_species_annotation_dict(
+    annotations_1 = read_species_annotation_table(
         annotation_file_1
     )
-    species_1 = list(annotations_1.values())
+    species_1 = list(annotations_1.species)
 
-    annotations_2 = create_species_annotation_dict(
+    annotations_2 = read_species_annotation_table(
         annotation_file_2
     )
-    species_2 = list(annotations_1.values())
+    species_2 = list(annotations_2.species)
     
     #calculate the number of sequences found in each alignment
     num_seqs_1 = len(annotations_1)
@@ -124,10 +124,8 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         genome_location_table_2 = pd.read_csv(genome_location_filename_2)
 
         #Number uniprot IDs with EMBL CDS that is not NA
-        genome_location_table_1 = genome_location_table_1.dropna(inplace=True)
-        genome_location_table_2 = genome_location_table_2.dropna(inplace=True)
-        embl_cds1 = len(set(genome_location_filename_1.uniprot_ac))
-        embl_cds2 = len(set(genome_location_filename_2.uniprot_ac))
+        embl_cds1 = len(list(set(genome_location_table_1.uniprot_ac)))
+        embl_cds2 = len(list(set(genome_location_table_2.uniprot_ac)))
 
     else:
         embl_cds1 = None
@@ -249,14 +247,12 @@ def genome_distance(**kwargs):
             alignment_2,
             genome_location_filename_2
         )
-    print(gene_location_table_1.head())
+
     id_to_header_1[kwargs["first_focus_sequence"]] = [kwargs["first_focus_sequence"]]
     id_to_header_2[kwargs["second_focus_sequence"]] = [kwargs["second_focus_sequence"]]
 
     # find all possible matches
     possible_partners = find_possible_partners(
-        seq_ids_ali_1,
-        seq_ids_ali_2,
         gene_location_table_1,
         gene_location_table_2
     )
@@ -271,10 +267,12 @@ def genome_distance(**kwargs):
     else:
         id_pairing = id_pairing_unfiltered
 
+    id_pairing["id_1"] = id_pairing["uniprot_id_1"]
+    id_pairing["id_2"] = id_pairing["uniprot_id_2"]
+
     raw_alignment_file = prefix + "_raw.fasta"
 
     # write concatenated alignment with distance filtering
-    id_pair_tuples = zip(id_pairing["uniprot_id_1"],id_pairing["uniprot_id_2"])
     target_seq_id, target_seq_index = write_concatenated_alignment(
         id_pairing,
         id_to_header_1,
@@ -395,51 +393,52 @@ def best_hit(**kwargs):
                            target_sequence,
                            alignment_file):
 
-        id_to_organism = read_annotation_file(annotations_file)
+        # read in annotation to a file and rename the appropriate column
+        annotation_table = read_species_annotation_table(annotations_file)
+
         # This dictionary maps identifiers used to calculate pairing
         # to identifiers used to index into the sequence alignment
-        id_to_header = {x: [x] for x in id_to_organism.keys()}
-
         # Make sure the target sequence is included in this dictionary
         # TODO: fix this so that we don"t assume target sequence is the first sequence
+        id_to_header = {x: [x] for x in annotation_table.id}
         id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file)).ids[0]]
 
-        similarities = read_identity_file(identities_file)
-        species_to_most_similar = most_similar_by_organism(similarities, id_to_organism)
+        # read identity file
+        similarities = pd.read_csv(identities_file)
+        # create a pd.DataFrame containing the best hit in each organism
+        most_similar_in_species = most_similar_by_organism(similarities, annotation_table)
 
-        return species_to_most_similar, id_to_header
+        return most_similar_in_species , id_to_header
 
     # load the information about each monomer alignment
-    species_to_most_similar_1, id_to_header_1 = _load_monomer_info(
+    most_similar_in_species_1, id_to_header_1 = _load_monomer_info(
         kwargs["first_annotation_file"],
         kwargs["first_identities_file"],
         kwargs["first_focus_sequence"],
         kwargs["first_alignment_file"]
     )
 
-    species_to_most_similar_2, id_to_header_2 = _load_monomer_info(
+    most_similar_in_species_2, id_to_header_2 = _load_monomer_info(
         kwargs["second_annotation_file"],
         kwargs["second_identities_file"],
         kwargs["second_focus_sequence"],
         kwargs["second_alignment_file"]
     )
 
-
-    # get a list of species found in both alignments
-    species_intersection = [x for x in species_to_most_similar_1.keys() \
-        if x in species_to_most_similar_2.keys()]
-    
-    # make a list of tuples of paired sequence identifiers 
-    # ie, sequence identifiers found in the same genome 
-    # that are the best hit to their respective query
-    sequence_pairing = [(species_to_most_similar_1[x][1], species_to_most_similar_2[x][1]) for x in
-                        species_intersection]
+    # merge the two dataframes to get all species found in 
+    # both alignments
+    species_intersection = most_similar_in_species_1.merge(
+        most_similar_in_species_2,
+        how="inner", # takes the intersection
+        on="species", # merges on species identifiers
+        suffixes=("_1","_2") 
+    )
 
     raw_alignment_file = prefix + "_raw.fasta"
 
     # write the raw concatenated alignment
     target_seq_id, target_seq_index = write_concatenated_alignment(
-        sequence_pairing,
+        species_intersection,
         id_to_header_1, id_to_header_2,
         kwargs["first_alignment_file"],
         kwargs["second_alignment_file"],
@@ -549,80 +548,34 @@ def best_reciprocal_hit(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-
-    def _find_paralogs(query_id, annotation_file, identity_file,
-                       identity_threshold):
-        '''
-        Parameters
-        ----------
-        identity_threshold: float
-            sequences above this identity to the query are not considered paralogs
-
-        Returns
-        -------
-        filtered_paralogs: list of str
-            full sequence identities of paralogs found in the same genome as
-            the query id
-        '''
-
-
-        annotations = pd.read_csv(annotation_file,na_values=None)
-        base_query = query_id.split("/")[0]
-
-        identities = read_identity_file(identity_file)
-
-        # if it's uniprot, extract based on having the same species annotation
-        if annotations.RepID.isnull().all():
-            self_hit_row = annotations[[True if base_query in x else False
-                                        for x in list(annotations.id)]
-            ]
-            self_hit_annotation = self_hit_row.iloc[-1, :]["OS"]
-            paralogs = list(annotations[annotations.OS == self_hit_annotation].id)
-
-        # if it's uniref, extract based on having the same RepID
-        else:
-            self_hit_annotation = base_query.split("_")[1]
-            paralogs = [annotations.iloc[0, :].id]
-            annots = [""]+list(annotations.RepID)[1::]
-            paralog_rows = annotations[[True if self_hit_annotation in x else False
-                                        for x in annots]
-            ]
-            paralogs += list(paralog_rows.id)
-
-        # confirm that paralogs are below the similarity threshold
-        # ie, are diverged in sequence space from the query
-        filtered_paralogs = [paralogs[0]]
-        for paralog in paralogs[1::]:  # first entry is query
-            if not paralog in identities:
-                continue
-            if identities[paralog] < identity_threshold:
-                filtered_paralogs.append(paralog)
-        print(len(filtered_paralogs))
-        return filtered_paralogs
-
     def _load_monomer_info(annotations_file,
                            identities_file,
                            target_sequence,
                            alignment_file,
                            identity_threshold):
-        id_to_organism = read_annotation_file(annotations_file)
-        id_to_header = {x: [x] for x in id_to_organism.keys()}
+        # read in annotation to a file and rename the appropriate column
+        id_to_organism = read_species_annotation_table(annotations_file)
 
+        # This dictionary maps identifiers used to calculate pairing
+        # to identifiers used to index into the sequence alignment
+        # Make sure the target sequence is included in this dictionary
         # TODO: fix this so that we don"t assume target sequence is the first sequence
+        id_to_header = {x: [x] for x in id_to_organism.id}
         id_to_header[target_sequence] = [Alignment.from_file(open(alignment_file)).ids[0]]
 
-        similarities = read_identity_file(identities_file)
-        species_to_most_similar = most_similar_by_organism(similarities, id_to_organism)
+        # read identity file, then do a quick groupby / max
+        similarities = pd.read_csv(identities_file)
+        most_similar_in_species  = most_similar_by_organism(similarities, id_to_organism)
 
-        paralogs = _find_paralogs(target_sequence, annotations_file, identities_file,
+        paralogs = find_paralogs(target_sequence, id_to_organism, similarities,
                                   identity_threshold)
 
-        species_to_bestreciprocal,_ = filter_best_reciprocal(alignment_file,paralogs,species_to_most_similar)
+        species_to_bestreciprocal = filter_best_reciprocal(alignment_file,paralogs,most_similar_in_species )
 
         return species_to_bestreciprocal, id_to_header
 
     # load the information about each monomer alignment
-    species_to_most_similar_1, id_to_header_1 = _load_monomer_info(
+    species_to_bestreciprocal_1, id_to_header_1 = _load_monomer_info(
         kwargs["first_annotation_file"],
         kwargs["first_identities_file"],
         kwargs["first_focus_sequence"],
@@ -630,7 +583,7 @@ def best_reciprocal_hit(**kwargs):
         kwargs["paralog_identity_threshold"]
     )
 
-    species_to_most_similar_2, id_to_header_2 = _load_monomer_info(
+    species_to_bestreciprocal_2, id_to_header_2 = _load_monomer_info(
         kwargs["second_annotation_file"],
         kwargs["second_identities_file"],
         kwargs["second_focus_sequence"],
@@ -638,17 +591,19 @@ def best_reciprocal_hit(**kwargs):
         kwargs["paralog_identity_threshold"]
     )
 
-    # determine the species intersection
-    species_intersection = [x for x in species_to_most_similar_1.keys() if x in species_to_most_similar_2.keys()]
-
-    # pair the sequence identifiers
-    sequence_pairing = [(species_to_most_similar_1[x][1], species_to_most_similar_2[x][1]) for x in
-                        species_intersection]
+    # merge the two dataframes to get all species found in 
+    # both alignments
+    species_intersection = species_to_bestreciprocal_1.merge(
+        species_to_bestreciprocal_2,
+        how="inner", # takes the intersection
+        on="species", # merges on species identifiers
+        suffixes=("_1","_2") 
+    )
 
     raw_alignment_file = prefix + "_raw.fasta"
 
     target_seq_id, target_seq_index = write_concatenated_alignment(
-        sequence_pairing,
+        species_intersection,
         id_to_header_1, id_to_header_2,
         kwargs["first_alignment_file"],
         kwargs["second_alignment_file"],
