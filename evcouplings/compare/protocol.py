@@ -266,8 +266,6 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
         Simple wrapper for contact map plotting
         """
         with misc.plot_context("Arial"):
-            print(output_file)
-
 
             if kwargs["scale_sizes"]:
                 ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
@@ -290,6 +288,11 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                     "one of the monomers. Contact map {} not generated".format(output_file))
                 return None
 
+            if ecs_i is None and ecs_j is None:
+                print("Warning, you must provide at least one contact for at least "+
+                    "one of the monomers. Contact map {} not generated".format(output_file))
+                return None
+
             fig = plt.figure(figsize=(8, 8))
 
             pairs.complex_contact_map(
@@ -301,8 +304,12 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 boundaries=kwargs["boundaries"],
                 scale_sizes=kwargs["scale_sizes"]
             )
+            if ecs_inter is None:
+                ec_len = 'None'
+            else:
+                ec_len = len(ecs_inter)
 
-            plt.suptitle("{} inter-molecule evolutionary couplings".format(len(ecs_inter)), fontsize=14)
+            plt.suptitle("{} inter-molecule evolutionary couplings".format(ec_len), fontsize=14)
 
             if output_file is not None:
                 plt.savefig(output_file, bbox_inches="tight")
@@ -624,6 +631,7 @@ def complex_compare(**kwargs):
     outcfg = {
         "ec_compared_all_file": prefix + "_CouplingScoresCompared_all.csv",
         "ec_compared_longrange_file": prefix + "_CouplingScoresCompared_longrange.csv",
+        "ec_compared_inter_file": prefix + "_CouplingsScoresCompared_inter.csv",
 
         # pdb comparison for first monomer
         # cannot have the distmap files end with "_file" because there are
@@ -851,11 +859,14 @@ def complex_compare(**kwargs):
                     dist_cutoff=kwargs["distance_cutoff_inter"],
                     output_file=None,
                     score="cn",
-                    min_sequence_dist=min_seq_dist
+                    min_sequence_dist=None #does not apply for inter-protein ECs
                 )
             else:
                 ecs_inter_compared = deepcopy(ecs_inter)
                 ecs_inter_compared["dist"] = np.nan
+
+            # save the inter ECs to a file
+            ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
 
             # combine the tables
             ec_table_compared = pd.concat([
@@ -876,6 +887,7 @@ def complex_compare(**kwargs):
             )
 
             # save to file
+            # all ecs
             ec_table_compared.to_csv(outcfg[out_file])
 
         else:
@@ -893,7 +905,8 @@ def complex_compare(**kwargs):
             chain={first_segment_name:"A",second_segment_name:"B"}
         )
 
-    if len(first_sifts_map.hits) > 0 or len(second_sifts_map.hits) > 0:
+    if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
+
         outcfg["complex_remapped_pdb_files"] = {
             filename: mapping_index for mapping_index, filename in
             remap_complex_chains(first_sifts_map, second_sifts_map,

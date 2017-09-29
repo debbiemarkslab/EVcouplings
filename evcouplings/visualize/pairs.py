@@ -272,10 +272,6 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     ax : Matplotlib Axes object, optional (default: None)
         Axes the plot will be drawn on
     """
-    if ecs is None and monomer is None and multimer is None:
-        raise ValueError(
-            "Need to specify at least one of ecs, monomer or multimer"
-        )
 
     if ax is None:
         ax = plt.gca()
