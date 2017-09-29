@@ -239,6 +239,10 @@ concatenate:
     # Required for genome_distance protocol only
     genome_distance_threshold: 10000
     
+    # Maximum sequence identity allowed for hits to be designated
+    # as paralogs. Required for best_reciprocal_hit only
+    paralog_identity_threshold: 0.95
+    
     # Parameters for filtering of concatenated alignment
     
     # Filter sequence alignment at this % sequence identity cutoff. Can be used to cut computation time in
@@ -374,8 +378,7 @@ compare:
     atom_filter:
 
     # Distance cutoff (Angstrom) for a true positive pair
-    distance_cutoff_intra: 5
-    distance_cutoff_inter: 8
+    distance_cutoff: 5
 
     # Only long-range pairs with abs(i-j)>= min_sequence_distance will be used for CouplingScoresCompared_longrange.csv file
     min_sequence_distance: 6
