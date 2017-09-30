@@ -31,6 +31,150 @@ from evcouplings.utils.system import (
     verify_resources, ResourceError
 )
 
+def hmmbuild_and_search(**kwargs):
+    """
+    Protocol:
+
+    Hmmbuild and hmmsearch against a sequence database.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    .. todo::
+        explain meaning of parameters in detail.
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the protocol, including
+        the following fields:
+
+        * target_sequence_file
+        * sequence_file
+        * raw_alignment_file
+        * hittable_file
+        * focus_mode
+        * focus_sequence
+        * segments
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "sequence_id", "sequence_file",
+            "sequence_download_url", "region", "first_index",
+            "use_bitscores", "domain_threshold", "sequence_threshold",
+            "database", "iterations", "cpu", "nobias", "reuse_alignment",
+            "checkpoints_hmm", "checkpoints_ali", "hmmbuild",
+            "hmmsearch", "extract_annotation"
+        ]
+    )
+    prefix = kwargs["prefix"]
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    # store search sequence file here
+    target_sequence_file = prefix + ".fa"
+    full_sequence_file = prefix + "_full.fa"
+
+    # make sure search sequence is defined and load it
+    full_seq_file, (full_seq_id, full_seq) = fetch_sequence(
+        kwargs["sequence_id"],
+        kwargs["sequence_file"],
+        kwargs["sequence_download_url"],
+        full_sequence_file
+    )
+
+    # cut sequence to target region and save in sequence_file
+    # (this is the main sequence file used downstream)
+    (region_start, region_end), cut_seq = cut_sequence(
+        full_seq,
+        kwargs["sequence_id"],
+        kwargs["region"],
+        kwargs["first_index"],
+        target_sequence_file
+    )
+
+    # run hmmbuild_and_search... allow to reuse pre-exisiting
+    # Stockholm alignment file here
+    ali_outcfg_file = prefix + ".align_hmmbuild_and_search.outcfg"
+
+    # determine if to rerun, only possible if previous results
+    # were stored in ali_outcfg_file
+    if kwargs["reuse_alignment"] and valid_file(ali_outcfg_file):
+        ali = read_config_file(ali_outcfg_file)
+
+        # check if the alignment file itself is also there
+        verify_resources(
+            "Tried to reuse alignment, but empty or "
+            "does not exist",
+            ali["alignment"], ali["domtblout"]
+        )
+    else:
+        # otherwise, we have to run the alignment
+        # modify search thresholds to be suitable for jackhmmer
+        seq_threshold, domain_threshold = search_thresholds(
+            kwargs["use_bitscores"],
+            kwargs["sequence_threshold"],
+            kwargs["domain_threshold"],
+            len(cut_seq)
+        )
+
+        # run search process
+        ali = at.run_hmmbuild_and_search(
+            database=kwargs[kwargs["database"]],
+            prefix=prefix,
+            use_bitscores=kwargs["use_bitscores"],
+            domain_threshold=domain_threshold,
+            seq_threshold=seq_threshold,
+            nobias=kwargs["nobias"],
+            cpu=kwargs["cpu"],
+            hmmbuild=kwargs["hmmbuild"],
+            hmmsearch=kwargs["hmmsearch"]
+        )
+
+        # get rid of huge stdout log file immediately
+        try:
+            os.remove(ali.output)
+        except OSError:
+            pass
+
+        # turn namedtuple into dictionary to make
+        # restarting code nicer
+        ali = dict(ali._asdict())
+
+        # save results of search for possible restart
+        write_config_file(ali_outcfg_file, ali)
+
+    # prepare output dictionary with result files
+    outcfg = {
+        "target_sequence_file": target_sequence_file,
+        "sequence_file": full_sequence_file,
+        "focus_mode": True,
+        "raw_alignment_file": ali["alignment"],
+        "hittable_file": ali["domtblout"],
+    }
+
+    # define a single protein segment based on target sequence
+    outcfg["segments"] = [
+        Segment(
+            "aa", kwargs["sequence_id"],
+            region_start, region_end,
+            range(region_start, region_end + 1)
+        ).to_list()
+    ]
+
+    outcfg["focus_sequence"] = "{}/{}-{}".format(
+        kwargs["sequence_id"], region_start, region_end
+    )
+
+    return outcfg
+
+
+
+
 
 def fetch_sequence(sequence_id, sequence_file,
                    sequence_download_url, out_file):
