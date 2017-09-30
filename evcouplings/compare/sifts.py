@@ -22,10 +22,9 @@ from evcouplings.align.alignment import (
     Alignment, read_fasta, parse_header
 )
 
-from evcouplings.align.protocol import jackhmmer_search
+from evcouplings.align.protocol import jackhmmer_search, hmmbuild_and_search
 from evcouplings.align.tools import read_hmmer_domtbl
 from evcouplings.compare.mapping import alignment_index_mapping, map_indices
-from evcouplings.align.tools import hmmbuild_and_search
 from evcouplings.utils.system import (
     get_urllib, ResourceError, valid_file, tempdir
 )
@@ -155,12 +154,7 @@ def find_homologs(use_jackhmmer=True, **kwargs):
         ar = jackhmmer_search(**config)
 
     else:
-        hmmsearch_result = hmmbuild_and_search(**config)
-
-        ar = {
-            "hittable_file": hmmsearch_result.domtblout,
-            "raw_alignment_file": hmmsearch_result.alignment,
-        }
+        ar = hmmbuild_and_search(**config)
 
     with open(ar["raw_alignment_file"]) as a:
         ali = Alignment.from_file(a, "stockholm")

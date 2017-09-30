@@ -21,7 +21,6 @@ HmmbuildResult = namedtuple(
 )
 
 
-# TODO: Wrong indentation?
 def run_hmmbuild(msafile, prefix, cpu=None,
                  stdout_redirect=None,
                  binary="hmmbuild"):
@@ -223,7 +222,7 @@ def run_hmmsearch(hmmfile, database, prefix,
 
 
 
-def hmmbuild_and_search(database, prefix,
+def run_hmmbuild_and_search(database, prefix,
                   use_bitscores, domain_threshold, seq_threshold,
                   nobias=False, cpu=None,
                   stdout_redirect=None,
@@ -257,15 +256,24 @@ def hmmbuild_and_search(database, prefix,
     stdout_redirect : str, optional (default: None)
         Redirect bulky stdout instead of storing
         with rest of results (use "/dev/null" to dispose)
-    binary : str (default: ["hmmbuild", "hmmsearch"])
-        Path to jackhmmer binary (put in PATH for
-        default to work)
+    hmmbuild : str (default: "hmmbuild")
+        Path to hmmbuild binary
+    hmmsearch : str (default: "hmmsearch")
+        Path to hmmsearch binary
 
     Returns
     -------
-    HmmsearchResult
-        namedtuple with fields corresponding to the different
-        output files (prefix, alignment, output, tblout, domtblout)
+    outcfg : dict
+        Output configuration of the protocol, including
+        the following fields:
+
+        * target_sequence_file
+        * sequence_file
+        * raw_alignment_file
+        * hittable_file
+        * focus_mode
+        * focus_sequence
+        * segments
 
     Raises
     ------
