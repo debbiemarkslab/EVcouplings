@@ -9,10 +9,9 @@ Authors:
   Thomas A. Hopf
   Charlotta P.I. Schärfe
 """
-
+import pandas as pd
 from collections import defaultdict
 from evcouplings.align.ids import retrieve_sequence_ids
-import pandas as pd
 
 
 def extract_cds_ids(alignment_file,
@@ -27,23 +26,26 @@ def extract_cds_ids(alignment_file,
     ----------
     alignment_file : str
         Path to alignment with sequences for which IDs
-         should be retrieved
+        should be retrieved
     uniprot_to_embl_table : str
         Path to uniprot to embl mapping database
 
     Returns
     -------
-    list of tuples of str
-        A list of uniprot ac, CDS id pairs
+    list of (str, str)
+        A list of Uniprot ac, CDS id pairs
         the CDS id(s) corresponding to each
-        uniprot AC. Uniprot ACs may be repeated
+        Uniprot AC. Uniprot ACs may be repeated
         if there were multiple CDS hits.
 
     """
 
     def _split_annotation_string(annotation_string):
-        # reformat the ena string as a list of tuples
+        """
+        reformats the ENA annotation string as a list of
+        [(read,cds)] tuples
 
+        """
         full_annotation = [
             tuple(x.split(":")) for x in
             annotation_string.split(",")
@@ -52,13 +54,13 @@ def extract_cds_ids(alignment_file,
         return full_annotation
 
     def _remove_redundant_cds(uniprot_and_genome_cds):
-
         """
         Removes CDSs that have hits to multiple genomes
 
-        Returns a list of uniprot,cds tuples
+        Returns a list of tuples (Uniprot_AC, CDS)
 
         """
+
         filtered_uniprot_and_cds = []
         for uniprot_ac, genome_and_cds in uniprot_and_genome_cds:
 
@@ -110,11 +112,11 @@ def extract_cds_ids(alignment_file,
 def extract_embl_annotation(uniprot_and_cds,
                             ena_genome_location_table,
                             genome_location_filename):
-
     """
     Reads genomic location information
-    for all input EMBL coding DNA sequences (CDS); writes that
-    information to a csv file with the following columns:
+    for all input EMBL coding DNA sequences (CDS) corresponding
+    to the amino cid sequences in the alignment; creates
+    a pd.DataFrame with the following columns:
 
     cds_id, genome_id, uniprot_ac, gene_start, gene_end
 
@@ -123,7 +125,7 @@ def extract_embl_annotation(uniprot_and_cds,
     
     Parameters
     ----------
-    uniprot_and_cds : list of tuples of str
+    uniprot_and_cds : list of (str, str)
         A list of uniprot ac, CDS id pairs for which to extract
         genome location
     ena_genome_location_table : str
@@ -133,6 +135,13 @@ def extract_embl_annotation(uniprot_and_cds,
     genome_location_filename : str
         File to write containing CDS location info for
         target sequences
+
+    Returns
+    -------
+    pd.DataFrame
+        Columns: cds_id, genome_id, uniprot_ac, gene_start, gene_end
+        Each row is a unique CDS. Uniprot ACs may be repeated if one
+        Uniprot AC hits multiple CDS.
 
     """
 
@@ -171,3 +180,58 @@ def extract_embl_annotation(uniprot_and_cds,
 
     # write the annotation
     genome_location_table.to_csv(genome_location_filename)
+
+def add_full_header(table, alignment_file):
+    """
+    Add column called full_id
+    with the header in the sequence alignment
+    that corresponds to the uniprot_AC in the
+    genome location table
+
+    Parameters
+    ----------
+    table : pd.DataFrame
+        Columns: cds_id, genome_id, uniprot_ac, gene_start, gene_end
+        Each row is a unique CDS. Uniprot ACs may be repeated if one
+        Uniprot AC hits multiple CDS.
+    alignment_file : str
+        Path to sequence alignment
+
+    Returns
+    -------
+    pd.DataFrame
+        Same as above but with a "full_id"
+        column
+
+    """
+    with open(alignment_file) as inf:
+        _, id_to_header = retrieve_sequence_ids(inf)
+
+    genome_ids, gene_start, gene_end, ids, cds_id = [], [], [], [], []
+    full_ids = []
+
+    for _, row in table.iterrows():
+        genome_id = row["genome_id"]
+        gs = row["gene_start"]
+        ge = row["gene_end"]
+        id = row["uniprot_ac"]
+        cds = row["cds_id"]
+
+        for full_id in id_to_header[id]:
+            genome_ids.append(genome_id)
+            gene_start.append(gs)
+            gene_end.append(ge)
+            ids.append(id)
+            full_ids.append(full_id)
+            cds_id.append(cds)
+
+    df = pd.DataFrame({
+        "genome_id": genome_ids,
+        "gene_start": gene_start,
+        "gene_end": gene_end,
+        "full_id": full_ids,
+        "cds_id": cds_id
+        "uniprot_ac": ids
+    })
+
+    return df

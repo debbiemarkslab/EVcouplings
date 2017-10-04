@@ -1109,6 +1109,8 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
         backbone atoms.
     model : int, optional (default: 0)
         Index of model in PDB structure that should be used
+    chain_name : str
+        rename the PDB chain to this when saving the file
     raise_missing : bool, optional (default: True)
         Raise a ResourceError if any of the input structures can
         not be loaded; otherwise, ignore missing entries.

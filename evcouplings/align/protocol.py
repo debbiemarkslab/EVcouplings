@@ -34,14 +34,16 @@ from evcouplings.utils.system import (
 
 from evcouplings.align.ena import (
     extract_embl_annotation,
-    extract_cds_ids
+    extract_cds_ids,
+    add_full_header
 )
 
 
 def fetch_sequence(sequence_id, sequence_file,
                    sequence_download_url, out_file):
     """
-    Get sequence.
+    Fetch sequence either from database based on identifier, or from
+    input sequence file.
 
     Parameters
     ----------
@@ -1006,7 +1008,6 @@ def jackhmmer_search(**kwargs):
 
     return outcfg
 
-
 def standard(**kwargs):
     """
     Protocol:
@@ -1126,8 +1127,8 @@ def complex(**kwargs):
     """
     Protocol:
 
-    Run alignment protocol and postprocess it for EVcomplex
-    calculations
+    Run monomer alignment protocol and postprocess it for
+    EVcomplex calculations
 
     Parameters
     ----------
@@ -1138,7 +1139,12 @@ def complex(**kwargs):
     -------
     outcfg : dict
         Output configuration of the alignment protocol, and
-        the following additional fields:
+        the following additional field:
+
+        genome_location_file : path to file containing
+            the genomic locations for CDs's corresponding to
+            identifiers in the alignment.
+
     """
     check_required(
         kwargs,
@@ -1147,6 +1153,16 @@ def complex(**kwargs):
             "uniprot_to_embl_table",
             "ena_genome_location_table"
         ]
+    )
+
+    verify_resources(
+        "Uniprot to EMBL mapping table does not exist",
+        kwargs["uniprot_to_embl_table"]
+    )
+
+    verify_resources(
+        "ENA genome location table does not exist",
+        kwargs["ena_genome_location_table"]
     )
 
     prefix = kwargs["prefix"]
@@ -1189,15 +1205,20 @@ def complex(**kwargs):
         kwargs["uniprot_to_embl_table"]
     )
 
-    # extractgenome location information from ENA
+    # extract genome location information from ENA
     genome_location_filename = prefix + "_genome_location.csv"
 
-    extract_embl_annotation(
+    genome_location_table = extract_embl_annotation(
         cds_ids,
         kwargs["ena_genome_location_table"],
         genome_location_filename
     )
 
+    genome_location_table = add_full_header(
+        genome_location_table, outcfg["alignment_file"]
+    )
+
+    genome_location_table.to_csv(genome_location_filename)
     outcfg["genome_location_file"] = genome_location_filename
 
     # dump output config to YAML file for debugging/logging
