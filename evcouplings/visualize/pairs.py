@@ -127,27 +127,13 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
         if len(ec_pos) > 0:
             min_ec, max_ec = min(ec_pos), max(ec_pos)
         else:
-            if len(structure_pos) > 0:
-                min_ec, max_ec = min(structure_pos), max(structure_pos)
-            else:
-                # raise ValueError(
-                #     "must provide at least one EC or structural contact for" + \
-                #     "each subplot of complex contact map"
-                # )
-                min_ec, max_ec = 0,0
+            min_ec, max_ec = min(structure_pos), max(structure_pos)
+
 
         if len(structure_pos) > 0:
             min_struct, max_struct = min(structure_pos), max(structure_pos)
         else:
-            if len(ec_pos) > 0:
-                min_struct, max_struct = min(ec_pos), max(ec_pos)
-            else:
-                # raise ValueError(
-                #     "must provide at least one EC or structural contact for"+ \
-                #     "each subplot of complex contact map"
-                # )
-                min_struct, max_struct = 0,0
-
+            min_struct, max_struct = min(ec_pos), max(ec_pos)
 
         # determine and set plot boundaries
         if boundaries == "union":
@@ -272,6 +258,10 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     ax : Matplotlib Axes object, optional (default: None)
         Axes the plot will be drawn on
     """
+    if ecs is None and monomer is None and multimer is None:
+        raise ValueError(
+            "Need to specify at least one of ecs, monomer or multimer"
+        )
 
     if ax is None:
         ax = plt.gca()
@@ -385,43 +375,79 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
           for both x-axis (first tuple) and y-axis (second tuple)
     """
     # check that boundaries is supplied
-
     boundaries = kwargs["boundaries"]
 
     # Find the appropriate boundaries for each subset
-    intra1_boundaries = list(find_boundaries(boundaries,
-                                             ecs=intra1_ecs,
-                                             monomer=d_intra_i,
-                                             multimer=d_multimer_i,
-                                             symmetric=True))
-
-    intra2_boundaries = list(find_boundaries(boundaries,
-                                             ecs=intra2_ecs,
-                                             monomer=d_intra_j,
-                                             multimer=d_multimer_j,
-                                             symmetric=True))
-
-    inter_boundaries = list(find_boundaries(boundaries,
-                                             ecs=inter_ecs,
-                                             monomer=d_inter,
-                                             multimer=None,
-                                             symmetric=False))
-
-    inter_boundaries = [
-        (
-            min(intra1_boundaries[0][0],inter_boundaries[0][0]),
-            max(intra1_boundaries[0][1],inter_boundaries[0][1])
-        ),(
-            min(intra2_boundaries[0][0],inter_boundaries[1][0]),
-            max(intra2_boundaries[0][1],inter_boundaries[1][1])
+    intra1_boundaries = list(
+        find_boundaries(
+            boundaries, ecs=intra1_ecs, monomer=d_intra_i,
+            multimer=d_multimer_i, symmetric=True
         )
-    ]
+    )
+
+    intra2_boundaries = list(
+        find_boundaries(
+            boundaries, ecs=intra2_ecs, monomer=d_intra_j,
+            multimer=d_multimer_j, symmetric=True
+        )
+    )
+
+    # Don't compute inter boundaries unless we have inter 
+    # ecs or distances
+    if inter_ecs is not None or d_inter is not None:
+        inter_boundaries = list(
+            find_boundaries(
+                boundaries, ecs=inter_ecs, monomer=d_inter,
+                multimer=None, symmetric=False
+            )
+        )
+
+        def _boundary_union(original_boundaries,new_boundaries_axis1,
+                            new_boundaries_axis2):
+        # determine whether to use the original boundaries or the
+        # corresponding monomer boundaries - whichever spans more
+        # of the protein
+
+            updated_boundaries = [
+                (
+                    min(original_boundaries[0][0],new_boundaries_axis1[0][0]),
+                    max(original_boundaries[0][1],new_boundaries_axis1[0][1])
+                ),
+                (
+                    min(original_boundaries[0][0],new_boundaries_axis2[1][0]),
+                    max(original_boundaries[0][1],new_boundaries_axis2[1][1])
+                )
+            ]
+            return updated_boundaries
+
+        # update the inter boundaries in case the intra boundaries
+        # are outside the range of plotted inter ECs
+        inter_boundaries = _boundary_union(
+            inter_boundaries, intra1_boundaries, intra2_boundaries
+        )
+
+        # also modify intra boundaries in case the inter ECs are outside
+        # the range of plotted monomer contacts or ECs
+        intra1_boundaries = _boundary_union(
+            intra1_boundaries, inter_boundaries, inter_boundaries
+        )
+
+        intra2_boundaries = _boundary_union(
+            intra2_boundaries, inter_boundaries, inter_boundaries
+        )
+
+    else:
+    # if not plotting any inter ECs or contacts, just use the intra boundaries
+        inter_boundaries = [
+            (intra1_boundaries[0][0],intra1_boundaries[0][1]),
+            (intra2_boundaries[0][0],intra2_boundaries[0][1])
+        ]
 
     # Calculate the length ratios of the monomers
     mon1_len = intra1_boundaries[0][1] - intra1_boundaries[0][0]
     mon2_len = intra2_boundaries[0][1] - intra2_boundaries[0][0]
 
-    if (mon1_len == 0) and (mon2_len ==0):
+    if (mon1_len == 0) and (mon2_len == 0):
         raise ValueError("Warning, you must provide at least one contact to plot "+
             "for at least one of the monomers. Contact map not generated.")
 
@@ -443,55 +469,52 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
     if not (intra1_ecs is None and d_intra_i is None and d_multimer_i is None):
         new_kwargs = deepcopy(kwargs)
         new_kwargs["boundaries"] = intra1_boundaries
-        plot_contact_map(ax=ax1,
-                         symmetric=True,
-                         ecs=intra1_ecs,
-                         monomer=d_intra_i,
-                         multimer=d_multimer_i,
-                         **new_kwargs)
+        plot_contact_map(
+            ax=ax1, symmetric=True,
+            ecs=intra1_ecs, monomer=d_intra_i,
+            multimer=d_multimer_i, **new_kwargs
+        )
 
     # intra 2, lower right
     if not (intra2_ecs is None and d_intra_j is None and d_multimer_j is None):
         new_kwargs = deepcopy(kwargs)
         new_kwargs["boundaries"] = intra2_boundaries
-        plot_contact_map(ax=ax4,
-                         symmetric=True,
-                         ecs=intra2_ecs,
-                         monomer=d_intra_j,
-                         multimer=d_multimer_j,
-                         **new_kwargs)
+        plot_contact_map(
+            ax=ax4, symmetric=True,
+            ecs=intra2_ecs, monomer=d_intra_j,
+            multimer=d_multimer_j, **new_kwargs
+        )
 
     # inter, lower left
     if not (inter_ecs is None and d_inter is None):
         new_kwargs = deepcopy(kwargs)
         new_kwargs["boundaries"] = inter_boundaries
-        plot_contact_map(ax=ax3,
-                         symmetric=False,
-                         ecs=inter_ecs,
-                         multimer=d_inter,
-                         distance_cutoff=8,
-                         **new_kwargs)
+        plot_contact_map(
+            ax=ax3, symmetric=False,
+            ecs=inter_ecs, multimer=d_inter,
+            **new_kwargs
+        )
 
-    # inter, upper right
-    if inter_ecs is None:
-        inter_ecs_transposed = None
-    else:
-        inter_ecs_transposed = inter_ecs.rename(columns={"i":"j","j":"i"})
+        # inter, upper right
+        if inter_ecs is None:
+            inter_ecs_transposed = None
+        else:
+            inter_ecs_transposed = inter_ecs.rename(columns={"i": "j", "j": "i"})
 
-    if d_inter is None:
-        d_inter_T = None
-    else:
-        d_inter_T = d_inter.transpose()
+        if d_inter is None:
+            d_inter_T = None
+        else:
+            d_inter_T = d_inter.transpose()
 
-    new_kwargs = deepcopy(kwargs)
-    new_kwargs["boundaries"] = list(reversed(inter_boundaries))
-
-    plot_contact_map(ax=ax2,
-                     symmetric=False,
-                     ecs=inter_ecs_transposed,
-                     multimer=d_inter_T,
-                     distance_cutoff=8,
-                     **new_kwargs)
+        new_kwargs = {
+            **kwargs,
+            "boundaries": list(reversed(inter_boundaries)),
+        }
+        plot_contact_map(
+            ax=ax2, symmetric=False,
+            ecs=inter_ecs_transposed,
+            multimer=d_inter_T, **new_kwargs
+        )
 
 def plot_pairs(pairs, symmetric=False, ax=None, style=None):
     """
@@ -1083,7 +1106,7 @@ def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
     chain : str or dict(str -> str), optional (default: None)
         PDB chain(s) that should be targeted by line drawing
         - If None, residues will be selected
-          py position alone, which may cause wrong assignments
+          by position alone, which may cause wrong assignments
           if multiple chains are present in the structure.
         - Different chains can be assigned for each i and j,
           if a dictionary that maps from segment (str) to PDB chain (str)

@@ -3,7 +3,7 @@ EC to 3D structure comparison protocols/workflows.
 
 Authors:
   Thomas A. Hopf
-  Anna G. Green
+  Anna G. Green (complex and _make_complex_contact_maps)
 """
 
 from copy import deepcopy
@@ -231,33 +231,33 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                                d_inter, first_segment_name,
                                second_segment_name, **kwargs):
     """
-       Plot contact maps with all ECs above a certain probability threshold,
-       or a given count of ECs
+   Plot contact maps with all ECs above a certain probability threshold,
+   or a given count of ECs
 
-        Parameters
-        ----------
-        ec_table : pandas.DataFrame
-            Full set of evolutionary couplings (all pairs)
-        d_intra_i, d_intra_j: DistanceMap
-            Computed residue-residue distances within chains for
-            monomers i and j
-        d_multimer_i, d_multimer_j : DistanceMap
-            Computed residue-residue distances between homomultimeric
-            chains for monomers i and j
-        d_inter: DistanceMap
-            Computed residue-residue distances between heteromultimeric
-            chains
-        first_segment_name, second_segment_name: str
-            Name of segment i and segment j in the ec_table
-        **kwargs
-            Further plotting parameters, see check_required in code
-            for necessary values.
+    Parameters
+    ----------
+    ec_table : pandas.DataFrame
+        Full set of evolutionary couplings (all pairs)
+    d_intra_i, d_intra_j: DistanceMap
+        Computed residue-residue distances within chains for
+        monomers i and j
+    d_multimer_i, d_multimer_j : DistanceMap
+        Computed residue-residue distances between homomultimeric
+        chains for monomers i and j
+    d_inter: DistanceMap
+        Computed residue-residue distances between heteromultimeric
+        chains i and j
+    first_segment_name, second_segment_name: str
+        Name of segment i and segment j in the ec_table
+    **kwargs
+        Further plotting parameters, see check_required in code
+        for necessary values.
 
-        Returns
-        -------
-        cm_files : list(str)
-            Paths of generated contact map files
-        """
+    Returns
+    -------
+    cm_files : list(str)
+        Paths of generated contact map files
+    """
 
     def plot_complex_cm(ecs_i, ecs_j, ecs_inter, 
                         first_segment_name,
@@ -266,7 +266,6 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
         Simple wrapper for contact map plotting
         """
         with misc.plot_context("Arial"):
-
             if kwargs["scale_sizes"]:
                 # to scale sizes, combine all ecs to rescale together
                 ecs = pd.concat([ecs_i, ecs_j, ecs_inter])
@@ -284,12 +283,12 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                     ecs_j = None
                 if len(ecs_inter) == 0:
                     ecs_inter = None
-                
-            # Currently, we require at least one of the monomer to have some contacts to make the plot
-            if ecs_i is None and ecs_j is None:
-                print("Warning, you must provide at least one contact for at least " +
-                      "one of the monomers. Contact map {} not generated".format(output_file))
-                return None
+
+                # Currently, we require at least one of the monomer 
+                # to have either ECs or distances in order to make a plot
+                if ecs_i is None and d_intra_i is None and d_multimer_i is None\
+                and ecs_j is None and d_intra_j is None and d_multimer_i is None:
+                    return None
 
             fig = plt.figure(figsize=(8, 8))
 
@@ -306,10 +305,13 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
 
             # Add title to the plot
             if ecs_inter is None:
-                ec_len = 'None'
+                ec_len = '0'
             else:
                 ec_len = len(ecs_inter)
-            plt.suptitle("{} inter-molecule evolutionary couplings".format(ec_len), fontsize=14)
+            plt.suptitle(
+                "{} inter-molecule evolutionary couplings".format(ec_len), 
+                fontsize=14
+            )
 
             # save to output
             if output_file is not None:
@@ -359,22 +361,35 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 )
                 cm_files.append(output_file)
 
+    # transform fraction of number of sites into discrete number of ECs
+    def _discrete_count(x):
+        if isinstance(x, float):
+            x = ceil(x * num_sites)
+        return int(x)
+
     # range of plots to make
-    lowest = int(kwargs["plot_lowest_count"])
-    highest = int(kwargs["plot_highest_count"])
-    step = int(kwargs["plot_increase"])
+    lowest = _discrete_count(kwargs["plot_lowest_count"])
+    highest = _discrete_count(kwargs["plot_highest_count"])
+    step = _discrete_count(kwargs["plot_increase"])
 
     for c in range(lowest, highest + 1, step):
-
         # get the inter ECs to plot
         ec_set_inter = ecs_longrange.query("segment_i != segment_j")[0:c]
+
+        # if there are no inter ecs to be plotted, continue
+        if ec_set_inter.empty:
+            continue
 
         # get the index of the lowest inter EC
         last_inter_index = ec_set_inter.index[-1]
 
         # take all intra-protein ECs that score higher than the lowest plotted inter-protein EC
-        ec_set_i = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == @first_segment_name")
-        ec_set_j = ecs_longrange.ix[0:last_inter_index].query("segment_i == segment_j == @second_segment_name")
+        ec_set_i = ecs_longrange.iloc[0:last_inter_index].query(
+            "segment_i == segment_j == @first_segment_name"
+        )
+        ec_set_j = ecs_longrange.iloc[0:last_inter_index].query(
+            "segment_i == segment_j == @second_segment_name"
+        )
 
         output_file = prefix + "_{}_ECs.pdf".format(c)
         plot_complex_cm(
@@ -564,7 +579,6 @@ def standard(**kwargs):
                 ec_table, d_intra, d_multimer,
                 dist_cutoff=kwargs["distance_cutoff"],
                 output_file=outcfg[out_file],
-                score="cn",
                 min_sequence_dist=min_seq_dist
             )
         else:
@@ -591,7 +605,7 @@ def standard(**kwargs):
     return outcfg
 
 
-def complex_compare(**kwargs):
+def complex(**kwargs):
     """
     Protocol:
     Compare ECs for a complex to
@@ -608,13 +622,13 @@ def complex_compare(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        ec_file_compared_all
-        ec_file_compared_all_longrange
-        pdb_structure_hits
-        distmap_monomer
-        distmap_multimer
-        contact_map_files
-        remapped_pdb_files
+        * ec_file_compared_all
+        * ec_file_compared_all_longrange
+        * pdb_structure_hits
+        * distmap_monomer
+        * distmap_multimer
+        * contact_map_files
+        * remapped_pdb_files
     """
     check_required(
         kwargs,
@@ -634,30 +648,29 @@ def complex_compare(**kwargs):
     prefix = kwargs["prefix"]
 
     outcfg = {
+        # initialize output EC files
         "ec_compared_all_file": prefix + "_CouplingScoresCompared_all.csv",
         "ec_compared_longrange_file": prefix + "_CouplingScoresCompared_longrange.csv",
         "ec_compared_inter_file": prefix + "_CouplingsScoresCompared_inter.csv",
 
-        # pdb comparison for first monomer
-        # Note: cannot have the distmap files end with "_file" because there are
-        # two files (.npy and .csv), which would cause problems with automatic
-        # checking if those files exist
-        "first_pdb_structure_hits_file": prefix + "_first_structure_hits.csv",
-        "first_pdb_structure_hits_unfiltered_file": prefix + "_first_structure_hits_unfiltered.csv",
-        "first_distmap_monomer": prefix + "_first_distance_map_monomer",
-        "first_distmap_multimer": prefix + "_first_distance_map_multimer",
-
-        # pdb comparison for second monomer
-        "second_pdb_structure_hits_file": prefix + "_second_structure_hits.csv",
-        "second_pdb_structure_hits_unfiltered_file": prefix + "_second_structure_hits_unfiltered.csv",
-        "second_distmap_monomer": prefix + "_second_distance_map_monomer",
-        "second_distmap_multimer": prefix + "_second_distance_map_multimer",
-
-        # inter distance map
+        #initialize output inter distancemap files
         "distmap_inter": prefix + "_distmap_inter",
         "inter_contacts_file": prefix + "_inter_contacts_file"
-
     }
+
+    # Add PDB comparison files for first and second monomer
+    for monomer_prefix in ["first", "second"]:
+        outcfg = {
+            **outcfg,
+            monomer_prefix + "_pdb_structure_hits_file": \
+                "{}_{}_structure_hits.csv".format(prefix, monomer_prefix),
+            monomer_prefix + "_pdb_structure_hits_unfiltered_file": \
+                "{}_{}_structure_hits_unfitered.csv".format(prefix, monomer_prefix),
+            monomer_prefix + "_distmap_monomer": \
+                "{}_{}_distance_map_monomer".format(prefix, monomer_prefix),
+            monomer_prefix + "_distmap_multimer": \
+                "{}_{}_distance_map_multimer".format(prefix, monomer_prefix),
+        }
 
     # make sure EC file exists
     verify_resources(
@@ -674,25 +687,16 @@ def complex_compare(**kwargs):
 
     # Step 1: Identify 3D structures for comparison
     def _identify_monomer_structures(name_prefix, outcfg):
-        sifts_map, sifts_map_full = _identify_structures(**{
-            "prefix": kwargs["prefix"],
-            "pdb_ids": kwargs["pdb_ids"],
-            "pdb_mmtf_dir": kwargs["pdb_mmtf_dir"],
-            "jackhmmer": kwargs["jackhmmer"],
-            "sifts_mapping_table": kwargs["sifts_mapping_table"],
-            "sifts_sequence_db": kwargs["sifts_sequence_db"],
-            "compare_multimer": kwargs[name_prefix + "_compare_multimer"],
-            "max_num_hits": kwargs[name_prefix + "_max_num_hits"],
-            "max_num_structures": kwargs[name_prefix + "_max_num_structures"],
-            "by_alignment": kwargs[name_prefix + "_by_alignment"],
-            "alignment_min_overlap": kwargs[name_prefix + "_alignment_min_overlap"],
-            "sequence_id": kwargs[name_prefix + "_sequence_id"],
-            "sequence_file": kwargs[name_prefix + "_sequence_file"],
-            "region": kwargs[name_prefix + "_region"],
-            "use_bitscores": kwargs[name_prefix + "_use_bitscores"],
-            "domain_threshold": kwargs[name_prefix + "_domain_threshold"],
-            "sequence_threshold": kwargs[name_prefix + "_sequence_threshold"]
-        })
+        # create a dictionary with kwargs for just the current monomer
+        monomer_kwargs = {
+            k.replace(name_prefix + "_", ""): v for k,v in kwargs.items() if "prefix" not in k
+        }
+
+        # identify structures for that monomer
+        sifts_map, sifts_map_full = _identify_structures(
+            **monomer_kwargs,
+            prefix=aux_prefix
+        )
 
         # save selected PDB hits
         sifts_map.hits.to_csv(
@@ -709,17 +713,20 @@ def complex_compare(**kwargs):
     outcfg, second_sifts_map = _identify_monomer_structures("second", outcfg)
 
     # get the segment names from the kwargs
+    segment_list = kwargs["segments"]
+
+    # Make sure user provided exactly two segments
+    if len(segment_list) != 2:
+        Raise(
+            InvalidParameterError,
+            "Compare stage for protein complexes requires exactly two segments"
+        )
+
     first_segment_name = kwargs["segments"][0][0]
     second_segment_name = kwargs["segments"][1][0]
 
     # Step 2: Compute distance maps
     def _compute_monomer_distance_maps(sifts_map, name_prefix, chain_name):
-        # load all structures at once
-        structures = load_structures(
-            sifts_map.hits.pdb_id,
-            kwargs["pdb_mmtf_dir"],
-            raise_missing=False
-        )
 
         # prepare a sequence map to remap the structures we have found
         verify_resources(
@@ -783,25 +790,41 @@ def complex_compare(**kwargs):
             # dictionary so we have a list of files in the dict keys
             outcfg[name_prefix + "_remapped_pdb_files"] = {
                 filename: mapping_index for mapping_index, filename in
-                remap_chains(sifts_map, aux_prefix, seqmap, chain_name=chain_name).items()
+                remap_chains(
+                    sifts_map, aux_prefix, seqmap, chain_name=chain_name,
+                    raise_missing=kwargs["raise_missing"]
+                ).items()
             }
 
         else:
-            # if no structures, can not compute distance maps
+            # if no structures, cannot compute distance maps
             d_intra = None
             d_multimer = None
             outcfg[name_prefix + "_distmap_monomer"] = None
             outcfg[name_prefix + "_distmap_multimer"] = None
+            outcfg[name_prefix + "remapped_pdb_files"] = None
 
         return d_intra, d_multimer, seqmap
+
+    # load all structures for both monomers
+    all_structures = set(first_sifts_map.hits.pdb_id).union(
+        set(second_sifts_map.hits.pdb_id)
+    )
+    structures = load_structures(
+        all_structures,
+        kwargs["pdb_mmtf_dir"],
+        raise_missing=False
+    )
 
     d_intra_i, d_multimer_i, seqmap_i = _compute_monomer_distance_maps(first_sifts_map, "first", "A")
     d_intra_j, d_multimer_j, seqmap_j = _compute_monomer_distance_maps(second_sifts_map, "second", "B")
 
     # compute inter distance map if sifts map for each monomer exists
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
-        d_inter = inter_dists(first_sifts_map, second_sifts_map,
-                              raise_missing=kwargs["raise_missing"])
+        d_inter = inter_dists(
+            first_sifts_map, second_sifts_map,
+            raise_missing=kwargs["raise_missing"]
+        )
         # if there were overlapping PDBs, save the results
         if d_inter is not None:
             d_inter.to_file(outcfg["distmap_inter"])
@@ -813,16 +836,16 @@ def complex_compare(**kwargs):
                 outcfg["inter_contacts_file"], index=False
             )
 
-        else:
-            outcfg["inter_contacts_file"] = None
     else:
+        outcfg["inter_contacts_file"] = None
         d_inter = None
 
     # # Step 3: Compare ECs to distance maps
     ec_table = pd.read_csv(kwargs["ec_file"])
 
     for out_file, min_seq_dist in [
-        ("ec_compared_longrange_file", kwargs["min_sequence_distance"]),
+        ("ec_compared_longrange_file", 
+        kwargs["min_sequence_distance"]),
         ("ec_compared_all_file", 0),
     ]:
 
@@ -837,13 +860,11 @@ def complex_compare(**kwargs):
                     ecs_intra_i, d_intra_i, d_multimer_i,
                     dist_cutoff=kwargs["distance_cutoff"],
                     output_file=None,
-                    score="cn",
                     min_sequence_dist=min_seq_dist
                 )
             else:
                 # If no distance map, the distance is saved as np.nan
-                ecs_intra_i_compared = deepcopy(ecs_intra_i)
-                ecs_intra_i_compared["dist"] = np.nan
+                ecs_intra_i_compared = ecs_intra_i.assign(dist=np.nan)
 
             ecs_intra_j = ec_table.query("segment_i == segment_j == @second_segment_name")
             if d_intra_j is not None:
@@ -851,12 +872,10 @@ def complex_compare(**kwargs):
                     ecs_intra_j, d_intra_j, d_multimer_j,
                     dist_cutoff=kwargs["distance_cutoff"],
                     output_file=None,
-                    score="cn",
                     min_sequence_dist=min_seq_dist
                 )
             else:
-                ecs_intra_j_compared = deepcopy(ecs_intra_j)
-                ecs_intra_j_compared["dist"] = np.nan
+                cs_intra_j_compared = ecs_intra_j.assign(dist=np.nan)
 
             ecs_inter = ec_table.query("segment_i != segment_j")
             if d_inter is not None:
@@ -864,12 +883,11 @@ def complex_compare(**kwargs):
                     ecs_inter, d_inter, dist_map_multimer=None,
                     dist_cutoff=kwargs["distance_cutoff"],
                     output_file=None,
-                    score="cn",
                     min_sequence_dist=None  # does not apply for inter-protein ECs
                 )
             else:
-                ecs_inter_compared = deepcopy(ecs_inter)
-                ecs_inter_compared["dist"] = np.nan
+                # If no distance map, the distance is saved as np.nan
+                cs_inter_compared = ecs_inter.assign(dist=np.nan)
 
             # save the inter ECs to a file
             ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
@@ -883,7 +901,10 @@ def complex_compare(**kwargs):
 
             # rename the precision column to "segmentwise_precision"
             # because we calculated precision for each segment independently
-            ec_table_compared = ec_table_compared.rename(columns={"precision": "segmentwise_precision"})
+            ec_table_compared = ec_table_compared.rename(
+                columns={"precision": "segmentwise_precision"}
+            )
+            # TODO: change "cn" to "score" eventually
             ec_table_compared = ec_table_compared.sort_values("cn", ascending=False)
 
             # add the total precision
@@ -915,12 +936,13 @@ def complex_compare(**kwargs):
 
     # Remap the complex crystal structures, if available
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
-
         outcfg["complex_remapped_pdb_files"] = {
             filename: mapping_index for mapping_index, filename in
-            remap_complex_chains(first_sifts_map, second_sifts_map,
-                                 seqmap_i, seqmap_j, output_prefix=aux_prefix,
-                                 raise_missing=kwargs["raise_missing"]).items()
+            remap_complex_chains(
+                first_sifts_map, second_sifts_map,
+                seqmap_i, seqmap_j, output_prefix=aux_prefix,
+                raise_missing=kwargs["raise_missing"]
+            ).items()
         }
 
     # Step 4: Make contact map plots
@@ -939,7 +961,9 @@ def complex_compare(**kwargs):
 PROTOCOLS = {
     # standard monomer comparison protocol
     "standard": standard,
-    "complex_compare": complex_compare
+
+    # comparison for protein complexes
+    "complex": complex
 }
 
 

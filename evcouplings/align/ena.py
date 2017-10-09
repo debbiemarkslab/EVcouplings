@@ -139,7 +139,7 @@ def extract_embl_annotation(uniprot_and_cds,
     Returns
     -------
     pd.DataFrame
-        Columns: cds_id, genome_id, uniprot_ac, gene_start, gene_end
+        Columns: cds, genome_id, uniprot_ac, gene_start, gene_end
         Each row is a unique CDS. Uniprot ACs may be repeated if one
         Uniprot AC hits multiple CDS.
 
@@ -179,7 +179,7 @@ def extract_embl_annotation(uniprot_and_cds,
     ])
 
     # write the annotation
-    genome_location_table.to_csv(genome_location_filename)
+    return genome_location_table
 
 def add_full_header(table, alignment_file):
     """
@@ -191,7 +191,7 @@ def add_full_header(table, alignment_file):
     Parameters
     ----------
     table : pd.DataFrame
-        Columns: cds_id, genome_id, uniprot_ac, gene_start, gene_end
+        Columns: cds, genome_id, uniprot_ac, gene_start, gene_end
         Each row is a unique CDS. Uniprot ACs may be repeated if one
         Uniprot AC hits multiple CDS.
     alignment_file : str
@@ -215,7 +215,7 @@ def add_full_header(table, alignment_file):
         gs = row["gene_start"]
         ge = row["gene_end"]
         id = row["uniprot_ac"]
-        cds = row["cds_id"]
+        cds = row["cds"]
 
         for full_id in id_to_header[id]:
             genome_ids.append(genome_id)
@@ -230,7 +230,7 @@ def add_full_header(table, alignment_file):
         "gene_start": gene_start,
         "gene_end": gene_end,
         "full_id": full_ids,
-        "cds_id": cds_id
+        "cds_id": cds_id,
         "uniprot_ac": ids
     })
 

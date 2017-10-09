@@ -13,6 +13,7 @@ Authors:
   Thomas A. Hopf
   Agnes Toth-Petroczy (original mixture model code)
   John Ingraham (skew normal mixture model)
+  Anna G. Green (EVComplex Score code)
 """
 
 from math import ceil
@@ -663,18 +664,17 @@ class EVComplexScoreModel:
         x : np.array (or list-like)
             List of scores
         plot: bool, optional (default: False)
-             Plot score distribution
+            Plot score distribution
 
         Returns
         -------
         probability: np.array(float)
             EVcomplex score
-
         """
         # Calculate the minimum score
         min_score = abs(np.min(self.x))
 
-        return np.divide(x, min_score)
+        return x / min_score
 
 
 def add_mixture_probability(ecs, model="skewnormal", score="cn",

@@ -4,7 +4,7 @@ in protein complexes to create a concatenated sequence
 alignment
 
 Authors:
-    Anna G. Green
+  Anna G. Green
   Thomas A. Hopf
 """
 
@@ -36,7 +36,7 @@ from evcouplings.complex.similarity import (
     find_paralogs
 )
 
-def modify_complex_segments(outcfg):
+def modify_complex_segments(outcfg, **kwargs):
     """
     Modifies the output configuration so
     that the segments are correct for a
@@ -74,11 +74,11 @@ def modify_complex_segments(outcfg):
 
     return outcfg
 
-def _run_describe_concatenation(prefix,outcfg):
+def _run_describe_concatenation(outcfg,**kwargs):
     """
     calculate some basic statistics on the concatenated alignment
     """
-
+    prefix = kwargs["prefix"]
     outcfg["concatentation_statistics_file"] = prefix + "_concatenation_statistics.csv"
     describe_concatenation(
         kwargs["first_annotation_file"],
@@ -305,21 +305,29 @@ def genome_distance(**kwargs):
 
     # write concatenated alignment with distance filtering
     # TODO: save monomer alignments?
-    target_seq_id, target_seq_index, raw_ali, _, _ = \
+    target_seq_id, target_seq_index, raw_ali, mon_ali_1, mon_ali_2 = \
     write_concatenated_alignment(
         id_pairing,
         alignment_1,
         alignment_2,
         kwargs["first_focus_sequence"],
-        kwargs["second_focus_sequence"],
-        raw_alignment_file
+        kwargs["second_focus_sequence"]
     )
-
-    # filter the alignment
+    
+    # save the alignment files
     raw_alignment_file = prefix + "_raw.fasta"
     with open(raw_alignment_file,'w') as of:
         raw_ali.write(of)
 
+    mon_alignment_file_1 = prefix + "_monomer_1.fasta"
+    with open(mon_alignment_file_1,'w') as of:
+        mon_ali_1.write(of)   
+
+    mon_alignment_file_2 = prefix + "_monomer_2.fasta"
+    with open(mon_alignment_file_2,'w') as of:
+        mon_ali_2.write(of)   
+
+    # filter the alignment
     aln_outcfg, _ = modify_alignment(
         raw_ali,
         target_seq_index,
@@ -337,10 +345,10 @@ def genome_distance(**kwargs):
     outcfg["focus_sequence"] = target_seq_id
 
     # Update the segments
-    outcfg = modify_complex_segments(outcfg)
+    outcfg = modify_complex_segments(outcfg, **kwargs)
 
     # Describe the statistics of the concatenation
-    outcfg = _run_describe_concatenation(prefix,outcfg)
+    outcfg = _run_describe_concatenation(outcfg, **kwargs)
 
     # plot the genome distance distribution
     outcfg["distance_plot_file"] = prefix + "_distplot.pdf"
@@ -423,7 +431,7 @@ def best_hit(**kwargs):
         if use_best_reciprocal:
             paralogs = find_paralogs(
                 target_sequence, most_similar_in_species,
-                similarities, identity_threshold
+                identity_threshold
             )
 
             most_similar_in_species = filter_best_reciprocal(
@@ -464,12 +472,11 @@ def best_hit(**kwargs):
     # TODO: save monomer alignments?
     target_seq_id, target_seq_index, raw_ali, _, _ = \
     write_concatenated_alignment(
-        id_pairing,
-        alignment_1,
-        alignment_2,
+        species_intersection,
+        kwargs["first_alignment_file"],
+        kwargs["second_alignment_file"],
         kwargs["first_focus_sequence"],
-        kwargs["second_focus_sequence"],
-        raw_alignment_file
+        kwargs["second_focus_sequence"]
     )
 
     # filter the alignment
@@ -495,10 +502,10 @@ def best_hit(**kwargs):
     outcfg["focus_sequence"] = target_seq_id
 
     # Update the segments
-    outcfg = modify_complex_segments(outcfg)
+    outcfg = modify_complex_segments(outcfg, **kwargs)
 
     # Describe the statistics of the concatenation
-    outcfg = _run_describe_concatenation(prefix,outcfg)
+    outcfg = _run_describe_concatenation( outcfg, **kwargs)
 
     return outcfg
 

@@ -5,8 +5,8 @@ Authors:
   Anna G. Green
 """
 from collections import OrderedDict
+import numpy as np
 from evcouplings.align import Alignment, write_fasta, parse_header
-
 
 def write_concatenated_alignment(id_pairing,
                                  alignment_1,
@@ -54,9 +54,9 @@ def write_concatenated_alignment(id_pairing,
         Uppercases all of the letters in string,
         converts all "." to "-"
         """
-        unf_string = string.upper()
-        unf_string = unf_string.replace(".", "-")
-        return unf_string
+        string = np.char.upper(string)
+        string[string=="."] = "-"
+        return string
 
     def _prepare_header(id1, id2):
         # id1_id2
@@ -73,11 +73,11 @@ def write_concatenated_alignment(id_pairing,
         ali_1 = Alignment.from_file(f1)
         ali_2 = Alignment.from_file(f2)
 
-    ali_1.apply(_unfilter, sequences=range(ali_1.matrix.shape[0]))
-    ali_2.apply(_unfilter, sequences=range(ali_2.matrix.shape[0]))
+    ali_1 = ali_1.apply(func=_unfilter,columns=np.array(range(ali_1.matrix.shape[1])))
+    ali_2 = ali_2.apply(func=_unfilter,columns=np.array(range(ali_2.matrix.shape[1])))
 
-    target_index_1 = ali_1.id_to_index(target_sequence_1)
-    target_index_2 = ali_2.id_to_index(target_sequence_2)
+    target_index_1 = ali_1.id_to_index[target_sequence_1]
+    target_index_2 = ali_2.id_to_index[target_sequence_2]
 
     # prepare the target sequence
     target_sequences = (
@@ -109,8 +109,8 @@ def write_concatenated_alignment(id_pairing,
         concatenated_header = _prepare_header(id1, id2)
 
         # get indices of the sequences
-        index_1 = ali_1.id_to_index(id1)
-        index_2 = ali_2.id_to_index(id2)
+        index_1 = ali_1.id_to_index[id1]
+        index_2 = ali_2.id_to_index[id2]
 
         # save the information
         sequences_to_write.append(
@@ -123,16 +123,16 @@ def write_concatenated_alignment(id_pairing,
 
     # concatenate strings
     sequences_full = OrderedDict({
-        header: seq1 + seq2 for header, seq1, seq2 in sequences_to_write
-    }]
+        header: np.concatenate([seq1,seq2]) for header, seq1, seq2 in sequences_to_write
+    })
 
     sequences_monomer_1 = OrderedDict({
         header: seq1 for header, seq1, seq2 in sequences_to_write
-    }]
+    })
 
     sequences_monomer_2 = OrderedDict({
         header: seq2 for header, seq1, seq2 in sequences_to_write
-    }]
+    })
 
     full_ali = Alignment.from_dict(sequences_full)
     monomer_ali_1 = Alignment.from_dict(sequences_monomer_1)
