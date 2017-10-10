@@ -82,6 +82,7 @@ def most_similar_by_organism(similarities, id_to_organism):
 
     # find the most similar in every organism
     most_similar_in_species = data.sort_values(by="identity_to_query").groupby("species").last()
+    most_similar_in_species["species"] = most_similar_in_species.index
 
     return most_similar_in_species
 
@@ -111,13 +112,14 @@ def find_paralogs(target_id, annotation_data, identity_threshold):
         Entries are paralogs found in the same genome as the query id
     """
 
-    base_query = query_id.split("/")[0]
+    base_query = target_id.split("/")[0]
 
     # get all the rows that have an id that contains the
     # query id. This includes the focus sequence and its hit to
     # itself in the database.
-    query_hits = data.loc[:, data.id.str.contains(base_query)]
 
+    contains_annotation = [ True if base_query in x else False for x in annotation_data.id.str ]
+    query_hits = annotation_data.loc[contains_annotation , :]
     # get the species annotation for the query sequence
     query_species = list(query_hits.species.dropna())
 
@@ -159,7 +161,7 @@ def filter_best_reciprocal(alignment, paralogs, most_similar_in_species, allowed
         for each sequence that was the best reciprocal hit to the query sequence
     """
     with open(alignment, "r") as inf:
-        ali = Alignment.from_file(open(inf))
+        ali = Alignment.from_file(inf)
 
     # Create an n_paralogs x n_sequences ndarray
     # where entry i,j is percent identity of paralog i to sequence j

@@ -9,6 +9,7 @@ Authors:
   Thomas A. Hopf
   Charlotta P.I. Schärfe
 """
+from copy import copy
 import pandas as pd
 from collections import defaultdict
 from evcouplings.align.ids import retrieve_sequence_ids
@@ -207,31 +208,13 @@ def add_full_header(table, alignment_file):
     with open(alignment_file) as inf:
         _, id_to_header = retrieve_sequence_ids(inf)
 
-    genome_ids, gene_start, gene_end, ids, cds_id = [], [], [], [], []
-    full_ids = []
+    new_df = pd.DataFrame()
 
     for _, row in table.iterrows():
-        genome_id = row["genome_id"]
-        gs = row["gene_start"]
-        ge = row["gene_end"]
-        id = row["uniprot_ac"]
-        cds = row["cds"]
+        row_copy = copy(row).to_frame().transpose() 
+        # for each full_id that corresponds to that uniprot AC
+        for full_id in id_to_header[row_copy.uniprot_ac.values[0]]:
+            row_copy.assign(full_id = full_id)
+            new_df = pd.concat([new_df,row_copy])
 
-        for full_id in id_to_header[id]:
-            genome_ids.append(genome_id)
-            gene_start.append(gs)
-            gene_end.append(ge)
-            ids.append(id)
-            full_ids.append(full_id)
-            cds_id.append(cds)
-
-    df = pd.DataFrame({
-        "genome_id": genome_ids,
-        "gene_start": gene_start,
-        "gene_end": gene_end,
-        "full_id": full_ids,
-        "cds_id": cds_id,
-        "uniprot_ac": ids
-    })
-
-    return df
+    return new_df

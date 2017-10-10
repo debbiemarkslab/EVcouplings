@@ -421,13 +421,13 @@ def best_hit(**kwargs):
 
         # read in annotation to a file and rename the appropriate column
         annotation_table = read_species_annotation_table(annotations_file)
-
+        print(annotation_table.head())
         # read identity file
         similarities = pd.read_csv(identities_file)
 
         # create a pd.DataFrame containing the best hit in each organism
         most_similar_in_species = most_similar_by_organism(similarities, annotation_table)
-
+        print(most_similar_in_species.head())
         if use_best_reciprocal:
             paralogs = find_paralogs(
                 target_sequence, most_similar_in_species,

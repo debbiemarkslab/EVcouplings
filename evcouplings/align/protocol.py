@@ -1213,7 +1213,6 @@ def complex(**kwargs):
         kwargs["ena_genome_location_table"],
         genome_location_filename
     )
-    print(genome_location_table.head())
 
     genome_location_table = add_full_header(
         genome_location_table, outcfg["alignment_file"]
