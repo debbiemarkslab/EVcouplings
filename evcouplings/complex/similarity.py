@@ -8,7 +8,7 @@ Authors:
 import pandas as pd
 import numpy as np
 from evcouplings.align.alignment import (
-    Alignment
+    Alignment, parse_header
 )
 
 SPECIES_ANNOTATION_COLUMNS = ["OS", "Tax"]
@@ -112,7 +112,7 @@ def find_paralogs(target_id, annotation_data, identity_threshold):
         Entries are paralogs found in the same genome as the query id
     """
 
-    base_query = target_id.split("/")[0]
+    base_query = parse_header(target_id)
 
     # get all the rows that have an id that contains the
     # query id. This includes the focus sequence and its hit to

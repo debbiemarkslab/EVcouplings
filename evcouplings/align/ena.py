@@ -14,7 +14,6 @@ import pandas as pd
 from collections import defaultdict
 from evcouplings.align.ids import retrieve_sequence_ids
 
-
 def extract_cds_ids(alignment_file,
                     uniprot_to_embl_table):
     """
@@ -205,6 +204,7 @@ def add_full_header(table, alignment_file):
         column
 
     """
+    
     with open(alignment_file) as inf:
         _, id_to_header = retrieve_sequence_ids(inf)
 
@@ -212,9 +212,10 @@ def add_full_header(table, alignment_file):
 
     for _, row in table.iterrows():
         row_copy = copy(row).to_frame().transpose() 
+
         # for each full_id that corresponds to that uniprot AC
         for full_id in id_to_header[row_copy.uniprot_ac.values[0]]:
-            row_copy.assign(full_id = full_id)
+            # create a new row and save that full_id 
+            row_copy = row_copy.assign(full_id = full_id)
             new_df = pd.concat([new_df,row_copy])
-
     return new_df

@@ -887,7 +887,7 @@ def complex(**kwargs):
                 )
             else:
                 # If no distance map, the distance is saved as np.nan
-                cs_inter_compared = ecs_inter.assign(dist=np.nan)
+                ecs_inter_compared = ecs_inter.assign(dist=np.nan)
 
             # save the inter ECs to a file
             ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])

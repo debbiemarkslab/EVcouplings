@@ -403,21 +403,24 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         )
 
         def _boundary_union(original_boundaries,new_boundaries_axis1,
-                            new_boundaries_axis2):
+                            new_boundaries_axis2,axis1=True,axis2=True):
         # determine whether to use the original boundaries or the
         # corresponding monomer boundaries - whichever spans more
         # of the protein
+        # Default is to update both axes
+            updated_boundaries = original_boundaries
 
-            updated_boundaries = [
-                (
+            if axis1:
+                updated_boundaries[0] = (
                     min(original_boundaries[0][0],new_boundaries_axis1[0][0]),
                     max(original_boundaries[0][1],new_boundaries_axis1[0][1])
-                ),
-                (
-                    min(original_boundaries[0][0],new_boundaries_axis2[1][0]),
-                    max(original_boundaries[0][1],new_boundaries_axis2[1][1])
                 )
-            ]
+            if axis2:
+                updated_boundaries[1] = (
+                    min(original_boundaries[1][0],new_boundaries_axis2[1][0]),
+                    max(original_boundaries[1][1],new_boundaries_axis2[1][1])
+                )
+
             return updated_boundaries
 
         # update the inter boundaries in case the intra boundaries
@@ -429,11 +432,13 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         # also modify intra boundaries in case the inter ECs are outside
         # the range of plotted monomer contacts or ECs
         intra1_boundaries = _boundary_union(
-            intra1_boundaries, inter_boundaries, inter_boundaries
+            intra1_boundaries, inter_boundaries, inter_boundaries,
+            axis1=True, axis2=False 
         )
 
         intra2_boundaries = _boundary_union(
-            intra2_boundaries, inter_boundaries, inter_boundaries
+            intra2_boundaries, inter_boundaries, inter_boundaries, 
+            axis1=False, axis2=True
         )
 
     else:
