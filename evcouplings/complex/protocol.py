@@ -8,9 +8,9 @@ Authors:
   Thomas A. Hopf
 """
 
+from collections import Counter
 import numpy as np
 import pandas as pd
-from collections import Counter
 
 from evcouplings.couplings.mapping import Segment
 
@@ -74,7 +74,7 @@ def modify_complex_segments(outcfg, **kwargs):
 
     return outcfg
 
-def _run_describe_concatenation(outcfg,**kwargs):
+def _run_describe_concatenation(outcfg, **kwargs):
     """
     calculate some basic statistics on the concatenated alignment
     """
@@ -88,6 +88,7 @@ def _run_describe_concatenation(outcfg,**kwargs):
         outcfg["concatentation_statistics_file"]
     )
     return outcfg
+
 
 def describe_concatenation(annotation_file_1, annotation_file_2,
                            genome_location_filename_1, genome_location_filename_2,
@@ -168,7 +169,7 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
     # If the user provided genome location files, calculate the number
     # of ids for which we found an embl CDS
     if genome_location_filename_1 is not None and \
-        genome_location_filename_2 is not None:
+    genome_location_filename_2 is not None:
 
         genome_location_table_1 = pd.read_csv(genome_location_filename_1)
         genome_location_table_2 = pd.read_csv(genome_location_filename_2)
@@ -300,31 +301,31 @@ def genome_distance(**kwargs):
     else:
         id_pairing = id_pairing_unfiltered
 
-    id_pairing.loc[:,"id_1"] = id_pairing["uniprot_id_1"]
-    id_pairing.loc[:,"id_2"] = id_pairing["uniprot_id_2"]
+    id_pairing.loc[:, "id_1"] = id_pairing["uniprot_id_1"]
+    id_pairing.loc[:, "id_2"] = id_pairing["uniprot_id_2"]
 
     # write concatenated alignment with distance filtering
     # TODO: save monomer alignments?
     target_seq_id, target_seq_index, raw_ali, mon_ali_1, mon_ali_2 = \
-    write_concatenated_alignment(
-        id_pairing,
-        alignment_1,
-        alignment_2,
-        kwargs["first_focus_sequence"],
-        kwargs["second_focus_sequence"]
-    )
-    
+        write_concatenated_alignment(
+            id_pairing,
+            alignment_1,
+            alignment_2,
+            kwargs["first_focus_sequence"],
+            kwargs["second_focus_sequence"]
+        )
+
     # save the alignment files
     raw_alignment_file = prefix + "_raw.fasta"
-    with open(raw_alignment_file,'w') as of:
+    with open(raw_alignment_file, "w") as of:
         raw_ali.write(of)
 
     mon_alignment_file_1 = prefix + "_monomer_1.fasta"
-    with open(mon_alignment_file_1,'w') as of:
+    with open(mon_alignment_file_1, "w") as of:
         mon_ali_1.write(of)   
 
     mon_alignment_file_2 = prefix + "_monomer_2.fasta"
-    with open(mon_alignment_file_2,'w') as of:
+    with open(mon_alignment_file_2, "w") as of:
         mon_ali_2.write(of)   
 
     # filter the alignment
@@ -412,12 +413,9 @@ def best_hit(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    def _load_monomer_info(annotations_file,
-                           identities_file,
-                           target_sequence,
-                           alignment_file,
-                           use_best_reciprocal,
-                           identity_threshold):
+    def _load_monomer_info(annotations_file, identities_file,
+                           target_sequence, alignment_file,
+                           use_best_reciprocal, identity_threshold):
 
         # read in annotation to a file and rename the appropriate column
         annotation_table = read_species_annotation_table(annotations_file)
@@ -470,20 +468,27 @@ def best_hit(**kwargs):
 
     # write concatenated alignment with distance filtering
     # TODO: save monomer alignments?
-    target_seq_id, target_seq_index, raw_ali, _, _ = \
-    write_concatenated_alignment(
-        species_intersection,
-        kwargs["first_alignment_file"],
-        kwargs["second_alignment_file"],
-        kwargs["first_focus_sequence"],
-        kwargs["second_focus_sequence"]
-    )
+    target_seq_id, target_seq_index, raw_ali, mon_ali_1, mon_ali_2 = \
+        write_concatenated_alignment(
+            species_intersection,
+            kwargs["first_alignment_file"],
+            kwargs["second_alignment_file"],
+            kwargs["first_focus_sequence"],
+            kwargs["second_focus_sequence"]
+        )
 
-    # filter the alignment
+    # save the alignment files
     raw_alignment_file = prefix + "_raw.fasta"
-
-    with open(raw_alignment_file,'w') as of:
+    with open(raw_alignment_file, "w") as of:
         raw_ali.write(of)
+
+    mon_alignment_file_1 = prefix + "_monomer_1.fasta"
+    with open(mon_alignment_file_1, "w") as of:
+        mon_ali_1.write(of)
+
+    mon_alignment_file_2 = prefix + "_monomer_2.fasta"
+    with open(mon_alignment_file_2, "w") as of:
+        mon_ali_2.write(of)
 
     aln_outcfg, _ = modify_alignment(
         raw_ali,
@@ -505,7 +510,7 @@ def best_hit(**kwargs):
     outcfg = modify_complex_segments(outcfg, **kwargs)
 
     # Describe the statistics of the concatenation
-    outcfg = _run_describe_concatenation( outcfg, **kwargs)
+    outcfg = _run_describe_concatenation(outcfg, **kwargs)
 
     return outcfg
 

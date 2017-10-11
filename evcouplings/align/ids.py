@@ -56,12 +56,12 @@ def retrieve_sequence_ids(fileobj, regex=None):
     sequence_ids = []
     id_to_full_header = defaultdict(list)
 
-    for current_id,_ in read_fasta(fileobj):
+    for current_id, _ in read_fasta(fileobj):
         for pattern in regex:
             m = re.match(pattern, current_id)
             # require a non-None match and at least one extracted pattern
             if m and len(m.groups()) > 0:
-                #this extracts the parenthesized match
+                # this extracts the parenthesized match
                 sequence_ids.append(m.group(1))
                 id_to_full_header[m.group(1)].append(current_id)
                 break
