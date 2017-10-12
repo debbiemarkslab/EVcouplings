@@ -13,6 +13,7 @@ from evcouplings.align.alignment import (
 
 SPECIES_ANNOTATION_COLUMNS = ["OS", "Tax"]
 
+
 def read_species_annotation_table(annotation_file):
     """
     Reads in the annotation.csv file and decides which column
@@ -69,7 +70,7 @@ def most_similar_by_organism(similarities, id_to_organism):
         
     Returns
     -------
-   	pd.DataFrame
+    pd.DataFrame
         With columns id, species, identity_to_query.
         Where each row is the sequence in a particular species
         that was the most similar to the target sequence.
@@ -133,7 +134,6 @@ def find_paralogs(target_id, annotation_data, identity_threshold):
 
 
 def filter_best_reciprocal(alignment, paralogs, most_similar_in_species, allowed_error=0.02):
-
     """
     Takes in a dictionary of the best hit to each genome
     Removes sequences that are not the best reciprocal hit to the query sequence

@@ -1008,6 +1008,7 @@ def jackhmmer_search(**kwargs):
 
     return outcfg
 
+
 def standard(**kwargs):
     """
     Protocol:
@@ -1032,7 +1033,6 @@ def standard(**kwargs):
     If callback is given, the function will be called at the
     end of the workflow with the kwargs arguments updated with
     the outcfg results.
-
 
     Returns
     -------

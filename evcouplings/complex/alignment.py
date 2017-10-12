@@ -8,11 +8,8 @@ from collections import OrderedDict
 import numpy as np
 from evcouplings.align import Alignment, write_fasta, parse_header
 
-def write_concatenated_alignment(id_pairing,
-                                 alignment_1,
-                                 alignment_2,
-                                 target_sequence_1,
-                                 target_sequence_2):
+def write_concatenated_alignment(id_pairing, alignment_1, alignment_2,
+                                 target_sequence_1, target_sequence_2):
     """
     Concatenate monomer alignments into a complex alignment
     and output to file.

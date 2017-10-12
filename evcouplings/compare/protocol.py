@@ -286,9 +286,9 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
 
                 # Currently, we require at least one of the monomer 
                 # to have either ECs or distances in order to make a plot
-                if ecs_i is None and d_intra_i is None and d_multimer_i is None\
-                and ecs_j is None and d_intra_j is None and d_multimer_j is None:
-                    return None
+                if ecs_i is None and d_intra_i is None and d_multimer_i is None \
+                and ecs_j is None and d_intra_j is None and d_multimer_i is None:
+                    return False
 
             fig = plt.figure(figsize=(8, 8))
 
@@ -317,6 +317,8 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             if output_file is not None:
                 plt.savefig(output_file, bbox_inches="tight")
                 plt.close(fig)
+
+            return True
 
     check_required(
         kwargs,
@@ -354,12 +356,13 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 ec_set_inter = ec_set.query("segment_i != segment_j")
 
                 output_file = prefix + "_significant_ECs_{}.pdf".format(c)
-                plot_complex_cm(
+                plot_completed = plot_complex_cm(
                     ec_set_i, ec_set_j, ec_set_inter,
                     first_segment_name, second_segment_name,
                     output_file=output_file
                 )
-                cm_files.append(output_file)
+                if plot_completed:
+                    cm_files.append(output_file)
 
     # transform fraction of number of sites into discrete number of ECs
     def _discrete_count(x):
@@ -392,12 +395,13 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
         )
 
         output_file = prefix + "_{}_ECs.pdf".format(c)
-        plot_complex_cm(
+        plot_completed = plot_complex_cm(
             ec_set_i, ec_set_j, ec_set_inter,
             first_segment_name, second_segment_name,
             output_file=output_file
         )
-        cm_files.append(output_file)
+        if plot_completed:
+            cm_files.append(output_file)
 
     # give back list of all contact map file names
     return cm_files
@@ -653,7 +657,7 @@ def complex(**kwargs):
         "ec_compared_longrange_file": prefix + "_CouplingScoresCompared_longrange.csv",
         "ec_compared_inter_file": prefix + "_CouplingsScoresCompared_inter.csv",
 
-        #initialize output inter distancemap files
+        # initialize output inter distancemap files
         "distmap_inter": prefix + "_distmap_inter",
         "inter_contacts_file": prefix + "_inter_contacts_file"
     }
@@ -662,13 +666,13 @@ def complex(**kwargs):
     for monomer_prefix in ["first", "second"]:
         outcfg = {
             **outcfg,
-            monomer_prefix + "_pdb_structure_hits_file": \
+            monomer_prefix + "_pdb_structure_hits_file":
                 "{}_{}_structure_hits.csv".format(prefix, monomer_prefix),
-            monomer_prefix + "_pdb_structure_hits_unfiltered_file": \
+            monomer_prefix + "_pdb_structure_hits_unfiltered_file":
                 "{}_{}_structure_hits_unfitered.csv".format(prefix, monomer_prefix),
-            monomer_prefix + "_distmap_monomer": \
+            monomer_prefix + "_distmap_monomer":
                 "{}_{}_distance_map_monomer".format(prefix, monomer_prefix),
-            monomer_prefix + "_distmap_multimer": \
+            monomer_prefix + "_distmap_multimer":
                 "{}_{}_distance_map_multimer".format(prefix, monomer_prefix),
         }
 
@@ -688,8 +692,10 @@ def complex(**kwargs):
     # Step 1: Identify 3D structures for comparison
     def _identify_monomer_structures(name_prefix, outcfg):
         # create a dictionary with kwargs for just the current monomer
+        # remove the "prefix" kwargs so that we can replace when we call
+        # _identify_structures
         monomer_kwargs = {
-            k.replace(name_prefix + "_", ""): v for k,v in kwargs.items() if "prefix" not in k
+            k.replace(name_prefix + "_", ""): v for k, v in kwargs.items() if "prefix" not in k
         }
 
         # identify structures for that monomer
@@ -844,8 +850,7 @@ def complex(**kwargs):
     ec_table = pd.read_csv(kwargs["ec_file"])
 
     for out_file, min_seq_dist in [
-        ("ec_compared_longrange_file", 
-        kwargs["min_sequence_distance"]),
+        ("ec_compared_longrange_file", kwargs["min_sequence_distance"]),
         ("ec_compared_all_file", 0),
     ]:
 

@@ -3,7 +3,7 @@ Visualization of evolutionary couplings (contact maps etc.)
 
 Authors:
   Thomas A. Hopf
-  Anna G. Green
+  Anna G. Green (complex_contact_map)
 """
 
 from copy import deepcopy
@@ -128,7 +128,6 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
             min_ec, max_ec = min(ec_pos), max(ec_pos)
         else:
             min_ec, max_ec = min(structure_pos), max(structure_pos)
-
 
         if len(structure_pos) > 0:
             min_struct, max_struct = min(structure_pos), max(structure_pos)
@@ -442,10 +441,10 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         )
 
     else:
-    # if not plotting any inter ECs or contacts, just use the intra boundaries
+        # if not plotting any inter ECs or contacts, just use the intra boundaries
         inter_boundaries = [
-            (intra1_boundaries[0][0],intra1_boundaries[0][1]),
-            (intra2_boundaries[0][0],intra2_boundaries[0][1])
+            (intra1_boundaries[0][0], intra1_boundaries[0][1]),
+            (intra2_boundaries[0][0], intra2_boundaries[0][1])
         ]
 
     # Calculate the length ratios of the monomers
@@ -453,18 +452,20 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
     mon2_len = intra2_boundaries[0][1] - intra2_boundaries[0][0]
 
     if (mon1_len == 0) and (mon2_len == 0):
-        raise ValueError("Warning, you must provide at least one contact to plot "+
-            "for at least one of the monomers. Contact map not generated.")
+        raise ValueError(
+            "Warning, you must provide at least one contact to plot "
+            "for at least one of the monomers. Contact map not generated."
+        )
 
     ratio1 = mon1_len / (mon1_len + mon2_len)
     ratio2 = mon2_len / (mon1_len + mon2_len)
 
     # Initiate the axes using the above ratios
     fig = plt.figure(figsize=(8, 8))
-    gs = gridspec.GridSpec(2, 2,
-                           width_ratios=[ratio1, ratio2],
-                           height_ratios=[ratio1, ratio2]
-                           )
+    gs = gridspec.GridSpec(
+        2, 2, width_ratios=[ratio1, ratio2],
+        height_ratios=[ratio1, ratio2]
+    )
     ax1 = plt.subplot(gs[0])  # intra 1, upper left
     ax2 = plt.subplot(gs[1])  # inter, upper right
     ax3 = plt.subplot(gs[2])  # inter, lower left
@@ -520,6 +521,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
             ecs=inter_ecs_transposed,
             multimer=d_inter_T, **new_kwargs
         )
+
 
 def plot_pairs(pairs, symmetric=False, ax=None, style=None):
     """
