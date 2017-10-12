@@ -6,7 +6,8 @@
 
 # Minimal settings required before this configuration can be executed:
 # - set your environment, paths to tools and databases (at the end of this file)
-# - under "global", set prefix and sequence_id
+# - under "global", set prefix
+# - under "align_1" and "align_2", set the monomer sequence_id 
 # - run it! :)
 
 # Configuration rules:
@@ -31,7 +32,7 @@ stages:
 # These are typically the settings you want to modify for each of your jobs, together with some settings in the align stage.
 global:
     # mandatory output prefix of the job (e.g. output/HRAS will store outputs in folder "output", using files prefixed with "HRAS")
-    prefix: output/concat/gp41_gp120
+    prefix: 
 
     # Clustering threshold for downweighting redudant sequences (Meff computation). E.g. 0.8 will cluster sequences
     # at a 80% sequence identity cutoff
@@ -54,8 +55,8 @@ align_1:
     # Mandatory: specify the sequence identifier
     # Region can be left blank
     # Sequence file can be left blank
-    sequence_id: P19551
-    region: [510,853]
+    sequence_id: 
+    region: 
     sequence_file:
     
     # The following typically do not need to be set because 'global' overrides them
@@ -83,6 +84,7 @@ align_1:
     iterations: 5
 
     # sequence database (specify possible databases and paths in "databases" section below)
+    # note: use uniprot for genome distance based concatenation
     database: uniref100
 
     # compute the redundancy-reduced number of effective sequences (M_eff) already in the alignment stage.
@@ -129,9 +131,9 @@ align_1:
 #    minimum_column_coverage: 70
 #    extract_annotation: True
 
-#      if using existing alignment protocol, provide a path to the annotations.csv file 
-#      from the previous run to correctly find the species identifiers for best hit concatenation
-#      override_annotation_file: 
+#    #if using existing alignment protocol, provide a path to the annotations.csv file 
+#    #from the previous run to correctly find the species identifiers for best hit concatenation
+#    override_annotation_file: 
 
 # Sequence alignment generation/processing for the second monomer.
 align_2:
@@ -142,7 +144,7 @@ align_2:
     alignment_protocol: standard
     # Mandatory: specify the sequence identifier and region
     # Sequence file can be left blank
-    sequence_id: P19551
+    sequence_id: 
     region:
     sequence_file:
     
@@ -171,6 +173,7 @@ align_2:
     iterations: 5
 
     # sequence database (specify possible databases and paths in "databases" section below)
+    # note: use uniprot for genome distance based concatenation
     database: uniref100
 
     # compute the redundancy-reduced number of effective sequences (M_eff) already in the alignment stage.
@@ -216,9 +219,9 @@ align_2:
 #    minimum_sequence_coverage: 50
 #    minimum_column_coverage: 70
 #    extract_annotation: True
-#      if using existing alignment protocol, provide a path to the annotations.csv file 
-#      from the previous run to correctly find the species identifiers for best hit concatenation
-#      override_annotation_file: 
+#    #if using existing alignment protocol, provide a path to the annotations.csv file 
+#    #from the previous run to correctly find the species identifiers for best hit concatenation
+#    override_annotation_file: 
 
 #Generation of concatenated sequence alignment for evolutionary couplings calculation
 concatenate:
@@ -232,15 +235,16 @@ concatenate:
     # Available protocols: 
     # genome_distance: pair sequences that are closest neighbors on the genome
     # best_hit: for each genome, pair the sequences that have the highest % identity to the target sequence
-    
+    # for best hit protocol, user can set use_best_reciprocal to take the best reciprocal hits only (recommended)
     protocol: best_hit
+    use_best_reciprocal: true
     
     # Maximum genome distance in bases allowed between pairs
     # Required for genome_distance protocol only
     genome_distance_threshold: 10000
     
     # Maximum sequence identity allowed for hits to be designated
-    # as paralogs. Required for best_reciprocal_hit only
+    # as paralogs. Required for best_hit in best reciprocal mode only
     paralog_identity_threshold: 0.95
     
     # Parameters for filtering of concatenated alignment
@@ -433,7 +437,7 @@ environment:
     engine: lsf
     queue: mcore
     cores: 2
-    memory: 40000
+    memory: 20000
     time: 48:0
 
     # command that will be executed before running actual computation (can be used to set up environment)
