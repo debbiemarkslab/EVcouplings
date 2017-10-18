@@ -284,11 +284,11 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 if len(ecs_inter) == 0:
                     ecs_inter = None
 
-                # Currently, we require at least one of the monomer 
-                # to have either ECs or distances in order to make a plot
-                if ecs_i is None and d_intra_i is None and d_multimer_i is None \
-                and ecs_j is None and d_intra_j is None and d_multimer_i is None:
-                    return False
+            # Currently, we require at least one of the monomer 
+            # to have either ECs or distances in order to make a plot
+            if ((ecs_i is None or ecs_i.empty) and d_intra_i is None and d_multimer_i is None) \
+            or ((ecs_j is None or ecs_j.empty) and d_intra_j is None and d_multimer_i is None):
+                return False
 
             fig = plt.figure(figsize=(8, 8))
 
@@ -880,7 +880,7 @@ def complex(**kwargs):
                     min_sequence_dist=min_seq_dist
                 )
             else:
-                cs_intra_j_compared = ecs_intra_j.assign(dist=np.nan)
+                ecs_intra_j_compared = ecs_intra_j.assign(dist=np.nan)
 
             ecs_inter = ec_table.query("segment_i != segment_j")
             if d_inter is not None:
@@ -891,11 +891,7 @@ def complex(**kwargs):
                     min_sequence_dist=None  # does not apply for inter-protein ECs
                 )
             else:
-                # If no distance map, the distance is saved as np.nan
                 ecs_inter_compared = ecs_inter.assign(dist=np.nan)
-
-            # save the inter ECs to a file
-            ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
 
             # combine the tables
             ec_table_compared = pd.concat([
@@ -923,12 +919,12 @@ def complex(**kwargs):
             # all ecs
             ec_table_compared.to_csv(outcfg[out_file])
 
-        else:
-            outcfg[out_file] = None
+            # save the inter ECs to a file
+            ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
 
     # create the inter-ecs line drawing script
     if outcfg["ec_compared_inter_file"] is not None and kwargs["plot_highest_count"] is not None:
-        inter_ecs = pd.read_csv(outcfg["ec_compared_inter_file"])
+        inter_ecs = ec_table.query("segment_i != segment_j")
 
         outcfg["ec_lines_compared_pml_file"] = prefix + "_draw_ec_lines_compared.pml"
 

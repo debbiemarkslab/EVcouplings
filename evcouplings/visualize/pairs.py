@@ -375,7 +375,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
     """
     # check that boundaries is supplied
     boundaries = kwargs["boundaries"]
-
+    print(intra1_ecs,d_intra_i.contacts)
     # Find the appropriate boundaries for each subset
     intra1_boundaries = list(
         find_boundaries(
@@ -383,7 +383,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
             multimer=d_multimer_i, symmetric=True
         )
     )
-
+    print(intra1_boundaries)
     intra2_boundaries = list(
         find_boundaries(
             boundaries, ecs=intra2_ecs, monomer=d_intra_j,
@@ -402,23 +402,30 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         )
 
         def _boundary_union(original_boundaries,new_boundaries_axis1,
-                            new_boundaries_axis2,axis1=True,axis2=True):
+                            new_boundaries_axis2,axis1=True,axis2=True,
+                            symmetric=False):
         # determine whether to use the original boundaries or the
         # corresponding monomer boundaries - whichever spans more
         # of the protein
         # Default is to update both axes
             updated_boundaries = original_boundaries
-
+            # increase the axis 1 boundaries if the new boundaries 
+            # cover more range
             if axis1:
                 updated_boundaries[0] = (
                     min(original_boundaries[0][0],new_boundaries_axis1[0][0]),
                     max(original_boundaries[0][1],new_boundaries_axis1[0][1])
                 )
+                # if symmetric, update the axis2 boundaries with the same value
+                if symmetric:
+                    updated_boundaries[1] = updated_boundaries[0]
             if axis2:
                 updated_boundaries[1] = (
                     min(original_boundaries[1][0],new_boundaries_axis2[1][0]),
                     max(original_boundaries[1][1],new_boundaries_axis2[1][1])
                 )
+                if symmetric:
+                    updated_boundaries[0] = updated_boundaries[1]
 
             return updated_boundaries
 
@@ -430,14 +437,15 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
 
         # also modify intra boundaries in case the inter ECs are outside
         # the range of plotted monomer contacts or ECs
+        print(intra1_boundaries)
         intra1_boundaries = _boundary_union(
             intra1_boundaries, inter_boundaries, inter_boundaries,
-            axis1=True, axis2=False 
+            axis1=True, axis2=False,symmetric=True
         )
 
         intra2_boundaries = _boundary_union(
             intra2_boundaries, inter_boundaries, inter_boundaries, 
-            axis1=False, axis2=True
+            axis1=False, axis2=True,symmetric=True
         )
 
     else:
@@ -446,7 +454,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
             (intra1_boundaries[0][0], intra1_boundaries[0][1]),
             (intra2_boundaries[0][0], intra2_boundaries[0][1])
         ]
-
+    print(inter_boundaries,intra1_boundaries,intra2_boundaries)
     # Calculate the length ratios of the monomers
     mon1_len = intra1_boundaries[0][1] - intra1_boundaries[0][0]
     mon2_len = intra2_boundaries[0][1] - intra2_boundaries[0][0]

@@ -9,7 +9,7 @@ Authors:
 from collections import Counter
 from itertools import combinations
 from operator import itemgetter
-from copy import copy
+from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -1310,7 +1310,7 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
         PDB chain to correspond to the given sequence. 
         Changes both one letter and three letter codes.
         """
-        chain = copy(chain)
+        chain = deepcopy(chain)
         # change one letter code
         chain.residues.loc[
             :, "one_letter_code"
