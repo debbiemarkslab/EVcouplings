@@ -13,6 +13,7 @@ Authors:
   Thomas A. Hopf
   Agnes Toth-Petroczy (original mixture model code)
   John Ingraham (skew normal mixture model)
+  Anna G. Green (EVComplex Score code)
 """
 
 from math import ceil
@@ -633,6 +634,49 @@ class ScoreMixtureModel:
         return posterior
 
 
+class EVComplexScoreModel:
+    """
+    Assign to each EC score a (unnormalized) EVcomplex score as
+    described in Hopf, Schärfe et al. (2014).
+
+    TODO: this implementation currently does not take into account
+    score normalization for the number of sequences and length of
+    the model
+    """
+    def __init__(self, x):
+        """
+        Initialize EVcomplex score model
+        
+        Parameters
+        ----------
+        x : np.array (or list-like)
+            EC scores from which to infer the mixture model
+        """
+        self.x = np.array(x)
+
+    def probability(self, x, plot=False):
+        """
+        Calculates evcomplex score as cn_score / min_cn_score.
+        TODO: plotting functionality not yet implemented
+
+        Parameters
+        ----------
+        x : np.array (or list-like)
+            List of scores
+        plot: bool, optional (default: False)
+            Plot score distribution
+
+        Returns
+        -------
+        probability: np.array(float)
+            EVcomplex score
+        """
+        # Calculate the minimum score
+        min_score = abs(np.min(self.x))
+
+        return x / min_score
+
+
 def add_mixture_probability(ecs, model="skewnormal", score="cn",
                             clamp_mu=False, plot=False):
     """
@@ -668,6 +712,8 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
         mm = ScoreMixtureModel(ecs.loc[:, score].values)
     elif model == "normal":
         mm = LegacyScoreMixtureModel(ecs.loc[:, score].values, clamp_mu)
+    elif model == "evcomplex":
+        mm = EVComplexScoreModel(ecs.loc[:, score].values)
     else:
         raise ValueError(
             "Invalid model selection, valid options are: "

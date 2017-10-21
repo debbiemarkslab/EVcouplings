@@ -596,7 +596,9 @@ class CouplingsModel:
             for i, s in enumerate(sequences):
                 S[i] = [self.alphabet_map[x] for x in s]
         except KeyError:
-            raise ValueError("Invalid symbol in sequence {}: {}".format(i, x))
+            raise ValueError(
+                "Invalid symbol in sequence {}: {}".format(i, s)
+            )
 
         return S
 

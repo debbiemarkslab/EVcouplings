@@ -393,12 +393,6 @@ def run(**kwargs):
     # verify that global prefix makes sense
     pipeline.verify_prefix(verify_subdir=False, **config)
 
-    # make sure parameters make sense (minimally...)
-    if config["global"].get("sequence_id", None) is None:
-        raise InvalidParameterError(
-            "Sequence identifier not defined (sequence_id)."
-        )
-
     # for convenience, turn on N_eff computation if we run alignment,
     # but not the couplings stage
     if "align" in config["stages"] and "couplings" not in config["stages"]:
