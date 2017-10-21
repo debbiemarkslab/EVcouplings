@@ -122,7 +122,7 @@ Hopf T. A., Colwell, L. J., Sheridan, R., Rost, B., Sander, C., Marks, D. S. Thr
 
 Marks, D. S., Hopf, T. A., Sander, C. Protein structure prediction from sequence variation. *Nature Biotechnology* **30**, 1072–1080 (2012)
 
-Hopf, T. A., Schärfe, C. P. I., Rodrigues, J. P. G. L. M., Green, A. G., Kohlbacher, O., Sander, C., Bonvin, A. M. J. J., Marks, D. S. Sequence co-evolution gives 3D contacts and structures of protein complexes. eLife Sep 25;3 (2014)
+Hopf, T. A., Schärfe, C. P. I., Rodrigues, J. P. G. L. M., Green, A. G., Kohlbacher, O., Sander, C., Bonvin, A. M. J. J., Marks, D. S. Sequence co-evolution gives 3D contacts and structures of protein complexes. *eLife* Sep 25;3 (2014)
 
 Hopf, T. A., Ingraham, J. B., Poelwijk, F.J., Schärfe, C.P.I., Springer, M., Sander, C., & Marks, D. S. (2017). Mutation effects predicted from sequence co-variation. *Nature Biotechnology* **35**, 128–135 doi:10.1038/nbt.3769
 
