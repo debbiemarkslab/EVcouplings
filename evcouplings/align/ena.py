@@ -37,7 +37,6 @@ def extract_cds_ids(alignment_file,
         the CDS id(s) corresponding to each
         Uniprot AC. Uniprot ACs may be repeated
         if there were multiple CDS hits.
-
     """
 
     def _split_annotation_string(annotation_string):
@@ -142,7 +141,6 @@ def extract_embl_annotation(uniprot_and_cds,
         Columns: cds, genome_id, uniprot_ac, gene_start, gene_end
         Each row is a unique CDS. Uniprot ACs may be repeated if one
         Uniprot AC hits multiple CDS.
-
     """
 
     # initialize list of list
@@ -202,7 +200,6 @@ def add_full_header(table, alignment_file):
     pd.DataFrame
         Same as above but with a "full_id"
         column
-
     """
     
     with open(alignment_file) as inf:

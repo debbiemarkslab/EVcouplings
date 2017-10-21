@@ -231,8 +231,8 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                                d_inter, first_segment_name,
                                second_segment_name, **kwargs):
     """
-   Plot contact maps with all ECs above a certain probability threshold,
-   or a given count of ECs
+    Plot contact maps with all ECs above a certain probability threshold,
+    or a given count of ECs
 
     Parameters
     ----------
@@ -287,7 +287,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             # Currently, we require at least one of the monomer 
             # to have either ECs or distances in order to make a plot
             if ((ecs_i is None or ecs_i.empty) and d_intra_i is None and d_multimer_i is None) \
-            or ((ecs_j is None or ecs_j.empty) and d_intra_j is None and d_multimer_i is None):
+                    or ((ecs_j is None or ecs_j.empty) and d_intra_j is None and d_multimer_i is None):
                 return False
 
             fig = plt.figure(figsize=(8, 8))
@@ -367,7 +367,17 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
     # transform fraction of number of sites into discrete number of ECs
     def _discrete_count(x):
         if isinstance(x, float):
+            num_sites = 0
+            for seg_name in [first_segment_name, second_segment_name]:
+                num_sites += len(
+                    set.union(
+                        set(ec_table.query("segment_i == @seg_name").i.unique()),
+                        set(ec_table.query("segment_j == @seg_name").j.unique())
+                    )
+                )
+
             x = ceil(x * num_sites)
+
         return int(x)
 
     # range of plots to make
@@ -723,8 +733,7 @@ def complex(**kwargs):
 
     # Make sure user provided exactly two segments
     if len(segment_list) != 2:
-        Raise(
-            InvalidParameterError,
+        raise InvalidParameterError(
             "Compare stage for protein complexes requires exactly two segments"
         )
 
