@@ -1277,9 +1277,9 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
         Raise a ResourceError if any of the input structures can
         not be loaded; otherwise, ignore missing entries.
     chain_name_i : str, optional (default: "A")
-        renames the first chain to this string
+        Renames the first chain to this string
     chain_name_j : str, optional (default: "B")
-        renames the second chain to this string
+        Renames the second chain to this string
 
     Returns
     -------

@@ -8,6 +8,7 @@ from collections import OrderedDict
 import numpy as np
 from evcouplings.align import Alignment, write_fasta, parse_header
 
+
 def write_concatenated_alignment(id_pairing, alignment_1, alignment_2,
                                  target_sequence_1, target_sequence_2):
     """
@@ -61,7 +62,6 @@ def write_concatenated_alignment(id_pairing, alignment_1, alignment_2,
         concatenated_header = header_format.format(id1, id2)
 
         return concatenated_header
-
 
     sequences_to_write = []  # list of (header,seq1,seq2) tuples
 
@@ -120,7 +120,7 @@ def write_concatenated_alignment(id_pairing, alignment_1, alignment_2,
 
     # concatenate strings
     sequences_full = OrderedDict({
-        header: np.concatenate([seq1,seq2]) for header, seq1, seq2 in sequences_to_write
+        header: np.concatenate([seq1, seq2]) for header, seq1, seq2 in sequences_to_write
     })
 
     sequences_monomer_1 = OrderedDict({
