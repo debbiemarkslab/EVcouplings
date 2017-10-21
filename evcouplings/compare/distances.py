@@ -347,7 +347,7 @@ class DistanceMap:
         """
         Parameters
         ----------
-        index : tuple(str, str) or tuple(int, int)
+        identifiers : tuple(str, str) or tuple(int, int)
             Identifiers of residues on first and
             second chain
 
@@ -1063,9 +1063,50 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
     return agg_distmap
 
 
+def _remap_sequence(chain, sequence):
+    """
+    Changes the residue names in an input
+    PDB chain to the given sequence (both one 
+    letter and three letter codes).
+    
+    Parameters
+    ----------
+    chain : Chain
+        PDB chain that will be remapped
+    sequence :  dict
+        Mapping from sequence position (int or str) to residue.
+        Residues in the output structures will be renamed to the
+        residues in this mapping (without any changes
+        what the residues actually are in the structure in terms
+        of atoms)
+    
+    Returns
+    -------
+    Chain
+        PDB chain with updated sequence
+    """
+    chain = deepcopy(chain)
+    # change one letter code
+    chain.residues.loc[
+        :, "one_letter_code"
+    ] = chain.residues.id.map(sequence)
+
+    # and three letter code
+    chain.residues.loc[
+        :, "three_letter_code"
+    ] = chain.residues.one_letter_code.map(AA1_to_AA3)
+
+    # drop anything we could not map
+    chain.residues = chain.residues.dropna(
+        subset=["one_letter_code", "three_letter_code"]
+    )
+
+    return chain
+
+
 def remap_chains(sifts_result, output_prefix, sequence=None,
                  structures=None, atom_filter=("N", "CA", "C", "O"),
-                 model=0, chain_name=None, raise_missing=True):
+                 model=0, chain_name="A", raise_missing=True):
     """
     Remap a set of PDB chains into the numbering scheme (and
     amino acid sequence) of a target sequence (a.k.a. the poorest
@@ -1110,7 +1151,7 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
         backbone atoms.
     model : int, optional (default: 0)
         Index of model in PDB structure that should be used
-    chain_name : str
+    chain_name : str, optional (default: "A")
         Rename the PDB chain to this when saving the file. This
         will not affect the file name, only the name of the chain in 
         the PDB object.
@@ -1159,28 +1200,15 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
         # if a map from sequence index to residue is given,
         # use it to rename the residues to the target sequence
         if sequence is not None:
-            # change one letter code
-            chain.residues.loc[
-                :, "one_letter_code"
-            ] = chain.residues.id.map(sequence)
+            chain = _remap_sequence(chain, sequence)
 
-            # and three letter code
-            chain.residues.loc[
-                :, "three_letter_code"
-            ] = chain.residues.one_letter_code.map(AA1_to_AA3)
-
-            # drop anything we could not map
-            chain.residues = chain.residues.dropna(
-                subset=["one_letter_code", "three_letter_code"]
-            )
-
-        # if the user specified a new chain name, change the chain name
-        original_pdb_chain = r["pdb_chain"]
-
-        # save model coordinates to .pdb file
+        # save model coordinates to .pdb file - note that the
+        # file name will contain the original chain name in
+        # the source PDB file, while the chain itself will be
+        # remapped according to chain_name parameter
         filename = "{}_{}_{}_{}.pdb".format(
             output_prefix,
-            r["pdb_id"], original_pdb_chain, r["mapping_index"]
+            r["pdb_id"], r["pdb_chain"], r["mapping_index"]
         )
 
         # save to file
@@ -1303,30 +1331,6 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
     )
 
     remapped = {}
-
-    def _remap_sequence(chain, sequence):
-        """
-        Changes the residue names in an input
-        PDB chain to correspond to the given sequence. 
-        Changes both one letter and three letter codes.
-        """
-        chain = deepcopy(chain)
-        # change one letter code
-        chain.residues.loc[
-            :, "one_letter_code"
-        ] = chain.residues.id.map(sequence)
-
-        # and three letter code
-        chain.residues.loc[
-            :, "three_letter_code"
-        ] = chain.residues.one_letter_code.map(AA1_to_AA3)
-
-        # drop anything we could not map
-        chain.residues = chain.residues.dropna(
-            subset=["one_letter_code", "three_letter_code"]
-        )
-
-        return chain
 
     # go through all chain combinations
     for i, r in combis.iterrows():
