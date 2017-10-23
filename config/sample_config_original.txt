@@ -246,10 +246,8 @@ compare:
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
 
-    # search using hmmbuild/hmmsearch
-    # be aware that if you use this option then
-    # you may need to set the thresholds lower than 0.5
-    search_pdb_by_alignment: False
+    # determine between using jackhmmer and hmmbuild/hmmsearch
+    use_jackhmmer: True
 
 # Settings for Mutation effect predictions
 mutate:
