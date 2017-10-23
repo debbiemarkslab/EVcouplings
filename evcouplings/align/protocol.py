@@ -1007,11 +1007,7 @@ def hmmbuild_and_search(**kwargs):
     Protocol:
 
     Hmmbuild and hmmsearch against a sequence database.
-    If the user provides a pre-made HMM file,
-    search the sequence database using that HMM.
-    Otherwise, construct the HMM using the input alignment file,
-    and then use the HMM to search the sequence database.
-
+    
     Parameters
     ----------
     Mandatory kwargs arguments:
