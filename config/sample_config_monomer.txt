@@ -246,6 +246,11 @@ compare:
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
 
+    # search using hmmbuild/hmmsearch
+    # be aware that if you use this option then
+    # you may need to set the thresholds lower than 0.5
+    search_pdb_by_alignment: False
+
 # Settings for Mutation effect predictions
 mutate:
     # Options: standard
@@ -371,9 +376,10 @@ databases:
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
-    jackhmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
-    plmc: /groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
-    hhfilter: /groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
-    psipred: /groups/marks/software/runpsipred
-    cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
-    maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    jackhmmer: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
+    hmmbuild: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmbuild
+    hmmsearch: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmsearch
+    hhfilter: /n/groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
+    psipred: /n/groups/marks/software/runpsipred_o2
+    cns: /n/groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
+    maxcluster: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
