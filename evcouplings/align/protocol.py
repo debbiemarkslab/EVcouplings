@@ -1103,7 +1103,19 @@ def hmmbuild_and_search(**kwargs):
         kwargs['domain_threshold'] = domain_threshold
 
         # run search process
-        ali = at.run_hmmbuild_and_search(**kwargs)
+        ali = at.run_hmmbuild_and_search(
+            msafile=kwargs["alignment_file"],
+            database=kwargs[kwargs["database"]],
+            prefix=prefix,
+            use_bitscores=kwargs["use_bitscores"],
+            domain_threshold=domain_threshold,
+            seq_threshold=seq_threshold,
+            iterations=kwargs["iterations"],
+            nobias=kwargs["nobias"],
+            cpu=kwargs["cpu"],
+            hmmbuild=kwargs["hmmbuild"],
+            hmmsearch=kwargs["hmmsearch"], 
+        )
 
         # get rid of huge stdout log file immediately
         try:

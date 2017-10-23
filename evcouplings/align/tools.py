@@ -261,22 +261,22 @@ def run_hmmbuild_and_search(**kwargs):
     check_required(
         kwargs,
         [
-            "prefix", "alignment_file",
+            "prefix", "msafile", 
             "cpu", "database", "nobias",
             "use_bitscores", "domain_threshold",
-            "sequence_threshold", "hmmbuild",
+            "seq_threshold", "hmmbuild",
             "hmmsearch"
         ]
     ) 
     
     prefix = kwargs["prefix"]
-    msafile = kwargs["alignment_file"] 
+    msafile = kwargs["msafile"] 
     cpu = kwargs["cpu"]
-    database = kwargs[kwargs["database"]]
+    database = kwargs["database"]
     nobias = kwargs["nobias"]
     use_bitscores = kwargs["use_bitscores"]
     domain_threshold = kwargs["domain_threshold"] 
-    seq_threshold = kwargs["sequence_threshold"]
+    seq_threshold = kwargs["seq_threshold"]
     hmmbuild = kwargs["hmmbuild"]
     hmmsearch = kwargs["hmmsearch"]
 
