@@ -22,13 +22,15 @@ from evcouplings.align.alignment import (
     Alignment, read_fasta, parse_header
 )
 
-from evcouplings.align.protocol import jackhmmer_search
+from evcouplings.align.protocol import jackhmmer_search, hmmbuild_and_search
 from evcouplings.align.tools import read_hmmer_domtbl
 from evcouplings.compare.mapping import alignment_index_mapping, map_indices
 from evcouplings.utils.system import (
     get_urllib, ResourceError, valid_file, tempdir
 )
-from evcouplings.utils.config import parse_config
+from evcouplings.utils.config import (
+    parse_config, check_required
+)
 from evcouplings.utils.helpers import range_overlap
 
 UNIPROT_MAPPING_URL = "http://www.uniprot.org/mapping/"
@@ -106,14 +108,14 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
     return r.text
 
 
-def find_homologs_jackhmmer(**kwargs):
+def find_homologs(search_pdb_by_alignment=True, **kwargs):
     """
-    Identify homologs using jackhmmer
+    Identify homologs using jackhmmer or hmmbuild/hmmsearch
 
     Parameters
     ----------
     **kwargs
-        Passed into jackhmmer_search protocol
+        Passed into jackhmmer / hmmbuild_and_search protocol
         (see documentation for available options)
 
     Returns
@@ -137,8 +139,22 @@ def find_homologs_jackhmmer(**kwargs):
     if config["prefix"] is None:
         config["prefix"] = path.join(tempdir(), "compare")
 
+    check_required(
+        config,
+        [
+            "database", "prefix", "use_bitscores",
+            "domain_threshold", "sequence_threshold",
+            "nobias", "cpu",
+        ]
+    )
+
+    # run hmmsearch (possibly preceded by hmmbuild)
+    if search_pdb_by_alignment:
+        ar = hmmbuild_and_search(**config)
+
     # run jackhmmer against sequence database
-    ar = jackhmmer_search(**config)
+    else:
+        ar = jackhmmer_search(**config)
 
     with open(ar["raw_alignment_file"]) as a:
         ali = Alignment.from_file(a, "stockholm")
@@ -644,8 +660,9 @@ class SIFTS:
                 "method or constructor."
             )
 
-        ali, hits = find_homologs_jackhmmer(
-            sequence_database=self.sequence_file, **kwargs
+        ali, hits = find_homologs(
+            sequence_database=self.sequence_file, 
+            **kwargs
         )
 
         # merge with internal table to identify overlap of

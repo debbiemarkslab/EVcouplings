@@ -246,6 +246,9 @@ compare:
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
 
+    # determine between using jackhmmer and hmmbuild/hmmsearch
+    use_jackhmmer: True
+
 # Settings for Mutation effect predictions
 mutate:
     # Options: standard
@@ -340,23 +343,23 @@ environment:
     # If your batch engine of choice (SGE, Slurm, Torque) is not available yet, please consider contributing by
     # implementing it and submitting a pull request!
     # Note that "cores" will override the "cpu" parameter for "global"
-    engine: slurm
-    queue: medium
+    engine: lsf
+    queue: mcore
     cores: 2
     memory: 15000
-    time: 2-0:0:0
+    time: 48:0
 
     # command that will be executed before running actual computation (can be used to set up environment)
     configuration:
-        - source activate evcouplings_o2
+        - source activate evcouplings_env
 
 # Paths to databases used by evcouplings.
 databases:
     # Sequence databases (only download the ones you want to use). You can also specify arbitrary databases in FASTA format
     # using a database name of your choice here)
-    uniprot: /n/groups/marks/databases/jackhmmer/uniprot/uniprot_current.fasta
-    uniref100: /n/groups/marks/databases/jackhmmer/uniref100/uniref100_current.fasta
-    uniref90: /n/groups/marks/databases/jackhmmer/uniref90/uniref90_current.fasta
+    uniprot: /groups/marks/databases/jackhmmer/uniprot/uniprot_current.fasta
+    uniref100: /groups/marks/databases/jackhmmer/uniref100/uniref100_current.fasta
+    uniref90: /groups/marks/databases/jackhmmer/uniref90/uniref90_current.fasta
 
     # URL do download sequences if sequence_file is not given. {} will be replaced by sequence_id.
     sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
@@ -366,14 +369,16 @@ databases:
 
     # SIFTS mapping information. Point to valid directory, and if these files do not exist, they will be automatically generated
     # (this may take a while). Periodically delete these files to more recent versions of SIFTS are used.
-    sifts_mapping_table: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.csv
-    sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.fa
+    sifts_mapping_table: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.csv
+    sifts_sequence_db: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.fasta
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
-    jackhmmer: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
-    plmc: /n/groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
-    hhfilter: /n/groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
-    psipred: /n/groups/marks/software/runpsipred_o2
-    cns: /n/groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
-    maxcluster: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    jackhmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
+    hmmbuild: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmbuild
+    hmmsearch: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmsearch
+    plmc: /groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
+    hhfilter: /groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
+    psipred: /groups/marks/software/runpsipred
+    cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
+    maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit

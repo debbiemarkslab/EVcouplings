@@ -67,6 +67,7 @@ def _identify_structures(**kwargs):
             "sequence_id", "sequence_file", "region",
             "use_bitscores", "domain_threshold",
             "sequence_threshold", "jackhmmer",
+            "hmmbuild", "hmmsearch"
         ]
     )
     # get SIFTS mapping object/sequence DB
