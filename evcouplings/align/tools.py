@@ -5,16 +5,13 @@ Authors:
   Thomas A. Hopf
 """
 
+from os import path
 from collections import namedtuple
 import pandas as pd
 from evcouplings.utils.system import (
     run, create_prefix_folders, verify_resources, temp
 )
 from evcouplings.utils.config import check_required
-
-
-from os import path
-
 
 
 # output fields for storing results of a hmmbuild run
@@ -224,12 +221,24 @@ def run_hmmsearch(hmmfile, database, prefix,
 
     return result
 
-
+# output fields for storing results of a hmmbuild_and_search run
+# (returned by run_hmmbuild_and_search)
+HmmbuildandsearchResult = namedtuple(
+    "HmmbuildandsearchResult",
+    ["prefix", "alignment", "output", "tblout",
+    "domtblout", "hmmfile"]
+)
 
 def run_hmmbuild_and_search(**kwargs):
                   
     """
     Search profile(s) against a sequence database.
+
+    If the user provides a pre-made HMM file,
+    search the sequence database using that HMM.
+    Otherwise, construct the HMM using the input alignment file,
+    and then use the HMM to search the sequence database.
+
     Refer to HMMER documentation for details.
 
     http://eddylab.org/software/hmmer3/3.1b2/Userguide.pdf
@@ -280,7 +289,6 @@ def run_hmmbuild_and_search(**kwargs):
     hmmbuild = kwargs["hmmbuild"]
     hmmsearch = kwargs["hmmsearch"]
 
-
     verify_resources(
         "Input file does not exist or is empty",
         database
@@ -292,19 +300,30 @@ def run_hmmbuild_and_search(**kwargs):
     # create a hmmfile from the given msa file
     # if hmmfile doesn't exist
     if not path.isfile(hmmfile):
-        run_hmmbuild(
+        hmmbuild_result = run_hmmbuild(
             msafile, prefix, cpu,
             binary=hmmbuild
         )
 
-
     # running hmmsearch binary with the hmmfile
-    result = run_hmmsearch(
+    hmmsearch_result = run_hmmsearch(
                 hmmfile, database, prefix,
                 use_bitscores, domain_threshold,
                 seq_threshold, nobias, cpu,
                 binary=hmmsearch
-             )
+    )
+
+    result = namedtuple(
+            'HmmbuildandsearchResult',
+            [
+                hmmsearch_result.prefix,
+                hmmsearch_result.alignment,
+                hmmsearch_result.output,
+                hmmsearch_result.tblout,
+                hmmsearch_result.domtblout,
+                hmmbuild_result.hmmfile
+            ]
+    )
 
     return result
 
