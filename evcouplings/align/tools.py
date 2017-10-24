@@ -313,18 +313,15 @@ def run_hmmbuild_and_search(**kwargs):
                 binary=hmmsearch
     )
 
-    result = namedtuple(
-            'HmmbuildandsearchResult',
-            [
-                hmmsearch_result.prefix,
-                hmmsearch_result.alignment,
-                hmmsearch_result.output,
-                hmmsearch_result.tblout,
-                hmmsearch_result.domtblout,
-                hmmbuild_result.hmmfile
-            ]
+    result = HmmbuildandsearchResult(
+            prefix = hmmsearch_result.prefix,
+            alignment = hmmsearch_result.alignment,
+            output = hmmsearch_result.output,
+            tblout = hmmsearch_result.tblout,
+            domtblout = hmmsearch_result.domtblout,
+            hmmfile = hmmfile
     )
-
+    
     return result
 
 
