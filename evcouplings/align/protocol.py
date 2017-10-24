@@ -1090,9 +1090,6 @@ def hmmbuild_and_search(**kwargs):
             len(cut_seq)
         )
 
-        kwargs['sequence_threshold'] = seq_threshold
-        kwargs['domain_threshold'] = domain_threshold
-
         # run search process
         ali = at.run_hmmbuild_and_search(
             msafile=kwargs["alignment_file"],
