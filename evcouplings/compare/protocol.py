@@ -702,10 +702,11 @@ def complex(**kwargs):
     # Step 1: Identify 3D structures for comparison
     def _identify_monomer_structures(name_prefix, outcfg):
         # create a dictionary with kwargs for just the current monomer
-        # remove the "prefix" kwargs so that we can replace when we call
-        # _identify_structures
+        # remove the "prefix" kwargs so that we can replace with the 
+        # aux prefix when calling _identify_structures
+        # only replace first occurrence of name_prefix
         monomer_kwargs = {
-            k.replace(name_prefix + "_", ""): v for k, v in kwargs.items() if "prefix" not in k
+            k.replace(name_prefix + "_", "", 1): v for k, v in kwargs.items() if "prefix" not in k
         }
 
         # identify structures for that monomer
