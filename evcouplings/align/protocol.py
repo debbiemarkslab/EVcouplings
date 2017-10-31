@@ -510,6 +510,7 @@ def existing(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
+        * sequence_id (passed through from input)
         * alignment_file
         * raw_focus_alignment_file
         * statistics_file
@@ -645,6 +646,7 @@ def existing(**kwargs):
     # generate output configuration of protocol
     outcfg = {
         **mod_outcfg,
+        "sequence_id": sequence_id,
         "sequence_file": target_sequence_file,
         "first_index": region_start,
         "target_sequence_file": target_sequence_file,
@@ -882,6 +884,7 @@ def jackhmmer_search(**kwargs):
         Output configuration of the protocol, including
         the following fields:
 
+        * sequence_id (passed through from input)
         * target_sequence_file
         * sequence_file
         * raw_alignment_file
@@ -986,6 +989,7 @@ def jackhmmer_search(**kwargs):
 
     # prepare output dictionary with result files
     outcfg = {
+        "sequence_id": kwargs["sequence_id"],
         "target_sequence_file": target_sequence_file,
         "sequence_file": full_sequence_file,
         "focus_mode": True,
@@ -1040,6 +1044,7 @@ def standard(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
+        * sequence_id (passed through from input)
         * alignment_file
         * raw_alignment_file
         * raw_focus_alignment_file
