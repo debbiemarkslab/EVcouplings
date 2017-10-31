@@ -260,7 +260,7 @@ class Chain:
         # create remapped chain
         return self._update_ids(ids)
 
-    def to_file(self, fileobj, chain_id="A", end=True):
+    def to_file(self, fileobj, chain_id="A", end=True, first_atom_id=1):
         """
         Write chain to a file in PDB format (mmCIF not yet
         supported).
@@ -285,13 +285,41 @@ class Chain:
             chain name from whatever chain was originally)
         end : bool, optional (default: True)
             Print "END" record after chain (signals end of PDB file)
+        first_atom_id : int, optional (default: 1)
+            Renumber atoms to start with this index 
+            (set to None to keep default indices) 
+            
+        Raises
+        ------
+        ValueError
+            If atom or residue numbers are too wide and cannot
+            be written to old fixed-column PDB file format
         """
+        # maximum number of atoms and residues than can be written to
+        # old PDB file format
+        OLD_PDB_MAX_ATOM_NUM = 99999
+        OLD_PDB_MAX_RESIDUE_NUM = 9999
+
         # merge residue-level information and atom-level information
         # in one joint table (i.e. the way data is presented in a
         # PDB/mmCIF file)
         x = self.coords.merge(
             self.residues, left_on="residue_index", right_index=True
         )
+
+        # renumber atoms if requested (this helps to be able to
+        # write chains from very large structures to old PDB
+        # format that wouldn't fit into fixed columns otherwise)
+        if first_atom_id is not None:
+            if first_atom_id < 1:
+                raise ValueError(
+                    "First atom index must be > 0"
+                )
+
+            # renumber to start at first_atom_id
+            x.loc[:, "atom_id"] = np.arange(
+                first_atom_id, first_atom_id + len(x)
+            ).astype(int)
 
         # write one atom at a time
         for idx, r in x.iterrows():
@@ -303,6 +331,18 @@ class Chain:
             else:
                 coord_id = cid
                 ins_code = ""
+
+            if int(coord_id) > OLD_PDB_MAX_RESIDUE_NUM:
+                raise ValueError(
+                    "Residue index is too wide for old PDB format: "
+                    "{} (maximum is {})".format(coord_id, OLD_PDB_MAX_RESIDUE_NUM)
+                )
+
+            if int(r["atom_id"]) > OLD_PDB_MAX_ATOM_NUM:
+                raise ValueError(
+                    "Atom index is too wide for old PDB format: "
+                    "{} (maximum is {})".format(r["atom_id"], OLD_PDB_MAX_ATOM_NUM)
+                )
 
             # atom element
             element = r["element"].upper()
