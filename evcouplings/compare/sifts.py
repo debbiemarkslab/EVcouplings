@@ -108,7 +108,7 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
     return r.text
 
 
-def find_homologs(search_pdb_by_alignment=True, **kwargs):
+def find_homologs(**kwargs):
     """
     Identify homologs using jackhmmer or hmmbuild/hmmsearch
 
@@ -142,14 +142,12 @@ def find_homologs(search_pdb_by_alignment=True, **kwargs):
     check_required(
         config,
         [
-            "database", "prefix", "use_bitscores",
-            "domain_threshold", "sequence_threshold",
-            "nobias", "cpu",
+            "prefix",
         ]
     )
 
     # run hmmsearch (possibly preceded by hmmbuild)
-    if search_pdb_by_alignment:
+    if kwargs["search_pdb_by_alignment"]:
         ar = hmmbuild_and_search(**config)
 
     # run jackhmmer against sequence database

@@ -31,6 +31,7 @@ from evcouplings.utils.system import (
     verify_resources, ResourceError
 )
 
+
 def fetch_sequence(sequence_id, sequence_file,
                    sequence_download_url, out_file):
     """
@@ -1006,7 +1007,7 @@ def hmmbuild_and_search(**kwargs):
     """
     Protocol:
 
-    Hmmbuild and hmmsearch against a sequence database.
+    hmmbuild and hmmsearch against a sequence database.
     
     Parameters
     ----------
@@ -1092,7 +1093,7 @@ def hmmbuild_and_search(**kwargs):
 
         # run search process
         ali = at.run_hmmbuild_and_search(
-            msafile=kwargs["alignment_file"],
+            alignment_file=kwargs["alignment_file"],
             database=kwargs[kwargs["database"]],
             prefix=prefix,
             use_bitscores=kwargs["use_bitscores"],

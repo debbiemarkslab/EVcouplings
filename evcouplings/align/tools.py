@@ -22,7 +22,7 @@ HmmbuildResult = namedtuple(
 )
 
 
-def run_hmmbuild(msafile, prefix, cpu=None,
+def run_hmmbuild(alignment_file, prefix, cpu=None,
                  stdout_redirect=None,
                  binary="hmmbuild"):
     """
@@ -33,7 +33,7 @@ def run_hmmbuild(msafile, prefix, cpu=None,
 
     Parameters
     ----------
-    msafile : str
+    alignment_file : str
         File containing the multiple sequence alignment
     prefix : str
         Prefix path for output files. Folder structure in
@@ -59,7 +59,7 @@ def run_hmmbuild(msafile, prefix, cpu=None,
     """
     verify_resources(
         "Input file does not exist or is empty",
-        msafile
+        alignment_file
     )
 
     create_prefix_folders(prefix)
@@ -82,7 +82,7 @@ def run_hmmbuild(msafile, prefix, cpu=None,
     if cpu is not None:
         cmd += ["--cpu", str(cpu)]
 
-    cmd += [result.hmmfile, msafile]
+    cmd += [result.hmmfile, alignment_file]
 
     return_code, stdout, stderr = run(cmd)
 
@@ -270,7 +270,7 @@ def run_hmmbuild_and_search(**kwargs):
     check_required(
         kwargs,
         [
-            "prefix", "msafile", 
+            "prefix", "alignment_file", 
             "cpu", "database", "nobias",
             "use_bitscores", "domain_threshold",
             "seq_threshold", "hmmbuild",
@@ -279,7 +279,7 @@ def run_hmmbuild_and_search(**kwargs):
     ) 
     
     prefix = kwargs["prefix"]
-    msafile = kwargs["msafile"] 
+    alignment_file = kwargs["alignment_file"] 
     cpu = kwargs["cpu"]
     database = kwargs["database"]
     nobias = kwargs["nobias"]
@@ -301,7 +301,7 @@ def run_hmmbuild_and_search(**kwargs):
     # if hmmfile doesn't exist
     if not path.isfile(hmmfile):
         hmmbuild_result = run_hmmbuild(
-            msafile, prefix, cpu,
+            alignment_file, prefix, cpu,
             binary=hmmbuild
         )
 
