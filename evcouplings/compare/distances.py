@@ -1213,7 +1213,7 @@ def remap_chains(sifts_result, output_prefix, sequence=None,
 
         # save to file
         with open(filename, "w") as f:
-            chain.to_file(f, chain_id=chain_name)
+            chain.to_file(f, chain_id=chain_name, first_atom_id=1)
 
         # typecast index so it is regular python type, not numpy
         # (important for yaml dump)
@@ -1378,8 +1378,12 @@ def remap_complex_chains(sifts_result_i, sifts_result_j,
 
         # save to file
         with open(filename, "w") as f:
-            chain_i.to_file(f, chain_id=chain_name_i)
-            chain_j.to_file(f, chain_id=chain_name_j)
+            chain_i.to_file(
+                f, chain_id=chain_name_i, first_atom_id=1, end=False
+            )
+            chain_j.to_file(
+                f, chain_id=chain_name_j, first_atom_id=len(chain_i.coords) + 1
+            )
 
         # typecast index so it is regular python type, not numpy
         # (important for yaml dump)
