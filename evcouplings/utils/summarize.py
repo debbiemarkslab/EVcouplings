@@ -319,6 +319,7 @@ def protein_complex(prefix, configs):
                         ec_comp_2 = ec_comp.query("segment_i == segment_j == @SECOND_SEGMENT")
                         ec_comp_inter = ec_comp.query("segment_i != segment_j")
 
+                        # use the monomer statistics files to figure out how many sites in each monomer
                         if valid_file(first_stat_file) and valid_file(second_stat_file):
                             stats_1 = pd.read_csv(first_stat_file)
                             L_1 = L = stats_1.loc[0, "num_cov"]
