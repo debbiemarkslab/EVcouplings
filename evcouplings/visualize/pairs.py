@@ -393,7 +393,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
 
     # Don't compute inter boundaries unless we have inter 
     # ecs or distances
-    if inter_ecs is not None or d_inter is not None:
+    if (inter_ecs is not None and not inter_ecs.empty) or d_inter is not None:
         inter_boundaries = list(
             find_boundaries(
                 boundaries, ecs=inter_ecs, monomer=d_inter,
