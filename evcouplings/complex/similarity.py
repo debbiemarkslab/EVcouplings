@@ -45,7 +45,7 @@ def read_species_annotation_table(annotation_file):
     # and "Tax" is for Uniref
     for column in SPECIES_ANNOTATION_COLUMNS:
         # if this column contains non-null values
-        if data[column].isnull().any():
+        if data[column].notnull().any():
             # use that column to extract data
             annotation_column = column
             break
