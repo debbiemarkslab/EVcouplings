@@ -3,9 +3,10 @@ Wrappers for running external sequence alignment tools
 
 Authors:
   Thomas A. Hopf
+  Chan Kang - run_hmmbuild, run_hmmsearch
+  Anna G. Green - run_hmmbuild, run_hmmsearch
 """
 
-from os import path
 from collections import namedtuple
 import pandas as pd
 from evcouplings.utils.system import (
@@ -22,7 +23,7 @@ HmmbuildResult = namedtuple(
 )
 
 
-def run_hmmbuild(msafile, prefix, cpu=None,
+def run_hmmbuild(alignment_file, prefix, cpu=None,
                  stdout_redirect=None,
                  binary="hmmbuild"):
     """
@@ -33,8 +34,10 @@ def run_hmmbuild(msafile, prefix, cpu=None,
 
     Parameters
     ----------
-    msafile : str
-        File containing the multiple sequence alignment
+    alignment_file : str
+        File containing the multiple sequence alignment. Can be in 
+        Stockholm, a2m, or clustal formats, or any other format 
+        recognized by hmmer. 
     prefix : str
         Prefix path for output files. Folder structure in
         the prefix will be created if not existing.
@@ -59,7 +62,7 @@ def run_hmmbuild(msafile, prefix, cpu=None,
     """
     verify_resources(
         "Input file does not exist or is empty",
-        msafile
+        alignment_file
     )
 
     create_prefix_folders(prefix)
@@ -82,7 +85,7 @@ def run_hmmbuild(msafile, prefix, cpu=None,
     if cpu is not None:
         cmd += ["--cpu", str(cpu)]
 
-    cmd += [result.hmmfile, msafile]
+    cmd += [result.hmmfile, alignment_file]
 
     return_code, stdout, stderr = run(cmd)
 
@@ -219,109 +222,6 @@ def run_hmmsearch(hmmfile, database, prefix,
         result.alignment
     )
 
-    return result
-
-# output fields for storing results of a hmmbuild_and_search run
-# (returned by run_hmmbuild_and_search)
-HmmbuildandsearchResult = namedtuple(
-    "HmmbuildandsearchResult",
-    ["prefix", "alignment", "output", "tblout",
-    "domtblout", "hmmfile"]
-)
-
-def run_hmmbuild_and_search(**kwargs):
-                  
-    """
-    Search profile(s) against a sequence database.
-
-    If the user provides a pre-made HMM file,
-    search the sequence database using that HMM.
-    Otherwise, construct the HMM using the input alignment file,
-    and then use the HMM to search the sequence database.
-
-    Refer to HMMER documentation for details.
-
-    http://eddylab.org/software/hmmer3/3.1b2/Userguide.pdf
-
-    Parameters
-    ----------
-    Mandatory kwargs arguments are provided as arguments in
-    check_required function below.
-
-    Returns
-    -------
-    outcfg : dict
-        Output configuration of the protocol, including
-        the following fields:
-
-        * target_sequence_file
-        * sequence_file
-        * raw_alignment_file
-        * hittable_file
-        * focus_mode
-        * focus_sequence
-        * segments
-
-    Raises
-    ------
-    ExternalToolError, ResourceError
-    """
-
-    check_required(
-        kwargs,
-        [
-            "prefix", "msafile", 
-            "cpu", "database", "nobias",
-            "use_bitscores", "domain_threshold",
-            "seq_threshold", "hmmbuild",
-            "hmmsearch"
-        ]
-    ) 
-    
-    prefix = kwargs["prefix"]
-    msafile = kwargs["msafile"] 
-    cpu = kwargs["cpu"]
-    database = kwargs["database"]
-    nobias = kwargs["nobias"]
-    use_bitscores = kwargs["use_bitscores"]
-    domain_threshold = kwargs["domain_threshold"] 
-    seq_threshold = kwargs["seq_threshold"]
-    hmmbuild = kwargs["hmmbuild"]
-    hmmsearch = kwargs["hmmsearch"]
-
-    verify_resources(
-        "Input file does not exist or is empty",
-        database
-    )
-
-    # path to the directory to save the hmmfile in
-    hmmfile = prefix + ".hmm"
-
-    # create a hmmfile from the given msa file
-    # if hmmfile doesn't exist
-    if not path.isfile(hmmfile):
-        hmmbuild_result = run_hmmbuild(
-            msafile, prefix, cpu,
-            binary=hmmbuild
-        )
-
-    # running hmmsearch binary with the hmmfile
-    hmmsearch_result = run_hmmsearch(
-                hmmfile, database, prefix,
-                use_bitscores, domain_threshold,
-                seq_threshold, nobias, cpu,
-                binary=hmmsearch
-    )
-
-    result = HmmbuildandsearchResult(
-            prefix = hmmsearch_result.prefix,
-            alignment = hmmsearch_result.alignment,
-            output = hmmsearch_result.output,
-            tblout = hmmsearch_result.tblout,
-            domtblout = hmmsearch_result.domtblout,
-            hmmfile = hmmfile
-    )
-    
     return result
 
 

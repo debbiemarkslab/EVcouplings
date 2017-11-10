@@ -14,6 +14,7 @@ Authors:
 from os import path
 import json
 from collections import OrderedDict
+from copy import deepcopy
 
 import pandas as pd
 import requests
@@ -108,7 +109,7 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
     return r.text
 
 
-def find_homologs(search_pdb_by_alignment=True, **kwargs):
+def find_homologs(**kwargs):
     """
     Identify homologs using jackhmmer or hmmbuild/hmmsearch
 
@@ -140,17 +141,16 @@ def find_homologs(search_pdb_by_alignment=True, **kwargs):
         config["prefix"] = path.join(tempdir(), "compare")
 
     check_required(
-        config,
-        [
-            "database", "prefix", "use_bitscores",
-            "domain_threshold", "sequence_threshold",
-            "nobias", "cpu",
-        ]
+        config,["prefix"]
     )
 
     # run hmmsearch (possibly preceded by hmmbuild)
-    if search_pdb_by_alignment:
-        ar = hmmbuild_and_search(**config)
+    if kwargs["search_pdb_by_alignment"]:
+
+        # set up config to run hmmbuild_and_search on the unfiltered alignment file
+        updated_config = deepcopy(config)
+        updated_config["alignment_file"] = config["raw_focus_alignment_file"]
+        ar = hmmbuild_and_search(**updated_config)
 
     # run jackhmmer against sequence database
     else:
