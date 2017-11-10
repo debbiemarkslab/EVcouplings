@@ -3,7 +3,12 @@ Protein sequence alignment creation protocols/workflows.
 
 Authors:
   Thomas A. Hopf
+<<<<<<< HEAD
   Anna G. Green (complex protocol)
+=======
+  Chan Kang - hmm_build_and_search
+  Anna G. Green - hmm_build_and_search
+>>>>>>> [INTERNAL,API] removed run_hmmbuild_and_search, other minor fixes
 """
 
 from collections import OrderedDict, Iterable
@@ -1015,7 +1020,7 @@ def hmmbuild_and_search(**kwargs):
     """
     Protocol:
 
-    Hmmbuild and hmmsearch against a sequence database.
+    hmmbuild and hmmsearch against a sequence database.
     
     Parameters
     ----------
@@ -1099,19 +1104,26 @@ def hmmbuild_and_search(**kwargs):
             len(cut_seq)
         )
 
-        # run search process
-        ali = at.run_hmmbuild_and_search(
-            msafile=kwargs["alignment_file"],
+        # create the hmm
+        hmmbuild_result = at.run_hmmbuild(
+            alignment_file=kwargs["alignment_file"],
+            prefix=prefix,
+            cpu=kwargs["cpu"],
+            binary=kwargs["hmmbuild"],
+        )
+        hmmfile = hmmbuild_result.hmmfile
+
+        # run the alignment from the hmm
+        ali = at.run_hmmsearch(
+            hmmfile = hmmfile,
             database=kwargs[kwargs["database"]],
             prefix=prefix,
             use_bitscores=kwargs["use_bitscores"],
             domain_threshold=domain_threshold,
             seq_threshold=seq_threshold,
-            iterations=kwargs["iterations"],
             nobias=kwargs["nobias"],
             cpu=kwargs["cpu"],
-            hmmbuild=kwargs["hmmbuild"],
-            hmmsearch=kwargs["hmmsearch"], 
+            binary=kwargs["hmmsearch"], 
         )
 
         # get rid of huge stdout log file immediately
@@ -1123,6 +1135,8 @@ def hmmbuild_and_search(**kwargs):
         # turn namedtuple into dictionary to make
         # restarting code nicer
         ali = dict(ali._asdict())
+        # only item from hmmsearch_result to save is the hmmfile
+        ali["hmmfile"] = hmmfile
 
         # save results of search for possible restart
         write_config_file(ali_outcfg_file, ali)
