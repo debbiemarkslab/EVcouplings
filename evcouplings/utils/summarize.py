@@ -221,12 +221,133 @@ def protein_complex(prefix, configs):
     Create results summary for run using
     protein_complex pipeline
 
-    # TODO
     """
-    raise NotImplementedError(
-        "EVcomplex summary not yet implemented."
-    )
+    # TODO: this is only designed to work with skewnormal threshold
+    MIN_PROBABILITY = 0.9
 
+    # number of inter ECs to check for precision
+    NUM_INTER = 5
+
+    # TODO: create segments global variable and import
+    FIRST_SEGMENT = "A_1"
+    SECOND_SEGMENT = "B_1"
+
+    ali_table = pd.DataFrame()
+    prefix_to_cfgs = {}
+    data = defaultdict(lambda: defaultdict())
+
+    # go through all config files
+    for cfg_file in configs:
+        # check if the file exists and has contents
+        # since run might not yet have finished or crashed
+        if valid_file(cfg_file):
+                # job input configuration
+                C = read_config_file(cfg_file)
+                sub_prefix = C["global"]["prefix"]
+                sub_index = (sub_prefix)
+
+                final_state_cfg = sub_prefix + FINAL_CONFIG_SUFFIX
+                if not valid_file(final_state_cfg):
+                    continue
+
+                # read final output state of job
+                R = read_config_file(final_state_cfg)
+                data[sub_index]["identities"] = R["identities_file"]
+                data[sub_index]["frequencies"] = R["frequencies_file"]
+                data[sub_index]["minimum_column_coverage"] = C["concatenate"]["minimum_column_coverage"]
+
+                stat_file = R["statistics_file"]
+                ec_file = R.get("ec_file", "")
+                ec_comp_file = R.get("ec_compared_longrange_file", "")
+                concat_stat_file = R.get("concatentation_statistics_file", "")
+                first_stat_file = R.get("first_statistics_file","")
+                second_stat_file = R.get("second_statistics_file","")
+
+                prefix_to_cfgs[(sub_prefix)] = (C, R)
+
+                # read and modify alignment statistics
+                if valid_file(stat_file):
+                    # get alignment stats for current job
+                    stat_df = pd.read_csv(stat_file)
+                    n_eff = R["effective_sequences"]
+
+                    if n_eff is not None:
+                        stat_df.loc[0, "N_eff"] = n_eff
+
+                    L = stat_df.loc[0, "num_cov"]
+
+                    # try to get concatenation statistics in addition
+                    if valid_file(concat_stat_file):
+                        concat_stat_df = pd.read_csv(concat_stat_file)
+
+                        # get and save n sequences per monomer aln
+                        n_seqs_1 = concat_stat_df.loc[0, "num_seqs_1"]
+                        n_seqs_2 = concat_stat_df.loc[0, "num_seqs_2"]
+                        stat_df.loc[0, "first_n_seqs"] = int(n_seqs_1)
+                        stat_df.loc[0, "second_n_seqs"] = int(n_seqs_2)
+
+                        # get and save median n paralogs per monomer aln
+                        n_paralogs_1 = concat_stat_df.loc[0, "median_num_per_species_1"]
+                        n_paralogs_2 = concat_stat_df.loc[0, "median_num_per_species_2"]
+                        stat_df.loc[0, "median_num_per_species_1"] = n_paralogs_1
+                        stat_df.loc[0, "median_num_per_species_2"] = n_paralogs_2
+
+                    # try to get number of significant ECs in addition
+                    if valid_file(ec_file):
+                        ecs = pd.read_csv(ec_file)
+
+                        #number of significant monomer Ecs
+                        min_seq_dist = C["compare"]["min_sequence_distance"]
+                        num_sig = len(ecs.query(
+                            "abs(i-j) >= @min_seq_dist and probability >= @MIN_PROBABILITY"
+                        ))
+
+                        # number of inter-protein ECs significant
+                        num_sig_inter = len(ecs.query(
+                            "segment_i != segment_j and probability >= @MIN_PROBABILITY"
+                        ))
+                        stat_df.loc[0, "num_significant"] = int(num_sig)
+
+                        #rank of top inter contact
+                        top_inter_rank = ecs.query("segment_i != segment_j").index[0]
+                        stat_df.loc[0, "top_inter_rank"] = int(top_inter_rank)
+
+                    # try to get EC precision in addition
+                    if valid_file(ec_comp_file):
+                        ec_comp = pd.read_csv(ec_comp_file)
+                        ec_comp_1 = ec_comp.query("segment_i == segment_j == @FIRST_SEGMENT")
+                        ec_comp_2 = ec_comp.query("segment_i == segment_j == @SECOND_SEGMENT")
+                        ec_comp_inter = ec_comp.query("segment_i != segment_j")
+
+                        # use the monomer statistics files to figure out how many sites in each monomer
+                        if valid_file(first_stat_file) and valid_file(second_stat_file):
+                            stats_1 = pd.read_csv(first_stat_file)
+                            L_1 = L = stats_1.loc[0, "num_cov"]
+
+                            stats_2 = pd.read_csv(second_stat_file)
+                            L_2 = L = stats_2.loc[0, "num_cov"]
+
+                            # precision of monomer 1
+                            stat_df.loc[0, "first_monomer_precision"] = ec_comp_1.iloc[L_1]["segmentwise_precision"]
+
+                            # precicions of monomer 2
+                            stat_df.loc[0, "second_monomer_precision"]= ec_comp_2.iloc[L_2]["segmentwise_precision"]
+
+                            # precision of top 5 inter
+                            stat_df.loc[0, "inter_precision"] = ec_comp_inter.iloc[NUM_INTER]["segmentwise_precision"]
+
+                    # finally, append to global table
+                    ali_table = ali_table.append(stat_df)
+
+    # save ali statistics table
+    table_file = prefix + "_job_statistics_summary.csv"
+    lock_table = filelock.FileLock(table_file)
+    with lock_table:
+        ali_table.to_csv(
+            table_file, index=False, float_format="%.3f"
+        )
+
+    return ali_table
 
 PIPELINE_TO_SUMMARIZER = {
     "protein_monomer": protein_monomer,
