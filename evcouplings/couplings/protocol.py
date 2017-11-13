@@ -3,8 +3,10 @@ Evolutionary couplings calculation protocols/workflows.
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (complex couplings)
 """
 
+import string
 import pandas as pd
 import numpy as np
 
@@ -32,43 +34,48 @@ from evcouplings.utils.system import (
     verify_resources,
 )
 
+# symbols for common sequence alphabets
 ALPHABET_MAP = {
     "aa": ALPHABET_PROTEIN,
     "dna": ALPHABET_DNA,
     "rna": ALPHABET_RNA,
 }
 
+# models for assigning confidence scores to ECs
+SCORING_MODELS = (
+    "skewnormal",
+    "normal",
+    "evcomplex",
+)
 
-def standard(**kwargs):
+
+def infer_plmc(**kwargs):
     """
-    Protocol:
-
-    Infer ECs from alignment using plmc.
-
-    .. todo::
-
-        1. make EC enrichment calculation segment-ready
-        2. explain meaning of parameters in detail.
-
+    Run EC computation on alignment. This function contains
+    the functionality shared between monomer and complex EC
+    inference.
+    
     Parameters
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-
+    
     Returns
     -------
     outcfg : dict
         Output configuration of the pipeline, including
         the following fields:
 
-        * raw_ec_file
-        * model_file
-        * num_sites
-        * num_sequences
-        * effective_sequences
-        * focus_mode (passed through)
-        * focus_sequence (passed through)
-        * segments (passed through)
+        raw_ec_file
+        model_file
+        num_sites
+        num_sequences
+        effective_sequences
+
+        focus_mode (passed through)
+        focus_sequence (passed through)
+        segments (passed through)
+
     """
     check_required(
         kwargs,
@@ -79,7 +86,6 @@ def standard(**kwargs):
             "lambda_h", "lambda_J", "lambda_group",
             "scale_clusters",
             "cpu", "plmc", "reuse_ecs",
-            "min_sequence_distance", # "save_model",
         ]
     )
 
@@ -100,8 +106,7 @@ def standard(**kwargs):
         "model_file": model,
         "raw_ec_file": prefix + "_ECs.txt",
         "ec_file": prefix + "_CouplingScores.csv",
-        # TODO: the following are passed through stage...
-        # keep this or unnecessary?
+        # the following are passed through stage...
         "focus_mode": kwargs["focus_mode"],
         "focus_sequence": kwargs["focus_sequence"],
         "segments": kwargs["segments"],
@@ -236,10 +241,7 @@ def standard(**kwargs):
     # read and sort ECs
     ecs = pairs.read_raw_ec_file(outcfg["raw_ec_file"])
 
-    # add mixture model probability
-    ecs = pairs.add_mixture_probability(ecs)
-
-    if segments is not None:  # and (len(segments) > 1 or not kwargs["focus_mode"]):
+    if segments is not None:
         # create index mapping
         seg_mapper = mapping.SegmentIndexMapper(
             kwargs["focus_mode"], outcfg["region_start"], *segments
@@ -247,6 +249,56 @@ def standard(**kwargs):
 
         # apply to EC table
         ecs = mapping.segment_map_ecs(ecs, seg_mapper)
+
+    return outcfg, ecs, segments
+
+
+def standard(**kwargs):
+    """
+    Protocol:
+
+    Infer ECs from alignment using plmc. Use complex protocol
+    for heteromultimeric complexes instead.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+        and infer_plmc()
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        raw_ec_file
+        model_file
+        num_sites
+        num_sequences
+        effective_sequences
+
+        focus_mode (passed through)
+        focus_sequence (passed through)
+        segments (passed through)
+    """
+    # for additional required parameters, see infer_plmc()
+    check_required(
+        kwargs,
+        [
+            "prefix", "min_sequence_distance",
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    # infer ECs and load them
+    outcfg, ecs, segments = infer_plmc(**kwargs)
+
+    # following computations are mostly specific to monomer pipeline
+
+    # add mixture model probability
+    ecs = pairs.add_mixture_probability(ecs)
 
     # write updated table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
@@ -298,6 +350,188 @@ def standard(**kwargs):
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
+
+    return outcfg
+
+
+def complex_probability(ecs, scoring_model, use_all_ecs=False,
+                        score="cn"):
+    """
+    Adds confidence measure for complex evolutionary couplings
+
+    Parameters
+    ----------
+    ecs : pandas.DataFrame
+        Table with evolutionary couplings
+    scoring_model : {"skewnormal", "normal", "evcomplex"}
+        Use this scoring model to assign EC confidence measure
+    use_all_ecs : bool, optional (default: False)
+        If true, fits the scoring model to all ECs;
+        if false, fits the model to only the inter ECs.
+    score : str, optional (default: "cn")
+        Use this score column for confidence assignment
+        
+    Returns
+    -------
+    ecs : pandas.DataFrame
+        EC table with additional column "probability"
+        containing confidence measure
+    """
+    if use_all_ecs:
+        ecs = pairs.add_mixture_proability(
+            ecs, model=scoring_model
+        )
+    else:
+        inter_ecs = ecs.query("segment_i != segment_j")
+        intra_ecs = ecs.query("segment_i == segment_j")
+
+        intra_ecs = pairs.add_mixture_probability(
+            intra_ecs, model=scoring_model, score=score
+        )
+
+        inter_ecs = pairs.add_mixture_probability(
+            inter_ecs, model=scoring_model, score=score
+        )
+
+        ecs = pd.concat(
+            [intra_ecs, inter_ecs]
+        ).sort_values(
+            score, ascending=False
+        )
+
+    return ecs
+
+
+def complex(**kwargs):
+    """
+    Protocol:
+
+    Infer ECs for protein complexes from alignment using plmc.
+    Allows user to select scoring protocol.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+        and infer_plmc()
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        raw_ec_file
+        model_file
+        num_sites
+        num_sequences
+        effective_sequences
+
+        focus_mode (passed through)
+        focus_sequence (passed through)
+        segments (passed through)
+    """
+    # for additional required parameters, see infer_plmc()
+    check_required(
+        kwargs,
+        [
+            "prefix", "min_sequence_distance",
+            "scoring_model", "use_all_ecs_for_scoring",
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    # infer ECs and load them
+    outcfg, ecs, segments = infer_plmc(**kwargs)
+
+    # following computations are mostly specific to complex pipeline
+
+    # add mixture model probability
+    if kwargs["scoring_model"] in SCORING_MODELS:
+        if kwargs["use_all_ecs_for_scoring"] is not None:
+            use_all_ecs = kwargs["use_all_ecs_for_scoring"]
+        else:
+            use_all_ecs = False
+
+        ecs = complex_probability(
+            ecs, kwargs["scoring_model"], use_all_ecs
+        )
+
+    else:
+        raise InvalidParameterError(
+            "Invalid scoring_model parameter: " +
+            "{}. Valid options are: {}".format(
+                kwargs["protocol"], ", ".join(SCORING_MODELS)
+            )
+        )
+
+    # write updated table to csv file
+    ecs.to_csv(outcfg["ec_file"], index=False)
+
+    # also store longrange ECs as convenience output;
+    # note that unlike for monomers, we only should filter
+    # short-range ECs within each monomer, but not inter-ECs
+    if kwargs["min_sequence_distance"] is not None:
+        outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
+
+        ecs_longrange = ecs.query(
+            "segment_i != segment_j or abs(i - j) >= {}".format(
+                kwargs["min_sequence_distance"]
+            )
+        )
+        ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
+
+    # also create line-drawing script (for multiple chains)
+    outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
+    L = outcfg["num_sites"]
+
+    # by convention, we map first segment to chain A,
+    # second to B, a.s.f.
+    chain_mapping = dict(
+        zip(
+            [s.segment_id for s in segments],
+            string.ascii_uppercase,
+        )
+    )
+
+    ec_lines_pymol_script(
+        ecs_longrange.iloc[:L, :],
+        outcfg["ec_lines_pml_file"],
+        chain=chain_mapping
+    )
+
+    # TODO: make the following complex-ready
+    # EC enrichment:
+    #
+    # 1) think about making EC enrichment complex-ready and add
+    # it back here - so far it only makes sense if all ECs are
+    # on one segment
+    #
+    # EVzoom:
+    #
+    # 1) at the moment, EVzoom will use numbering before remapping
+    # we should eventually get this to a point where segments + residue
+    # index are displayed on EVzoom
+    #
+    # 2) note that this will currently use the default mixture model
+    # selection for determining the EC cutoff, rather than the selection
+    # used for the EC table above
+
+    # output EVzoom JSON file if we have stored model file
+    if outcfg.get("model_file", None) is not None:
+        outcfg["evzoom_file"] = prefix + "_evzoom.json"
+        with open(outcfg["evzoom_file"], "w") as f:
+            # load parameters
+            c = CouplingsModel(outcfg["model_file"])
+
+            # create JSON output and write to file
+            f.write(
+                evzoom_json(c) + "\n"
+            )
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
 
     return outcfg
 
@@ -498,9 +732,13 @@ def mean_field(**kwargs):
 
 
 # list of available EC inference protocols
+
 PROTOCOLS = {
     # standard plmc inference protocol
     "standard": standard,
+
+    # runs plmc for protein complexes
+    "complex": complex,
 
     # inference protocol using mean field approximation
     "mean_field": mean_field,
@@ -522,19 +760,20 @@ def run(**kwargs):
     -------
     outcfg : dict
         Output configuration of couplings stage
-        Dictionary with results in following fields (in brackets: not mandatory):
+        Dictionary with results in following fields:
+        (in brackets: not mandatory)
 
-         * ec_file
-         * effective_sequences
-         * [enrichment_file]
-         * focus_mode
-         * focus_sequence
-         * model_file
-         * num_sequences
-         * num_sites
-         * raw_ec_file
-         * region_start
-         * segments
+         ec_file
+         effective_sequences
+         [enrichment_file]
+         focus_mode
+         focus_sequence
+         model_file
+         num_sequences
+         num_sites
+         raw_ec_file
+         region_start
+         segments
     """
     check_required(kwargs, ["protocol"])
 

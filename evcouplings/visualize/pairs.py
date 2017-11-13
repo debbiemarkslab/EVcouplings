@@ -3,12 +3,14 @@ Visualization of evolutionary couplings (contact maps etc.)
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (complex_contact_map)
 """
 
 from copy import deepcopy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 from evcouplings.visualize.pymol import (
     pymol_pair_lines, pymol_mapping
@@ -88,6 +90,7 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
     (min_y, max_y) : (float, float)
         First and last position on y-axis
     """
+
     def _find_pos(axis):
         """
         Find first and last index along a single contact map axis
@@ -275,7 +278,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     # enable rescaling of points and secondary structure if necessary
     if scale_sizes:
         scale_func = lambda x: scale(x, ax=ax)
-    else:        
+    else:
         scale_func = lambda x: x
 
     # plot monomer contacts
@@ -339,6 +342,194 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
                 pass
 
 
+def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
+                        d_intra_i, d_multimer_i,
+                        d_intra_j, d_multimer_j,
+                        d_inter, **kwargs):
+    """
+    intra1_ecs: pandas.DataFrame
+        Table of intra-molecular evolutionary couplings to plot
+        (using columns "i" and "j") from monomer 1
+    intra2_ecs: pandas.DataFrame
+        Table of intra-molecular evolutionary couplings to plot
+        (using columns "i" and "j") from monomer 2
+    inter_ecs: pandas.DataFrame
+        Table of inter-molecular evolutionary couplings to plot
+        (using columns "i" and "j")
+    d_intra_i:evcouplings.compare.distances.DistanceMap
+        Monomer 1 distance map (intra-chain distances)
+    d_multimer_i:evcouplings.compare.distances.DistanceMap
+        Monomer 1 multimer distance map (inter-chain distances for monomer 1)
+    d_inter:evcouplings.compare.distances.DistanceMap
+        Inter-molecular distance map (inter-chain distances)
+    boundaries: {"union", "intersection", "ecs", "structure"} or tuple
+                 or list(tuple, tuple), optional (default: "union")
+        Set axis range (min/max) of contact map as follows:
+        - "union": Positions either in ECs or 3D structure
+        - "intersection": Positions both in ECs and 3D structure
+        - "ecs": Positions in ECs
+        - "structure": Positions in 3D structure
+        - tuple(float, float): Specify upper/lower bound manually
+        - [(float, float), (float, float)]: Specify upper/lower bounds
+          for both x-axis (first tuple) and y-axis (second tuple)
+    """
+    # check that boundaries is supplied
+    boundaries = kwargs["boundaries"]
+
+    # Find the appropriate boundaries for each subset
+    intra1_boundaries = list(
+        find_boundaries(
+            boundaries, ecs=intra1_ecs, monomer=d_intra_i,
+            multimer=d_multimer_i, symmetric=True
+        )
+    )
+
+    intra2_boundaries = list(
+        find_boundaries(
+            boundaries, ecs=intra2_ecs, monomer=d_intra_j,
+            multimer=d_multimer_j, symmetric=True
+        )
+    )
+
+    # Don't compute inter boundaries unless we have inter 
+    # ecs or distances
+    if (inter_ecs is not None and not inter_ecs.empty) or d_inter is not None:
+        inter_boundaries = list(
+            find_boundaries(
+                boundaries, ecs=inter_ecs, monomer=d_inter,
+                multimer=None, symmetric=False
+            )
+        )
+
+        def _boundary_union(original_boundaries,new_boundaries_axis1,
+                            new_boundaries_axis2,axis1=True,axis2=True,
+                            symmetric=False):
+            # determine whether to use the original boundaries or the
+            # corresponding monomer boundaries - whichever spans more
+            # of the protein.
+            # Default is to update both axes
+            updated_boundaries = original_boundaries
+            # increase the axis 1 boundaries if the new boundaries 
+            # cover more range
+            if axis1:
+                updated_boundaries[0] = (
+                    min(original_boundaries[0][0], new_boundaries_axis1[0][0]),
+                    max(original_boundaries[0][1], new_boundaries_axis1[0][1])
+                )
+                # if symmetric, update the axis2 boundaries with the same value
+                if symmetric:
+                    updated_boundaries[1] = updated_boundaries[0]
+            if axis2:
+                updated_boundaries[1] = (
+                    min(original_boundaries[1][0], new_boundaries_axis2[1][0]),
+                    max(original_boundaries[1][1], new_boundaries_axis2[1][1])
+                )
+                if symmetric:
+                    updated_boundaries[0] = updated_boundaries[1]
+
+            return updated_boundaries
+
+        # update the inter boundaries in case the intra boundaries
+        # are outside the range of plotted inter ECs
+        inter_boundaries = _boundary_union(
+            inter_boundaries, intra1_boundaries, intra2_boundaries
+        )
+
+        # also modify intra boundaries in case the inter ECs are outside
+        # the range of plotted monomer contacts or ECs
+        intra1_boundaries = _boundary_union(
+            intra1_boundaries, inter_boundaries, inter_boundaries,
+            axis1=True, axis2=False, symmetric=True
+        )
+
+        intra2_boundaries = _boundary_union(
+            intra2_boundaries, inter_boundaries, inter_boundaries, 
+            axis1=False, axis2=True, symmetric=True
+        )
+
+    else:
+        # if not plotting any inter ECs or contacts, just use the intra boundaries
+        inter_boundaries = [
+            (intra1_boundaries[0][0], intra1_boundaries[0][1]),
+            (intra2_boundaries[0][0], intra2_boundaries[0][1])
+        ]
+
+    # Calculate the length ratios of the monomers
+    mon1_len = intra1_boundaries[0][1] - intra1_boundaries[0][0]
+    mon2_len = intra2_boundaries[0][1] - intra2_boundaries[0][0]
+
+    if (mon1_len == 0) and (mon2_len == 0):
+        raise ValueError(
+            "Warning, you must provide at least one contact to plot "
+            "for at least one of the monomers. Contact map not generated."
+        )
+
+    ratio1 = mon1_len / (mon1_len + mon2_len)
+    ratio2 = mon2_len / (mon1_len + mon2_len)
+
+    # Initiate the axes using the above ratios
+    fig = plt.figure(figsize=(8, 8))
+    gs = gridspec.GridSpec(
+        2, 2, width_ratios=[ratio1, ratio2],
+        height_ratios=[ratio1, ratio2]
+    )
+    ax1 = plt.subplot(gs[0])  # intra 1, upper left
+    ax2 = plt.subplot(gs[1])  # inter, upper right
+    ax3 = plt.subplot(gs[2])  # inter, lower left
+    ax4 = plt.subplot(gs[3])  # intra 2, lower right
+
+    # intra 1, upper left
+    if not (intra1_ecs is None and d_intra_i is None and d_multimer_i is None):
+        new_kwargs = deepcopy(kwargs)
+        new_kwargs["boundaries"] = intra1_boundaries
+        plot_contact_map(
+            ax=ax1, symmetric=True,
+            ecs=intra1_ecs, monomer=d_intra_i,
+            multimer=d_multimer_i, **new_kwargs
+        )
+
+    # intra 2, lower right
+    if not (intra2_ecs is None and d_intra_j is None and d_multimer_j is None):
+        new_kwargs = deepcopy(kwargs)
+        new_kwargs["boundaries"] = intra2_boundaries
+        plot_contact_map(
+            ax=ax4, symmetric=True,
+            ecs=intra2_ecs, monomer=d_intra_j,
+            multimer=d_multimer_j, **new_kwargs
+        )
+
+    # inter, lower left
+    if not (inter_ecs is None and d_inter is None):
+        new_kwargs = deepcopy(kwargs)
+        new_kwargs["boundaries"] = inter_boundaries
+        plot_contact_map(
+            ax=ax3, symmetric=False,
+            ecs=inter_ecs, multimer=d_inter,
+            **new_kwargs
+        )
+
+        # inter, upper right
+        if inter_ecs is None:
+            inter_ecs_transposed = None
+        else:
+            inter_ecs_transposed = inter_ecs.rename(columns={"i": "j", "j": "i"})
+
+        if d_inter is None:
+            d_inter_T = None
+        else:
+            d_inter_T = d_inter.transpose()
+
+        new_kwargs = {
+            **kwargs,
+            "boundaries": list(reversed(inter_boundaries)),
+        }
+        plot_contact_map(
+            ax=ax2, symmetric=False,
+            ecs=inter_ecs_transposed,
+            multimer=d_inter_T, **new_kwargs
+        )
+
+
 def plot_pairs(pairs, symmetric=False, ax=None, style=None):
     """
     Plot list of pairs (ECs/contacts)
@@ -370,6 +561,7 @@ def plot_pairs(pairs, symmetric=False, ax=None, style=None):
     paths : list of PathCollection
         Scatter plot paths drawn by this function
     """
+
     if ax is None:
         ax = plt.gca()
 
@@ -535,7 +727,7 @@ def scale(style, ax=None):
 
     # dot size
     if "s" in style.keys():
-        style["s"] = style["s"]**2 / L
+        style["s"] = style["s"] ** 2 / L
 
     # secondary structure width
     if "width" in style.keys():
@@ -575,6 +767,7 @@ def plot_secondary_structure(secstruct_i, secstruct_j=None, ax=None, style=None,
         and secondary structure. If None, defaults
         to the width of secondary structure * 3.
     """
+
     def _extract_secstruct(secstruct, axis_range):
         # turn into dictionary representation if
         # passed as a DataFrame
@@ -735,6 +928,7 @@ def secondary_structure_cartoon(
     draw_coils : bool, optional (Default: True)
         If true, draw line for coil segments.
     """
+
     def _transform(x, y):
         """
         Transform raw drawing coordinates if
@@ -846,8 +1040,10 @@ def secondary_structure_cartoon(
 
             x = [start, end]
             y = [center, center]
-            ax.plot(*_transform(x, y), color=coil_color,
-                    ls="-", lw=line_width, clip_on=clipping)
+            ax.plot(
+                *_transform(x, y), color=coil_color,
+                ls="-", lw=line_width, clip_on=clipping
+            )
 
 
 def find_secondary_structure_segments(sse_string, offset=0):
@@ -923,8 +1119,15 @@ def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
         Use this column in ec_table to adjust radius
         of lines. If None, all lines will be drawn
         at equal radius.
-    chain : str, optional (default: None)
-        Use this PDB chain in residue selection
+    chain : str or dict(str -> str), optional (default: None)
+        PDB chain(s) that should be targeted by line drawing
+        - If None, residues will be selected
+          by position alone, which may cause wrong assignments
+          if multiple chains are present in the structure.
+        - Different chains can be assigned for each i and j,
+          if a dictionary that maps from segment (str) to PDB chain (str)
+          is given. In this case, columns "segment_i" and "segment_j"
+          must be present in the pairs dataframe.
     """
     t = ec_table.copy()
 
@@ -946,7 +1149,11 @@ def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
         t.loc[:, "color"] = "green"
 
     if chain is not None:
-        chain_sel = ", chain '{}'".format(chain)
+        if isinstance(chain, dict):
+            chain_sel = ", chain " + " or chain ".join([x for x in chain.values()])
+        else:
+            # otherwise just take the name of the chain as it is
+            chain_sel = ", chain '{}'".format(chain)
     else:
         chain_sel = ""
 

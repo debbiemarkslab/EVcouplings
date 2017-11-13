@@ -6,9 +6,9 @@ Authors:
   Thomas A. Hopf
 """
 
+import re
 from collections import namedtuple, OrderedDict, defaultdict
 from copy import deepcopy
-import re
 
 import numpy as np
 from numba import jit
