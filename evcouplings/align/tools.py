@@ -24,7 +24,7 @@ HmmbuildResult = namedtuple(
 
 
 def run_hmmbuild(alignment_file, prefix, cpu=None,
-                 stdout_redirect=None,
+                 stdout_redirect=None, symfrac=None,
                  binary="hmmbuild"):
     """
     Profile HMM construction from multiple sequence alignments
@@ -46,6 +46,12 @@ def run_hmmbuild(alignment_file, prefix, cpu=None,
     stdout_redirect : str, optional (default: None)
         Redirect bulky stdout instead of storing
         with rest of results (use "/dev/null" to dispose)
+    symfrac : float, optional (default: None)
+        range 0.0 - 1.0, HMMbuild will use columns with 
+        > symfrac perfect gaps to construct the HMM.
+        If None provided, HMMbuild internal default is 0.5.
+        (Note: this is calculated after their internal sequence
+        weighting is calculated)
     binary : str (default: "hmmbuild")
         Path to jackhmmer binary (put in PATH for
         default to work)
@@ -84,6 +90,9 @@ def run_hmmbuild(alignment_file, prefix, cpu=None,
     # number of CPUs
     if cpu is not None:
         cmd += ["--cpu", str(cpu)]
+
+    if symfrac is not None:
+        cmd += ["--symfrac", str(symfrac)]
 
     cmd += [result.hmmfile, alignment_file]
 

@@ -9,6 +9,8 @@ pdb_chain_uniprot.csv table available from SIFTS.
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (find_homologs)
+  Chan Kang (find_homologs)
 """
 
 from os import path
@@ -18,6 +20,7 @@ from copy import deepcopy
 
 import pandas as pd
 import requests
+import numpy as np
 
 from evcouplings.align.alignment import (
     Alignment, read_fasta, parse_header
@@ -127,6 +130,81 @@ def find_homologs(**kwargs):
     hits : pandas.DataFrame
         Tabular representation of hits
     """
+
+    def _make_hmmsearch_raw_fasta(ar):
+        """
+        The HMMsearch result does not contain the query sequence
+        so we must construct a raw_fasta file with the query 
+        sequence as the first hit, to ensure proper numbering. 
+        The search result is filtered to only contain the columns with
+        match states to the HMM, which has a one to one mapping to the
+        query sequence.
+        """
+        def _add_gaps_to_query(query_sequence_ali , ali):
+
+            new_sequence = ""
+            seq = list(query_sequence_ali .matrix[0,:])
+
+            # loop through every position in the HMMsearch hits
+            for i in range(0, len(ali.annotation["GC"]["RF"])):
+                # if that position should be a gap, add a gap
+                if i in gap_index:
+                    new_sequence += "-"
+                # if that position should be a letter, pop the next
+                # letter in the query sequence
+                else:
+                    new_sequence += seq.pop(0)
+
+            new_sequence_ali = Alignment.from_dict({
+                query_sequence_ali.ids[0]: new_sequence
+            })
+            return new_sequence_ali
+
+        # open the HMM search result
+        with open(ar["raw_alignment_file"]) as a:
+            ali = Alignment.from_file(a,format='stockholm')
+
+        # open the sequence file
+        with open(ar["target_sequence_file"]) as a:
+            query_sequence_ali = Alignment.from_file(a,format='fasta')
+
+        # make sure that the stockholm alignment contains the match annotation
+        if not ("GC" in ali.annotation and "RF" in ali.annotation["GC"]):
+            raise ValueError(
+                "Stockholm alignment {} missing RF"
+                " annotation of match states".format(ar["raw_alignment_file"])
+            )
+                
+        # get the index of columns that do not contain match states (indicated by an x)
+        gap_index = [i for i,x in enumerate(ali.annotation["GC"]["RF"]) if x != "x"]
+        # get the index of columns that contain match states (indicated by an x)
+        match_index = [i for i,x in enumerate(ali.annotation["GC"]["RF"]) if x == "x"]
+
+        # ensure that the length of the match states 
+        # match the length of the sequence
+        if len(match_index) != query_sequence_ali.L:
+            raise ValueError(
+                "HMMsearch result {} does not have a one-to-one"
+                " mapping to the query sequence columns".format(ar["raw_alignment_file"])
+            )
+
+        # add insertions to the query sequence in order to preserve correct
+        # numbering of match sequences
+        gapped_sequence_ali = _add_gaps_to_query(query_sequence_ali, ali)
+
+        # write a new alignment file with the query sequence as 
+        # the first entry
+        with open(config["prefix"] + "_raw.fasta", "w") as of:
+            gapped_sequence_ali.write(of)
+            ali.write(of)
+
+        # read in the new alignment
+        with open(config["prefix"] + "_raw.fasta") as a:
+            ali = Alignment.from_file(a,format='fasta')
+
+        return ali
+
+
     # load default configuration
     config = parse_config(JACKHMMER_CONFIG)
 
@@ -151,18 +229,20 @@ def find_homologs(**kwargs):
         updated_config = deepcopy(config)
         updated_config["alignment_file"] = config["raw_focus_alignment_file"]
         ar = hmmbuild_and_search(**updated_config)
+        ali = _make_hmmsearch_raw_fasta(ar)
+
 
     # run jackhmmer against sequence database
     else:
         ar = jackhmmer_search(**config)
 
-    with open(ar["raw_alignment_file"]) as a:
-        ali = Alignment.from_file(a, "stockholm")
+        with open(ar["raw_alignment_file"]) as a:
+            ali = Alignment.from_file(a, "stockholm")
 
-    # write alignment as FASTA file for easier checking by hand,
-    # if necessary
-    with open(config["prefix"] + "_raw.fasta", "w") as f:
-        ali.write(f)
+        # write alignment as FASTA file for easier checking by hand,
+        # if necessary
+        with open(config["prefix"] + "_raw.fasta", "w") as f:
+            ali.write(f)
 
     # read hmmer hittable and simplify
     hits = read_hmmer_domtbl(ar["hittable_file"])
@@ -176,6 +256,8 @@ def find_homologs(**kwargs):
             "domain_i_Evalue": "e_value",
             "ali_from": "alignment_start",
             "ali_to": "alignment_end",
+            "hmm_from": "hmm_start",
+            "hmm_to": "hmm_end",
         }
     )
 
