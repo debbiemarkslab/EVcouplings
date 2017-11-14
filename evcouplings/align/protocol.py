@@ -46,6 +46,7 @@ from evcouplings.align.ena import (
 # define the gap threshold for inclusion in HMM's build by HMMbuild. 
 SYMFRAC_HMMBUILD = 0.0
 
+
 def fetch_sequence(sequence_id, sequence_file,
                    sequence_download_url, out_file):
     """
@@ -1019,6 +1020,7 @@ def jackhmmer_search(**kwargs):
 
     return outcfg
 
+
 def hmmbuild_and_search(**kwargs):
     """
     Protocol:
@@ -1120,7 +1122,7 @@ def hmmbuild_and_search(**kwargs):
 
         # run the alignment from the hmm
         ali = at.run_hmmsearch(
-            hmmfile = hmmfile,
+            hmmfile=hmmfile,
             database=kwargs[kwargs["database"]],
             prefix=prefix,
             use_bitscores=kwargs["use_bitscores"],

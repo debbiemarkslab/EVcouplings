@@ -117,6 +117,7 @@ HmmsearchResult = namedtuple(
     ["prefix", "alignment", "output", "tblout", "domtblout"]
 )
 
+
 def run_hmmsearch(hmmfile, database, prefix,
                   use_bitscores, domain_threshold, seq_threshold,
                   nobias=False, cpu=None,
