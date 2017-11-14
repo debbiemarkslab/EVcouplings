@@ -140,10 +140,10 @@ def find_homologs(**kwargs):
         match states to the HMM, which has a one to one mapping to the
         query sequence.
         """
-        def _add_gaps_to_query(query_sequence_ali , ali):
+        def _add_gaps_to_query(query_sequence_ali, ali):
 
             new_sequence = ""
-            seq = list(query_sequence_ali .matrix[0,:])
+            seq = list(query_sequence_ali .matrix[0, :])
 
             # loop through every position in the HMMsearch hits
             for i in range(0, len(ali.annotation["GC"]["RF"])):
@@ -162,11 +162,11 @@ def find_homologs(**kwargs):
 
         # open the HMM search result
         with open(ar["raw_alignment_file"]) as a:
-            ali = Alignment.from_file(a,format='stockholm')
+            ali = Alignment.from_file(a, format='stockholm')
 
         # open the sequence file
         with open(ar["target_sequence_file"]) as a:
-            query_sequence_ali = Alignment.from_file(a,format='fasta')
+            query_sequence_ali = Alignment.from_file(a, format='fasta')
 
         # make sure that the stockholm alignment contains the match annotation
         if not ("GC" in ali.annotation and "RF" in ali.annotation["GC"]):
@@ -176,9 +176,9 @@ def find_homologs(**kwargs):
             )
                 
         # get the index of columns that do not contain match states (indicated by an x)
-        gap_index = [i for i,x in enumerate(ali.annotation["GC"]["RF"]) if x != "x"]
+        gap_index = [i for i, x in enumerate(ali.annotation["GC"]["RF"]) if x != "x"]
         # get the index of columns that contain match states (indicated by an x)
-        match_index = [i for i,x in enumerate(ali.annotation["GC"]["RF"]) if x == "x"]
+        match_index = [i for i, x in enumerate(ali.annotation["GC"]["RF"]) if x == "x"]
 
         # ensure that the length of the match states 
         # match the length of the sequence
@@ -200,10 +200,9 @@ def find_homologs(**kwargs):
 
         # read in the new alignment
         with open(config["prefix"] + "_raw.fasta") as a:
-            ali = Alignment.from_file(a,format='fasta')
+            ali = Alignment.from_file(a, format='fasta')
 
         return ali
-
 
     # load default configuration
     config = parse_config(JACKHMMER_CONFIG)
@@ -219,7 +218,7 @@ def find_homologs(**kwargs):
         config["prefix"] = path.join(tempdir(), "compare")
 
     check_required(
-        config,["prefix"]
+        config, ["prefix"]
     )
 
     # run hmmsearch (possibly preceded by hmmbuild)
@@ -230,7 +229,6 @@ def find_homologs(**kwargs):
         updated_config["alignment_file"] = config["raw_focus_alignment_file"]
         ar = hmmbuild_and_search(**updated_config)
         ali = _make_hmmsearch_raw_fasta(ar)
-
 
     # run jackhmmer against sequence database
     else:
