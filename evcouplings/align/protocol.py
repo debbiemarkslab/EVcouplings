@@ -40,6 +40,8 @@ from evcouplings.align.ena import (
     add_full_header
 )
 
+# define the gap threshold for inclusion in HMM's build by HMMbuild. 
+SYMFRAC_HMMBUILD = 0.0
 
 def fetch_sequence(sequence_id, sequence_file,
                    sequence_download_url, out_file):
@@ -1103,9 +1105,11 @@ def hmmbuild_and_search(**kwargs):
         )
 
         # create the hmm
+
         hmmbuild_result = at.run_hmmbuild(
             alignment_file=kwargs["alignment_file"],
             prefix=prefix,
+            symfrac=SYMFRAC_HMMBUILD,
             cpu=kwargs["cpu"],
             binary=kwargs["hmmbuild"],
         )
