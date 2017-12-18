@@ -665,7 +665,7 @@ def complex(**kwargs):
         # initialize output EC files
         "ec_compared_all_file": prefix + "_CouplingScoresCompared_all.csv",
         "ec_compared_longrange_file": prefix + "_CouplingScoresCompared_longrange.csv",
-        "ec_compared_inter_file": prefix + "_CouplingsScoresCompared_inter.csv",
+        "ec_compared_inter_file": prefix + "_CouplingScoresCompared_inter.csv",
 
         # initialize output inter distancemap files
         "distmap_inter": prefix + "_distmap_inter",
