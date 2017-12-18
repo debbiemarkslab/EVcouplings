@@ -114,7 +114,7 @@ def find_paralogs(target_id, annotation_data, identity_threshold):
     """
 
     # output of parse_header is (ID, region_start, region_end)
-    base_query_id,_,_ = parse_header(target_id)
+    base_query_id, _, _ = parse_header(target_id)
 
     # get all the rows that have an id that contains the
     # query id. This includes the focus sequence and its hit to
