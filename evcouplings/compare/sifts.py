@@ -29,6 +29,7 @@ from evcouplings.align.alignment import (
 from evcouplings.align.protocol import (
 	jackhmmer_search, hmmbuild_and_search, _make_hmmsearch_raw_fasta
 )
+
 from evcouplings.align.tools import read_hmmer_domtbl
 from evcouplings.compare.mapping import alignment_index_mapping, map_indices
 from evcouplings.utils.system import (
@@ -158,7 +159,6 @@ def find_homologs(**kwargs):
         updated_config["alignment_file"] = config["raw_focus_alignment_file"]
         ar = hmmbuild_and_search(**updated_config)
         ali = _make_hmmsearch_raw_fasta(ar, config["prefix"])
-        print(ali)
 
     # run jackhmmer against sequence database
     else:

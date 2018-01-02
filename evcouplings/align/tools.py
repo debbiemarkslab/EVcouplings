@@ -227,15 +227,6 @@ def run_hmmsearch(hmmfile, database, prefix,
 
     return_code, stdout, stderr = run(cmd)
 
-    # # also check we actually created some sort of alignment
-    # verify_resources(
-    #     "hmmsearch returned empty alignment: "
-    #     "stdout={} stderr={} file={}".format(
-    #         stdout, stderr, result.alignment
-    #     ),
-    #     result.alignment
-    # )
-
     return result
 
 

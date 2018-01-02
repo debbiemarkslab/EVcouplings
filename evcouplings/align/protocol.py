@@ -40,6 +40,9 @@ from evcouplings.align.ena import (
     add_full_header
 )
 
+# define the gap threshold for inclusion in HMM's build by HMMbuild. 
+SYMFRAC_HMMBUILD = 0.0
+
 
 def _make_hmmsearch_raw_fasta(ar, prefix):
     """
@@ -1137,6 +1140,7 @@ def hmmbuild_and_search(**kwargs):
         * focus_sequence
         * segments
     """
+
     def _format_alignment_for_hmmbuild(input_alignment_file, **kwargs):
              # this file is starting point of pipeline;
         # check if input alignment actually exists
