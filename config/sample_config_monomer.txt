@@ -246,6 +246,13 @@ compare:
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
 
+    # Set to false to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
+    # Set to true to search the PDB seqres database using an HMM built from
+    # the output monomer alignment (less stringent). 
+    # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
+    # The domain_threshold and sequence_threshold should be decreased to find distant homologs using HMMsearch.
+    search_pdb_by_alignment: False
+
 # Settings for Mutation effect predictions
 mutate:
     # Options: standard
@@ -371,9 +378,11 @@ databases:
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
-    jackhmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
+    jackhmmer: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
     plmc: /groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
-    hhfilter: /groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
-    psipred: /groups/marks/software/runpsipred
-    cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
-    maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    hmmbuild: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmbuild
+    hmmsearch: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmsearch
+    hhfilter: /n/groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
+    psipred: /n/groups/marks/software/runpsipred_o2
+    cns: /n/groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
+    maxcluster: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit

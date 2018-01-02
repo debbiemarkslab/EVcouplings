@@ -113,13 +113,14 @@ def find_paralogs(target_id, annotation_data, identity_threshold):
         Entries are paralogs found in the same genome as the query id
     """
 
-    base_query = parse_header(target_id)
+    # output of parse_header is (ID, region_start, region_end)
+    base_query_id, _, _ = parse_header(target_id)
 
     # get all the rows that have an id that contains the
     # query id. This includes the focus sequence and its hit to
     # itself in the database.
 
-    contains_annotation = [ True if base_query in x else False for x in annotation_data.id.str ]
+    contains_annotation = [ True if base_query_id in x else False for x in annotation_data.id]
     query_hits = annotation_data.loc[contains_annotation , :]
     # get the species annotation for the query sequence
     query_species = list(query_hits.species.dropna())
