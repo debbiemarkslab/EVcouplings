@@ -37,7 +37,11 @@ def run_hmmbuild(alignment_file, prefix, cpu=None,
     alignment_file : str
         File containing the multiple sequence alignment. Can be in 
         Stockholm, a2m, or clustal formats, or any other format 
-        recognized by hmmer. 
+        recognized by hmmer. Please note that ALL POSITIONS 
+        above the symfrac cutoff will be used in HMM 
+        construction (if the alignment contains columns that are 
+        insertions relative to the query sequence, this may be 
+        problematic for structure comparison)
     prefix : str
         Prefix path for output files. Folder structure in
         the prefix will be created if not existing.
@@ -223,14 +227,14 @@ def run_hmmsearch(hmmfile, database, prefix,
 
     return_code, stdout, stderr = run(cmd)
 
-    # also check we actually created some sort of alignment
-    verify_resources(
-        "hmmsearch returned empty alignment: "
-        "stdout={} stderr={} file={}".format(
-            stdout, stderr, result.alignment
-        ),
-        result.alignment
-    )
+    # # also check we actually created some sort of alignment
+    # verify_resources(
+    #     "hmmsearch returned empty alignment: "
+    #     "stdout={} stderr={} file={}".format(
+    #         stdout, stderr, result.alignment
+    #     ),
+    #     result.alignment
+    # )
 
     return result
 
