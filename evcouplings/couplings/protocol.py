@@ -4,6 +4,7 @@ Evolutionary couplings calculation protocols/workflows.
 Authors:
   Thomas A. Hopf
   Anna G. Green (complex couplings)
+  Benjamin Schubert
 """
 
 import string
@@ -294,59 +295,18 @@ def standard(**kwargs):
 
     # infer ECs and load them
     outcfg, ecs, segments = infer_plmc(**kwargs)
+    model = CouplingsModel(outcfg["model_file"])
 
     # following computations are mostly specific to monomer pipeline
-
-    # add mixture model probability
-    ecs = pairs.add_mixture_probability(ecs)
-
-    # write updated table to csv file
-    ecs.to_csv(outcfg["ec_file"], index=False)
-
-    # also store longrange ECs as convenience output
-    if kwargs["min_sequence_distance"] is not None:
-        outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
-        ecs_longrange = ecs.query(
-            "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
+    is_single_segment = segments is None or len(segments) == 1
+    outcfg = {
+        **outcfg,
+        **_postprocess_inference(
+            ecs, kwargs, model, outcfg, prefix,
+            generate_enrichment=is_single_segment,
+            generate_line_plot=is_single_segment
         )
-        ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
-
-        # also create line-drawing script (for now, only for single segments)
-        if segments is None or len(segments) == 1:
-            outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
-            L = outcfg["num_sites"]
-            ec_lines_pymol_script(
-                ecs_longrange.iloc[:L, :],
-                outcfg["ec_lines_pml_file"]
-            )
-
-    # compute EC enrichment (for now, for single segments
-    # only since enrichment code cannot handle multiple segments)
-    if segments is None or len(segments) == 1:
-        outcfg["enrichment_file"] = prefix + "_enrichment.csv"
-        ecs_enriched = pairs.enrichment(ecs)
-        ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
-
-        # create corresponding enrichment pymol scripts
-        outcfg["enrichment_pml_files"] = []
-        for sphere_view, pml_suffix in [
-            (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
-        ]:
-            pml_file = prefix + pml_suffix
-            enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
-            outcfg["enrichment_pml_files"].append(pml_file)
-
-    # output EVzoom JSON file if we have stored model file
-    if outcfg.get("model_file", None) is not None:
-        outcfg["evzoom_file"] = prefix + "_evzoom.json"
-        with open(outcfg["evzoom_file"], "w") as f:
-            # load parameters
-            c = CouplingsModel(outcfg["model_file"])
-
-            # create JSON output and write to file
-            f.write(
-                evzoom_json(c) + "\n"
-            )
+    }
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
@@ -444,6 +404,7 @@ def complex(**kwargs):
 
     # infer ECs and load them
     outcfg, ecs, segments = infer_plmc(**kwargs)
+    model = CouplingsModel(outcfg["model_file"])
 
     # following computations are mostly specific to complex pipeline
 
@@ -466,26 +427,7 @@ def complex(**kwargs):
             )
         )
 
-    # write updated table to csv file
-    ecs.to_csv(outcfg["ec_file"], index=False)
-
-    # also store longrange ECs as convenience output;
-    # note that unlike for monomers, we only should filter
-    # short-range ECs within each monomer, but not inter-ECs
-    if kwargs["min_sequence_distance"] is not None:
-        outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
-
-        ecs_longrange = ecs.query(
-            "segment_i != segment_j or abs(i - j) >= {}".format(
-                kwargs["min_sequence_distance"]
-            )
-        )
-        ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
-
     # also create line-drawing script (for multiple chains)
-    outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
-    L = outcfg["num_sites"]
-
     # by convention, we map first segment to chain A,
     # second to B, a.s.f.
     chain_mapping = dict(
@@ -495,11 +437,19 @@ def complex(**kwargs):
         )
     )
 
-    ec_lines_pymol_script(
-        ecs_longrange.iloc[:L, :],
-        outcfg["ec_lines_pml_file"],
-        chain=chain_mapping
-    )
+    outcfg = {
+        **outcfg,
+        **_postprocess_inference(
+            ecs, kwargs, model, outcfg, prefix,
+            generate_line_plot=True,
+            generate_enrichment=False,
+            ec_filter="segment_i != segment_j or abs(i - j) >= {}",
+            chain=chain_mapping
+        )
+    }
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
 
     # TODO: make the following complex-ready
     # EC enrichment:
@@ -517,21 +467,6 @@ def complex(**kwargs):
     # 2) note that this will currently use the default mixture model
     # selection for determining the EC cutoff, rather than the selection
     # used for the EC table above
-
-    # output EVzoom JSON file if we have stored model file
-    if outcfg.get("model_file", None) is not None:
-        outcfg["evzoom_file"] = prefix + "_evzoom.json"
-        with open(outcfg["evzoom_file"], "w") as f:
-            # load parameters
-            c = CouplingsModel(outcfg["model_file"])
-
-            # create JSON output and write to file
-            f.write(
-                evzoom_json(c) + "\n"
-            )
-
-    # dump output config to YAML file for debugging/logging
-    write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
 
     return outcfg
 
@@ -679,57 +614,121 @@ def mean_field(**kwargs):
         ascending=False
     )
 
+    is_single_segment = segments is None or len(segments) == 1
+    outcfg = {
+        **outcfg,
+        **_postprocess_inference(
+            ecs, kwargs, model, outcfg, prefix,
+            generate_enrichment=is_single_segment,
+            generate_line_plot=is_single_segment
+        )
+    }
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_meanfield.outcfg", outcfg)
+
+    return outcfg
+
+
+def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plot=False,
+                           generate_enrichment=False, ec_filter="abs(i - j) >= {}", chain=None):
+    """
+    Post-process inference result of all protocols
+
+    Parameters
+    ----------
+    ecs : pandas.DataFrame
+        EC table with additional column "probability"
+        containing confidence measure
+    kwargs arguments:
+        See list in protocols.
+    model : CouplingsModel
+        The couplings model with the inferred parameters
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        * raw_ec_file
+        * model_file
+        * num_sites
+        * num_sequences
+        * effective_sequences
+
+        * focus_mode (passed through)
+        * focus_sequence (passed through)
+        * segments (passed through)
+    prefix : str
+        file path prefix
+    generate_line_plot : bool
+        Determines whether a line plot pymol structure will be generated
+    generate_enrichment : bool
+        Determines whether an EC enrichment file and pymol structure will be generated
+    ec_filter : str
+        String determining the ec distance filter (default: "abs(i - j) >= {}")
+    chain : dict
+        Dictionary to map different segments to their chains
+
+    Returns
+    -------
+    ext_outcfg : dict
+        Optional output configuration of the pipeline, including
+        the following fields:
+
+        * ec_longrange_file
+        * ec_lines_oml_file
+        * enrichmnet_file
+        * enrichment_pml_files
+        * evzoom_file
+    """
+
+    ext_outcfg = {}
     # write the sorted ECs table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
 
     # also store longrange ECs as convenience output
     if kwargs["min_sequence_distance"] is not None:
-        outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
+        ext_outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
         ecs_longrange = ecs.query(
-            "abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
+            ec_filter.format(kwargs["min_sequence_distance"])
         )
-        ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
+        ecs_longrange.to_csv(ext_outcfg["ec_longrange_file"], index=False)
 
-        # also create line-drawing script (for now, only for single segments)
-        if segments is None or len(segments) == 1:
-            outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
+        if generate_line_plot:
+            ext_outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
             L = outcfg["num_sites"]
             ec_lines_pymol_script(
                 ecs_longrange.iloc[:L, :],
-                outcfg["ec_lines_pml_file"],
+                ext_outcfg["ec_lines_pml_file"],
+                chain=chain,
                 score_column="cn"  # "di
             )
 
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
-    if segments is None or len(segments) == 1:
-        outcfg["enrichment_file"] = prefix + "_enrichment.csv"
+    if generate_enrichment:
+        ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
         ecs_enriched = pairs.enrichment(ecs, score="cn")  # "di"
-        ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
+        ecs_enriched.to_csv(ext_outcfg["enrichment_file"], index=False)
 
         # create corresponding enrichment pymol scripts
-        outcfg["enrichment_pml_files"] = []
+        ext_outcfg["enrichment_pml_files"] = []
         for sphere_view, pml_suffix in [
             (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
         ]:
             pml_file = prefix + pml_suffix
             enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
-            outcfg["enrichment_pml_files"].append(pml_file)
+            ext_outcfg["enrichment_pml_files"].append(pml_file)
 
     # output EVzoom JSON file if we have stored model file
     if outcfg.get("model_file", None) is not None:
-        outcfg["evzoom_file"] = prefix + "_evzoom.json"
-        with open(outcfg["evzoom_file"], "w") as f:
+        ext_outcfg["evzoom_file"] = prefix + "_evzoom.json"
+        with open(ext_outcfg["evzoom_file"], "w") as f:
             # create JSON output and write to file
             f.write(
                 evzoom_json(model) + "\n"
             )
 
-    # dump output config to YAML file for debugging/logging
-    write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
-
-    return outcfg
-
+    return ext_outcfg
 
 # list of available EC inference protocols
 
