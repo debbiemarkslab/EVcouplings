@@ -299,9 +299,18 @@ def standard(**kwargs):
 
     # following computations are mostly specific to monomer pipeline
     is_single_segment = segments is None or len(segments) == 1
-    _postprocess_inference(ecs, kwargs, model, outcfg, prefix,
-                           generate_enrichment=is_single_segment,
-                           generate_line_plot=is_single_segment)
+    outcfg = {
+        **outcfg,
+        **_postprocess_inference(
+            ecs, kwargs, model, outcfg, prefix,
+            generate_enrichment=is_single_segment,
+            generate_line_plot=is_single_segment
+        )
+    }
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
+
     return outcfg
 
 
@@ -428,11 +437,19 @@ def complex(**kwargs):
         )
     )
 
-    _postprocess_inference(ecs, kwargs, model, outcfg, prefix,
-                           generate_line_plot=True,
-                           generate_enrichment=False,
-                           ec_filter="segment_i != segment_j or abs(i - j) >= {}",
-                           chain=chain_mapping)
+    outcfg = {
+        **outcfg,
+        **_postprocess_inference(
+            ecs, kwargs, model, outcfg, prefix,
+            generate_line_plot=True,
+            generate_enrichment=False,
+            ec_filter="segment_i != segment_j or abs(i - j) >= {}",
+            chain=chain_mapping
+        )
+    }
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
 
     # TODO: make the following complex-ready
     # EC enrichment:
@@ -598,9 +615,17 @@ def mean_field(**kwargs):
     )
 
     is_single_segment = segments is None or len(segments) == 1
-    _postprocess_inference(ecs, kwargs, model, outcfg, prefix,
-                           generate_enrichment=is_single_segment,
-                           generate_line_plot=is_single_segment)
+    outcfg = {
+        **outcfg,
+        **_postprocess_inference(
+            ecs, kwargs, model, outcfg, prefix,
+            generate_enrichment=is_single_segment,
+            generate_line_plot=is_single_segment
+        )
+    }
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_meanfield.outcfg", outcfg)
 
     return outcfg
 
@@ -645,37 +670,35 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
 
     Returns
     -------
-    outcfg : dict
-        Output configuration of the pipeline, including
+    ext_outcfg : dict
+        Optional output configuration of the pipeline, including
         the following fields:
 
-        * raw_ec_file
-        * model_file
-        * num_sites
-        * num_sequences
-        * effective_sequences
-
-        * focus_mode (passed through)
-        * focus_sequence (passed through)
-        * segments (passed through)
+        * ec_longrange_file
+        * ec_lines_oml_file
+        * enrichmnet_file
+        * enrichment_pml_files
+        * evzoom_file
     """
+
+    ext_outcfg = {}
     # write the sorted ECs table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
 
     # also store longrange ECs as convenience output
     if kwargs["min_sequence_distance"] is not None:
-        outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
+        ext_outcfg["ec_longrange_file"] = prefix + "_CouplingScores_longrange.csv"
         ecs_longrange = ecs.query(
             ec_filter.format(kwargs["min_sequence_distance"])
         )
-        ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
+        ecs_longrange.to_csv(ext_outcfg["ec_longrange_file"], index=False)
 
         if generate_line_plot:
-            outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
+            ext_outcfg["ec_lines_pml_file"] = prefix + "_draw_ec_lines.pml"
             L = outcfg["num_sites"]
             ec_lines_pymol_script(
                 ecs_longrange.iloc[:L, :],
-                outcfg["ec_lines_pml_file"],
+                ext_outcfg["ec_lines_pml_file"],
                 chain=chain,
                 score_column="cn"  # "di
             )
@@ -683,30 +706,29 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
     if generate_enrichment:
-        outcfg["enrichment_file"] = prefix + "_enrichment.csv"
+        ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
         ecs_enriched = pairs.enrichment(ecs, score="cn")  # "di"
-        ecs_enriched.to_csv(outcfg["enrichment_file"], index=False)
+        ecs_enriched.to_csv(ext_outcfg["enrichment_file"], index=False)
 
         # create corresponding enrichment pymol scripts
-        outcfg["enrichment_pml_files"] = []
+        ext_outcfg["enrichment_pml_files"] = []
         for sphere_view, pml_suffix in [
             (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
         ]:
             pml_file = prefix + pml_suffix
             enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
-            outcfg["enrichment_pml_files"].append(pml_file)
+            ext_outcfg["enrichment_pml_files"].append(pml_file)
 
     # output EVzoom JSON file if we have stored model file
     if outcfg.get("model_file", None) is not None:
-        outcfg["evzoom_file"] = prefix + "_evzoom.json"
-        with open(outcfg["evzoom_file"], "w") as f:
+        ext_outcfg["evzoom_file"] = prefix + "_evzoom.json"
+        with open(ext_outcfg["evzoom_file"], "w") as f:
             # create JSON output and write to file
             f.write(
                 evzoom_json(model) + "\n"
             )
 
-    # dump output config to YAML file for debugging/logging
-    write_config_file(prefix + ".couplings_standard.outcfg", outcfg)
+    return ext_outcfg
 
 # list of available EC inference protocols
 
