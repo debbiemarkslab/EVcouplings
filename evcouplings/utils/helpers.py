@@ -235,3 +235,13 @@ class Progressbar(object):
             sys.stdout.write('[%s] %s%s|%s/%s ...\r' % (bar, 100.0, '%', self.total_size, self.total_size))
             sys.stdout.flush()
             sys.stdout.write("\n")
+
+
+def calculate_memory_requirnoments(config):
+    """
+
+    Parameters
+    ----------
+        config : dict
+            A dictionary holding
+    """

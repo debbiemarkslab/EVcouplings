@@ -15,6 +15,7 @@ import re
 from copy import deepcopy
 from sys import executable
 from os import path
+from difflib import get_close_matches
 
 import click
 
@@ -392,6 +393,10 @@ def run(**kwargs):
 
     # verify that global prefix makes sense
     pipeline.verify_prefix(verify_subdir=False, **config)
+
+    if get_close_matches(config["environment"]["memory"].lower(), ["automatic"]):
+        config["environment"]["memory"] = calculate_memory_requironment(config)
+
 
     # for convenience, turn on N_eff computation if we run alignment,
     # but not the couplings stage
