@@ -4,6 +4,7 @@ Evolutionary couplings calculation protocols/workflows.
 Authors:
   Thomas A. Hopf
   Anna G. Green (complex couplings)
+  Benjamin Schubert
 """
 
 import string
