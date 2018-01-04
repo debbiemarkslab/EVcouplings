@@ -119,17 +119,17 @@ def write_concatenated_alignment(id_pairing, alignment_1, alignment_2,
         )
 
     # concatenate strings
-    sequences_full = OrderedDict({
-        header: np.concatenate([seq1, seq2]) for header, seq1, seq2 in sequences_to_write
-    })
+    sequences_full = OrderedDict([
+        (header, np.concatenate([seq1, seq2])) for header, seq1, seq2 in sequences_to_write
+    ])
 
-    sequences_monomer_1 = OrderedDict({
-        header: seq1 for header, seq1, seq2 in sequences_to_write
-    })
+    sequences_monomer_1 = OrderedDict([
+        (header, seq1) for header, seq1, seq2 in sequences_to_write
+    ])
 
-    sequences_monomer_2 = OrderedDict({
-        header: seq2 for header, seq1, seq2 in sequences_to_write
-    })
+    sequences_monomer_2 = OrderedDict([
+        (header, seq2) for header, seq1, seq2 in sequences_to_write
+    ])
 
     full_ali = Alignment.from_dict(sequences_full)
     monomer_ali_1 = Alignment.from_dict(sequences_monomer_1)
