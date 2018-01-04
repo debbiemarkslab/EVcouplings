@@ -478,5 +478,5 @@ tools:
     psipred: /groups/marks/software/runpsipred
     cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
     maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
-    uniprot_to_embl_table : /groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
-    ena_genome_location_table : /groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
+    uniprot_to_embl_table: /groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
+    ena_genome_location_table: /groups/marks/databases/complexes/ena/2017_02/cds_pro.txt

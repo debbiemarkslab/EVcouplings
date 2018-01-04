@@ -40,11 +40,8 @@ from evcouplings.align.ena import (
     add_full_header
 )
 
-# define the gap threshold for inclusion in HMM's build by HMMbuild. 
-SYMFRAC_HMMBUILD = 0.0
 
-
-def _make_hmmsearch_raw_fasta(ar, prefix):
+def _make_hmmsearch_raw_fasta(alignment_result, prefix):
     """
     HMMsearch results do not contain the query sequence
     so we must construct a raw_fasta file with the query 
@@ -55,44 +52,60 @@ def _make_hmmsearch_raw_fasta(ar, prefix):
 
     Paramters
     ---------
-    ar: dict
+    alignment_result : dict
         Alignment result dictionary, output by run_hmmsearch
-    prefix: str
+    prefix : str
         Prefix for file creation
 
     Returns
     -------
-    ali: EVcouplings.align.Alignment
+    evcouplings.align.Alignment
         Alignment object
 
     """
     def _add_gaps_to_query(query_sequence_ali, ali):
 
-        new_sequence = ""
-        seq = list(query_sequence_ali .matrix[0, :])
+         # get the index of columns that do not contain match states (indicated by an x)
+        gap_index = [
+            i for i, x in enumerate(ali.annotation["GC"]["RF"]) if x != "x"
+        ]
+        # get the index of columns that contain match states (indicated by an x)
+        match_index = [
+            i for i, x in enumerate(ali.annotation["GC"]["RF"]) if x == "x"
+        ]
+
+        # ensure that the length of the match states 
+        # match the length of the sequence
+        if len(match_index) != query_sequence_ali.L:
+            raise ValueError(
+                "HMMsearch result {} does not have a one-to-one"
+                " mapping to the query sequence columns".format(ar["raw_alignment_file"])
+            )
+
+        gapped_query_sequence = ""
+        seq = list(query_sequence_ali.matrix[0, :])
 
         # loop through every position in the HMMsearch hits
-        for i in range(0, len(ali.annotation["GC"]["RF"])):
+        for i in range(len(ali.annotation["GC"]["RF"])):
             # if that position should be a gap, add a gap
             if i in gap_index:
-                new_sequence += "-"
+                gapped_query_sequence += "-"
             # if that position should be a letter, pop the next
             # letter in the query sequence
             else:
-                new_sequence += seq.pop(0)
+                gapped_query_sequence += seq.pop(0)
 
         new_sequence_ali = Alignment.from_dict({
-            query_sequence_ali.ids[0]: new_sequence
+            query_sequence_ali.ids[0]: gapped_query_sequence
         })
         return new_sequence_ali
 
     # open the sequence file
     with open(ar["target_sequence_file"]) as a:
-        query_sequence_ali = Alignment.from_file(a, format='fasta')
+        query_sequence_ali = Alignment.from_file(a, format="fasta")
 
     # if the provided alignment is empty, just return the target sequence 
-    if not valid_file(ar["raw_alignment_file"]):
-
+    if not valid_file(alignment_result["raw_alignment_file"]):
         # write the query sequence to a fasta file
         with open(prefix + "_raw.fasta", "w") as of:
             query_sequence_ali.write(of)
@@ -101,8 +114,8 @@ def _make_hmmsearch_raw_fasta(ar, prefix):
         return query_sequence_ali
 
     # else, open the HMM search result
-    with open(ar["raw_alignment_file"]) as a:
-        ali = Alignment.from_file(a, format='stockholm')
+    with open(alignment_result["raw_alignment_file"]) as a:
+        ali = Alignment.from_file(a, format="stockholm")
 
     # make sure that the stockholm alignment contains the match annotation
     if not ("GC" in ali.annotation and "RF" in ali.annotation["GC"]):
@@ -111,19 +124,6 @@ def _make_hmmsearch_raw_fasta(ar, prefix):
             " annotation of match states".format(ar["raw_alignment_file"])
         )
             
-    # get the index of columns that do not contain match states (indicated by an x)
-    gap_index = [i for i, x in enumerate(ali.annotation["GC"]["RF"]) if x != "x"]
-    # get the index of columns that contain match states (indicated by an x)
-    match_index = [i for i, x in enumerate(ali.annotation["GC"]["RF"]) if x == "x"]
-
-    # ensure that the length of the match states 
-    # match the length of the sequence
-    if len(match_index) != query_sequence_ali.L:
-        raise ValueError(
-            "HMMsearch result {} does not have a one-to-one"
-            " mapping to the query sequence columns".format(ar["raw_alignment_file"])
-        )
-
     # add insertions to the query sequence in order to preserve correct
     # numbering of match sequences
     gapped_sequence_ali = _add_gaps_to_query(query_sequence_ali, ali)
@@ -136,7 +136,7 @@ def _make_hmmsearch_raw_fasta(ar, prefix):
 
     # read in the new alignment
     with open(prefix + "_raw.fasta") as a:
-        ali = Alignment.from_file(a, format='fasta')
+        ali = Alignment.from_file(a, format="fasta")
 
     return ali
 
@@ -1119,7 +1119,8 @@ def hmmbuild_and_search(**kwargs):
     """
     Protocol:
 
-    hmmbuild and hmmsearch against a sequence database.
+    Build HMM from sequence alignment using hmmbuild and 
+    search against a sequence database using hmmsearch.
     
     Parameters
     ----------
@@ -1142,7 +1143,7 @@ def hmmbuild_and_search(**kwargs):
     """
 
     def _format_alignment_for_hmmbuild(input_alignment_file, **kwargs):
-             # this file is starting point of pipeline;
+        # this file is starting point of pipeline;
         # check if input alignment actually exists
 
         verify_resources(
@@ -1245,7 +1246,7 @@ def hmmbuild_and_search(**kwargs):
             focus_ali = focus_ali.select(sequences=indices)
 
         # write the raw focus alignment for hmmbuild
-        focus_fasta_file = prefix + '_raw_focus_input.fasta'
+        focus_fasta_file = prefix + "_raw_focus_input.fasta"
         with open(focus_fasta_file, "w") as f:
             focus_ali.write(f, "fasta")
 
@@ -1261,9 +1262,8 @@ def hmmbuild_and_search(**kwargs):
         [
             "prefix", "sequence_id", "alignment_file",
             "use_bitscores", "domain_threshold", "sequence_threshold",
-            "database", "iterations", "cpu", "nobias", "reuse_alignment",
-            "checkpoints_hmm", "checkpoints_ali", "hmmbuild",
-            "hmmsearch", "extract_annotation"
+            "database", "cpu", "nobias", "reuse_alignment",
+            "hmmbuild", "hmmsearch"
         ]
     )
     prefix = kwargs["prefix"]
@@ -1273,9 +1273,9 @@ def hmmbuild_and_search(**kwargs):
 
     # prepare input alignment for hmmbuild
     focus_fasta_file, target_sequence_file, region_start, region_end = \
-    _format_alignment_for_hmmbuild(
-        kwargs["alignment_file"], **kwargs
-    )
+        _format_alignment_for_hmmbuild(
+            kwargs["alignment_file"], **kwargs
+        )
 
     # run hmmbuild_and_search... allow to reuse pre-exisiting
     # Stockholm alignment file here
@@ -1294,7 +1294,7 @@ def hmmbuild_and_search(**kwargs):
         )
     else:
         # otherwise, we have to run the alignment
-        # modify search thresholds to be suitable for jackhmmer
+        # modify search thresholds to be suitable for hmmsearch
         sequence_length = region_end - region_start + 1 
         seq_threshold, domain_threshold = search_thresholds(
             kwargs["use_bitscores"],
@@ -1304,7 +1304,6 @@ def hmmbuild_and_search(**kwargs):
         )
 
         # create the hmm
-
         hmmbuild_result = at.run_hmmbuild(
             alignment_file=focus_fasta_file,
             prefix=prefix,
@@ -1344,12 +1343,15 @@ def hmmbuild_and_search(**kwargs):
 
     # prepare output dictionary with result files
     outcfg = {
+        "sequence_file": target_sequence_file,
+        "first_index": region_start,
         "input_raw_focus_alignment": focus_fasta_file,
         "target_sequence_file": target_sequence_file,
         "focus_mode": True,
         "raw_alignment_file": ali["alignment"],
         "hittable_file": ali["domtblout"],
     }
+
     # define a single protein segment based on target sequence
     outcfg["segments"] = [
         Segment(

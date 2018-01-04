@@ -3,8 +3,8 @@ Wrappers for running external sequence alignment tools
 
 Authors:
   Thomas A. Hopf
-  Chan Kang - run_hmmbuild, run_hmmsearch
   Anna G. Green - run_hmmbuild, run_hmmsearch
+  Chan Kang - run_hmmbuild, run_hmmsearch
 """
 
 from collections import namedtuple
@@ -52,7 +52,7 @@ def run_hmmbuild(alignment_file, prefix, cpu=None,
         with rest of results (use "/dev/null" to dispose)
     symfrac : float, optional (default: None)
         range 0.0 - 1.0, HMMbuild will use columns with 
-        > symfrac perfect gaps to construct the HMM.
+        > symfrac percent gaps to construct the HMM.
         If None provided, HMMbuild internal default is 0.5.
         (Note: this is calculated after their internal sequence
         weighting is calculated)
