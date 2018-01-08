@@ -199,7 +199,6 @@ class Progressbar(object):
         self.current_size = 0
         self.bar_length = bar_length
 
-
     def __iadd__(self, chunk):
         """
         Convenience function of self.update

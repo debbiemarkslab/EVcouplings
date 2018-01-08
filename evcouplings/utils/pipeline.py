@@ -2,7 +2,7 @@
 Pipelining of different stages of method
 
 Authors:
-  Thomas A. Hopf
+  Thomas A. Hopf, Benjamin Schubert
 """
 
 # chose backend for command-line usage
@@ -36,6 +36,10 @@ import evcouplings.compare.protocol as cm
 import evcouplings.mutate.protocol as mt
 import evcouplings.fold.protocol as fd
 import evcouplings.complex.protocol as pp
+
+
+from evcouplings.align import detect_format, InvalidParameterError, Alignment
+from evcouplings.utils import get
 
 # supported pipelines
 #
@@ -470,6 +474,89 @@ def execute_wrapped(**config):
 
         # raise exception again after we updated status
         raise
+
+
+def calculate_memory_requirements(config):
+    """
+
+    Calculates the memory requirements in MB based on the pipeline configuration
+
+    memory_in_MB = (1/2 * q^2 * (L - 1) * L  + q * L) / 12500
+
+    with:
+        - q: states of Potts model
+        - L: Sequence length
+
+
+    Parameters
+    ----------
+    config : dict
+        A dictionary holding the pipeline configurations
+
+    Returns
+    -------
+    int
+        RAM requirements in MB
+
+    Raises
+    ------
+    ResourceError
+    """
+
+    # gather alignment stages (monomer has only one, complex has 2)
+    stages = filter(lambda x: "align" in x, config["stages"])
+    L = 0
+
+    # extract state information
+    # if alphabet is not explicitly defined assume amino acid alphabet + gap
+    q = len(config["couplings"]["alphabet"]) if config["couplings"]["alphabet"] else 21
+    if config["couplings"]["ignore_gaps"]:
+        q -= 1
+
+    # iterate through alignment stages to determine input sequence length
+    global_cfg = config["global"]
+    for stage in stages:
+        incfg = {
+            **config[stage],
+            **global_cfg
+        }
+
+        # three cases have to be considered
+        # 1) The range is specified and we can immediately calculate the input length
+        # 2) An alignment file is specified; so we have to read in the first sequence to extract the length
+        # 3) An identifier is specified; so we have to download the sequence
+        if incfg["region"]:
+            L += incfg["region"][1] - incfg["region"][0]
+
+        elif incfg["sequence_file"]:
+            # first try to autodetect format of alignment
+            with open(incfg["sequence_file"]) as f:
+                format = detect_format(f)
+                if format is None:
+                    raise InvalidParameterError(
+                        "Format of input alignment {} could not be "
+                        "automatically detected.".format(
+                            incfg["sequence_file"]
+                        )
+                    )
+
+            # read alignment to get length
+            # alignment might still be in non-focus mode
+            # we just ignore that for now. We do not need an exact calculation of the RAM requirements, an upper limit
+            # is also just fine.
+            with open(incfg["sequence_file"]) as f:
+                ali_raw = Alignment.from_file(f, format)
+            # TODO: should gaps be removed before calculating length?
+            L += ali_raw.L
+
+        else:
+            # get sequence from uniprot in fasta format
+            r = get(config["databases"]["sequence_download_url"].format(incfg["sequence_id"]), None, True)
+            # split fasta on on line break and generate sequence
+            seq = "".join(r.text.split("\n")[1:])
+            L += len(seq)
+
+    return (0.5 * q**2 * (L - 1) * L + q * L) / 12500
 
 
 def run(**kwargs):
