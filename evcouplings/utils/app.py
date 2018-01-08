@@ -22,6 +22,7 @@ import click
 from evcouplings import utils
 from evcouplings.utils import pipeline, database
 from evcouplings.utils import summarize
+from evcouplings.utils.pipeline import calculate_memory_requirements
 
 from evcouplings.utils.system import (
     create_prefix_folders, ResourceError, valid_file
@@ -395,8 +396,7 @@ def run(**kwargs):
     pipeline.verify_prefix(verify_subdir=False, **config)
 
     if get_close_matches(config["environment"]["memory"].lower(), ["automatic"]):
-        config["environment"]["memory"] = calculate_memory_requironment(config)
-
+        config["environment"]["memory"] = calculate_memory_requirements(config)
 
     # for convenience, turn on N_eff computation if we run alignment,
     # but not the couplings stage

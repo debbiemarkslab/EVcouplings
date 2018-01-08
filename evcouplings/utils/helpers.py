@@ -199,7 +199,6 @@ class Progressbar(object):
         self.current_size = 0
         self.bar_length = bar_length
 
-
     def __iadd__(self, chunk):
         """
         Convenience function of self.update
@@ -235,13 +234,3 @@ class Progressbar(object):
             sys.stdout.write('[%s] %s%s|%s/%s ...\r' % (bar, 100.0, '%', self.total_size, self.total_size))
             sys.stdout.flush()
             sys.stdout.write("\n")
-
-
-def calculate_memory_requirnoments(config):
-    """
-
-    Parameters
-    ----------
-        config : dict
-            A dictionary holding
-    """
