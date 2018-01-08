@@ -20,7 +20,7 @@ class TestAutomaticMemoryRequirements(TestCase):
         Test the range calculation
         """
         cfg = deepcopy(self.config_mono)
-        cfg["global"]["range"] = (0, 10)
+        cfg["global"]["region"] = (0, 10)
         cfg["couplings"]["ignore_gaps"] = False
 
         calc_mem = calculate_memory_requirements(cfg)
@@ -33,7 +33,7 @@ class TestAutomaticMemoryRequirements(TestCase):
         """
 
         cfg = deepcopy(self.config_mono)
-        cfg["global"]["range"] = (0, 10)
+        cfg["global"]["region"] = (0, 10)
         cfg["couplings"]["alphabet"] = "-ABC"
         cfg["couplings"]["ignore_gaps"] = False
 

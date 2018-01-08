@@ -481,7 +481,7 @@ def calculate_memory_requirements(config):
 
     Calculates the memory requirements in MB based on the pipeline configuration
 
-    memory_in_GB = (1/2 * q^2 * (L - 1) * L  + q * L) / 12500
+    memory_in_MB = (1/2 * q^2 * (L - 1) * L  + q * L) / 12500
 
     with:
         - q: states of Potts model
@@ -525,8 +525,8 @@ def calculate_memory_requirements(config):
         # 1) The range is specified and we can immediately calculate the input length
         # 2) An alignment file is specified; so we have to read in the first sequence to extract the length
         # 3) An identifier is specified; so we have to download the sequence
-        if "range" in incfg:
-            L += incfg["range"][1] - incfg["range"][0]
+        if incfg["region"]:
+            L += incfg["region"][1] - incfg["region"][0]
 
         elif incfg["sequence_file"]:
             # first try to autodetect format of alignment
@@ -546,6 +546,7 @@ def calculate_memory_requirements(config):
             # is also just fine.
             with open(incfg["sequence_file"]) as f:
                 ali_raw = Alignment.from_file(f, format)
+            # TODO: should gaps be removed before calculating length?
             L += ali_raw.L
 
         else:
