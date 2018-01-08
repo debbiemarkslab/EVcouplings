@@ -78,5 +78,73 @@ class TestAutomaticMemoryRequirements(TestCase):
         calc_mem = calculate_memory_requirements(cfg)
         self.assertAlmostEqual(calc_mem, 454.5424)
 
+    def test_complex_range(self):
+        """
+        Test the range calculation
+        """
+        cfg = deepcopy(self.config_complex)
+        cfg["align_1"]["region"] = (0, 5)
+        cfg["align_2"]["region"] = (0, 5)
+        cfg["couplings"]["ignore_gaps"] = False
+
+        calc_mem = calculate_memory_requirements(cfg)
+        self.assertAlmostEqual(calc_mem, 1.6044)
+
+    def test_complex_custom_alphabet(self):
+        """
+        tests the custom alphabet calculation
+        and gap-ignore function
+        """
+
+        cfg = deepcopy(self.config_complex)
+        cfg["align_1"]["region"] = (0, 5)
+        cfg["align_2"]["region"] = (0, 5)
+        cfg["couplings"]["alphabet"] = "-ABC"
+        cfg["couplings"]["ignore_gaps"] = False
+
+        calc_mem = calculate_memory_requirements(cfg)
+        self.assertAlmostEqual(calc_mem, 0.0608)
+
+        # gap-ignore enabled
+        cfg["couplings"]["ignore_gaps"] = True
+        calc_mem = calculate_memory_requirements(cfg)
+        self.assertAlmostEqual(calc_mem, 0.0348)
+
+    def test_complex_id(self):
+        """
+        tests automatic sequence retrieval memory calculation
+        """
+
+        cfg = deepcopy(self.config_complex)
+        cfg["align_1"]["sequence_id"] = "A0A1L5JMI0_PROVU"
+        cfg["align_2"]["sequence_id"] = "A0A1L5JMI0_PROVU"
+
+        calc_mem = calculate_memory_requirements(cfg)
+        self.assertAlmostEqual(calc_mem, 1801.4976)
+
+    def test_complex_fasta(self):
+        """
+        tests fasta-based  memory calculation
+        """
+
+        cfg = deepcopy(self.config_complex)
+        cfg["align_1"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8_raw_focus.fasta"
+        cfg["align_2"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8_raw_focus.fasta"
+
+        calc_mem = calculate_memory_requirements(cfg)
+        self.assertAlmostEqual(calc_mem, 504.3808)
+
+    def test_complex_stockholm(self):
+        """
+        tests stockholm-based memory calculation
+        """
+
+        cfg = deepcopy(self.config_complex)
+        cfg["align_1"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8.sto"
+        cfg["align_2"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8.sto"
+
+        calc_mem = calculate_memory_requirements(cfg)
+        self.assertAlmostEqual(calc_mem, 1823.0368)
+
 if __name__ == '__main__':
     unittest.main()
