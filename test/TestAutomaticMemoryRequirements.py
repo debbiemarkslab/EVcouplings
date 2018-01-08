@@ -10,11 +10,11 @@ from evcouplings.utils.pipeline import calculate_memory_requirements
 class TestAutomaticMemoryRequirements(TestCase):
     def setUp(self):
         # Test files have to be included into the python package during installation
-        basepath = os.path.dirname(__file__)
+        self.basepath = os.path.dirname(__file__)
 
         config_file_mono = os.path.abspath(
             os.path.join(
-                basepath,
+                self.basepath,
                 "..",
                 "config",
                 "sample_config_monomer.txt"
@@ -24,7 +24,7 @@ class TestAutomaticMemoryRequirements(TestCase):
 
         config_file_complex = os.path.abspath(
             os.path.join(
-                basepath,
+                self.basepath,
                 "..",
                 "config",
                 "sample_config_complex.txt"
@@ -79,7 +79,15 @@ class TestAutomaticMemoryRequirements(TestCase):
         """
 
         cfg = deepcopy(self.config_mono)
-        cfg["global"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8_raw_focus.fasta"
+        cfg["global"]["sequence_file"] = os.path.abspath(
+            os.path.join(
+                self.basepath,
+                "data",
+                "RS12_ECOLI_1-89",
+                "align",
+                "RS15_ECOLI_1-89_b0.8_raw_focus.fasta"
+            )
+        )
 
         calc_mem = calculate_memory_requirements(cfg)
         self.assertAlmostEqual(calc_mem, 125.4544)
@@ -90,7 +98,15 @@ class TestAutomaticMemoryRequirements(TestCase):
         """
 
         cfg = deepcopy(self.config_mono)
-        cfg["global"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8.sto"
+        cfg["global"]["sequence_file"] = os.path.abspath(
+            os.path.join(
+                self.basepath,
+                "data",
+                "RS12_ECOLI_1-89",
+                "align",
+                "RS15_ECOLI_1-89_b0.8.sto"
+            )
+        )
 
         calc_mem = calculate_memory_requirements(cfg)
         self.assertAlmostEqual(calc_mem, 454.5424)
@@ -145,8 +161,24 @@ class TestAutomaticMemoryRequirements(TestCase):
         """
 
         cfg = deepcopy(self.config_complex)
-        cfg["align_1"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8_raw_focus.fasta"
-        cfg["align_2"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8_raw_focus.fasta"
+        cfg["align_1"]["sequence_file"] = os.path.abspath(
+            os.path.join(
+                self.basepath,
+                "data",
+                "RS12_ECOLI_1-89",
+                "align",
+                "RS15_ECOLI_1-89_b0.8_raw_focus.fasta"
+            )
+        )
+        cfg["align_2"]["sequence_file"] = os.path.abspath(
+            os.path.join(
+                self.basepath,
+                "data",
+                "RS12_ECOLI_1-89",
+                "align",
+                "RS15_ECOLI_1-89_b0.8_raw_focus.fasta"
+            )
+        )
 
         calc_mem = calculate_memory_requirements(cfg)
         self.assertAlmostEqual(calc_mem, 504.3808)
@@ -157,8 +189,24 @@ class TestAutomaticMemoryRequirements(TestCase):
         """
 
         cfg = deepcopy(self.config_complex)
-        cfg["align_1"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8.sto"
-        cfg["align_2"]["sequence_file"] = "data/RS12_ECOLI_1-89/align/RS15_ECOLI_1-89_b0.8.sto"
+        cfg["align_1"]["sequence_file"] = os.path.abspath(
+            os.path.join(
+                self.basepath,
+                "data",
+                "RS12_ECOLI_1-89",
+                "align",
+                "RS15_ECOLI_1-89_b0.8.sto"
+            )
+        )
+        cfg["align_2"]["sequence_file"] = os.path.abspath(
+            os.path.join(
+                self.basepath,
+                "data",
+                "RS12_ECOLI_1-89",
+                "align",
+                "RS15_ECOLI_1-89_b0.8.sto"
+            )
+        )
 
         calc_mem = calculate_memory_requirements(cfg)
         self.assertAlmostEqual(calc_mem, 1823.0368)
