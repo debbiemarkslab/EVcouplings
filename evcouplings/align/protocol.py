@@ -59,8 +59,8 @@ def _make_hmmsearch_raw_fasta(alignment_result, prefix):
 
     Returns
     -------
-    evcouplings.align.Alignment
-        Alignment object
+    str
+        path to raw focus alignment file
 
     """
     def _add_gaps_to_query(query_sequence_ali, ali):
@@ -101,17 +101,18 @@ def _make_hmmsearch_raw_fasta(alignment_result, prefix):
         return new_sequence_ali
 
     # open the sequence file
-    with open(ar["target_sequence_file"]) as a:
+    with open(alignment_result["target_sequence_file"]) as a:
         query_sequence_ali = Alignment.from_file(a, format="fasta")
 
     # if the provided alignment is empty, just return the target sequence 
+    raw_focus_alignment_file = prefix + "_raw.fasta"
     if not valid_file(alignment_result["raw_alignment_file"]):
         # write the query sequence to a fasta file
-        with open(prefix + "_raw.fasta", "w") as of:
+        with open(raw_focus_alignment_file, "w") as of:
             query_sequence_ali.write(of)
 
         # return as an alignment object
-        return query_sequence_ali
+        return raw_focus_alignment_file
 
     # else, open the HMM search result
     with open(alignment_result["raw_alignment_file"]) as a:
@@ -121,7 +122,7 @@ def _make_hmmsearch_raw_fasta(alignment_result, prefix):
     if not ("GC" in ali.annotation and "RF" in ali.annotation["GC"]):
         raise ValueError(
             "Stockholm alignment {} missing RF"
-            " annotation of match states".format(ar["raw_alignment_file"])
+            " annotation of match states".format(alignment_result["raw_alignment_file"])
         )
             
     # add insertions to the query sequence in order to preserve correct
@@ -130,15 +131,12 @@ def _make_hmmsearch_raw_fasta(alignment_result, prefix):
 
     # write a new alignment file with the query sequence as 
     # the first entry
-    with open(prefix + "_raw.fasta", "w") as of:
+    
+    with open(raw_focus_alignment_file, "w") as of:
         gapped_sequence_ali.write(of)
         ali.write(of)
 
-    # read in the new alignment
-    with open(prefix + "_raw.fasta") as a:
-        ali = Alignment.from_file(a, format="fasta")
-
-    return ali
+    return raw_focus_alignment_file
 
 
 def fetch_sequence(sequence_id, sequence_file,
@@ -1351,6 +1349,12 @@ def hmmbuild_and_search(**kwargs):
         "raw_alignment_file": ali["alignment"],
         "hittable_file": ali["domtblout"],
     }
+
+
+    # convert the raw output alignment to fasta format 
+    # and add the appropriate query sequecne
+    raw_focus_alignment_file = _make_hmmsearch_raw_fasta(outcfg, prefix)
+    outcfg["raw_focus_alignment_file"] =  raw_focus_alignment_file
 
     # define a single protein segment based on target sequence
     outcfg["segments"] = [

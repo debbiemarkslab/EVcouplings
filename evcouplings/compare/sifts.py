@@ -158,7 +158,11 @@ def find_homologs(**kwargs):
         updated_config = deepcopy(config)
         updated_config["alignment_file"] = config["raw_focus_alignment_file"]
         ar = hmmbuild_and_search(**updated_config)
-        ali = _make_hmmsearch_raw_fasta(ar, config["prefix"])
+
+        # For hmmbuild and search, we have to read the raw focus alignment file
+        # to guarantee that the query sequence is present
+        with open(ar["raw_focus_alignment_file"]) as a:
+            ali = Alignment.from_file(a, "fasta")
 
     # run jackhmmer against sequence database
     else:
