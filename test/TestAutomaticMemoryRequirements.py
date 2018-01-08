@@ -1,4 +1,5 @@
 import pkg_resources
+import os
 import unittest
 from unittest import TestCase
 from copy import deepcopy
@@ -9,10 +10,26 @@ from evcouplings.utils.pipeline import calculate_memory_requirements
 class TestAutomaticMemoryRequirements(TestCase):
     def setUp(self):
         # Test files have to be included into the python package during installation
-        config_file_mono = "../config/sample_config_monomer.txt"
+        basepath = os.path.dirname(__file__)
+
+        config_file_mono = os.path.abspath(
+            os.path.join(
+                basepath,
+                "..",
+                "config",
+                "sample_config_monomer.txt"
+            )
+        )
         self.config_mono = read_config_file(config_file_mono, preserve_order=True)
 
-        config_file_complex = "../config/sample_config_complex.txt"
+        config_file_complex = os.path.abspath(
+            os.path.join(
+                basepath,
+                "..",
+                "config",
+                "sample_config_complex.txt"
+            )
+        )
         self.config_complex = read_config_file(config_file_complex, preserve_order=True)
 
     def test_mono_range(self):
