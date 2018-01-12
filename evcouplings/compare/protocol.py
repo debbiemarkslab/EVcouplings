@@ -20,7 +20,7 @@ from evcouplings.utils.config import (
 )
 
 from evcouplings.utils.system import (
-    create_prefix_folders, insert_dir, verify_resources,
+    create_prefix_folders, insert_dir, verify_resources, valid_file
 )
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
@@ -982,6 +982,9 @@ def complex(**kwargs):
 
     # create an inter-ecs file with extra information for calibration purposes
     def _calibration_file(prefix, ec_file):
+
+        if not valid_file(ec_file):
+            return None
 
         ecs = pd.read_csv(ec_file)
 
