@@ -152,8 +152,8 @@ def find_homologs(**kwargs):
     )
 
     # run hmmsearch (possibly preceded by hmmbuild)
-    if kwargs["search_pdb_by_alignment"]:
-
+    if kwargs["pdb_alignment_method"] == "hmmsearch":
+        print('running hmmsearch')
         # set up config to run hmmbuild_and_search on the unfiltered alignment file
         updated_config = deepcopy(config)
         updated_config["alignment_file"] = config["raw_focus_alignment_file"]
@@ -165,6 +165,8 @@ def find_homologs(**kwargs):
             ali = Alignment.from_file(a, "fasta")
 
     # run jackhmmer against sequence database
+    # at this point we have already checked to ensure
+    # that the input is either jackhmmer or hmmsearch
     else:
         ar = jackhmmer_search(**config)
 
