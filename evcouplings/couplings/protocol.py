@@ -447,6 +447,14 @@ def complex(**kwargs):
             chain=chain_mapping
         )
     }
+    
+    # save just the inter protein ECs
+    ## TODO: eventually have this accomplished by _postprocess_inference
+    ## right now avoiding a second call with a different ec_filter
+    ecs = pd.read_csv(outcfg["ec_file"])
+    outcfg["inter_ec_file"] = prefix + "_CouplingScores_inter.csv"
+    inter_ecs = ecs.query("segment_i != segment_j")
+    inter_ecs.to_csv(outcfg["inter_ec_file"], index=False)
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
