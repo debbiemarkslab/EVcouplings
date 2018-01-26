@@ -333,7 +333,7 @@ def matrix_base_bokeh(matrix, positions, substitutions,
         )
     )
 
-    TOOLS = "resize,hover"
+    TOOLS = "hover"
     height_factor = 12
     width_factor = 10
 
