@@ -11,7 +11,7 @@ If you are simply interested in using EVcouplings as a library, installing the P
 
 #### Requirements
 
-EVcouplings requires a Python >= 3.5 installation. Since it depends on some packages from the scientific Python stack that can be tricky to install using pip (numba, numpy), we recommend using the [Anaconda Python distribution](https://www.continuum.io/downloads).
+EVcouplings requires a Python >= 3.5 installation. Since it depends on some packages that can be tricky to install using pip (numba, numpy, ...), we recommend using the [Anaconda Python distribution](https://www.continuum.io/downloads). In case you are creating a new conda environment or using miniconda, please make sure to run `conda install anaconda` before running pip, or otherwise the required packages will not be present.  
 
 #### Installation
 
