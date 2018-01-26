@@ -413,12 +413,6 @@ compare:
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
 
-    # Set to false to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
-    # Set to true to search the PDB seqres database using an HMM built from
-    # the output monomer alignment (less stringent). 
-    # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
-    # The domain_threshold and sequence_threshold should be decreased to find distant homologs using HMMsearch.
-    search_pdb_by_alignment: False
 
 # These settings allow job status tracking using a database, and result collection in an archive
 management:
