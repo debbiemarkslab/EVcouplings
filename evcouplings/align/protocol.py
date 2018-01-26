@@ -594,16 +594,6 @@ def existing(**kwargs):
     Mandatory kwargs arguments:
         See list below in code where calling check_required
 
-    .. todo::
-        explain meaning of parameters in detail.
-
-    If skip is given and True, the workflow will only return
-    the output configuration (outcfg) and ali will be None.
-
-    If callback is given, the function will be called at the
-    end of the workflow with the kwargs arguments updated with
-    the outcfg results.
-
     Returns
     -------
     outcfg : dict
