@@ -3,7 +3,9 @@ Protein sequence alignment creation protocols/workflows.
 
 Authors:
   Thomas A. Hopf
-  Anna G. Green (complex protocol)
+  Anna G. Green - complex protocol, hmm_build_and_search
+  Chan Kang - hmm_build_and_search
+
 """
 
 from collections import OrderedDict, Iterable
@@ -37,6 +39,104 @@ from evcouplings.align.ena import (
     extract_cds_ids,
     add_full_header
 )
+
+
+def _make_hmmsearch_raw_fasta(alignment_result, prefix):
+    """
+    HMMsearch results do not contain the query sequence
+    so we must construct a raw_fasta file with the query 
+    sequence as the first hit, to ensure proper numbering. 
+    The search result is filtered to only contain the columns with
+    match states to the HMM, which has a one to one mapping to the
+    query sequence.
+
+    Paramters
+    ---------
+    alignment_result : dict
+        Alignment result dictionary, output by run_hmmsearch
+    prefix : str
+        Prefix for file creation
+
+    Returns
+    -------
+    str
+        path to raw focus alignment file
+
+    """
+    def _add_gaps_to_query(query_sequence_ali, ali):
+
+         # get the index of columns that do not contain match states (indicated by an x)
+        gap_index = [
+            i for i, x in enumerate(ali.annotation["GC"]["RF"]) if x != "x"
+        ]
+        # get the index of columns that contain match states (indicated by an x)
+        match_index = [
+            i for i, x in enumerate(ali.annotation["GC"]["RF"]) if x == "x"
+        ]
+
+        # ensure that the length of the match states 
+        # match the length of the sequence
+        if len(match_index) != query_sequence_ali.L:
+            raise ValueError(
+                "HMMsearch result {} does not have a one-to-one"
+                " mapping to the query sequence columns".format(ar["raw_alignment_file"])
+            )
+
+        gapped_query_sequence = ""
+        seq = list(query_sequence_ali.matrix[0, :])
+
+        # loop through every position in the HMMsearch hits
+        for i in range(len(ali.annotation["GC"]["RF"])):
+            # if that position should be a gap, add a gap
+            if i in gap_index:
+                gapped_query_sequence += "-"
+            # if that position should be a letter, pop the next
+            # letter in the query sequence
+            else:
+                gapped_query_sequence += seq.pop(0)
+
+        new_sequence_ali = Alignment.from_dict({
+            query_sequence_ali.ids[0]: gapped_query_sequence
+        })
+        return new_sequence_ali
+
+    # open the sequence file
+    with open(alignment_result["target_sequence_file"]) as a:
+        query_sequence_ali = Alignment.from_file(a, format="fasta")
+
+    # if the provided alignment is empty, just return the target sequence 
+    raw_focus_alignment_file = prefix + "_raw.fasta"
+    if not valid_file(alignment_result["raw_alignment_file"]):
+        # write the query sequence to a fasta file
+        with open(raw_focus_alignment_file, "w") as of:
+            query_sequence_ali.write(of)
+
+        # return as an alignment object
+        return raw_focus_alignment_file
+
+    # else, open the HMM search result
+    with open(alignment_result["raw_alignment_file"]) as a:
+        ali = Alignment.from_file(a, format="stockholm")
+
+    # make sure that the stockholm alignment contains the match annotation
+    if not ("GC" in ali.annotation and "RF" in ali.annotation["GC"]):
+        raise ValueError(
+            "Stockholm alignment {} missing RF"
+            " annotation of match states".format(alignment_result["raw_alignment_file"])
+        )
+            
+    # add insertions to the query sequence in order to preserve correct
+    # numbering of match sequences
+    gapped_sequence_ali = _add_gaps_to_query(query_sequence_ali, ali)
+
+    # write a new alignment file with the query sequence as 
+    # the first entry
+    
+    with open(raw_focus_alignment_file, "w") as of:
+        gapped_sequence_ali.write(of)
+        ali.write(of)
+
+    return raw_focus_alignment_file
 
 
 def fetch_sequence(sequence_id, sequence_file,
@@ -996,6 +1096,265 @@ def jackhmmer_search(**kwargs):
         "raw_alignment_file": ali["alignment"],
         "hittable_file": ali["domtblout"],
     }
+
+    # define a single protein segment based on target sequence
+    outcfg["segments"] = [
+        Segment(
+            "aa", kwargs["sequence_id"],
+            region_start, region_end,
+            range(region_start, region_end + 1)
+        ).to_list()
+    ]
+
+    outcfg["focus_sequence"] = "{}/{}-{}".format(
+        kwargs["sequence_id"], region_start, region_end
+    )
+
+    return outcfg
+
+
+def hmmbuild_and_search(**kwargs):
+    """
+    Protocol:
+
+    Build HMM from sequence alignment using hmmbuild and 
+    search against a sequence database using hmmsearch.
+    
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the protocol, including
+        the following fields:
+
+        * target_sequence_file
+        * sequence_file
+        * raw_alignment_file
+        * hittable_file
+        * focus_mode
+        * focus_sequence
+        * segments
+    """
+
+    def _format_alignment_for_hmmbuild(input_alignment_file, **kwargs):
+        # this file is starting point of pipeline;
+        # check if input alignment actually exists
+
+        verify_resources(
+            "Input alignment does not exist",
+            input_alignment_file
+        )
+
+        # first try to autodetect format of alignment
+        with open(input_alignment_file) as f:
+            format = detect_format(f)
+            if format is None:
+                raise InvalidParameterError(
+                    "Format of input alignment {} could not be "
+                    "automatically detected.".format(
+                        input_alignment_file
+                    )
+                )
+
+        with open(input_alignment_file) as f:
+            ali_raw = Alignment.from_file(f, format)
+
+        # Target sequence of alignment
+        sequence_id = kwargs["sequence_id"]
+
+        if sequence_id is None:
+            raise InvalidParameterError(
+                "Parameter sequence_id must be defined"
+            )
+
+        # First, find focus sequence in alignment
+        focus_index = None
+        for i, id_ in enumerate(ali_raw.ids):
+            if id_.startswith(sequence_id):
+                focus_index = i
+                break
+
+        # if we didn't find it, cannot continue
+        if focus_index is None:
+            raise InvalidParameterError(
+                "Target sequence {} could not be found in alignment"
+                .format(sequence_id)
+            )
+
+        # identify what columns (non-gap) to keep for focus
+        # this should be all columns in the raw_focus_alignment_file
+        # but checking anyway
+        focus_seq = ali_raw[focus_index]
+        focus_cols = np.array(
+            [c not in [ali_raw._match_gap, ali_raw._insert_gap] for c in focus_seq]
+        )
+
+        # extract focus alignment
+        focus_ali = ali_raw.select(columns=focus_cols)
+        focus_seq_nogap = "".join(focus_ali[focus_index])
+
+        # determine region of sequence. If first_index is given,
+        # use that in any case, otherwise try to autodetect
+        full_focus_header = ali_raw.ids[focus_index]
+        focus_id = full_focus_header.split()[0]
+
+        # try to extract region from sequence header
+        id_, region_start, region_end = parse_header(focus_id)
+
+        # override with first_index if given
+        if kwargs["first_index"] is not None:
+            region_start = kwargs["first_index"]
+            region_end = region_start + len(focus_seq_nogap) - 1
+
+        if region_start is None or region_end is None:
+            raise InvalidParameterError(
+                "Could not extract region information " +
+                "from sequence header {} ".format(full_focus_header) +
+                "and first_index parameter is not given."
+            )
+
+        # resubstitute full sequence ID from identifier
+        # and region information
+        header = "{}/{}-{}".format(
+            id_, region_start, region_end
+        )
+
+        focus_ali.ids[focus_index] = header
+
+        # write target sequence to file
+        target_sequence_file = prefix + ".fa"
+        with open(target_sequence_file, "w") as f:
+            write_fasta(
+                [(header, focus_seq_nogap)], f
+            )
+
+        # swap target sequence to first position if it is not
+        # the first sequence in alignment;
+        # this is particularly important for hhfilter run
+        # because target sequence might otherwise be filtered out
+        if focus_index != 0:
+            indices = np.arange(0, len(focus_ali))
+            indices[0] = focus_index
+            indices[focus_index] = 0
+            focus_index = 0
+            focus_ali = focus_ali.select(sequences=indices)
+
+        # write the raw focus alignment for hmmbuild
+        focus_fasta_file = prefix + "_raw_focus_input.fasta"
+        with open(focus_fasta_file, "w") as f:
+            focus_ali.write(f, "fasta")
+
+        return focus_fasta_file, target_sequence_file, region_start, region_end
+
+
+    # define the gap threshold for inclusion in HMM's build by HMMbuild. 
+    SYMFRAC_HMMBUILD = 0.0
+
+    # check for required options
+    check_required(
+        kwargs,
+        [
+            "prefix", "sequence_id", "alignment_file",
+            "use_bitscores", "domain_threshold", "sequence_threshold",
+            "database", "cpu", "nobias", "reuse_alignment",
+            "hmmbuild", "hmmsearch"
+        ]
+    )
+    prefix = kwargs["prefix"]
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    # prepare input alignment for hmmbuild
+    focus_fasta_file, target_sequence_file, region_start, region_end = \
+        _format_alignment_for_hmmbuild(
+            kwargs["alignment_file"], **kwargs
+        )
+
+    # run hmmbuild_and_search... allow to reuse pre-exisiting
+    # Stockholm alignment file here
+    ali_outcfg_file = prefix + ".align_hmmbuild_and_search.outcfg"
+
+    # determine if to rerun, only possible if previous results
+    # were stored in ali_outcfg_file
+    if kwargs["reuse_alignment"] and valid_file(ali_outcfg_file):
+        ali = read_config_file(ali_outcfg_file)
+
+        # check if the alignment file itself is also there
+        verify_resources(
+            "Tried to reuse alignment, but empty or "
+            "does not exist",
+            ali["alignment"], ali["domtblout"]
+        )
+    else:
+        # otherwise, we have to run the alignment
+        # modify search thresholds to be suitable for hmmsearch
+        sequence_length = region_end - region_start + 1 
+        seq_threshold, domain_threshold = search_thresholds(
+            kwargs["use_bitscores"],
+            kwargs["sequence_threshold"],
+            kwargs["domain_threshold"],
+            sequence_length
+        )
+
+        # create the hmm
+        hmmbuild_result = at.run_hmmbuild(
+            alignment_file=focus_fasta_file,
+            prefix=prefix,
+            symfrac=SYMFRAC_HMMBUILD,
+            cpu=kwargs["cpu"],
+            binary=kwargs["hmmbuild"],
+        )
+        hmmfile = hmmbuild_result.hmmfile
+
+        # run the alignment from the hmm
+        ali = at.run_hmmsearch(
+            hmmfile=hmmfile,
+            database=kwargs[kwargs["database"]],
+            prefix=prefix,
+            use_bitscores=kwargs["use_bitscores"],
+            domain_threshold=domain_threshold,
+            seq_threshold=seq_threshold,
+            nobias=kwargs["nobias"],
+            cpu=kwargs["cpu"],
+            binary=kwargs["hmmsearch"], 
+        )
+
+        # get rid of huge stdout log file immediately
+        try:
+            os.remove(ali.output)
+        except OSError:
+            pass
+
+        # turn namedtuple into dictionary to make
+        # restarting code nicer
+        ali = dict(ali._asdict())
+        # only item from hmmsearch_result to save is the hmmfile
+        ali["hmmfile"] = hmmfile
+
+        # save results of search for possible restart
+        write_config_file(ali_outcfg_file, ali)
+
+    # prepare output dictionary with result files
+    outcfg = {
+        "sequence_file": target_sequence_file,
+        "first_index": region_start,
+        "input_raw_focus_alignment": focus_fasta_file,
+        "target_sequence_file": target_sequence_file,
+        "focus_mode": True,
+        "raw_alignment_file": ali["alignment"],
+        "hittable_file": ali["domtblout"],
+    }
+
+
+    # convert the raw output alignment to fasta format 
+    # and add the appropriate query sequecne
+    raw_focus_alignment_file = _make_hmmsearch_raw_fasta(outcfg, prefix)
+    outcfg["raw_focus_alignment_file"] =  raw_focus_alignment_file
 
     # define a single protein segment based on target sequence
     outcfg["segments"] = [

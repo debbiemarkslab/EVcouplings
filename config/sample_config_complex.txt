@@ -334,6 +334,12 @@ compare:
     # sequence_id and SIFTS database (sequence_id must be UniProt AC/ID in this case)
     first_by_alignment: True
     second_by_alignment: True
+    # Alignment method to use to search the PDB Seqres database. Options: jackhmmer, hmmsearch
+    # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
+    # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent). 
+    # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
+    first_pdb_search_method: jackhmmer
+    second_pdb_search_method: jackhmmer
     
     # Leave this parameter empty to use all PDB structures for given sequence_id, otherwise
     # will be limited to the given IDs (single value or list). Important: note that this acts only as a filter on the
@@ -353,7 +359,7 @@ compare:
 
     # compare to multimer contacts (if multiple chains of the same sequence or its homologs are present in a structure)
     first_compare_multimer: True
-    second_compare_multimer:
+    second_compare_multimer: True
 
     # settings for sequence alignment against PDB sequences using jackhmmer
     # (additional settings like iterations possible, compare to align stage)
@@ -406,6 +412,13 @@ compare:
 
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
+
+    # Set to false to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
+    # Set to true to search the PDB seqres database using an HMM built from
+    # the output monomer alignment (less stringent). 
+    # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
+    # The domain_threshold and sequence_threshold should be decreased to find distant homologs using HMMsearch.
+    search_pdb_by_alignment: False
 
 # These settings allow job status tracking using a database, and result collection in an archive
 management:
@@ -471,5 +484,5 @@ tools:
     psipred: /groups/marks/software/runpsipred
     cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
     maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
-    uniprot_to_embl_table : /groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
-    ena_genome_location_table : /groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
+    uniprot_to_embl_table: /groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
+    ena_genome_location_table: /groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
