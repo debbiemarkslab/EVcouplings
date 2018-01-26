@@ -370,8 +370,9 @@ databases:
     # Directory with PDB MMTF structures (leave blank to fetch structures from web)
     pdb_mmtf_dir:
 
-    # SIFTS mapping information. Point to valid directory, and if these files do not exist, they will be automatically generated
-    # (this may take a while). Periodically delete these files to more recent versions of SIFTS are used.
+    # SIFTS mapping information. Point to file paths in an existing directory, and if these files do not exist, they will be
+    # automatically generated and saved at the given file path (this may take a while).
+    # Periodically delete these files to more recent versions of SIFTS are used.
     sifts_mapping_table: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.csv
     sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.fa
 
