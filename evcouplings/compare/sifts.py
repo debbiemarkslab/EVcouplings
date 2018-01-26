@@ -153,7 +153,6 @@ def find_homologs(**kwargs):
 
     # run hmmsearch (possibly preceded by hmmbuild)
     if kwargs["pdb_alignment_method"] == "hmmsearch":
-        print('running hmmsearch')
         # set up config to run hmmbuild_and_search on the unfiltered alignment file
         updated_config = deepcopy(config)
         updated_config["alignment_file"] = config["raw_focus_alignment_file"]

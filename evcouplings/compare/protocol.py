@@ -724,7 +724,6 @@ def complex(**kwargs):
         }
 
         # identify structures for that monomer
-        print(monomer_kwargs)
         sifts_map, sifts_map_full = _identify_structures(
             **monomer_kwargs,
             prefix=aux_prefix
