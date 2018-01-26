@@ -975,6 +975,7 @@ def jackhmmer_search(**kwargs):
         the following fields:
 
         * sequence_id (passed through from input)
+        * first_index (passed through from input)
         * target_sequence_file
         * sequence_file
         * raw_alignment_file
@@ -1082,6 +1083,7 @@ def jackhmmer_search(**kwargs):
         "sequence_id": kwargs["sequence_id"],
         "target_sequence_file": target_sequence_file,
         "sequence_file": full_sequence_file,
+        "first_index": kwargs["first_index"],
         "focus_mode": True,
         "raw_alignment_file": ali["alignment"],
         "hittable_file": ali["domtblout"],
@@ -1376,17 +1378,6 @@ def standard(**kwargs):
     Mandatory kwargs arguments:
         See list below in code where calling check_required
 
-    .. todo::
-
-        explain meaning of parameters in detail.
-
-    If skip is given and True, the workflow will only return
-    the output configuration (outcfg) and ali will be None.
-
-    If callback is given, the function will be called at the
-    end of the workflow with the kwargs arguments updated with
-    the outcfg results.
-
     Returns
     -------
     outcfg : dict
@@ -1394,6 +1385,7 @@ def standard(**kwargs):
         the following fields:
 
         * sequence_id (passed through from input)
+        * first_index (passed through from input)
         * alignment_file
         * raw_alignment_file
         * raw_focus_alignment_file
