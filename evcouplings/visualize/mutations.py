@@ -298,10 +298,17 @@ def matrix_base_bokeh(matrix, positions, substitutions,
     for i, pos in enumerate(positions):
         if wildtype_sequence is not None:
             wt_symbol = wildtype_sequence[i]
-            pos = "{} {}".format(wt_symbol, pos)
+            if type(pos) is tuple:
+                # label will be in format segment AA pos, eg B_1 A 151
+                pos = "{} {} {}".format(pos[0], wt_symbol, pos[1])
+            else:
+                pos = "{} {}".format(wt_symbol, pos)
         else:
             wt_symbol = None
-            pos = str(pos)
+            if type(pos) is tuple:
+                pos = " ".join(map(str,pos))
+            else:
+                pos = str(pos)
 
         # go through all values on y-axis (substitutions)
         for j, subs in enumerate(substitutions):
@@ -333,7 +340,7 @@ def matrix_base_bokeh(matrix, positions, substitutions,
         )
     )
 
-    TOOLS = "resize,hover"
+    TOOLS = "hover"
     height_factor = 12
     width_factor = 10
 
@@ -342,12 +349,21 @@ def matrix_base_bokeh(matrix, positions, substitutions,
     # keep all of these as strings so we can have WT/substitution
     # symbol in the label
     if wildtype_sequence is None:
-        positions = list(map(str, positions))
+        if type(positions[0]) is tuple:
+            positions = [" ".join(list(map(str, p))) for p in positions]
+        else:
+            positions = list(map(str, positions))
     else:
-        positions = [
-            "{} {}".format(wildtype_sequence[i], p)
-            for i, p in enumerate(positions)
-        ]
+        if type(positions[0]) is tuple:
+            positions = [
+                "{} {} {}".format(p[0], wildtype_sequence[i], p[1])
+                for i, p in enumerate(positions)
+            ]
+        else:
+            positions = [
+                "{} {}".format(wildtype_sequence[i], p)
+                for i, p in enumerate(positions)
+            ]
 
     substitutions = list(map(str, substitutions))
 
@@ -570,11 +586,27 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
         if label_filter is not None and not label_filter(pos):
             continue
 
+        # if position is of type tuple, we have multiple segments
+        if type(pos) is tuple:
+            # convert tuple to display-friendly string
+            pos_to_display = " ".join(map(str,pos))
+        else:
+            pos_to_display = pos
+
         # determine what position label should be
         if show_wt_char and wildtype_sequence is not None:
-            label = "{} {}".format(wildtype_sequence[i], pos)
+            wt_symbol = wildtype_sequence[i]
+            if type(pos) is tuple and len(pos)==2:
+                # label will be in format segment AA pos, eg B_1 A 151
+                label = "{} {} {}".format(pos[0], wt_symbol, pos[1])
+            else:
+                label = "{} {}".format(wt_symbol, pos)
+
         else:
-            label = str(pos)
+            if type(pos) is tuple:
+                label = " ".join(map(str,pos))
+            else:
+                label = str(pos)
 
         ax.text(
             i + LABEL_X_OFFSET, y_bottom_res, label,
