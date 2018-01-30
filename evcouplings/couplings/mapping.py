@@ -116,7 +116,7 @@ class SegmentIndexMapper:
             For nonfocus mode, should always be one. For focus
             mode, corresponds to index given in sequence header
             (1 if not in alignment)
-        *segments: (int, int):
+        *segments: evcouplings.couplings.mapping.Segment:
             Segments containing numberings for each
             individual segment
         """
