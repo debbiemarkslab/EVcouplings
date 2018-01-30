@@ -5,6 +5,7 @@ sequences and perform calculations using the model
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (to_inter_segment_model)
 """
 
 from collections import Iterable
@@ -911,6 +912,33 @@ class CouplingsModel:
         c0.J_ij.fill(0)
         c0._reset_precomputed()
         return c0
+
+    def to_inter_segment_model(self):
+        """
+        Convert model to inter-segment only
+        parameters, ie the J_ijs that correspond
+        to inter-protein or inter-domain residue pairs.
+        All other parameters are set to 0.
+
+        Returns
+        -------
+        CouplingsModel
+            Copy of object turned into inter-only Epistatic model
+        """
+
+        h_i = np.zeros((self.L, self.num_symbols))
+        J_ij = np.zeros(self.J_ij.shape)
+
+        for idx_i, i in enumerate(self.index_list):
+            for idx_j, j in enumerate(self.index_list):
+                if i[0] != j[0]:  # if the segment identifier is different
+                    J_ij[idx_i, idx_j] = self.J_ij[idx_i, idx_j]
+
+        ci = deepcopy(self)
+        ci.h_i = h_i
+        ci.J_ij = J_ij
+        ci._reset_precomputed()
+        return ci
 
     # syntactic sugar to access most important member variables in target numbering space
 
