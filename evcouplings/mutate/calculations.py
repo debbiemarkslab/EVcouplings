@@ -81,6 +81,9 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
         or only couplings / fields for statistical energy
         calculation.
     segment: str, default: None
+        Specificy a segment identifier to use for the positions in the mutation
+        table. This will only be used if the mutation table doesn't already have
+        a segments column.
 
     Returns
     -------
@@ -88,19 +91,8 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
         Dataframe with added column (mutant_column) that contains computed
         mutation effects
     """
-    def _predict_mutant(mutation_string):
+    def _predict_mutant(m):
         try:
-            # if mutation_string is a tuple, we have segments
-            if type(mutation_string) is tuple:
-                _m = extract_mutations(mutation_string[:][1])
-                # format mutations as [((Segment, Pos), AA_from, AA_to)]
-                m = [
-                    ((mutation_string[0], _x[0]), _x[1], _x[2])
-                    for _x in _m
-                ]
-            else:
-                m = extract_mutations(mutation_string)
-
             delta_E = model.delta_hamiltonian(m)
             return delta_E[_component]
 
@@ -133,22 +125,45 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
     else:
         mutations = pred.loc[:, mutant_column]
 
-    # if there is a segment column, get the list of segments
+    # if there is a segment column, use that to apply
+    # segment information to every mutation
     if "segment" in pred.columns:
         segments = pred.loc[:, "segment"]
-        mutation_list = list(
-            zip(segments, mutations)
-        )
 
-    # elif the segment article was provided
+        # split each comma-delimited string of mutations into a list
+        # TODO: what is the correct delimiter we require?
+        mutations_separated = map(extract_mutations, mutations)
+
+        # split each semicolon-delimited string of segments into a list
+        # TODO: what is the correct delimiter we require?
+        segments_separated = [x.split(";") for x in segments]
+        mutation_list = []
+
+        # create a list of mutation in the format
+        # [[((segment, pos) aa_from, aa_to), ((segment, pos) aa_from, aa_to)], [((segment, pos) aa_from, aa_to)]]
+        for segment_subset, mutation_subset in zip(segments_separated, mutations_separated):
+            _mutation_list = [
+                ((seg, pos), aa_from, aa_to) for
+                (seg, (pos, aa_from, aa_to)) in zip(
+                    segment_subset, mutation_subset
+                )
+            ]
+            mutation_list.append(_mutation_list)
+
+    # else if the segment argument was provided
+    # designate that as the segment for every mutation
     elif not (segment is None):
-        mutation_list = [
-            (segment,m) for m in mutations
-        ]
+        mutations_separated = map(extract_mutations, mutations)
+        mutation_list = []
+        for mutation_subset in mutations_separated:
+            _mutation_list = [
+                ((segment, pos), aa_from, aa_to) for
+                (pos, aa_from, aa_to) in mutation_subset
+            ]
+            mutation_list.append(_mutation_list)
 
-    # if none provided make sure the model doesn't have segments
     else:
-        mutation_list = mutations
+        mutation_list = map(extract_mutations, mutations)
 
     # predict mutations and add to table
     pred.loc[:, output_column] = [
@@ -192,45 +207,32 @@ def single_mutant_matrix(model, output_column="prediction_epistatic",
             if exclude_self_subs and subs == model.seq(pos):
                 continue
 
-            # if position is a tuple, postprocess the
-            # name of the mutation, the name of the position
-            # and add a segment name column
-
+            # if position is a tuple, it is in format
+            # (segment_id, position). Else, there is
+            # no segment information
             if type(pos) is tuple:
+                position_str = pos[1]
+                segment = pos[0]
 
-                mutant = "{}{}{}".format(model.seq(pos), pos[1], subs)
-                wt = model.seq(pos)
-
-                res.append(
-                    {
-                        "segment": pos[0],
-                        "mutant": mutant,
-                        "pos": pos[1],
-                        "wt": wt,
-                        "subs": subs,
-                        "frequency": model.fi(pos, subs),
-                        "column_conservation": cons[pos],
-                        output_column: model.smm(pos, subs),
-                    }
-                )
-
-            # else, we have no segment information
             else:
-                mutant = "{}{}{}".format(model.seq(pos), pos, subs)
-                wt = model.seq(pos)
+                position_str = pos
+                segment = np.nan
 
-                res.append(
-                    {
-                        "segment": np.nan,
-                        "mutant": mutant,
-                        "pos": pos,
-                        "wt": wt,
-                        "subs": subs,
-                        "frequency": model.fi(pos, subs),
-                        "column_conservation": cons[pos],
-                        output_column: model.smm(pos, subs),
-                    }
-                )
+            wt = model.seq(pos)
+            mutant = "{}{}{}".format(wt, position_str, subs)
+
+            res.append(
+                {
+                    "segment": segment,
+                    "mutant": mutant,
+                    "pos": position_str,
+                    "wt": wt,
+                    "subs": subs,
+                    "frequency": model.fi(pos, subs),
+                    "column_conservation": cons[pos],
+                    output_column: model.smm(pos, subs),
+                }
+            )
 
     pred = pd.DataFrame(res)
     return pred.loc[

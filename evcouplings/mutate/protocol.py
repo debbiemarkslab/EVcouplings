@@ -4,6 +4,7 @@ protocols
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (complex)
 """
 
 import pandas as pd
@@ -20,6 +21,9 @@ from evcouplings.utils.config import (
 )
 from evcouplings.utils.system import (
     create_prefix_folders, verify_resources
+)
+from evcouplings.couplings.mapping import (
+    Segment, SegmentIndexMapper
 )
 
 
@@ -132,12 +136,159 @@ def standard(**kwargs):
     return outcfg
 
 
+def complex(**kwargs):
+    """
+    Protocol:
+    Compare ECs for single proteins (or domains)
+    to 3D structure information
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        * mutation_matrix_file
+        * [mutation_dataset_predicted_file]
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "model_file",
+            "mutation_dataset_file",
+            "segments"
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    outcfg = {
+        "mutation_matrix_file": prefix + "_single_mutant_matrix.csv",
+        "mutation_matrix_plot_files": [],
+    }
+
+    # make sure model file exists
+    verify_resources(
+        "Model parameter file does not exist",
+        kwargs["model_file"]
+    )
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    # load couplings object
+    c = CouplingsModel(kwargs["model_file"])
+
+    # add the segment information to the couplings model
+    first_segment = Segment.from_list(kwargs["segments"][0])
+    second_segment = Segment.from_list(kwargs["segments"][1])
+
+    index_start = first_segment.region_start
+    r = SegmentIndexMapper(
+        True,  # use focus mode
+        index_start,  # first index of first segment
+        first_segment,
+        second_segment
+    )
+
+    c = r.patch_model(model=c)
+
+    # create the independent model
+    c0 = c.to_independent_model()
+
+    # create the inter-protein only Jij model
+    ci = c.to_inter_segment_model(c)
+
+    for model, type_ in [(c, "Epistatic"), (c0, "Independent"), (ci, "Inter_segment_")]:
+        # interactive plot using bokeh
+        filename = prefix + "_{}_model".format(type_.lower(), )
+        output_file(
+            filename + ".html", "{} model".format(type_)
+        )
+        fig = evcouplings.visualize.mutations.plot_mutation_matrix(model, engine="bokeh")
+        save(fig)
+        outcfg["mutation_matrix_plot_files"].append(filename + ".html")
+
+        # static matplotlib plot
+        evcouplings.visualize.mutations.plot_mutation_matrix(model)
+        plt.savefig(filename + ".pdf", bbox_inches="tight")
+        outcfg["mutation_matrix_plot_files"].append(filename + ".pdf")
+
+    # create single mutation matrix table,
+    # add prediction by independent model and
+    # save to file
+    singles = single_mutant_matrix(
+        c, output_column="prediction_epistatic"
+    )
+
+    singles = predict_mutation_table(
+        c0, singles, "prediction_independent"
+    )
+
+    singles = predict_mutation_table(
+        ci, singles, "prediction_inter_segment"
+    )
+
+    singles.to_csv(outcfg["mutation_matrix_file"], index=False)
+
+    # Pymol scripts
+    outcfg["mutations_epistatic_pml_files"] = []
+    for model in ["epistatic", "independent", "inter_segment"]:
+        pml_filename = prefix + "_{}_model.pml".format(model)
+        evcouplings.visualize.mutations.mutation_complexes_pymol_script(
+            singles, pml_filename, effect_column="prediction_" + model,
+            segment_to_chain_mapping={"A_1": "A", "B_1": "B"}
+        )
+        outcfg["mutations_epistatic_pml_files"].append(pml_filename)
+
+    # predict experimental dataset if given
+    dataset_file = kwargs["mutation_dataset_file"]
+    if dataset_file is not None:
+        verify_resources("Dataset file does not exist", dataset_file)
+        data = pd.read_csv(dataset_file, comment="#")
+
+        if "segment" not in data.columns:
+            raise ValueError(
+                "Input mutation dataset file does not contain "
+                "a column called 'segment' to specify the "
+                "protein of origin for each mutation"
+            )
+
+        # add epistatic model prediction
+        data_pred = predict_mutation_table(
+            c, data, "prediction_epistatic"
+        )
+
+        # add independent model prediction
+        data_pred = predict_mutation_table(
+            c0, data_pred, "prediction_independent"
+        )
+
+        data_pred = predict_mutation_table(
+            ci, data_pred, "inter_segment"
+        )
+
+        outcfg["mutation_dataset_predicted_file"] = prefix + "_dataset_predicted.csv"
+        data_pred.to_csv(
+            outcfg["mutation_dataset_predicted_file"], index=False
+        )
+
+    return outcfg
+
+
 # list of available mutation protocols
 PROTOCOLS = {
     # standard EVmutation protocol
     "standard": standard,
-}
 
+    # EVmutation protocol for complexes
+    "complex": complex
+}
 
 def run(**kwargs):
     """

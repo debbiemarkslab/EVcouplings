@@ -3,6 +3,7 @@ Visualization of mutation effects
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (mutation_complexes_pymol_script)
 """
 
 from math import isnan
@@ -770,3 +771,97 @@ def mutation_pymol_script(mutation_table, output_file,
         f.write("color grey80{}\n".format(chain_sel))
 
         pymol_mapping(t_agg, f, chain, atom="CA")
+
+def mutation_complexes_pymol_script(mutation_table, output_file,
+                          effect_column="prediction_epistatic",
+                          mutant_column="mutant", agg_func="mean",
+                          cmap=plt.cm.RdBu_r, segment_to_chain_mapping=None):
+    """
+    Create a Pymol .pml script to visualize single mutation
+    effects
+
+    Parameters
+    ----------
+    mutation_table : pandas.DataFrame
+        Table with mutation effects (will be filtered
+        for single mutants)
+    output_file : str
+        File path where to store pml script
+    effect_column : str, optional (default: "prediction_epistatic")
+        Column in mutation_table that contains mutation effects
+    mutant_column : str, optional (default: "mutant")
+        Column in mutation_table that contains mutations
+        (in format "A123G")
+    agg_func : str, optional (default: "mean")
+        Function used to aggregate single mutations into one
+        aggregated effect per position (any pandas aggregation
+        operation, including "mean", "min, "max")
+    cmap : matplotlib.colors.LinearSegmentedColormap, optional
+            (default: plt.cm.RdBu_r)
+        Colormap used to map mutation effects to colors
+    segment_to_chain_mapping: dict of str, default: None
+        maps segment identifiers used to index couplings model
+        to chains to be used in Pymol script
+
+    Raises
+    ------
+    ValueError
+        If no single mutants contained in mutation_table
+    ValueError
+        If mutation_table contains a segment identifier not
+        found in segment_to_chain_mapping
+    """
+    # split mutation strings
+    t = split_mutants(mutation_table, mutant_column)
+
+    # only pick single mutants
+    t = t.query("num_mutations == 1")
+
+    if len(t) == 0:
+        raise ValueError(
+            "mutation_table does not contain any single "
+            "amino acid substitutions."
+        )
+
+    #
+    if "segment" not in t.columns:
+        t.loc[:,"segment"] = None
+
+    with open(output_file, "w") as f:
+
+        #handle each segment independently
+        for segment_name, _t in t.groupby("segment"):
+
+            if not segment_name in segment_to_chain_mapping:
+                raise ValueError(
+                      "Segment name {} has no mapping to PyMOL "
+                      "chain. Available mappings are: {}".format(
+                          segment_name, segment_to_chain_mapping
+                      )
+                )
+            else:
+                chain = segment_to_chain_mapping[segment_name]
+
+            # aggregate into positional information
+            _t = _t.loc[:, ["pos", effect_column]].rename(
+                columns={"pos": "i", effect_column: "effect"}
+            )
+
+            t_agg = _t.groupby("i").agg(agg_func).reset_index()
+            t_agg.loc[:, "i"] = pd.to_numeric(t_agg.i).astype(int)
+
+            # map aggregated effects to colors
+            max_val = t_agg.effect.abs().max()
+            mapper = colormap(-max_val, max_val, cmap)
+            t_agg.loc[:, "color"] = t_agg.effect.map(mapper)
+            t_agg.loc[:, "show"] = "spheres"
+
+            if chain is not None:
+                chain_sel = ", chain '{}'".format(chain)
+            else:
+                chain_sel = ""
+
+            f.write("as cartoon{}\n".format(chain_sel))
+            f.write("color grey80{}\n".format(chain_sel))
+
+            pymol_mapping(t_agg, f, chain, atom="CA")
