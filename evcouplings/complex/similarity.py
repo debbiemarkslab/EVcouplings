@@ -120,7 +120,7 @@ def find_paralogs(target_id, annotation_data, identity_threshold):
     # query id. This includes the focus sequence and its hit to
     # itself in the database.
 
-    contains_annotation = [ True if base_query_id in x else False for x in annotation_data.id]
+    contains_annotation = [base_query_id in x for x in annotation_data.id]
     query_hits = annotation_data.loc[contains_annotation , :]
     # get the species annotation for the query sequence
     query_species = list(query_hits.species.dropna())
