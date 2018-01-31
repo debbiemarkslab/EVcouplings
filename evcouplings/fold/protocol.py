@@ -167,7 +167,13 @@ def compare_models_maxcluster(experiments, predictions, norm_by_intersection=Tru
     # structures, so we check that here and fail otherwise)
     def _determine_pos(filename):
         structure = ClassicPDB.from_file(filename)
-        if len(structure.model_to_chains) != 1:
+        if len(structure.model_to_chains) == 0:
+            raise InvalidParameterError(
+                "Structure contains no model (is empty): " +
+                filename +
+                " - please verify that no problems occurred during structure mapping"
+            )
+        elif len(structure.model_to_chains) > 1:
             raise InvalidParameterError(
                 "Structure contains more than one model: " +
                 filename

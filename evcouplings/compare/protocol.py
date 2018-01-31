@@ -63,10 +63,11 @@ def _identify_structures(**kwargs):
             "max_num_hits", "max_num_structures",
             "pdb_mmtf_dir",
             "sifts_mapping_table", "sifts_sequence_db",
-            "by_alignment", "alignment_min_overlap",
+            "by_alignment", "pdb_alignment_method",
+            "alignment_min_overlap",
             "sequence_id", "sequence_file", "region",
             "use_bitscores", "domain_threshold",
-            "sequence_threshold", "jackhmmer",
+            "sequence_threshold"
         ]
     )
     # get SIFTS mapping object/sequence DB
@@ -81,6 +82,19 @@ def _identify_structures(**kwargs):
     # by sequence search or just fetching
     # based on Uniprot/PDB identifier
     if kwargs["by_alignment"]:
+
+        # if searching by alignment, verify that
+        # user selected jackhmmer or hmmsearch
+        SEARCH_METHODS = ["jackhmmer", "hmmsearch"]
+
+        if kwargs["pdb_alignment_method"] not in SEARCH_METHODS:
+            raise InvalidParameterError(
+                "Invalid pdb search method: " +
+                "{}. Valid selections are: {}".format(
+                    ", ".join(SEARCH_METHODS.keys())
+                )
+            )
+
         sifts_map = s.by_alignment(
             reduce_chains=reduce_chains,
             min_overlap=kwargs["alignment_min_overlap"],

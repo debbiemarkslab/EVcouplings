@@ -9,26 +9,35 @@ pdb_chain_uniprot.csv table available from SIFTS.
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (find_homologs)
+  Chan Kang (find_homologs)
 """
 
 from os import path
 import json
 from collections import OrderedDict
+from copy import deepcopy
 
 import pandas as pd
 import requests
+import numpy as np
 
 from evcouplings.align.alignment import (
     Alignment, read_fasta, parse_header
 )
 
-from evcouplings.align.protocol import jackhmmer_search
+from evcouplings.align.protocol import (
+	jackhmmer_search, hmmbuild_and_search, _make_hmmsearch_raw_fasta
+)
+
 from evcouplings.align.tools import read_hmmer_domtbl
 from evcouplings.compare.mapping import alignment_index_mapping, map_indices
 from evcouplings.utils.system import (
     get_urllib, ResourceError, valid_file, tempdir
 )
-from evcouplings.utils.config import parse_config
+from evcouplings.utils.config import (
+    parse_config, check_required
+)
 from evcouplings.utils.helpers import range_overlap
 
 UNIPROT_MAPPING_URL = "http://www.uniprot.org/mapping/"
@@ -106,14 +115,14 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
     return r.text
 
 
-def find_homologs_jackhmmer(**kwargs):
+def find_homologs(**kwargs):
     """
-    Identify homologs using jackhmmer
+    Identify homologs using jackhmmer or hmmbuild/hmmsearch
 
     Parameters
     ----------
     **kwargs
-        Passed into jackhmmer_search protocol
+        Passed into jackhmmer / hmmbuild_and_search protocol
         (see documentation for available options)
 
     Returns
@@ -124,6 +133,7 @@ def find_homologs_jackhmmer(**kwargs):
     hits : pandas.DataFrame
         Tabular representation of hits
     """
+
     # load default configuration
     config = parse_config(JACKHMMER_CONFIG)
 
@@ -137,16 +147,35 @@ def find_homologs_jackhmmer(**kwargs):
     if config["prefix"] is None:
         config["prefix"] = path.join(tempdir(), "compare")
 
+    check_required(
+        config, ["prefix"]
+    )
+
+    # run hmmsearch (possibly preceded by hmmbuild)
+    if kwargs["pdb_alignment_method"] == "hmmsearch":
+        # set up config to run hmmbuild_and_search on the unfiltered alignment file
+        updated_config = deepcopy(config)
+        updated_config["alignment_file"] = config["raw_focus_alignment_file"]
+        ar = hmmbuild_and_search(**updated_config)
+
+        # For hmmbuild and search, we have to read the raw focus alignment file
+        # to guarantee that the query sequence is present
+        with open(ar["raw_focus_alignment_file"]) as a:
+            ali = Alignment.from_file(a, "fasta")
+
     # run jackhmmer against sequence database
-    ar = jackhmmer_search(**config)
+    # at this point we have already checked to ensure
+    # that the input is either jackhmmer or hmmsearch
+    else:
+        ar = jackhmmer_search(**config)
 
-    with open(ar["raw_alignment_file"]) as a:
-        ali = Alignment.from_file(a, "stockholm")
+        with open(ar["raw_alignment_file"]) as a:
+            ali = Alignment.from_file(a, "stockholm")
 
-    # write alignment as FASTA file for easier checking by hand,
-    # if necessary
-    with open(config["prefix"] + "_raw.fasta", "w") as f:
-        ali.write(f)
+        # write alignment as FASTA file for easier checking by hand,
+        # if necessary
+        with open(config["prefix"] + "_raw.fasta", "w") as f:
+            ali.write(f)
 
     # read hmmer hittable and simplify
     hits = read_hmmer_domtbl(ar["hittable_file"])
@@ -160,6 +189,8 @@ def find_homologs_jackhmmer(**kwargs):
             "domain_i_Evalue": "e_value",
             "ali_from": "alignment_start",
             "ali_to": "alignment_end",
+            "hmm_from": "hmm_start",
+            "hmm_to": "hmm_end",
         }
     )
 
@@ -644,8 +675,9 @@ class SIFTS:
                 "method or constructor."
             )
 
-        ali, hits = find_homologs_jackhmmer(
-            sequence_database=self.sequence_file, **kwargs
+        ali, hits = find_homologs(
+            sequence_database=self.sequence_file, 
+            **kwargs
         )
 
         # merge with internal table to identify overlap of
