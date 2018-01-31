@@ -49,7 +49,8 @@ def extract_mutations(mutation_string, offset=0):
 
 
 def predict_mutation_table(model, table, output_column="prediction_epistatic",
-                           mutant_column="mutant", hamiltonian="full"):
+                           mutant_column="mutant", hamiltonian="full",
+                           segment=None):
     """
     Predicts all mutants in a dataframe and adds predictions
     as a new column.
@@ -79,6 +80,7 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
         Use full Hamiltonian of exponential model (default),
         or only couplings / fields for statistical energy
         calculation.
+    segment: str, default: None
 
     Returns
     -------
@@ -86,11 +88,22 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
         Dataframe with added column (mutant_column) that contains computed
         mutation effects
     """
-    def _predict_mutant(mutation_str):
+    def _predict_mutant(mutation_string):
         try:
-            m = extract_mutations(mutation_str)
+            # if mutation_string is a tuple, we have segments
+            if type(mutation_string) is tuple:
+                _m = extract_mutations(mutation_string[:][1])
+                # format mutations as [((Segment, Pos), AA_from, AA_to)]
+                m = [
+                    ((mutation_string[0], _x[0]), _x[1], _x[2])
+                    for _x in _m
+                ]
+            else:
+                m = extract_mutations(mutation_string)
+
             delta_E = model.delta_hamiltonian(m)
             return delta_E[_component]
+
         except ValueError:
             return np.nan
 
@@ -120,8 +133,27 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
     else:
         mutations = pred.loc[:, mutant_column]
 
+    # if there is a segment column, get the list of segments
+    if "segment" in pred.columns:
+        segments = pred.loc[:, "segment"]
+        mutation_list = list(
+            zip(segments, mutations)
+        )
+
+    # elif the segment article was provided
+    elif not (segment is None):
+        mutation_list = [
+            (segment,m) for m in mutations
+        ]
+
+    # if none provided make sure the model doesn't have segments
+    else:
+        mutation_list = mutations
+
     # predict mutations and add to table
-    pred.loc[:, output_column] = mutations.map(_predict_mutant)
+    pred.loc[:, output_column] = [
+        _predict_mutant(m) for m in mutation_list
+    ]
 
     return pred
 
@@ -160,24 +192,49 @@ def single_mutant_matrix(model, output_column="prediction_epistatic",
             if exclude_self_subs and subs == model.seq(pos):
                 continue
 
-            mutant = "{}{}{}".format(model.seq(pos), pos, subs)
-            wt = model.seq(pos)
+            # if position is a tuple, postprocess the
+            # name of the mutation, the name of the position
+            # and add a segment name column
 
-            res.append(
-                {
-                    "mutant": mutant,
-                    "pos": pos,
-                    "wt": wt,
-                    "subs": subs,
-                    "frequency": model.fi(pos, subs),
-                    "column_conservation": cons[pos],
-                    output_column: model.smm(pos, subs),
-                }
-            )
+            if type(pos) is tuple:
+
+                mutant = "{}{}{}".format(model.seq(pos), pos[1], subs)
+                wt = model.seq(pos)
+
+                res.append(
+                    {
+                        "segment": pos[0],
+                        "mutant": mutant,
+                        "pos": pos[1],
+                        "wt": wt,
+                        "subs": subs,
+                        "frequency": model.fi(pos, subs),
+                        "column_conservation": cons[pos],
+                        output_column: model.smm(pos, subs),
+                    }
+                )
+
+            # else, we have no segment information
+            else:
+                mutant = "{}{}{}".format(model.seq(pos), pos, subs)
+                wt = model.seq(pos)
+
+                res.append(
+                    {
+                        "segment": np.nan,
+                        "mutant": mutant,
+                        "pos": pos,
+                        "wt": wt,
+                        "subs": subs,
+                        "frequency": model.fi(pos, subs),
+                        "column_conservation": cons[pos],
+                        output_column: model.smm(pos, subs),
+                    }
+                )
 
     pred = pd.DataFrame(res)
     return pred.loc[
-        :, ["mutant", "pos", "wt", "subs", "frequency",
+        :, ["segment", "mutant", "pos", "wt", "subs", "frequency",
             "column_conservation", output_column]
     ]
 
