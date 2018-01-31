@@ -319,8 +319,8 @@ couplings:
 
 # Compare ECs to known 3D structures
 compare:
-    # Current options: standard, complex_compare
-    protocol: complex_compare
+    # Current options: standard, complex
+    protocol: complex
     
     # Following parameters will be usually overriden by global settings / output of previous stage
     prefix:
