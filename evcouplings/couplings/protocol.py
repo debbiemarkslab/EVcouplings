@@ -483,7 +483,7 @@ def complex(**kwargs):
         ecs_longrange.to_csv(outcfg["ec_longrange_file"], index=False)
 
     # save just the inter protein ECs
-    outcfg["ec_inter_file"] = prefix + "_CouplingScores_inter.csv"
+    outcfg["inter_ec_file"] = prefix + "_CouplingScores_inter.csv"
     inter_ecs = ecs.query("segment_i != segment_j")
     inter_ecs.to_csv(outcfg["inter_ec_file"], index=False)
 

@@ -7,6 +7,7 @@ High-level mutation calculation functions for EVmutation
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (generalization for multiple segments)
 """
 
 import numpy as np
@@ -127,7 +128,7 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
 
     # if there is a segment column, use that to apply
     # segment information to every mutation
-    if "segment" in pred.columns:
+    if "segment" in pred.columns and pred.loc[:, "segment"].notnull().all():
         segments = pred.loc[:, "segment"]
 
         # split each comma-delimited string of mutations into a list

@@ -202,9 +202,9 @@ def complex(**kwargs):
     c0 = c.to_independent_model()
 
     # create the inter-protein only Jij model
-    ci = c.to_inter_segment_model(c)
+    ci = c.to_inter_segment_model()
 
-    for model, type_ in [(c, "Epistatic"), (c0, "Independent"), (ci, "Inter_segment_")]:
+    for model, type_ in [(c, "Epistatic"), (c0, "Independent"), (ci, "Inter_segment")]:
         # interactive plot using bokeh
         filename = prefix + "_{}_model".format(type_.lower(), )
         output_file(
