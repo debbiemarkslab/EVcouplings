@@ -119,7 +119,7 @@ def run(**kwargs):
     if verbose:
         print("Updating SIFTS")
 
-    SIFTS_dir = kwargs.get("sifts", os.path.realpath(__file__))
+    SIFTS_dir = os.path.abspath(kwargs.get("sifts", os.path.realpath(__file__)))
     # create directory if it does not exist
     # ignores if directory on the way already exist
     dir = Path(SIFTS_dir)
@@ -137,7 +137,7 @@ def run(**kwargs):
         symlink_force(sifts_fasta, sifts_curr.format(extension="fasta"))
 
     # update uniref
-    db_path = kwargs.get("db", os.path.realpath(__file__))
+    db_path = os.path.abspath(kwargs.get("db", os.path.realpath(__file__)))
     for db_type in ["uniprot", "uniref100", "uniref90" ]:
 
         if verbose:
