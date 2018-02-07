@@ -89,12 +89,12 @@ Please see
 for how to download the respective databases. Note that this may take a while, especially the generation of post-processed SIFTS mapping files. 
 
 #### Sequence databases for EVcomplex
-Running the complexes pipeline within EVcouplings (aka EVcomplex) requires two special pre-computed databases. You can download these databases here:
+Running the EVcouplings pipeline for protein complexes (aka EVcomplex) requires two pre-computed databases. You can download these databases here:
 
 ena_genome_location_table: https://marks.hms.harvard.edu/evcomplex_databases/cds_pro_2017_02.txt
 uniprot_to_embl_table: https://marks.hms.harvard.edu/evcomplex_databases/idmapping_uniprot_embl_2017_02.txt
 
-These databases should be saved in your local environment. Paths to local copies of these databases need to be added to the complexes configuration file. 
+Save these databases in your local environment, and then add the paths to the local copies of these databases to your config file for the complex pipeline. 
 
 In future releases these databases will be generated automatically. 
 
