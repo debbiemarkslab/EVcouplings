@@ -401,8 +401,8 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
             )
         )
 
-        def _boundary_union(original_boundaries,new_boundaries_axis1,
-                            new_boundaries_axis2,axis1=True,axis2=True,
+        def _boundary_union(original_boundaries, new_boundaries_axis1,
+                            new_boundaries_axis2, axis1=True, axis2=True,
                             symmetric=False):
             # determine whether to use the original boundaries or the
             # corresponding monomer boundaries - whichever spans more
@@ -1204,7 +1204,6 @@ def enrichment_pymol_script(enrichment_table, output_file,
 
         # medium
         t.loc[t.iloc[boundary1:boundary2].index, "color"] = "orange"
-
         
     else:
         t = deepcopy(enrichment_table)
@@ -1212,9 +1211,10 @@ def enrichment_pymol_script(enrichment_table, output_file,
 
         # set boundaries for enrichment levels
         # that will be specially highlighted
-        boundary_list = [ # create nine subsets 
-                int(0.11 * len(t)), # 0 - 11% of residues
-                int(0.22 * len(t)), # 11 - 22% of residues
+        # create nine subsets
+        boundary_list = [
+                int(0.11 * len(t)),
+                int(0.22 * len(t)),
                 int(0.33 * len(t)),
                 int(0.44 * len(t)),
                 int(0.55 * len(t)),
@@ -1226,20 +1226,21 @@ def enrichment_pymol_script(enrichment_table, output_file,
 
         # list of colors to color each category
         # must be same length and order as boundary_list
-        color_list = [ # list of rgb tuples
-            (77,0,75), # dark purple
-            (129,15,124),
-            (136,65,157),
-            (140,107,177),
-            (140,150,198),
-            (158,188,218),
-            (191,211,230),
-            (224,236,244),
-            (247,252,253) # almost white
+        # list of rgb tuples
+        color_list = [
+            (77, 0, 75),  # dark purple
+            (129, 15, 124),
+            (136, 65, 157),
+            (140, 107, 177),
+            (140, 150, 198),
+            (158, 188, 218),
+            (191, 211, 230),
+            (224, 236, 244),
+            (247, 252, 253)  # almost white
         ]
 
         # convert to fractions
-        color_list = [(x/255.,y/255.,z/255.) for x,y,z in color_list]
+        color_list = [(x/255., y/255., z/255.) for x, y, z in color_list]
 
         prior_boundary = 0
 
@@ -1264,13 +1265,13 @@ def enrichment_pymol_script(enrichment_table, output_file,
 
         # for leagcy mode, background color is grey80
         if legacy:
-             f.write("color grey80{}\n".format(chain_sel))
+            f.write("color grey80{}\n".format(chain_sel))
 
         # for non-legacy mode, background color is the last color in the spectrum
         else:
             for idx,c in enumerate(color_list):
-                f.write('set_color color{}, [{},{},{}]\n'.format(idx,c[0],c[1],c[2]))
-            f.write("color color{}{}\n".format(len(boundary_list)-1,chain_sel))
+                f.write('set_color color{}, [{},{},{}]\n'.format(idx, c[0], c[1], c[2]))
+            f.write("color color{}{}\n".format(len(boundary_list)-1, chain_sel))
         
         f.write("as cartoon{}\n".format(chain_sel))
 
