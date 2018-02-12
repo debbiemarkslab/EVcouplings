@@ -33,7 +33,7 @@ class PersistentDict(dict):
         self.format = format                # 'csv', 'json', or 'pickle'
         self.filename = filename
         if flag != 'n' and os.access(filename, os.R_OK):
-            fileobj = open(filename, 'rb' if format=='pickle' else 'r')
+            fileobj = open(filename, 'rb' if format == 'pickle' else 'r')
             with fileobj:
                 self.load(fileobj)
         dict.__init__(self, *args, **kwds)
@@ -42,9 +42,14 @@ class PersistentDict(dict):
         'Write dict to disk'
         if self.flag == 'r':
             return
+
+        # dont sync if empty
+        if not len(self):
+            return
+
         filename = self.filename
         tempname = filename + '.tmp'
-        fileobj = open(tempname, 'wb' if self.format=='pickle' else 'w')
+        fileobj = open(tempname, 'wb' if self.format =='pickle' else 'w')
         try:
             self.dump(fileobj)
         except Exception:
@@ -66,6 +71,10 @@ class PersistentDict(dict):
         self.close()
 
     def dump(self, fileobj):
+        # if self is empty do not write to file
+        if not self:
+            return
+
         if self.format == 'csv':
             csv.writer(fileobj).writerows(self.items())
         elif self.format == 'json':
@@ -198,7 +207,6 @@ class Progressbar(object):
         self.total_size = total_size
         self.current_size = 0
         self.bar_length = bar_length
-
 
     def __iadd__(self, chunk):
         """
