@@ -128,5 +128,6 @@ class TestUtilsApp(TestCase):
 
     # get_urllib is using standard functions without additional logic so no need to test...
 
+
 if __name__ == '__main__':
     unittest.main()
