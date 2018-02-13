@@ -52,7 +52,7 @@ def read_species_annotation_table(annotation_file):
     # creates a new column called species with the species annotations
     data.loc[:, "species"] = data.loc[:, annotation_column]
 
-    return data[["id","name","species"]]
+    return data[["id", "name", "species"]]
 
 
 def most_similar_by_organism(similarities, id_to_organism):
