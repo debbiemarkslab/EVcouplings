@@ -713,8 +713,16 @@ def complex(**kwargs):
     aux_prefix = insert_dir(prefix, "aux", rootname_subdir=False)
     create_prefix_folders(aux_prefix)
 
+    # store auxiliary files here (too much for average user)
+    first_aux_prefix = insert_dir(aux_prefix, "first_monomer", rootname_subdir=False)
+    create_prefix_folders(first_aux_prefix)
+
+        # store auxiliary files here (too much for average user)
+    second_aux_prefix = insert_dir(aux_prefix, "second_monomer", rootname_subdir=False)
+    create_prefix_folders(second_aux_prefix)
+
     # Step 1: Identify 3D structures for comparison
-    def _identify_monomer_structures(name_prefix, outcfg):
+    def _identify_monomer_structures(name_prefix, outcfg, aux_prefix):
         # create a dictionary with kwargs for just the current monomer
         # remove the "prefix" kwargs so that we can replace with the 
         # aux prefix when calling _identify_structures
@@ -722,6 +730,10 @@ def complex(**kwargs):
         monomer_kwargs = {
             k.replace(name_prefix + "_", "", 1): v for k, v in kwargs.items() if "prefix" not in k
         }
+
+        # this field needs to be set explicitly else it gets overwritten by concatenated file
+        monomer_kwargs["alignment_file"] = kwargs[name_prefix + "_alignment_file"]
+        monomer_kwargs["raw_focus_alignment_file"] = kwargs[name_prefix + "_raw_focus_alignment_file"]
 
         # identify structures for that monomer
         sifts_map, sifts_map_full = _identify_structures(
@@ -740,8 +752,8 @@ def complex(**kwargs):
         )
         return outcfg, sifts_map
 
-    outcfg, first_sifts_map = _identify_monomer_structures("first", outcfg)
-    outcfg, second_sifts_map = _identify_monomer_structures("second", outcfg)
+    outcfg, first_sifts_map = _identify_monomer_structures("first", outcfg, first_aux_prefix)
+    outcfg, second_sifts_map = _identify_monomer_structures("second", outcfg, second_aux_prefix)
 
     # get the segment names from the kwargs
     segment_list = kwargs["segments"]
