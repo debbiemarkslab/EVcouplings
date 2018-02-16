@@ -428,7 +428,7 @@ def best_hit(**kwargs):
         print(most_similar_in_species.head())
         if use_best_reciprocal:
             paralogs = find_paralogs(
-                target_sequence, most_similar_in_species,
+                target_sequence, annotation_table, similarities,
                 identity_threshold
             )
 
