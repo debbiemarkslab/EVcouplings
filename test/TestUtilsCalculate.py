@@ -1,14 +1,16 @@
-import os
 import unittest
-import numpy as np
 from unittest import TestCase
 from evcouplings.utils import *
+from evcouplings.couplings import CouplingsModel
+import numpy as np
 
+MONO_MODEL = "/Users/bs224/Downloads/monomer_test/couplings/RASH_HUMAN_b03.model"
 
 class TestUtilsHelpers(TestCase):
 
     def setUp(self):
         self.x = np.array([0.5, 0.2, 0.1, 0.1, 0.1])
+
 
     def test_entropy(self):
         """
@@ -24,17 +26,20 @@ class TestUtilsHelpers(TestCase):
         self.assertAlmostEqual(entropy(self.x, normalize=True),
                                0.15545875354128547)
 
-    def test_entropy_vector(self):
-        raise NotImplementedError
-
-    def test_entropy_vector_normalized(self):
-        raise NotImplementedError
-
     def test_entropy_map(self):
-        raise NotImplementedError
+        """
+        tests if generated dic contains valid entries
+        """
+        model = CouplingsModel(MONO_MODEL)
+        entropy_dict = entropy_map(model, normalize=True)
 
-    def test_entropy_map_normalized(self):
-        raise NotImplementedError
+        # must have the same length as index list
+        self.assertEqual(len(entropy_dict), len(model.index_list))
+        # must entropy values must be between 0 and 1
+        self.assertTrue(all( 0.0 <= v <= 1.0 for v in entropy_dict.values()))
+        # keys must be in index_list
+        index_set = set(model.index_list)
+        self.assertTrue(all(k in index_set for k in entropy_dict.keys()))
 
     def test_dihedral_angle(self):
         """
@@ -52,10 +57,10 @@ class TestUtilsHelpers(TestCase):
         p6 = np.array([23.691, 9.935, 28.389])  # CD1
         p7 = np.array([22.557, 9.096, 30.459])  # CD2
 
-        self.assertAlmostEqual(dihedral_angle(p0, p1, p2, p3), np.deg2rad(-71.21515))
-        self.assertAlmostEqual(dihedral_angle(p0, p1, p4, p5), np.deg2rad(-171.94319))
-        self.assertAlmostEqual(dihedral_angle(p1, p4, p5, p6), np.deg2rad(60.82226))
-        self.assertAlmostEqual(dihedral_angle(p1, p4, p5, p7), np.deg2rad(-177.63641))
+        self.assertAlmostEqual(dihedral_angle(p0, p1, p2, p3), np.deg2rad(-71.21515),  places=5)
+        self.assertAlmostEqual(dihedral_angle(p0, p1, p4, p5), np.deg2rad(-171.94319),  places=5)
+        self.assertAlmostEqual(dihedral_angle(p1, p4, p5, p6), np.deg2rad(60.82226),  places=5)
+        self.assertAlmostEqual(dihedral_angle(p1, p4, p5, p7), np.deg2rad(-177.63641),  places=5)
 
 
 if __name__ == '__main__':
