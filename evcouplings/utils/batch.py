@@ -136,7 +136,8 @@ class ASubmitter(object, metaclass=APluginRegister):
     Interface for all submitters
     """
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def isBlocking(self):
         """
         Indicator whether the submitter is blocking or not
@@ -148,7 +149,8 @@ class ASubmitter(object, metaclass=APluginRegister):
         """
         raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def name(self):
         """
         The name of the submitter
@@ -227,23 +229,26 @@ class AClusterSubmitter(ASubmitter):
     Abstract subclass of a cluster submitter
     """
 
-    @abc.abstractproperty
     def submit_command(self):
         raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def monitor_command(self):
         raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def cancel_command(self):
         raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def resource_flags(self):
         raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def db(self):
         """
         The persistent DB to keep track of all submitted jobs and their status
@@ -255,7 +260,8 @@ class AClusterSubmitter(ASubmitter):
         """
         raise NotImplementedError
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def job_id_pattern(self):
         raise NotImplementedError
 
