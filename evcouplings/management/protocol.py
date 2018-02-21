@@ -1,7 +1,8 @@
 import tarfile
 import os
 
-from evcouplings.utils import valid_file, write_config_file, FINAL_CONFIG_SUFFIX
+from evcouplings.utils import valid_file, write_config_file, FINAL_CONFIG_SUFFIX, tempfile
+from evcouplings.utils.database import upload_job_results
 
 
 def protocol_zip(**kwargs):
@@ -29,8 +30,37 @@ def protocol_zip(**kwargs):
     return outcfg
 
 
+def protocol_upload_zip(**kwargs):
+
+    prefix = kwargs["prefix"]
+    incfg = kwargs
+
+    outcfg = {
+        **kwargs
+    }
+
+    with tempfile.NamedTemporaryFile as temp_file:
+
+        # create results archive
+        archive_file = temp_file.name
+        create_archive(incfg, outcfg, archive_file)
+
+        upload_job_results(outcfg, temp_file)
+
+    # delete selected output files if requested
+    outcfg = delete_outputs(incfg, outcfg)
+
+    # write final global state of pipeline
+    write_config_file(
+        prefix + FINAL_CONFIG_SUFFIX, outcfg
+    )
+
+    return outcfg
+
+
 PROTOCOLS = {
-    "zip": protocol_zip
+    "zip": protocol_zip,
+    "upload_zip": protocol_upload_zip
 }
 
 

@@ -6,7 +6,7 @@ Authors:
 """
 
 from sqlalchemy import (
-    Column, Integer, String, DateTime,
+    Column, Integer, String, DateTime, Binary,
     create_engine, func
 )
 from sqlalchemy.orm import sessionmaker
@@ -68,6 +68,8 @@ class ComputeJob(Base):
 
     # time the job finished running
     time_finished = Column(DateTime())
+
+    results = Column(Binary())
 
 
 def update_job_status(config, status=None, stage=None):
@@ -154,3 +156,72 @@ def update_job_status(config, status=None, stage=None):
 
     # close session again
     session.close()
+    return
+
+
+def upload_job_results(config, results):
+    """
+    Called when job is terminated succesfully --> uploads binary zip file to table
+
+    Parameters
+    ----------
+    config : dict-like
+        Job configuration dictionary. Accessed entries
+        are {
+            global : {prefix}
+            management: {database_uri, job_name}
+        }
+    results : binary,
+        zip like binary containing job results
+    """
+    # extract database information from job configuration
+    # (database URI and job id), as well as job prefix
+    mgmt = config.get("management", {})
+    uri = mgmt.get("database_uri", None)
+    job_name = mgmt.get("job_name", None)
+    prefix = config.get("global", {}).get("prefix", None)
+
+    # if we don't have these settings, cannot update job status
+    if uri is None or job_name is None:
+        return
+
+    # connect to DB and create session
+    engine = create_engine(uri)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    # make sure all tables are there in database
+    Base.metadata.create_all(bind=engine)
+
+    try:
+        # see if we can find the job in the database already
+        q = session.query(ComputeJob).filter_by(name=job_name)
+        num_rows = len(q.all())
+
+        # create new entry if not already existing
+        if num_rows == 0:
+            r = ComputeJob(
+                name=job_name,
+                prefix=prefix,
+                status="pending",
+            )
+            session.add(r)
+            session.commit()
+        else:
+            # can only be one row due to unique constraint
+            r = q.one()
+
+        r.results = results
+
+        # commit changes to database
+        session.commit()
+
+    except:
+        session.rollback()
+        raise
+
+    finally:
+        session.close()
+
+
+    return
