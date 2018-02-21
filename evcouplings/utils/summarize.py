@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 from evcouplings.utils.system import valid_file
 from evcouplings.utils.config import read_config_file, InvalidParameterError
-from evcouplings.utils.pipeline import FINAL_CONFIG_SUFFIX
+from evcouplings.utils import FINAL_CONFIG_SUFFIX
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 

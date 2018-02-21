@@ -1,11 +1,10 @@
 import tarfile
 import os
 
-from evcouplings.utils.pipeline import FINAL_CONFIG_SUFFIX
-from evcouplings.utils import valid_file, write_config_file
+from evcouplings.utils import valid_file, write_config_file, FINAL_CONFIG_SUFFIX
 
 
-def zip(**kwargs):
+def protocol_zip(**kwargs):
 
     prefix = kwargs["prefix"]
     incfg = kwargs
@@ -31,7 +30,7 @@ def zip(**kwargs):
 
 
 PROTOCOLS = {
-    "zip": zip
+    "zip": protocol_zip
 }
 
 

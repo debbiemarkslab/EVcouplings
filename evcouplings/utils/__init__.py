@@ -33,3 +33,6 @@ class SubmitterFactory(object, metaclass=ASubmitterFactory):
         """
         return [ASubmitter.registry.keys()]
 
+
+# suffix of file containing final output configuration of pipeline
+FINAL_CONFIG_SUFFIX = "_final.outcfg"

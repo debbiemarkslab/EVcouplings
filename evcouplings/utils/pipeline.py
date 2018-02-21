@@ -65,9 +65,6 @@ PIPELINES = {
     ]
 }
 
-# suffix of file containing final output configuration of pipeline
-FINAL_CONFIG_SUFFIX = "_final.outcfg"
-
 # suffix of file that will be generated if execution
 # is terminated externally (SIGINT, SIGTERM, ...)
 EXTENSION_TERMINATED = ".terminated"
