@@ -26,9 +26,6 @@ def protocol_zip(**kwargs):
 
 
 def protocol_upload_zip(**kwargs):
-
-    print("TESTEST")
-
     incfg = kwargs
 
     outcfg = {
