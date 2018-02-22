@@ -6,7 +6,7 @@ Authors:
 """
 
 from sqlalchemy import (
-    Column, Integer, String, DateTime, Binary,
+    Column, Integer, String, DateTime, LargeBinary,
     create_engine, func
 )
 from sqlalchemy.orm import sessionmaker
@@ -69,7 +69,7 @@ class ComputeJob(Base):
     # time the job finished running
     time_finished = Column(DateTime())
 
-    results = Column(Binary())
+    results = Column(LargeBinary())
 
 
 def update_job_status(config, status=None, stage=None):
@@ -145,15 +145,6 @@ def update_job_status(config, status=None, stage=None):
     # commit changes to database
     session.commit()
 
-    # TODO: remove eventually
-    y = [x.__dict__ for x in session.query(ComputeJob).filter_by(name=job_name).all()]
-    print()
-    print(y)
-    print()
-    # print(y["status"], y["stage"])
-    # print(json.dumps(y[0], indent=2))
-    # TODO: remove
-
     # close session again
     session.close()
     return
@@ -211,10 +202,9 @@ def upload_job_results(config, results):
             # can only be one row due to unique constraint
             r = q.one()
 
-        r.results = results
-
-        # commit changes to database
-        session.commit()
+        with open(results, "rb") as results_file:
+            r.results = results_file.read()
+            session.commit()
 
     except:
         session.rollback()
