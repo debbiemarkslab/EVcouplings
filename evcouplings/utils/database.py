@@ -213,5 +213,4 @@ def upload_job_results(config, results):
     finally:
         session.close()
 
-
     return
