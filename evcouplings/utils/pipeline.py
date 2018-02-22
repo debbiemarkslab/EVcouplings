@@ -65,6 +65,9 @@ PIPELINES = {
     ]
 }
 
+# suffix of file containing final output configuration of pipeline
+FINAL_CONFIG_SUFFIX = "_final.outcfg"
+
 # suffix of file that will be generated if execution
 # is terminated externally (SIGINT, SIGTERM, ...)
 EXTENSION_TERMINATED = ".terminated"
@@ -211,6 +214,11 @@ def execute(**config):
 
         # update global state with outputs of stage
         global_state = {**global_state, **outcfg}
+
+    # write final global state of pipeline
+    write_config_file(
+        prefix + FINAL_CONFIG_SUFFIX, global_state
+    )
 
     # set job status to done
     update_job_status(config, status=EStatus.DONE)
@@ -400,6 +408,7 @@ def app(**kwargs):
 
     # print final result configuration to stdout
     print(outcfg)
+
 
 if __name__ == '__main__':
     app()
