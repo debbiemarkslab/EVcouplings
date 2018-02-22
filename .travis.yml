@@ -1,38 +1,30 @@
 language: python
 python:
-  - '3.5'
-  - '3.6'
+- '3.5'
+- '3.6'
 before_install:
-  # https://conda.io/docs/travis.html
-  - sudo apt-get update
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  # Useful for debugging any issues with conda
-  - conda info -a
-
-  # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy numba pandas matplotlib
-  - source activate test-environment
+- sudo apt-get update
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
+  -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  -O miniconda.sh; fi
+- bash miniconda.sh -b -p $HOME/miniconda
+- export PATH="$HOME/miniconda/bin:$PATH"
+- hash -r
+- conda config --set always_yes yes --set changeps1 no
+- conda update -q conda
+- conda info -a
+- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy numba
+  pandas matplotlib
+- source activate test-environment
 install:
-  - python setup.py sdist --formats=zip -k
-  - find ./dist -iname "*.zip" -print0 | xargs -0 pip install
+- python setup.py sdist --formats=zip -k
+- find ./dist -iname "*.zip" -print0 | xargs -0 pip install
 script:
-  - python -m unittest discover -s test -p "Test*.py"
+- python -m unittest discover -s test -p "Test*.py"
 deploy:
   provider: pypi
   user: debbiemarkslab
   password:
-    secure: dNIatUYDKukXsDbak9r++FV3IAmRVVN3O4233Hx9BkT/1bmZumTYkZE+NpC8ooFCvSJf2eH0imZ2GebXm1eknF/NRZ4EWC1K7sjyBWLWxoLaYF3mWWSArsFe+kH/hQt9nNh0tp1+jcWW7TM6v21FtI8P88G3J4Rk5exuxyZC89r7Y33sF+bcata7aei4XXBeFgyvjCotAMUzwEwUM+0gETKlMbe5nZRZ8ZRPqAEP/Q4bBMVkexs8BhTt8RpgHQmJH4dTYmcM5/5Hkor2kcwPwrVhGdj+ayLqAGvNjyWF3h41x+ooBP+iLheGx9sW09sWr/dCzNwtr6KU5zNU1ibkppTUomwfKXWQOzvFXubjBuOraoc0PsA53RQ20N9d2HAzg25iPt4u+3mGHOFHTb5yHwLUOtPWem8Oal4LsKjVb/GGxzF0iYClT3j6NHc9RviLZp7l7smptY3Q9dRxdmQG+vAytM54qCvzl6Bydh1Fe25l3O97Je8ZIvaKfMMtgx4TrWyJODDtqdJVK0sg/rLHIQOlFR5Pc+XFqlJIedwGIBD9oHgCvHKyqmMokM5RINiQb0255DxNkaJ/tP1l5TN8Bxl00Xj6V4EpPbYA0FAh0+ZZhQSfrJwhKFrlt2rC4JdYQWpr0DMChbHRzqbH/PNRbKOOAYJduRazK///RABjkjU=
+    secure: tN4XBH5PfLsyQj4k048LqJJXOMlgVvmiOqjeJcviLlPAHLzsfg6yj/yLTo4tRzkeCcgRkP3fJQykZMZvfR5zMdz8amMapuOxqlFL6wE0wvOAgnvU2vtksmKP3Ym0Fnf1r3bgf0h7Roa2+LBcTfR+QPBmw/xEHjrH2LICS6yjHSnGdAN3VtYCBDMrJtnyklWMgKjq3hwMHrnTw4JKJNRC8pbk4sFBToZUE2peTgYk0aVGhlgAtBbFO3n2VvnPdq3PA/+LaeMA4UQdEhY0rTTxOyGkVWeiswGWuHxMsmDY/yZ3jkhEDdVCY67TqCrJ5+3FgianxPL2V/cyoWRCCHQte9PmdnpqFtiuZ+HjLV+WXRjxvThHTZdyWBlRKsPLXnJSt9VB1zWk2hKL7CF1Ac9gVs3C/olhm2Tsn9Pbrmz9ZQZvtWuf3mfjAljeR/ENvP3EGw4l7NR6rclmMRrGXtvNYyUclTvwcp0G28yYeCgSHEPq2iUkDMc/LQkwEzj1dnEGWXmjO5MUd3wMFwaGC2PsxaW963rJbrrQxxKSRCqQSuHBYC38INpYUjrpDViwo1RwQa9S9spZzCPF25xTm0TgTATF7RlTqbaQo/g1+tljUHDpp0276WgHn/xu6eNhr2i7pNmhZtpe56apENXe1EycS8+XVm9qyUbWtEBKYsDr4/I=
   on:
     tags: true
-
