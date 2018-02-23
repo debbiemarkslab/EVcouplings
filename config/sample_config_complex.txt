@@ -338,8 +338,8 @@ compare:
     # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
     # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent). 
     # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
-    first_pdb_search_method: jackhmmer
-    second_pdb_search_method: jackhmmer
+    first_pdb_alignment_method: jackhmmer
+    second_pdb_alignment_method: jackhmmer
     
     # Leave this parameter empty to use all PDB structures for given sequence_id, otherwise
     # will be limited to the given IDs (single value or list). Important: note that this acts only as a filter on the
