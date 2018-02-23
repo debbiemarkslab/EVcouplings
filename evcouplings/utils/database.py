@@ -221,7 +221,7 @@ def get_jobs_by_group_id(config, group_id):
 
     # make sure all required fields are defined
     if uri is None or group_id is None:
-        return []
+        return
 
     # connect to DB and create session
     engine = create_engine(uri)
@@ -253,7 +253,7 @@ def get_job_by_name(config, name):
 
     # make sure all required fields are defined
     if uri is None or name is None:
-        return []
+        return
 
     # connect to DB and create session
     engine = create_engine(uri)
