@@ -1,6 +1,4 @@
-import os
 import unittest
-import tempfile
 from unittest import TestCase
 from evcouplings.utils import *
 
