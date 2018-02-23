@@ -1,18 +1,24 @@
 import os
 import unittest
 from unittest import TestCase
+import evcouplings
 from evcouplings.utils import SubmitterFactory, Command
-from evcouplings.utils.app import app
 
 
 class TestSubmitter(TestCase):
+
+    def setUp(self):
+
+        self.module_path = os.path.dirname(evcouplings.__file__)
+        self.test_db = os.path.join("./", "test", "test.db")
+        self.test_submission = os.path.join("./", "test", "test_submission.txt")
 
     def test_submitter_factory_available(self):
         print(SubmitterFactory.available_methods())
 
     def test_submitter_factory_init(self):
         lsf = SubmitterFactory("lsf", blocking=True, db_path="test.db")
-        assert lsf.isBlocking == True
+        self.assertTrue(lsf.isBlocking)
 
     # def minimal_LSF_example(self):
     #     lsf = SubmitterFactory("lsf")
@@ -28,39 +34,39 @@ class TestSubmitter(TestCase):
     #     print(lsf.mointor(c))
 
     def test_local_submitter(self):
-        local = SubmitterFactory("local", blocking=True, db_path="./test/test.db")
-        c = Command("sleep 5 && touch ./test/test_submission.txt", name="test_sleep")
+        local = SubmitterFactory("local", blocking=True, db_path=self.test_db)
+        c = Command("sleep 1 && touch {}".format(self.test_submission), name="test_sleep")
 
         local.submit(c)
-        assert local.monitor(c) in ["done", "susp", "run", "pend"]
+        self.assertTrue(local.monitor(c) in ["done", "susp", "run", "pend"])
         local.join()
-        assert local.monitor(c) in ["done", "exit"]
-        assert os.path.exists("./test/test_submission.txt")
-        os.remove("./test/test_submission.txt")
-        os.remove("./test/test.db")
+        self.assertTrue(local.monitor(c) in ["done", "exit"])
+        self.assertTrue(os.path.exists(self.test_submission))
+        os.remove(self.test_submission)
+        os.remove(self.test_db)
 
     def test_local_cancel(self):
-        local = SubmitterFactory("local", blocking=True, db_path="./test/test.db")
-        c = Command("sleep 5 && touch ./test/test_submission.txt", name="test_sleep")
+        local = SubmitterFactory("local", blocking=True, db_path=self.test_db)
+        c = Command("sleep 1 && touch {}".format(self.test_submission), name="test_sleep")
 
         local.submit(c)
-        assert local.cancel(c)
-        os.remove("./test/test.db")
+        self.assertTrue(local.cancel(c))
+        os.remove(self.test_db)
 
     def test_local_dependency(self):
-        local = SubmitterFactory("local", blocking=True, db_path="./test/test.db")
-        c1 = Command("sleep 5 ", name="test_sleep")
-        c2 = Command("touch ./test/test_submission.txt", name="test_touch")
+        local = SubmitterFactory("local", blocking=True, db_path=self.test_db)
+        c1 = Command("sleep 1 ", name="test_sleep")
+        c2 = Command("sleep 1 && touch {}".format(self.test_submission), name="test_touch")
 
         local.submit(c1)
         local.submit(c2, dependent=c1)
         x = local.monitor(c2)
 
-        assert  x in ["susp", "pend"]
+        self.assertTrue(x in ["susp", "pend"])
         local.join()
-        assert os.path.exists("./test/test_submission.txt")
-        os.remove("./test/test_submission.txt")
-        os.remove("./test/test.db")
+        self.assertTrue(os.path.exists(self.test_submission))
+        os.remove(self.test_submission)
+        os.remove(self.test_db)
 
 
 if __name__ == '__main__':

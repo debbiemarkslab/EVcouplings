@@ -6,11 +6,11 @@ import numpy as np
 
 MONO_MODEL = "/Users/bs224/Downloads/monomer_test/couplings/RASH_HUMAN_b03.model"
 
+
 class TestUtilsHelpers(TestCase):
 
     def setUp(self):
         self.x = np.array([0.5, 0.2, 0.1, 0.1, 0.1])
-
 
     def test_entropy(self):
         """
