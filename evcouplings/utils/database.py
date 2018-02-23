@@ -34,11 +34,8 @@ class ComputeJob(Base):
     """
     __tablename__ = "runs"
 
-    # unique ID of this single compute job
-    id = Column(Integer, primary_key=True)
-
     # human-readable job name (must be unique)
-    name = Column(String(100), unique=True)
+    name = Column(String(100), primary_key=True)
 
     # job prefix
     prefix = Column(String(1024))
@@ -214,3 +211,107 @@ def upload_job_results(config, results):
         session.close()
 
     return
+
+
+def get_jobs_by_group_id(config, group_id):
+    # extract database information from job configuration
+    # (database URI and job id), as well as job prefix
+    mgmt = config.get("management", {})
+    uri = mgmt.get("database_uri", None)
+
+    # make sure all required fields are defined
+    if uri is None or group_id is None:
+        return []
+
+    # connect to DB and create session
+    engine = create_engine(uri)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    # make sure all tables are there in database
+    Base.metadata.create_all(bind=engine)
+
+    try:
+        # see if we can find the job in the database already
+        result = session.query(ComputeJob).filter(ComputeJob.group_id == group_id).all()
+
+    except:
+        session.rollback()
+        raise
+
+    finally:
+        session.close()
+
+    return result
+
+
+def get_job_by_name(config, name):
+    # extract database information from job configuration
+    # (database URI and job id), as well as job prefix
+    mgmt = config.get("management", {})
+    uri = mgmt.get("database_uri", None)
+
+    # make sure all required fields are defined
+    if uri is None or name is None:
+        return []
+
+    # connect to DB and create session
+    engine = create_engine(uri)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    # make sure all tables are there in database
+    Base.metadata.create_all(bind=engine)
+
+    try:
+        # see if we can find the job in the database already
+        result = session.query(ComputeJob.name,
+                               ComputeJob.status,
+                               ComputeJob.group_id,
+                               ComputeJob.time_started,
+                               ComputeJob.time_finished)\
+            .filter(ComputeJob.name == name)\
+            .one()
+
+    except:
+        session.rollback()
+        raise
+
+    finally:
+        session.close()
+
+    return result
+
+
+def get_zip_by_name(config, name):
+    # extract database information from job configuration
+    # (database URI and job id), as well as job prefix
+    mgmt = config.get("management", {})
+    uri = mgmt.get("database_uri", None)
+
+    # make sure all required fields are defined
+    if uri is None or name is None:
+        return []
+
+    # connect to DB and create session
+    engine = create_engine(uri)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    # make sure all tables are there in database
+    Base.metadata.create_all(bind=engine)
+
+    try:
+        # see if we can find the job in the database already
+        result = session.query(ComputeJob.results)\
+            .filter(ComputeJob.name == name)\
+            .one()
+
+    except:
+        session.rollback()
+        raise
+
+    finally:
+        session.close()
+
+    return result
