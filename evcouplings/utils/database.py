@@ -9,7 +9,7 @@ from sqlalchemy import (
     Column, Integer, String, DateTime, LargeBinary,
     create_engine, func
 )
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, load_only
 from sqlalchemy.ext.declarative import declarative_base
 
 # enumeration of possible job status values
@@ -233,13 +233,11 @@ def get_jobs_by_group_id(config, group_id):
 
     try:
         # see if we can find the job in the database already
-        result = session.query(ComputeJob.name,
-                               ComputeJob.prefix,
-                               ComputeJob.status,
-                               ComputeJob.group_id,
-                               ComputeJob.time_started,
-                               ComputeJob.time_finished)\
-            .filter(ComputeJob.group_id == group_id).all()
+
+        result = session.query(ComputeJob)\
+            .filter(ComputeJob.group_id == group_id) \
+            .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished"))\
+            .all()
 
     except:
         session.rollback()
@@ -271,13 +269,9 @@ def get_job_by_name(config, name):
 
     try:
         # see if we can find the job in the database already
-        result = session.query(ComputeJob.name,
-                               ComputeJob.prefix,
-                               ComputeJob.status,
-                               ComputeJob.group_id,
-                               ComputeJob.time_started,
-                               ComputeJob.time_finished)\
-            .filter(ComputeJob.name == name)\
+        result = session.query(ComputeJob)\
+            .filter(ComputeJob.name == name) \
+            .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished")) \
             .one()
 
     except:
@@ -310,7 +304,7 @@ def get_zip_by_name(config, name):
 
     try:
         # see if we can find the job in the database already
-        result = session.query(ComputeJob.results)\
+        result = session.query(ComputeJob)\
             .filter(ComputeJob.name == name)\
             .one()
 
