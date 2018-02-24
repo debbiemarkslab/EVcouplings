@@ -233,7 +233,13 @@ def get_jobs_by_group_id(config, group_id):
 
     try:
         # see if we can find the job in the database already
-        result = session.query(ComputeJob).filter(ComputeJob.group_id == group_id).all()
+        result = session.query(ComputeJob.name,
+                               ComputeJob.prefix,
+                               ComputeJob.status,
+                               ComputeJob.group_id,
+                               ComputeJob.time_started,
+                               ComputeJob.time_finished)\
+            .filter(ComputeJob.group_id == group_id).all()
 
     except:
         session.rollback()
@@ -266,6 +272,7 @@ def get_job_by_name(config, name):
     try:
         # see if we can find the job in the database already
         result = session.query(ComputeJob.name,
+                               ComputeJob.prefix,
                                ComputeJob.status,
                                ComputeJob.group_id,
                                ComputeJob.time_started,
