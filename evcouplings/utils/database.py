@@ -6,11 +6,13 @@ Authors:
 """
 
 from sqlalchemy import (
-    Column, Integer, String, DateTime, LargeBinary,
+    Column, String, DateTime, LargeBinary,
     create_engine, func
 )
 from sqlalchemy.orm import sessionmaker, load_only
 from sqlalchemy.ext.declarative import declarative_base
+
+from evcouplings.utils.config import InvalidParameterError, MissingParameterError
 
 # enumeration of possible job status values
 EStatus = (lambda **enums: type('Enum', (), enums))(
@@ -148,30 +150,16 @@ def update_job_status(config, status=None, stage=None):
 
 
 def upload_job_results(config, results):
-    """
-    Called when job is terminated succesfully --> uploads binary zip file to table
-
-    Parameters
-    ----------
-    config : dict-like
-        Job configuration dictionary. Accessed entries
-        are {
-            global : {prefix}
-            management: {database_uri, job_name}
-        }
-    results : binary,
-        zip like binary containing job results
-    """
     # extract database information from job configuration
     # (database URI and job id), as well as job prefix
-    mgmt = config.get("management", {})
-    uri = mgmt.get("database_uri", None)
-    job_name = mgmt.get("job_name", None)
-    prefix = config.get("global", {}).get("prefix", None)
+    uri = config.get("database_uri", None)
+    job_name = config.get("job_name", None)
 
     # if we don't have these settings, cannot update job status
     if uri is None or job_name is None:
-        return
+        raise MissingParameterError(
+            "[DATABASE] Missing 'database_uri' or 'job_name' parameters in incoming config"
+        )
 
     # connect to DB and create session
     engine = create_engine(uri)
@@ -183,24 +171,13 @@ def upload_job_results(config, results):
 
     try:
         # see if we can find the job in the database already
-        q = session.query(ComputeJob).filter_by(name=job_name)
-        num_rows = len(q.all())
+        q = session.query(ComputeJob).get(job_name)
 
-        # create new entry if not already existing
-        if num_rows == 0:
-            r = ComputeJob(
-                name=job_name,
-                prefix=prefix,
-                status="pending",
-            )
-            session.add(r)
-            session.commit()
-        else:
-            # can only be one row due to unique constraint
-            r = q.one()
+        if not q:
+            raise InvalidParameterError("Trying to update {} but it does not exist".format(job_name))
 
         with open(results, "rb") as results_file:
-            r.results = results_file.read()
+            q.results = results_file.read()
             session.commit()
 
     except:
@@ -216,12 +193,13 @@ def upload_job_results(config, results):
 def get_jobs_by_group_id(config, group_id):
     # extract database information from job configuration
     # (database URI and job id), as well as job prefix
-    mgmt = config.get("management", {})
-    uri = mgmt.get("database_uri", None)
+    uri = config.get("database_uri", None)
 
     # make sure all required fields are defined
     if uri is None or group_id is None:
-        return
+        raise MissingParameterError(
+            "[DATABASE] Missing 'database_uri' or 'job_name' parameters in incoming config"
+        )
 
     # connect to DB and create session
     engine = create_engine(uri)
@@ -252,12 +230,13 @@ def get_jobs_by_group_id(config, group_id):
 def get_job_by_name(config, name):
     # extract database information from job configuration
     # (database URI and job id), as well as job prefix
-    mgmt = config.get("management", {})
-    uri = mgmt.get("database_uri", None)
+    uri = config.get("database_uri", None)
 
     # make sure all required fields are defined
     if uri is None or name is None:
-        return
+        raise MissingParameterError(
+            "[DATABASE] Missing 'database_uri' or 'job_name' parameters in incoming config"
+        )
 
     # connect to DB and create session
     engine = create_engine(uri)
@@ -287,12 +266,13 @@ def get_job_by_name(config, name):
 def get_zip_by_name(config, name):
     # extract database information from job configuration
     # (database URI and job id), as well as job prefix
-    mgmt = config.get("management", {})
-    uri = mgmt.get("database_uri", None)
+    uri = config.get("database_uri", None)
 
     # make sure all required fields are defined
     if uri is None or name is None:
-        return []
+        raise MissingParameterError(
+            "[DATABASE] Missing 'database_uri' or 'job_name' parameters in incoming config"
+        )
 
     # connect to DB and create session
     engine = create_engine(uri)
