@@ -1240,11 +1240,11 @@ def enrichment_pymol_script(enrichment_table, output_file,
         ]
 
         # convert to fractions
-        color_list = [(x/255., y/255., z/255.) for x, y, z in color_list]
+        color_list = [(x / 255, y / 255, z / 255) for x, y, z in color_list]
 
         prior_boundary = 0
 
-        for idx,boundary in enumerate(boundary_list):
+        for idx, boundary in enumerate(boundary_list):
             t.loc[t.iloc[prior_boundary:boundary].index, "color"] = 'color{}'.format(idx)
             prior_boundary = boundary
 
@@ -1269,9 +1269,9 @@ def enrichment_pymol_script(enrichment_table, output_file,
 
         # for non-legacy mode, background color is the last color in the spectrum
         else:
-            for idx,c in enumerate(color_list):
-                f.write('set_color color{}, [{},{},{}]\n'.format(idx, c[0], c[1], c[2]))
-            f.write("color color{}{}\n".format(len(boundary_list)-1, chain_sel))
+            for idx, c in enumerate(color_list):
+                f.write("set_color color{}, [{},{},{}]\n".format(idx, c[0], c[1], c[2]))
+            f.write("color color{}{}\n".format(len(boundary_list) - 1, chain_sel))
         
         f.write("as cartoon{}\n".format(chain_sel))
 
