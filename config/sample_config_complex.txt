@@ -338,8 +338,8 @@ compare:
     # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
     # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent). 
     # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
-    first_pdb_search_method: jackhmmer
-    second_pdb_search_method: jackhmmer
+    first_pdb_alignment_method: jackhmmer
+    second_pdb_alignment_method: jackhmmer
     
     # Leave this parameter empty to use all PDB structures for given sequence_id, otherwise
     # will be limited to the given IDs (single value or list). Important: note that this acts only as a filter on the
@@ -482,5 +482,11 @@ tools:
     psipred: /groups/marks/software/runpsipred
     cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
     maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    
+    # the following two databases are exclusive to EVcomplex and need to be manually downloaded and saved locally
+    # then add the paths to your local copies of the database
+    # Download urls: 
+    # ena_genome_location_table: https://marks.hms.harvard.edu/evcomplex_databases/cds_pro_2017_02.txt
+    # uniprot_to_embl_table: https://marks.hms.harvard.edu/evcomplex_databases/idmapping_uniprot_embl_2017_02.txt 
     uniprot_to_embl_table: /groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
     ena_genome_location_table: /groups/marks/databases/complexes/ena/2017_02/cds_pro.txt

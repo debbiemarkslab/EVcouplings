@@ -50,10 +50,10 @@ class ComputeJob(Base):
     # be used to point to cloud locations, etc.
     location = Column(String(1024))
 
-    # job group this job is associated with
+    # the job_hash this job is associated with
     # (foreign key in group key if this table
     # is present, e.g. in webserver).
-    group_id = Column(Integer)
+    group_id = Column(String(32))
 
     # job status ("pending", "running", "finished",
     # "failed", "terminated")

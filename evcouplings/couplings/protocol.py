@@ -297,6 +297,9 @@ def standard(**kwargs):
     outcfg, ecs, segments = infer_plmc(**kwargs)
     model = CouplingsModel(outcfg["model_file"])
 
+    # add mixture model probability
+    ecs = pairs.add_mixture_probability(ecs)
+
     # following computations are mostly specific to monomer pipeline
     is_single_segment = segments is None or len(segments) == 1
     outcfg = {
