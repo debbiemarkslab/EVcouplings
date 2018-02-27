@@ -103,5 +103,3 @@ class AzureDumper(rdi.ResultsDumperInterface):
     def clear(self):
 
         self.block_blob_service.delete_container(self.nice_job_name)
-
-        pass
