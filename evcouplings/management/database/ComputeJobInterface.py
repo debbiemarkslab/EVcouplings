@@ -16,20 +16,17 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
         self.database_uri = self.management.get("database_uri")
         assert self.database_uri is not None, "database_uri must be defined"
 
-        self.job_name = self.config.get("job_name")
-        assert self.job_name is not None, "your config must contain a job_name"
+        self.job_name = self.management.get("job_name")
+        assert self.job_name is not None, "config.management must contain a job_name"
 
-    # def write_tar(self):
-    #     raise NotImplementedError
-    #
-    # def read_tar(self):
-    #     raise NotImplementedError
-    #
-    # def write_files(self):
-    #     raise NotImplementedError
-    #
-    # def write_file(self, file_path):
-    #     raise NotImplementedError
-    #
-    # def clear(self):
-    #     raise NotImplementedError
+        self.group_id = self.management.get("job_group")
+        assert self.group_id is not None, "config.management must contain a job_group"
+
+    def update_job_status(self, status=None, stage=None):
+        raise NotImplementedError
+
+    def get_jobs_from_group(self):
+        raise NotImplementedError
+
+    def get_job(self):
+        raise NotImplementedError

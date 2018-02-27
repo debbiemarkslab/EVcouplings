@@ -4,9 +4,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import sessionmaker, load_only
 from sqlalchemy.ext.declarative import declarative_base
-
-from evcouplings.utils import EStatus
-from evcouplings.utils.config import MissingParameterError
 import evcouplings.management.database.ComputeJobInterface as cji
 
 
@@ -24,10 +21,6 @@ class _ComputeJob(_Base):
 
     # human-readable job name (must be unique)
     name = Column(String(100), primary_key=True)
-
-    # location - not used right now, but could
-    # be used to point to cloud locations, etc.
-    location = Column(String(1024))
 
     # the job_hash this job is associated with
     # (foreign key in group key if this table
@@ -83,8 +76,7 @@ class ComputeJobSQL(cji.ComputeJobInterface):
         if num_rows == 0:
             r = _ComputeJob(
                 name=self.job_name,
-                status=EStatus.PEND,
-                stage="unknown"
+                group_id=self.job_group
             )
             session.add(r)
             session.commit()
@@ -116,19 +108,8 @@ class ComputeJobSQL(cji.ComputeJobInterface):
         return
 
     def get_job(self):
-        # extract database information from job configuration
-        # (database URI and job id), as well as job prefix
-        uri = self.config.get("database_uri", None)
-        name = self.config.get("management",{}).get("job_name")
-
-        # make sure all required fields are defined
-        if uri is None or name is None:
-            raise MissingParameterError(
-                "[DATABASE] Missing 'database_uri' or 'job_name' parameters in incoming config"
-            )
-
         # connect to DB and create session
-        engine = create_engine(uri)
+        engine = create_engine(self.database_uri)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -138,7 +119,7 @@ class ComputeJobSQL(cji.ComputeJobInterface):
         try:
             # see if we can find the job in the database already
             result = session.query(_ComputeJob)\
-                .filter(_ComputeJob.name == name) \
+                .filter(_ComputeJob.name == self.job_name) \
                 .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished")) \
                 .one()
 
@@ -151,3 +132,27 @@ class ComputeJobSQL(cji.ComputeJobInterface):
 
         return result
 
+    def get_jobs_from_group(self):
+        # connect to DB and create session
+        engine = create_engine(self.database_uri)
+        Session = sessionmaker(bind=engine)
+        session = Session()
+
+        # make sure all tables are there in database
+        _Base.metadata.create_all(bind=engine)
+
+        try:
+            # see if we can find the job in the database already
+            result = session.query(_ComputeJob)\
+                .filter(_ComputeJob.group_id == self.group_id) \
+                .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished")) \
+                .all()
+
+        except:
+            session.rollback()
+            raise
+
+        finally:
+            session.close()
+
+        return result
