@@ -25,9 +25,10 @@ from evcouplings.utils.config import (
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources
 )
-from evcouplings.utils.database import (
-    update_job_status, EStatus
+from evcouplings.management.database.ComputeJobSQL import (
+    update_job_status
 )
+from evcouplings.management.database import EStatus
 
 import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp

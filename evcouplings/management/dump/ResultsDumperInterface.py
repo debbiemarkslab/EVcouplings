@@ -9,7 +9,7 @@ class ResultsDumperInterface(object, metaclass=abc.ABCMeta):
     def write_tar(self):
         raise NotImplementedError
 
-    def read_tar(self):
+    def tar_path(self):
         raise NotImplementedError
 
     def write_files(self):

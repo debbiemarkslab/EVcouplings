@@ -39,12 +39,14 @@ class AzureDumper(rdi.ResultsDumperInterface):
         # If that's none too, fail.
         self.archive = self.parameters.get("archive", self.config.get("archive"))
 
-    def write_tar(self, tar_file=temp()):
+    def write_tar(self):
         assert self.archive is not None, "you must define a list of files to be archived"
 
         # if no output keys are requested, nothing to do
         if self.archive is None or len(self.archive) == 0:
             return
+
+        tar_file = temp()
 
         # create archive
         with tarfile.open(tar_file, "w:gz") as tar:
@@ -74,7 +76,9 @@ class AzureDumper(rdi.ResultsDumperInterface):
             content_settings=ContentSettings(content_type='application/gzip')
         )
 
-    def read_tar(self):
+        return self.block_blob_service.make_blob_url(self.nice_job_name, self.job_name + ".tar.gz")
+
+    def tar_path(self):
         temp_file = temp()
         self.block_blob_service.get_blob_to_path(self.nice_job_name, self.job_name + ".tar.gz", temp_file)
 
