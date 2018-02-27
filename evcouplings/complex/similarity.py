@@ -32,8 +32,7 @@ def read_species_annotation_table(annotation_file):
     Returns
     -------
     pd.DataFrame
-        the annotation dataframe with an additional column
-        called species. 
+        an annotation dataframe with columns id, species, and annotation
     """
     data = pd.read_csv(annotation_file, dtype=str)
 
@@ -42,18 +41,18 @@ def read_species_annotation_table(annotation_file):
 
     # Determine whether to extract based on the "OS" field
     # or the "Tax" field. Generally, OS is for Uniprot
-    # and "Tax" is for Uniref
+    annotation_column = SPECIES_ANNOTATION_COLUMNS[0]
+
     for column in SPECIES_ANNOTATION_COLUMNS:
-        # if this column contains non-null values
-        if data[column].notnull().any():
+        # if this column contains more non-null values
+        if sum(data[column].notnull()) > sum(data[annotation_column].notnull()):
             # use that column to extract data
             annotation_column = column
-            break
 
     # creates a new column called species with the species annotations
     data.loc[:, "species"] = data.loc[:, annotation_column]
 
-    return data
+    return data[["id","name","species"]]
 
 
 def most_similar_by_organism(similarities, id_to_organism):
@@ -84,11 +83,12 @@ def most_similar_by_organism(similarities, id_to_organism):
     # find the most similar in every organism
     most_similar_in_species = data.sort_values(by="identity_to_query").groupby("species").last()
     most_similar_in_species["species"] = most_similar_in_species.index
+    most_similar_in_species = most_similar_in_species.reset_index(drop=True)
 
     return most_similar_in_species
 
 
-def find_paralogs(target_id, annotation_data, identity_threshold):
+def find_paralogs(target_id, id_to_organism, similarities, identity_threshold):
     """
     Finds all the sequences in the alignment that originate
     from the same species as the target_id, if those sequences
@@ -99,10 +99,10 @@ def find_paralogs(target_id, annotation_data, identity_threshold):
     ----------
     target_id : str
         Full identifier of the query sequence
-    annotation_data : pd.DataFrame
-        With columns id, species, identity_to_query.
-        The column species contains the species annotation to use. 
-        The column identity_to_query contains the prcent identity to the target id.
+    similarities : pd.DataFrame
+        The contents of identities.csv
+    id_to_organism :  pd.DataFrame
+        The contents of annotation.csv
     identity_threshold : float
         Sequences above this identity to the query are not considered paralogs
 
@@ -119,7 +119,7 @@ def find_paralogs(target_id, annotation_data, identity_threshold):
     # get all the rows that have an id that contains the
     # query id. This includes the focus sequence and its hit to
     # itself in the database.
-
+    annotation_data = similarities.merge(id_to_organism, on="id")
     contains_annotation = [base_query_id in x for x in annotation_data.id]
     query_hits = annotation_data.loc[contains_annotation , :]
     # get the species annotation for the query sequence
