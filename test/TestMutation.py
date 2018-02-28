@@ -32,69 +32,69 @@ class TestMutation(TestCase):
             "{}/mutate/RASH_HUMAN_b03_single_mutant_matrix.csv".format(FETCHED_PATH)
         )
 
-    #
-    # def test_extract_mutations_normal(self):
-    #     """
-    #     tests whether extract mutations correctly separates mutation strings
-    #     :return:
-    #     """
-    #     mutation_string = "A143K,M100K"
-    #     mutation_target = [
-    #         (143, "A", "K"),
-    #         (100, "M", "K")
-    #     ]
-    #     mutations = extract_mutations(mutation_string)
-    #     self.assertEqual(mutations, mutation_target)
-    #
-    #
-    # def test_extract_mutations_null_input(self):
-    #     """
-    #     test whether extract mutations returns nothing if given an incorrect string
-    #     :return:
-    #     """
-    #     mutation_string = ""
-    #     mutation_target = []
-    #     mutations = extract_mutations(mutation_string)
-    #     self.assertEqual(mutations, mutation_target)
-    #
-    #
-    # def test_extract_mutations_wt(self):
-    #     """
-    #     test whether extract mutations returns nothing if given an incorrect string
-    #     :return:
-    #     """
-    #     mutation_string = "wt"
-    #     mutation_target = []
-    #     mutations = extract_mutations(mutation_string)
-    #     self.assertEqual(mutations, mutation_target)
-    #
-    #
-    # def test_predict_mutation_table(self):
-    #     """
-    #     tests whether predict mutation table returns a correct table of mutations
-    #     :return:
-    #     """
-    #     singles = self.singles.drop("prediction_independent",axis=1)
-    #
-    #     _singles = predict_mutation_table(
-    #         self.c0, singles, output_column="prediction_independent"
-    #     )
-    #
-    #     pd.testing.assert_frame_equal(self.singles, _singles)
-    #
-    #
-    # def test_single_mutant_matrix(self):
-    #     """
-    #     tests whether single mutant matrix returns a pd.DataFrame
-    #     :return:
-    #     """
-    #     _singles = single_mutant_matrix(
-    #         self.c, output_column="prediction_epistatic"
-    #     )
-    #
-    #     singles = self.singles.drop("prediction_independent",axis=1)
-    #
-    #     pd.testing.assert_frame_equal(singles, _singles)
+
+    def test_extract_mutations_normal(self):
+        """
+        tests whether extract mutations correctly separates mutation strings
+        :return:
+        """
+        mutation_string = "A143K,M100K"
+        mutation_target = [
+            (143, "A", "K"),
+            (100, "M", "K")
+        ]
+        mutations = extract_mutations(mutation_string)
+        self.assertEqual(mutations, mutation_target)
+
+
+    def test_extract_mutations_null_input(self):
+        """
+        test whether extract mutations returns nothing if given an incorrect string
+        :return:
+        """
+        mutation_string = ""
+        mutation_target = []
+        mutations = extract_mutations(mutation_string)
+        self.assertEqual(mutations, mutation_target)
+
+
+    def test_extract_mutations_wt(self):
+        """
+        test whether extract mutations returns wt value if given "wt" string
+        :return:
+        """
+        mutation_string = "wt"
+        mutation_target = []
+        mutations = extract_mutations(mutation_string)
+        self.assertEqual(mutations, mutation_target)
+
+
+    def test_predict_mutation_table(self):
+        """
+        tests whether predict mutation table returns a correct table of mutations
+        :return:
+        """
+        singles = self.singles.drop("prediction_independent",axis=1)
+
+        _singles = predict_mutation_table(
+            self.c0, singles, output_column="prediction_independent"
+        )
+
+        pd.testing.assert_frame_equal(self.singles, _singles)
+
+
+    def test_single_mutant_matrix(self):
+        """
+        tests whether single mutant matrix returns the correct pd.DataFrame
+        :return:
+        """
+        _singles = single_mutant_matrix(
+            self.c, output_column="prediction_epistatic"
+        )
+
+        singles = self.singles.drop("prediction_independent",axis=1)
+
+        pd.testing.assert_frame_equal(singles, _singles)
 
     def test_split_mutants_single(self):
         """
