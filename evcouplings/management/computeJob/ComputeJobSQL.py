@@ -18,7 +18,7 @@ class _ComputeJob(_Base):
     (these are stored in config file to keep table schema
     stable).
     """
-    __tablename__ = "runs"
+    __tablename__ = "compute_jobs"
 
     # human-readable job name (must be unique)
     name = Column(String(100), primary_key=True)

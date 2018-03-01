@@ -8,9 +8,9 @@ DUMPERS = {
 
 
 def get_dumper(config):
-    dumper = config.get("dumper").get("location")
-
-    if dumper is None:
-        dumper = "local"
+    # Fallback mechanism: if management not defined, or location in dumper not defined: use local
+    dumper = config\
+        .get("dumper", {})\
+        .get("location", "local")
 
     return DUMPERS.get(dumper)(config)
