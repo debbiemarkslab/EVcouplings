@@ -43,6 +43,10 @@ def protocol_web(**kwargs):
 
 
 PROTOCOLS = {
+    # backwards compatibility
+    None: protocol_standard,
+    # backwards compatibility
+
     "standard": protocol_standard,
     "web": protocol_web,
 }
