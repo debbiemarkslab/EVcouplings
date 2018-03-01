@@ -130,21 +130,10 @@ class ComputeJobSQL(cji.ComputeJobInterface):
         # make sure all tables are there in database
         _Base.metadata.create_all(bind=engine)
 
-        try:
-            # see if we can find the job in the database already
-            result = session.query(_ComputeJob)\
-                .filter(_ComputeJob.name == self.job_name) \
-                .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished")) \
-                .one()
-
-        except:
-            session.rollback()
-            raise
-
-        finally:
-            session.close()
-
-        return result
+        return session.query(_ComputeJob) \
+            .filter(_ComputeJob.name == self.job_name) \
+            .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished")) \
+            .one()
 
     def get_jobs_from_group(self):
         # connect to DB and create session
@@ -155,18 +144,7 @@ class ComputeJobSQL(cji.ComputeJobInterface):
         # make sure all tables are there in database
         _Base.metadata.create_all(bind=engine)
 
-        try:
-            # see if we can find the job in the database already
-            result = session.query(_ComputeJob)\
-                .filter(_ComputeJob.group_id == self.group_id) \
-                .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished")) \
-                .all()
-
-        except:
-            session.rollback()
-            raise
-
-        finally:
-            session.close()
-
-        return result
+        return session.query(_ComputeJob) \
+            .filter(_ComputeJob.group_id == self.group_id) \
+            .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished")) \
+            .all()
