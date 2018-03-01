@@ -12,6 +12,9 @@ class ResultsDumperInterface(object, metaclass=abc.ABCMeta):
     def tar_path(self):
         raise NotImplementedError
 
+    def download_tar(self):
+        raise NotImplementedError
+
     def write_files(self):
         raise NotImplementedError
 

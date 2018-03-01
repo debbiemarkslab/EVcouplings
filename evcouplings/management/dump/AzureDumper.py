@@ -79,6 +79,9 @@ class AzureDumper(rdi.ResultsDumperInterface):
         return self.block_blob_service.make_blob_url(self.nice_job_name, self.job_name + ".tar.gz")
 
     def tar_path(self):
+        return self.block_blob_service.make_blob_url(self.nice_job_name, self.job_name + ".tar.gz")
+
+    def download_tar(self):
         temp_file = temp()
         self.block_blob_service.get_blob_to_path(self.nice_job_name, self.job_name + ".tar.gz", temp_file)
 
@@ -105,5 +108,4 @@ class AzureDumper(rdi.ResultsDumperInterface):
         pass
 
     def clear(self):
-
         self.block_blob_service.delete_container(self.nice_job_name)

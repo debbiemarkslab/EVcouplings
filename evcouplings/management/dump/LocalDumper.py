@@ -56,6 +56,10 @@ class LocalDumper(rdi.ResultsDumperInterface):
     def tar_path(self):
         return self.storage_location + ".tar.gz"
 
+    def download_tar(self):
+        # In the case of a local dumper, this is a null operation
+        return self.tar_path()
+
     def write_file(self, file_path):
         assert file_path is not None, "You must pass the location of a file"
 
