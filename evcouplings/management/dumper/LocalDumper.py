@@ -1,6 +1,6 @@
 import tarfile
 import os
-import evcouplings.management.dump.ResultsDumperInterface as rdi
+import evcouplings.management.dumper.ResultsDumperInterface as rdi
 from evcouplings.utils import valid_file
 from shutil import copyfile, rmtree
 

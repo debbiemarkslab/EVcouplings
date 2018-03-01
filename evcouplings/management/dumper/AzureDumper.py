@@ -1,6 +1,6 @@
 import tarfile
 import os
-import evcouplings.management.dump.ResultsDumperInterface as rdi
+import evcouplings.management.dumper.ResultsDumperInterface as rdi
 from azure.storage.blob import BlockBlobService, ContentSettings, PublicAccess
 from evcouplings.utils import valid_file, temp
 

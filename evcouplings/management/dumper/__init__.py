@@ -1,5 +1,5 @@
-from evcouplings.management.dump.AzureDumper import AzureDumper
-from evcouplings.management.dump.LocalDumper import LocalDumper
+from evcouplings.management.dumper.AzureDumper import AzureDumper
+from evcouplings.management.dumper.LocalDumper import LocalDumper
 
 DUMPERS = {
     "local": LocalDumper,

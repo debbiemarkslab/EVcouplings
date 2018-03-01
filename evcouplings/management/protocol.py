@@ -1,7 +1,7 @@
 import tarfile
 import os
 
-from evcouplings.management.dump import get_dumper
+from evcouplings.management.dumper import get_dumper
 
 
 def protocol_standard(**kwargs):
