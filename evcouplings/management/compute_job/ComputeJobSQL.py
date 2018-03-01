@@ -4,7 +4,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import sessionmaker, load_only
 from sqlalchemy.ext.declarative import declarative_base
-from evcouplings.management.computeJob.ComputeJobInterface import ComputeJobInterface
+from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface
 import datetime
 
 

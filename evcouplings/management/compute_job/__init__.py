@@ -1,5 +1,5 @@
-from evcouplings.management.computeJob.ComputeJobSQL import ComputeJobSQL
-from evcouplings.management.computeJob.ComputeJobStdout import ComputeJobStdout
+from evcouplings.management.compute_job.ComputeJobSQL import ComputeJobSQL
+from evcouplings.management.compute_job.ComputeJobStdout import ComputeJobStdout
 
 EStatus = (lambda **enums: type('Enum', (), enums))(
     INIT="initialized",

@@ -1,4 +1,4 @@
-from evcouplings.management.computeJob.ComputeJobInterface import ComputeJobInterface
+from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface
 
 
 class ComputeJobStdout(ComputeJobInterface):

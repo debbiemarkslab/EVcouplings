@@ -25,8 +25,8 @@ from evcouplings.utils.config import (
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources
 )
-from evcouplings.management.computeJob import get_compute_job_tracker
-from evcouplings.management.computeJob import EStatus
+from evcouplings.management.compute_job import get_compute_job_tracker
+from evcouplings.management.compute_job import EStatus
 
 import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp
