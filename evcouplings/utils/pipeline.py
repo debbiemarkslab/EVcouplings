@@ -25,10 +25,8 @@ from evcouplings.utils.config import (
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources
 )
-from evcouplings.management.database.ComputeJobSQL import (
-    update_job_status
-)
-from evcouplings.management.database import EStatus
+from evcouplings.management.computeJob import get_compute_job_tracker
+from evcouplings.management.computeJob import EStatus
 
 import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp
@@ -136,7 +134,8 @@ def execute(**config):
     num_stages_to_run = len(stages)
 
     # set job status to running
-    update_job_status(config, status=EStatus.RUN)
+    compute_job_tracker = get_compute_job_tracker(config)
+    compute_job_tracker.update_job_status(status=EStatus.RUN)
 
     # iterate through individual stages
     for (stage, runner, key_prefix) in pipeline:
@@ -157,7 +156,7 @@ def execute(**config):
         stage_outcfg = "{}_{}.outcfg".format(stage_prefix, stage)
 
         # update current stage of job
-        update_job_status(config, stage=stage)
+        compute_job_tracker.update_job_status(stage=stage)
 
         # check if stage should be executed
         if stage in stages:
@@ -222,7 +221,7 @@ def execute(**config):
     )
 
     # set job status to done
-    update_job_status(config, status=EStatus.DONE)
+    compute_job_tracker.update_job_status(status=EStatus.DONE)
 
     return global_state
 
@@ -311,11 +310,12 @@ def execute_wrapped(**config):
     outcfg : dict
         Global output state of pipeline
     """
+    compute_job_tracker = get_compute_job_tracker(config)
     # make sure the prefix in configuration is valid
     try:
         prefix = verify_prefix(**config)
     except Exception:
-        update_job_status(config, status=EStatus.TERM)
+        compute_job_tracker.update_job_status(status=EStatus.TERM)
         raise
 
     # delete terminated/failed flags from previous
@@ -332,7 +332,7 @@ def execute_wrapped(**config):
     # (needs config for database access)
     def _handler(signal_, frame):
         # set job status to terminated in database
-        update_job_status(config, status=EStatus.TERM)
+        compute_job_tracker.update_job_status(status=EStatus.TERM)
 
         # create file flag that job was terminated
         with open(prefix + ".terminated", "w") as f:
@@ -360,7 +360,7 @@ def execute_wrapped(**config):
 
     except Exception as e:
         # set status in database to failed
-        update_job_status(config, status=EStatus.FAIL)
+        compute_job_tracker.update_job_status(status=EStatus.FAIL)
 
         # create failed file flag
         with open(prefix + ".failed", "w") as f:

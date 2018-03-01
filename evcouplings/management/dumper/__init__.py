@@ -13,4 +13,4 @@ def get_dumper(config):
     if dumper is None:
         dumper = "local"
 
-    return DUMPERS.get(dumper)
+    return DUMPERS.get(dumper)(config)

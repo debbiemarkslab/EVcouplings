@@ -1,4 +1,4 @@
-import evcouplings.management.database.ComputeJobInterface as cji
+import evcouplings.management.computeJob.ComputeJobInterface as cji
 
 
 class ComputeJobStdout(cji.ComputeJobInterface):
