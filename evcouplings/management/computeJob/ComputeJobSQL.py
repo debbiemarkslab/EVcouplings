@@ -4,7 +4,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import sessionmaker, load_only
 from sqlalchemy.ext.declarative import declarative_base
-import evcouplings.management.computeJob.ComputeJobInterface as cji
+from evcouplings.management.computeJob.ComputeJobInterface import ComputeJobInterface
 import datetime
 
 
@@ -43,7 +43,7 @@ class _ComputeJob(_Base):
     updated_at = Column(DateTime(), default=datetime.datetime.now)
 
 
-class ComputeJobSQL(cji.ComputeJobInterface):
+class ComputeJobSQL(ComputeJobInterface):
 
     def __init__(self, config):
         super(ComputeJobSQL, self).__init__(config)

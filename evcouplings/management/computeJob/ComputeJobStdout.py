@@ -1,7 +1,7 @@
-import evcouplings.management.computeJob.ComputeJobInterface as cji
+from evcouplings.management.computeJob.ComputeJobInterface import ComputeJobInterface
 
 
-class ComputeJobStdout(cji.ComputeJobInterface):
+class ComputeJobStdout(ComputeJobInterface):
 
     def __init__(self, config):
         super(ComputeJobStdout, self).__init__(config)

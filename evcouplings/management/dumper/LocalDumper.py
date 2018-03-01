@@ -1,12 +1,12 @@
 import tarfile
 import os
-import evcouplings.management.dumper.ResultsDumperInterface as rdi
+from evcouplings.management.dumper.ResultsDumperInterface import ResultsDumperInterface
 from evcouplings.utils import valid_file
 from shutil import copyfile, rmtree
 
 
 # From https://docs.microsoft.com/en-us/azure/storage/blobs/storage-python-how-to-use-blob-storage
-class LocalDumper(rdi.ResultsDumperInterface):
+class LocalDumper(ResultsDumperInterface):
 
     def __init__(self, config):
         super(LocalDumper, self).__init__(config)

@@ -1,12 +1,12 @@
 import tarfile
 import os
-import evcouplings.management.dumper.ResultsDumperInterface as rdi
+from evcouplings.management.dumper.ResultsDumperInterface import ResultsDumperInterface
 from azure.storage.blob import BlockBlobService, ContentSettings, PublicAccess
 from evcouplings.utils import valid_file, temp
 
 
 # From https://docs.microsoft.com/en-us/azure/storage/blobs/storage-python-how-to-use-blob-storage
-class AzureDumper(rdi.ResultsDumperInterface):
+class AzureDumper(ResultsDumperInterface):
 
     def __init__(self, config):
         super(AzureDumper, self).__init__(config)
