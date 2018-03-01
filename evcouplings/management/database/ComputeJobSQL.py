@@ -47,6 +47,24 @@ class ComputeJobSQL(cji.ComputeJobInterface):
     def __init__(self, config):
         super(ComputeJobSQL, self).__init__(config)
 
+        # Get things from management
+        self.management = self.config.get("management")
+        assert self.management is not None, "You must pass a full config file with a management field"
+
+        self.job_name = self.management.get("job_name")
+        assert self.job_name is not None, "config.management must contain a job_name"
+
+        self.group_id = self.management.get("job_group")
+        assert self.group_id is not None, "config.management must contain a job_group"
+
+        # Get things from management.job_database (this is where connection string + db type live)
+        self.job_database = self.management.get("job_database")
+        assert self.job_database is not None, \
+            "You must define job_database parameters in the management section of the config!"
+
+        self.database_uri = self.job_database.get("database_uri")
+        assert self.database_uri is not None, "database_uri must be defined"
+
     def update_job_status(self, status=None, stage=None):
         """
         Update job status based on configuration and
