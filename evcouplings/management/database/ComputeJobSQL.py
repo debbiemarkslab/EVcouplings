@@ -1,10 +1,11 @@
 from sqlalchemy import (
     Column, String, DateTime,
-    create_engine, func
+    create_engine
 )
 from sqlalchemy.orm import sessionmaker, load_only
 from sqlalchemy.ext.declarative import declarative_base
 import evcouplings.management.database.ComputeJobInterface as cji
+import datetime
 
 
 _Base = declarative_base()
@@ -36,10 +37,10 @@ class _ComputeJob(_Base):
     stage = Column(String(50))
 
     # time the job started running
-    time_started = Column(DateTime())
+    created_at = Column(DateTime(), default=datetime.datetime.now)
 
     # time the job finished running
-    time_finished = Column(DateTime())
+    updated_at = Column(DateTime(), default=datetime.datetime.now)
 
 
 class ComputeJobSQL(cji.ComputeJobInterface):
@@ -86,44 +87,39 @@ class ComputeJobSQL(cji.ComputeJobInterface):
         # make sure all tables are there in database
         _Base.metadata.create_all(bind=engine)
 
-        # see if we can find the job in the database already
-        q = session.query(_ComputeJob).filter_by(name=self.job_name)
-        num_rows = len(q.all())
+        try:
+            # see if we can find the job in the database already
+            q = session.query(_ComputeJob).get(self.job_name)
 
-        # create new entry if not already existing
-        if num_rows == 0:
-            r = _ComputeJob(
-                name=self.job_name,
-                group_id=self.job_group
-            )
-            session.add(r)
+            # create new entry if not already existing
+            if q is None:
+                q = _ComputeJob(
+                    name=self.job_name,
+                    group_id=self.job_group
+                )
+                session.commit()
+
+            # if status is given, update
+            if status is not None:
+                q.status = status
+
+            # if stage is given, update
+            if stage is not None:
+                q.stage = stage
+
+            # update finish time (i.e. final finish
+            # time when job status is set for the last time)
+            q.updated_at = datetime.datetime.now
+
+            # commit changes to database
+            session.add(q)
             session.commit()
-        else:
-            # can only be one row due to unique constraint
-            r = q.one()
+        except:
+            session.rollback()
+            raise
 
-        # if status is given, update
-        if status is not None:
-            r.status = status
-
-        # if stage is given, update
-        if stage is not None:
-            r.stage = stage
-
-        # if start time has not been set yet, do so
-        if r.time_started is None:
-            r.time_started = func.now()
-
-        # update finish time (i.e. final finish
-        # time when job status is set for the last time)
-        r.time_finished = func.now()
-
-        # commit changes to database
-        session.commit()
-
-        # close session again
-        session.close()
-        return
+        finally:
+            session.close()
 
     def get_job(self):
         # connect to DB and create session
