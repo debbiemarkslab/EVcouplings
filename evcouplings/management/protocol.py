@@ -1,6 +1,4 @@
-import tarfile
 import os
-
 from evcouplings.management.dumper import get_dumper
 
 
@@ -24,8 +22,29 @@ def protocol_standard(**kwargs):
     return outcfg
 
 
+def protocol_web(**kwargs):
+
+    incfg = kwargs
+
+    outcfg = {
+        **kwargs
+    }
+
+    dumper = get_dumper(incfg)
+
+    tar_location = dumper.write_tar()
+
+    outcfg["archive_file"] = tar_location
+
+    # delete selected output files if requested
+    outcfg = delete_outputs(incfg, outcfg)
+
+    return outcfg
+
+
 PROTOCOLS = {
     "standard": protocol_standard,
+    "web": protocol_web,
 }
 
 
