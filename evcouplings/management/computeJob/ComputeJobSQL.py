@@ -59,11 +59,11 @@ class ComputeJobSQL(cji.ComputeJobInterface):
         assert self.group_id is not None, "config.management must contain a job_group"
 
         # Get things from management.job_database (this is where connection string + db type live)
-        self.job_database = self.management.get("job_database")
-        assert self.job_database is not None, \
+        self.compute_job = self.management.get("compute_job")
+        assert self.compute_job is not None, \
             "You must define job_database parameters in the management section of the config!"
 
-        self.database_uri = self.job_database.get("database_uri")
+        self.database_uri = self.compute_job.get("database_uri")
         assert self.database_uri is not None, "database_uri must be defined"
 
     def update_job_status(self, status=None, stage=None):

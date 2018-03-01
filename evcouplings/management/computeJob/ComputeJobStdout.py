@@ -8,8 +8,7 @@ class ComputeJobStdout(cji.ComputeJobInterface):
 
         # Fallback: if no management section is defined, this will just log current status for job
         self.management = self.config.get("management", {
-            "job_name": "Current job",
-            "job_group": "unknown"
+            "job_name": "Current job"
         })
 
         self.job_name = self.management.get("job_name", "Current job")
