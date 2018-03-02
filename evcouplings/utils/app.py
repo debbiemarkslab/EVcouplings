@@ -235,6 +235,7 @@ def unroll_config(config):
 
             # apply subconfig delta
             # (assuming parameters are nested in two layers)
+            # TODO: extend this recursively + make sure to distinguish at least between three types: nested objects, arrays and simple values
             for section in delta_config:
                 for param, value in delta_config[section].items():
                     sub_config[section][param] = value
