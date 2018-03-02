@@ -229,7 +229,9 @@ def unroll_config(config):
             sub_config["global"]["prefix"] = sub_prefix
 
             # Reference to global prefix: used in database to create documents with correct grouping
-            sub_config["management"]["job_group"] = prefix
+            sub_config["management"] = {
+                "job_group": prefix
+            }
 
             # apply subconfig delta
             # (assuming parameters are nested in two layers)
