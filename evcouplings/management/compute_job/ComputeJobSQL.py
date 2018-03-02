@@ -26,7 +26,7 @@ class _ComputeJob(_Base):
     # the job_hash this job is associated with
     # (foreign key in group key if this table
     # is present, e.g. in webserver).
-    group_id = Column(String(32))
+    job_group = Column(String(32))
 
     # job status ("pending", "running", "finished",
     # "failed", "terminated")
@@ -55,13 +55,13 @@ class ComputeJobSQL(ComputeJobInterface):
         self.job_name = self.management.get("job_name")
         assert self.job_name is not None, "config.management must contain a job_name"
 
-        self.group_id = self.management.get("job_group")
-        assert self.group_id is not None, "config.management must contain a job_group"
+        self.job_group = self.management.get("job_group")
+        assert self.job_group is not None, "config.management must contain a job_group"
 
         # Get things from management.job_database (this is where connection string + db type live)
         self.compute_job = self.management.get("compute_job")
         assert self.compute_job is not None, \
-            "You must define job_database parameters in the management section of the config!"
+            "You must define compute_job parameters in the management section of the config!"
 
         self.database_uri = self.compute_job.get("database_uri")
         assert self.database_uri is not None, "database_uri must be defined"
@@ -95,7 +95,7 @@ class ComputeJobSQL(ComputeJobInterface):
             if q is None:
                 q = _ComputeJob(
                     name=self.job_name,
-                    group_id=self.job_group
+                    job_group=self.job_group
                 )
                 session.commit()
 
@@ -132,7 +132,6 @@ class ComputeJobSQL(ComputeJobInterface):
 
         return session.query(_ComputeJob) \
             .filter(_ComputeJob.name == self.job_name) \
-            .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished")) \
             .one()
 
     def get_jobs_from_group(self):
@@ -145,6 +144,5 @@ class ComputeJobSQL(ComputeJobInterface):
         _Base.metadata.create_all(bind=engine)
 
         return session.query(_ComputeJob) \
-            .filter(_ComputeJob.group_id == self.group_id) \
-            .options(load_only("name", "prefix", "status", "group_id", "time_started", "time_finished")) \
+            .filter(_ComputeJob.job_group == self.job_group) \
             .all()
