@@ -37,10 +37,10 @@ class _ComputeJob(_Base):
     stage = Column(String(50))
 
     # time the job started running
-    created_at = Column(DateTime(), default=datetime.datetime.now)
+    created_at = Column(DateTime, default=datetime.datetime.now)
 
     # time the job finished running
-    updated_at = Column(DateTime(), default=datetime.datetime.now)
+    updated_at = Column(DateTime, default=datetime.datetime.now)
 
 
 class ComputeJobSQL(ComputeJobInterface):
@@ -109,7 +109,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
             # update finish time (i.e. final finish
             # time when job status is set for the last time)
-            q.updated_at = datetime.datetime.now
+            q.updated_at = datetime.datetime.now()
 
             # commit changes to database
             session.add(q)
