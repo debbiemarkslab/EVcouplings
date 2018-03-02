@@ -3,6 +3,7 @@ evcouplings command-line app
 
 Authors:
   Thomas A. Hopf
+  C.D.
 
 .. todo::
 
@@ -15,19 +16,15 @@ import re
 from copy import deepcopy
 from sys import executable
 from os import path
-
+import collections
 import click
-
 import evcouplings.management.compute_job
 from evcouplings import utils
 from evcouplings.utils import pipeline
-from evcouplings.management.compute_job import ComputeJobSQL
 from evcouplings.utils import summarize
-
 from evcouplings.utils.system import (
     create_prefix_folders, ResourceError, valid_file
 )
-
 from evcouplings.utils.config import (
     check_required, InvalidParameterError,
     read_config_file, write_config_file
@@ -35,6 +32,21 @@ from evcouplings.utils.config import (
 
 # store individual config files in files with this name
 CONFIG_NAME = "{}_config.txt"
+
+
+def _update_dictionary_recursively(original, overwrite):
+    """
+    Function to recursively overwrite a dictionary with new values (can both extend + overwrite)
+    :param original: original dictionary, that gets overwritten
+    :param overwrite: updates to apply on original dictionary
+    """
+    # TODO: if array type, merge arrays. Make sure data types are conserved
+    for k, v in overwrite.items():
+        if isinstance(v, collections.Mapping):
+            original[k] = _update_dictionary_recursively(original.get(k, {}), v)
+        else:
+            original[k] = v
+    return original
 
 
 def substitute_config(**kwargs):
@@ -234,11 +246,7 @@ def unroll_config(config):
             }
 
             # apply subconfig delta
-            # (assuming parameters are nested in two layers)
-            # TODO: extend this recursively + make sure to distinguish at least between three types: nested objects, arrays and simple values
-            for section in delta_config:
-                for param, value in delta_config[section].items():
-                    sub_config[section][param] = value
+            _update_dictionary_recursively(sub_config, delta_config)
 
             configs[sub_prefix] = sub_config
 
