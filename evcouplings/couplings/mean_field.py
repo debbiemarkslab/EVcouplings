@@ -417,12 +417,12 @@ class MeanFieldCouplingsModel(CouplingsModel):
         self.lambda_group = -1
 
         # raw single and pair frequencies
-        self.f_i = alignment.frequencies
-        self.f_ij = alignment.pair_frequencies
+        self.raw_f_i = alignment.frequencies
+        self.raw_f_ij = alignment.pair_frequencies
 
-        # raw single and pair frequencies
-        self.regularized_f_i = regularized_f_i
-        self.regularized_f_ij = regularized_f_ij
+        # regularized single and pair frequencies
+        self.f_i = regularized_f_i
+        self.f_ij = regularized_f_ij
 
         # fields and couplings
         self.h_i = h_i
@@ -478,11 +478,14 @@ class MeanFieldCouplingsModel(CouplingsModel):
         """
         # calculates FN, CN as well as MI scores
         # and stores in ECs data frame
-        super(MeanFieldCouplingsModel, self)._calculate_ecs()
+        super(MeanFieldCouplingsModel, self)._calculate_ecs(
+            f_i=self.raw_f_i,
+            f_ij=self.raw_f_ij
+        )
 
         # calculate DI scores
         self._di_scores = direct_information(
-            self.J_ij, self.regularized_f_i
+            self.J_ij, self.f_i
         )
 
         # add DI scores to EC data frame
@@ -516,8 +519,8 @@ class MeanFieldCouplingsModel(CouplingsModel):
         """
         return tilde_fields(
             self.J_ij,
-            self.regularized_f_i[i],
-            self.regularized_f_ij[j]
+            self.f_i[i],
+            self.f_ij[j]
         )
 
     @property

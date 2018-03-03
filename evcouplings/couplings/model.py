@@ -773,11 +773,31 @@ class CouplingsModel:
 
         return corrected_matrix
 
-    def _calculate_ecs(self):
+    def _calculate_ecs(self, f_i=None, f_ij=None):
         """
         Calculates FN and CN scores as defined in Ekeberg et al., Phys Rev E, 2013,
         as well as MI scores.
+
+        Parameters
+        ----------
+        f_i : np.array, optional (default: None)
+            Matrix of size L x num_symbols
+            containing column frequencies
+            used to compute MI scores. If None,
+            field self.f_i is used.
+        f_ij : np.array, optional (default: None)
+            Matrix of size L x L x num_symbols x
+            num_symbols containing pair frequencies
+            used to compute MI scores. If None,
+            field self.f_ij is used.
         """
+        # if frequencies are not explicitly given,
+        # use the frequencies of the model
+        if f_i is None:
+            f_i = self.f_i
+        if f_ij is None:
+            f_ij = self.f_ij
+
         # calculate Frobenius norm for each pair of sites (i, j)
         # also calculate mutual information
         self._fn_scores = np.zeros((self.L, self.L))
@@ -792,8 +812,8 @@ class CouplingsModel:
                 self._fn_scores[j, i] = self._fn_scores[i, j]
 
                 # mutual information
-                p = self.f_ij[i, j]
-                m = np.dot(self.f_i[i, np.newaxis].T, self.f_i[j, np.newaxis])
+                p = f_ij[i, j]
+                m = np.dot(f_i[i, np.newaxis].T, f_i[j, np.newaxis])
                 self._mi_scores_raw[i, j] = np.sum(p[p > 0] * np.log(p[p > 0] / m[p > 0]))
                 self._mi_scores_raw[j, i] = self._mi_scores_raw[i, j]
 
