@@ -9,6 +9,7 @@ Authors:
 
 import numpy as np
 import numba
+from copy import deepcopy
 
 from evcouplings.align import parse_header
 from evcouplings.couplings import CouplingsModel
@@ -532,6 +533,24 @@ class MeanFieldCouplingsModel(CouplingsModel):
             self._calculate_ecs()
 
         return self._di_scores
+
+    def to_independent_model(self):
+        """
+        Compute a single-site model.
+
+        This method overrides its respective
+        parent method in CouplingsModel.
+
+        Returns
+        -------
+        MeanFieldCouplingsModel
+            Copy of object turned into independent model
+        """
+        c0 = deepcopy(self)
+        c0.h_i = np.log(self.f_i)
+        c0.J_ij.fill(0)
+        c0._reset_precomputed()
+        return c0
 
     def to_raw_ec_file(self, couplings_file):
         """

@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from bokeh.io import save, output_file
 
 from evcouplings.couplings.model import CouplingsModel
+from evcouplings.couplings.mean_field import MeanFieldCouplingsModel
 from evcouplings.mutate.calculations import (
     single_mutant_matrix, predict_mutation_table
 )
@@ -67,8 +68,16 @@ def standard(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    # load couplings object, and create independent model
+    # load couplings object
     c = CouplingsModel(kwargs["model_file"])
+
+    # cast couplings model to mean field specific
+    # model if mean field approximation has been
+    # used for inference
+    if c.lambda_h is None:
+        c.__class__ = MeanFieldCouplingsModel
+
+    # create independent model
     c0 = c.to_independent_model()
 
     for model, type_ in [(c, "Epistatic"), (c0, "Independent")]:
