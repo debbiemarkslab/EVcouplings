@@ -219,7 +219,7 @@ class MeanFieldDCA(object):
 
     def regularize_frequencies(self, pseudo_count=0.5):
         """
-        Returns/calculates single-site frequencies
+        Returns single-site frequencies
         regularized by a pseudo-count of symbols
         in alignment.
 
@@ -239,10 +239,9 @@ class MeanFieldDCA(object):
             relative column frequencies of all symbols
             regularized by a pseudo-count.
         """
-        num_symbols = self.alignment.num_symbols
-        self.regularized_frequencies = (
-            (1. - pseudo_count) * self.alignment.frequencies +
-            (pseudo_count / float(num_symbols))
+        self.regularized_frequencies = regularize_frequencies(
+            self.alignment.frequencies,
+            pseudo_count=pseudo_count
         )
         return self.regularized_frequencies
 
@@ -268,25 +267,10 @@ class MeanFieldDCA(object):
             containing relative pairwise frequencies of all
             symbols regularized by a pseudo-count.
         """
-        # add a pseudo-count to the frequencies
-        self.regularized_pair_frequencies = (
-            (1. - pseudo_count) * self.alignment.pair_frequencies +
-            (pseudo_count / float(self.alignment.num_symbols ** 2))
+        self.regularized_pair_frequencies = regularize_pair_frequencies(
+            self.alignment.pair_frequencies,
+            pseudo_count=pseudo_count
         )
-
-        # again, set the "pair frequency" of two identical
-        # symbols in the same position to the respective
-        # single-site frequency (and all other entries
-        # in matrices concerning position pair (i, i) to zero)
-        id_matrix = np.identity(self.alignment.num_symbols)
-        for i in range(self.alignment.L):
-            for alpha in range(self.alignment.num_symbols):
-                for beta in range(self.alignment.num_symbols):
-                    self.regularized_pair_frequencies[i, i, alpha, beta] = (
-                        (1. - pseudo_count) * self.alignment.pair_frequencies[i, i, alpha, beta] +
-                        (pseudo_count / self.alignment.num_symbols) * id_matrix[alpha, beta]
-                    )
-
         return self.regularized_pair_frequencies
 
     def compute_covariance_matrix(self):
@@ -499,6 +483,50 @@ class MeanFieldCouplingsModel(CouplingsModel):
             by="di", ascending=False
         )
 
+    def regularize_f_i(self):
+        """
+        Returns single-site frequencies
+        regularized by a pseudo-count of
+        symbols in alignment.
+
+        This method sets the attribute
+        self.regularized_f_i and returns
+        a reference to it.
+
+        Returns
+        -------
+        np.array
+            Matrix of size L x num_symbols containing
+            relative column frequencies of all symbols
+            regularized by a pseudo-count.
+        """
+        self.regularized_f_i = regularize_frequencies(
+            self.f_i, pseudo_count=self.pseudo_count
+        )
+        return self.regularized_f_i
+
+    def regularize_f_ij(self):
+        """
+        Returns pairwise frequencies
+        regularized by a pseudo-count of
+        symbols in alignment.
+
+        This method sets the attribute
+        self.regularized_f_ij and returns
+        a reference to it.
+
+        Returns
+        -------
+        np.array
+            Matrix of size L x L x num_symbols x num_symbols
+            containing relative pairwise frequencies of all
+            symbols regularized by a pseudo-count.
+        """
+        self.regularized_f_ij = regularize_pair_frequencies(
+            self.f_ij, pseudo_count=self.pseudo_count
+        )
+        return self.regularized_f_ij
+
     def tilde_fields(self, i, j):
         """Compute h_tilde fields of the two-site model.
 
@@ -567,6 +595,80 @@ class MeanFieldCouplingsModel(CouplingsModel):
                         "{0:.6f}".format(self.mi_scores_raw[i, j]),
                         "{0:.6f}".format(self.di_scores[i, j])
                     ])) + "\n")
+
+
+def regularize_frequencies(f_i, pseudo_count=0.5):
+    """
+    Returns/calculates single-site frequencies
+    regularized by a pseudo-count of symbols
+    in alignment.
+
+    Parameters
+    ----------
+    f_i : np.array
+        Matrix of size L x num_symbols
+        containing column frequencies.
+    pseudo_count : float, optional (default: 0.5)
+        The value to be added as pseudo-count.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x num_symbols containing
+        relative column frequencies of all symbols
+        regularized by a pseudo-count.
+    """
+    _, num_symbols = f_i.shape
+    regularized_frequencies = (
+        (1. - pseudo_count) * f_i +
+        (pseudo_count / float(num_symbols))
+    )
+    return regularized_frequencies
+
+
+def regularize_pair_frequencies(f_ij, pseudo_count=0.5):
+    """
+    Add pseudo-count to pairwise frequencies
+    to regularize in the case of insufficient
+    data availability.
+
+    Parameters
+    ----------
+    f_ij : np.array
+        Matrix of size L x L x num_symbols x
+        num_symbols containing pair frequencies.
+    pseudo_count : float, optional (default: 0.5)
+        The value to be added as pseudo-count.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x L x num_symbols x num_symbols
+        containing relative pairwise frequencies of all
+        symbols regularized by a pseudo-count.
+    """
+    L, _, num_symbols, _ = f_ij.shape
+
+    # add a pseudo-count to the frequencies
+    regularized_pair_frequencies = (
+        (1. - pseudo_count) * f_ij +
+        (pseudo_count / float(num_symbols ** 2))
+    )
+
+    # again, set the "pair frequency" of two identical
+    # symbols in the same position to the respective
+    # single-site frequency (and all other entries
+    # in matrices concerning position pair (i, i) to zero)
+    id_matrix = np.identity(num_symbols)
+    for i in range(L):
+        for alpha in range(num_symbols):
+            for beta in range(num_symbols):
+                regularized_pair_frequencies[i, i, alpha, beta] = (
+                    (1. - pseudo_count) * f_ij[i, i, alpha, beta] +
+                    (pseudo_count / num_symbols) * id_matrix[alpha, beta]
+                )
+
+    return regularized_pair_frequencies
 
 
 @numba.jit(nopython=True)
