@@ -440,8 +440,8 @@ management:
 
 # Computational environment for batch jobs (using evcouplings command line application)
 environment:
-    # current options for engine: lsf, local (for local, only set cores and leave all other fields blank)
-    # If your batch engine of choice (SGE, Slurm, Torque) is not available yet, please consider contributing by
+    # current options for engine: lsf, slurm, local (for local, only set cores and leave all other fields blank)
+    # If your batch engine of choice (e.g. SGE, Torque) is not available yet, please consider contributing by
     # implementing it and submitting a pull request!
     # Note that "cores" will override the "cpu" parameter for "global"
     engine: slurm
