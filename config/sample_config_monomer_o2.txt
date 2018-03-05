@@ -357,7 +357,7 @@ environment:
 
     # command that will be executed before running actual computation (can be used to set up environment)
     configuration:
-        - source activate evcouplings_o2
+        - source activate evcouplings_stable
 
 # Paths to databases used by evcouplings.
 databases:
