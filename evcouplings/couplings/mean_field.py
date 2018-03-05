@@ -418,12 +418,12 @@ class MeanFieldCouplingsModel(CouplingsModel):
         self.lambda_group = -1
 
         # raw single and pair frequencies
-        self.raw_f_i = alignment.frequencies
-        self.raw_f_ij = alignment.pair_frequencies
+        self.f_i = alignment.frequencies
+        self.f_ij = alignment.pair_frequencies
 
         # regularized single and pair frequencies
-        self.f_i = regularized_f_i
-        self.f_ij = regularized_f_ij
+        self.regularized_f_i = regularized_f_i
+        self.regularized_f_ij = regularized_f_ij
 
         # fields and couplings
         self.h_i = h_i
@@ -479,14 +479,11 @@ class MeanFieldCouplingsModel(CouplingsModel):
         """
         # calculates FN, CN as well as MI scores
         # and stores in ECs data frame
-        super(MeanFieldCouplingsModel, self)._calculate_ecs(
-            f_i=self.raw_f_i,
-            f_ij=self.raw_f_ij
-        )
+        super(MeanFieldCouplingsModel, self)._calculate_ecs()
 
         # calculate DI scores
         self._di_scores = direct_information(
-            self.J_ij, self.f_i
+            self.J_ij, self.regularized_f_i
         )
 
         # add DI scores to EC data frame
@@ -520,8 +517,8 @@ class MeanFieldCouplingsModel(CouplingsModel):
         """
         return tilde_fields(
             self.J_ij,
-            self.f_i[i],
-            self.f_ij[j]
+            self.regularized_f_i[i],
+            self.regularized_f_ij[j]
         )
 
     @property
@@ -547,7 +544,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
             Copy of object turned into independent model
         """
         c0 = deepcopy(self)
-        c0.h_i = np.log(self.f_i)
+        c0.h_i = np.log(self.regularized_f_i)
         c0.J_ij.fill(0)
         c0._reset_precomputed()
         return c0
