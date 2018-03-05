@@ -68,16 +68,8 @@ def standard(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    # load couplings object
+    # load couplings object, and create independent model
     c = CouplingsModel(kwargs["model_file"])
-
-    # cast couplings model to mean field specific
-    # model if mean field approximation has been
-    # used for inference
-    if c.lambda_h is None:
-        c.__class__ = MeanFieldCouplingsModel
-
-    # create independent model
     c0 = c.to_independent_model()
 
     for model, type_ in [(c, "Epistatic"), (c0, "Independent")]:

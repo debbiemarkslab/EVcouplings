@@ -397,9 +397,13 @@ class MeanFieldCouplingsModel(CouplingsModel):
         # (cannot be set to None, but must be set to a
         # numerical value for the to_file method to work properly)
         self.num_iter = -1
-        self.lambda_h = -1
         self.lambda_J = -1
         self.lambda_group = -1
+
+        # store pseudo-count in lambda_h
+        # for future reference (the negative
+        # sign simply serves as marker)
+        self.lambda_h = -pseudo_count
 
         # raw single and pair frequencies
         self.f_i = alignment.frequencies

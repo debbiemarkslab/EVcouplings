@@ -330,9 +330,6 @@ class CouplingsModel:
             # if model was inferred using mean-field, these parameters are meaningless
             # and set to -1 in the model file. To prohibit any calculations with these
             # values, set to None
-            if self.lambda_h < 0:
-                self.lambda_h = None
-
             if self.lambda_J < 0:
                 self.lambda_J = None
 
@@ -389,6 +386,30 @@ class CouplingsModel:
                         count=1
                     )
                     self.J_ij[j, i] = self.J_ij[i, j].T
+
+            # if lambda_h is negative, the model was
+            # inferred using mean-field
+            if self.lambda_h < 0:
+                # cast model to mean field model
+                from evcouplings.couplings.mean_field import MeanFieldCouplingsModel
+                self.__class__ = MeanFieldCouplingsModel
+
+                # pseudo-count is saved in lambda_h
+                # (with a negative sign)
+                self.pseudo_count = -self.lambda_h
+                self.lambda_h = None
+
+                # set the frequency of a pair (alpha, alpha)
+                # in position i to the respective single-site
+                # frequency of alpha in position i
+                for i in range(self.L):
+                    for alpha in range(self.num_symbols):
+                        self.f_ij[i, i, alpha, alpha] = self.f_i[i, alpha]
+
+                # compute pseudo counted frequencies
+                # from raw frequencies
+                self.regularize_f_i()
+                self.regularize_f_ij()
 
     def __read_plmc_v1(self, filename, precision, alphabet=None):
         """
