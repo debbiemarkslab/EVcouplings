@@ -66,7 +66,7 @@ class AzureDumper(ResultsDumperInterface):
                         tar.add(self.config[k])
 
         # Create container if not exists
-        self.block_blob_service.create_container(self.job_name, fail_on_exist=False, public_access=PublicAccess.Blob)
+        self.block_blob_service.create_container(self.nice_job_name, fail_on_exist=False, public_access=PublicAccess.Blob)
 
         # Copy file
         self.block_blob_service.create_blob_from_path(
