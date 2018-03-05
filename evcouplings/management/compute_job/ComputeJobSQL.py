@@ -2,7 +2,8 @@ from sqlalchemy import (
     Column, String, DateTime,
     create_engine
 )
-from sqlalchemy.orm import sessionmaker, load_only
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.declarative import declarative_base
 from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface
 import datetime
@@ -80,7 +81,7 @@ class ComputeJobSQL(ComputeJobInterface):
         """
 
         # connect to DB and create session
-        engine = create_engine(self.database_uri)
+        engine = create_engine(self.database_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -123,7 +124,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
     def get_job(self):
         # connect to DB and create session
-        engine = create_engine(self.database_uri)
+        engine = create_engine(self.database_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -139,7 +140,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
     def get_jobs_from_group(self):
         # connect to DB and create session
-        engine = create_engine(self.database_uri)
+        engine = create_engine(self.database_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
