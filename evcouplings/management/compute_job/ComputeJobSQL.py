@@ -131,8 +131,7 @@ class ComputeJobSQL(ComputeJobInterface):
         _Base.metadata.create_all(bind=engine)
 
         return session.query(_ComputeJob) \
-            .filter(_ComputeJob.name == self.job_name) \
-            .one()
+            .get(self.job_name)
 
     def get_jobs_from_group(self):
         # connect to DB and create session
