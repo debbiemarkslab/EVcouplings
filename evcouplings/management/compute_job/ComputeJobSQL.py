@@ -130,8 +130,12 @@ class ComputeJobSQL(ComputeJobInterface):
         # make sure all tables are there in database
         _Base.metadata.create_all(bind=engine)
 
-        return session.query(_ComputeJob) \
+        result = session.query(_ComputeJob) \
             .get(self.job_name)
+
+        session.close()
+
+        return result
 
     def get_jobs_from_group(self):
         # connect to DB and create session
@@ -142,6 +146,10 @@ class ComputeJobSQL(ComputeJobInterface):
         # make sure all tables are there in database
         _Base.metadata.create_all(bind=engine)
 
-        return session.query(_ComputeJob) \
+        results = session.query(_ComputeJob) \
             .filter(_ComputeJob.job_group == self.job_group) \
             .all()
+
+        session.close()
+
+        return results
