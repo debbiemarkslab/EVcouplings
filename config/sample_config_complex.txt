@@ -118,7 +118,8 @@ align_1:
 
 # Alternative protocol: reuse existing alignment and apply postprocessing to generate alignment that is consistent
 # with pipeline requirements. Uncomment, and comment all values in align section above to enable the "existing" protocol
-#    protocol: existing
+#    protocol: complex
+#    alignment_protocol: existing
 #    prefix:
 #    # Path of input alignment. Alignment needs to contain region in form SEQID/start-end, or first_index must be set
 #    input_alignment:
@@ -207,7 +208,8 @@ align_2:
 
 # Alternative protocol: reuse existing alignment and apply postprocessing to generate alignment that is consistent
 # with pipeline requirements. Uncomment, and comment all values in align section above to enable the "existing" protocol
-#    protocol: existing
+#    protocol: complex
+#    alignment_protocol: existing
 #    prefix:
 #    # Path of input alignment. Alignment needs to contain region in form SEQID/start-end, or first_index must be set
 #    input_alignment:
