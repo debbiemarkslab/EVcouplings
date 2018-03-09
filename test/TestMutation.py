@@ -17,6 +17,7 @@ from evcouplings.couplings.model import CouplingsModel
 TRAVIS_PATH = "/home/travis/evcouplings_test_cases/monomer_test"
 #TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/monomer_test"
 
+
 class TestMutation(TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -29,7 +30,6 @@ class TestMutation(TestCase):
         self.singles = pd.read_csv(
             "{}/mutate/RASH_HUMAN_b03_single_mutant_matrix.csv".format(TRAVIS_PATH)
         )
-
 
     def test_extract_mutations_normal(self):
         """
@@ -44,7 +44,6 @@ class TestMutation(TestCase):
         mutations = extract_mutations(mutation_string)
         self.assertEqual(mutations, mutation_target)
 
-
     def test_extract_mutations_null_input(self):
         """
         test whether extract mutations returns nothing if given an incorrect string
@@ -54,7 +53,6 @@ class TestMutation(TestCase):
         mutation_target = []
         mutations = extract_mutations(mutation_string)
         self.assertEqual(mutations, mutation_target)
-
 
     def test_extract_mutations_wt(self):
         """
@@ -66,20 +64,18 @@ class TestMutation(TestCase):
         mutations = extract_mutations(mutation_string)
         self.assertEqual(mutations, mutation_target)
 
-
     def test_predict_mutation_table(self):
         """
         tests whether predict mutation table returns a correct table of mutations
         :return:
         """
-        singles = self.singles.drop("prediction_independent",axis=1)
+        singles = self.singles.drop("prediction_independent", axis=1)
 
         _singles = predict_mutation_table(
             self.c0, singles, output_column="prediction_independent"
         )
 
         pd.testing.assert_frame_equal(self.singles, _singles)
-
 
     def test_single_mutant_matrix(self):
         """
@@ -90,7 +86,7 @@ class TestMutation(TestCase):
             self.c, output_column="prediction_epistatic"
         )
 
-        singles = self.singles.drop("prediction_independent",axis=1)
+        singles = self.singles.drop("prediction_independent", axis=1)
 
         pd.testing.assert_frame_equal(singles, _singles)
 
@@ -115,7 +111,7 @@ class TestMutation(TestCase):
             "subs": ["K", "L", "V"],
             "mutations": mutations,
             "num_mutations": [1, 1, 1]
-        },dtype=object)
+        }, dtype=object)
 
         output = output[[
             "mutations", "num_mutations", "pos", "wt", "subs"
@@ -148,7 +144,7 @@ class TestMutation(TestCase):
             "subs": ["K,Y", "L", "V"],
             "mutations": mutations,
             "num_mutations": [2, 1, 1]
-        },dtype=object)
+        }, dtype=object)
 
         output = output[[
             "mutations", "num_mutations", "pos", "wt", "subs"
@@ -159,7 +155,6 @@ class TestMutation(TestCase):
         split_mutations = split_mutants(data, "mutations")
 
         pd.testing.assert_frame_equal(output, split_mutations)
-
 
     def test_protcol_standard(self):
         """

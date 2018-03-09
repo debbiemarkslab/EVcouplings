@@ -19,8 +19,7 @@ from evcouplings.complex.protocol import *
 from evcouplings.align import Alignment
 
 TRAVIS_PATH = "/home/travis/evcouplings_test_cases/complex_test"
-#TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/complex_test"
-
+# TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/complex_test"
 
 class TestComplex(TestCase):
 
@@ -58,8 +57,8 @@ class TestComplex(TestCase):
 
         annotation_and_id_file = "{}/concatenate/test_new_annotation_and_id.csv".format(TRAVIS_PATH)
         self.annotation_and_id = pd.read_csv(
-            annotation_and_id_file,  header=0, index_col= None,
-            dtype={"id":str,"id_to_query":float,"species":str,"name":str}
+            annotation_and_id_file,  header=0, index_col=None,
+            dtype={"id": str, "id_to_query": float, "species": str, "name": str}
         )
 
         # table of sequence identities
@@ -120,7 +119,6 @@ class TestComplex(TestCase):
             self.assertTrue(os.path.isfile(_file))
             self.assertTrue(os.path.getsize(_file) > 0)
             os.unlink(_file)
-
 
     def test_best_hit_normal(self):
         """
@@ -222,7 +220,6 @@ class TestComplex(TestCase):
             self.assertTrue(os.path.getsize(_file) > 0)
             os.unlink(_file)
 
-
     def test_modify_complex_segments(self):
         """
         tests that modify_complex_segments adds the correct "segments" field to the outcfg dictionary
@@ -237,7 +234,6 @@ class TestComplex(TestCase):
 
         test_configuration["segments"] = self.outcfg["segments"]
         self.assertDictEqual(test_configuration, _outcfg)
-
 
     def test_describe_concatenation(self):
         """
@@ -260,7 +256,6 @@ class TestComplex(TestCase):
 
         pd.testing.assert_frame_equal(concatenation_stats, _concatenation_stats)
         os.unlink(outfile.name)
-
 
     def test_write_concatenated_alignment(self):
         """
@@ -290,7 +285,7 @@ class TestComplex(TestCase):
         id_pairing.loc[:, "id_2"] = id_pairing["uniprot_id_2"]
 
         _target_header, _target_seq_idx, _ali, _ali_1, _ali_2 = write_concatenated_alignment(
-           id_pairing, input_alignment_file_1, input_alignment_file_2,
+            id_pairing, input_alignment_file_1, input_alignment_file_2,
             "DINJ_ECOLI/1-86", "YAFQ_ECOLI/1-92"
         )
 
@@ -304,7 +299,6 @@ class TestComplex(TestCase):
         self.assertEqual(target_header, _target_header)
         self.assertEqual(_target_seq_idx, 0)
 
-
     def test_read_species_annotation_table_uniprot(self):
         """
         tests whether a uniprot annotation table is read correctly
@@ -313,7 +307,6 @@ class TestComplex(TestCase):
         annotation_file_uniprot = "{}/align_1/test_new_annotation.csv".format(TRAVIS_PATH)
         annotation_data = read_species_annotation_table(annotation_file_uniprot)
         pd.testing.assert_frame_equal(annotation_data, self.annotation_data)
-
 
     def test_read_species_annotation_table_uniref(self):
         """
@@ -326,7 +319,6 @@ class TestComplex(TestCase):
         annotation_data_gold = pd.read_csv(annotation_file_uniref, index_col=None, header=0, dtype=str)
         pd.testing.assert_frame_equal(annotation_data_gold, _annotation_data)
 
-
     def test_most_similar_by_organism(self):
         """
         tests whether most_similar_by_organism returns the correct dataframe
@@ -335,7 +327,6 @@ class TestComplex(TestCase):
         annotation_and_id = most_similar_by_organism(self.similarities, self.annotation_data)
         pd.testing.assert_frame_equal(annotation_and_id, self.annotation_and_id)
 
-
     def test_find_paralogs(self):
         """
         tests whether find_paralogs returns the correct dataframe
@@ -343,8 +334,7 @@ class TestComplex(TestCase):
         """
         target_id = "DINJ_ECOLI"
         paralog_table = find_paralogs(target_id, self.annotation_data, self.similarities, 0.9)
-        pd.testing.assert_frame_equal(paralog_table,self.paralog_table)
-
+        pd.testing.assert_frame_equal(paralog_table, self.paralog_table)
 
     def test_filter_best_reciprocal(self):
         """
@@ -352,10 +342,9 @@ class TestComplex(TestCase):
 
         """
         alignment_file = "{}/align_1/test_new.a2m".format(TRAVIS_PATH)
-        best_recip = pd.read_csv("{}/concatenate/test_new_best_reciprocal.csv".format(TRAVIS_PATH),index_col=0)
+        best_recip = pd.read_csv("{}/concatenate/test_new_best_reciprocal.csv".format(TRAVIS_PATH), index_col=0)
         _best_recip = filter_best_reciprocal(alignment_file, self.paralog_table, self.annotation_and_id, 0.02)
         pd.testing.assert_frame_equal(best_recip, _best_recip)
-
 
     def test_get_distance_overlap(self):
         """
@@ -367,7 +356,6 @@ class TestComplex(TestCase):
         distance = get_distance(annotation_1, annotation_2)
         self.assertEqual(distance, 0)
 
-
     def test_get_distance_reverse(self):
         """
         tests whether get distance correctly measures distance of two genes with opposite strand
@@ -378,7 +366,6 @@ class TestComplex(TestCase):
         distance = get_distance(annotation_1, annotation_2)
         self.assertEqual(distance, 200)
 
-
     def test_get_distance_increasing(self):
         """
         tests whether get_distance correctly measures distance of two genes with same strand
@@ -387,8 +374,7 @@ class TestComplex(TestCase):
         annotation_1 = (1000, 1500)
         annotation_2 = (1700, 1800)
         distance = get_distance(annotation_1, annotation_2)
-        self.assertEqual(distance,200)
-
+        self.assertEqual(distance, 200)
 
     def test_best_reciprocal_matching(self):
         """
@@ -398,8 +384,7 @@ class TestComplex(TestCase):
         id_pairing = best_reciprocal_matching(self.possible_partners)
         id_pairing = id_pairing.sort_values(["uniprot_id_1", "uniprot_id_2", "distance"])
         id_pairing = id_pairing.reset_index(drop=True)
-        pd.testing.assert_frame_equal(id_pairing,self.id_pairing)
-
+        pd.testing.assert_frame_equal(id_pairing, self.id_pairing)
 
     def test_find_possible_partners(self):
         """
@@ -419,7 +404,6 @@ class TestComplex(TestCase):
             check_less_precise=True, check_like=True,
             check_names=False
         )
-
 
     def test_plot_distance_distribution(self):
         """
