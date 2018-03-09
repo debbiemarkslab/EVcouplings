@@ -422,7 +422,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
         # from crashing
         self.N_invalid = 0
 
-        self.decode_unused_fields(save_pseudo_count=False)
+        self._decode_unused_fields(save_pseudo_count=False)
         self._reset_precomputed()
 
     def _reset_precomputed(self):
@@ -606,7 +606,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
         frequencies (i.e. fill the fields
         regularized_f_i and regularized_f_ij)
         """
-        self.decode_unused_fields()
+        self._decode_unused_fields()
 
         # set the frequency of a pair (alpha, alpha)
         # in position i to the respective single-site
@@ -620,7 +620,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
         self.regularize_f_i()
         self.regularize_f_ij()
 
-    def encode_unused_fields(self):
+    def _encode_unused_fields(self):
         """
         Set plmc-specific parameters
         (lambda_J, lambda_group, num_iter)
@@ -636,7 +636,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
         self.num_iter = -1
         self.lambda_h = -self.pseudo_count
 
-    def decode_unused_fields(self, save_pseudo_count=True):
+    def _decode_unused_fields(self, save_pseudo_count=True):
         """
         Set plmc-specific parameters
         to None to ensure correct usage
@@ -676,7 +676,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
         """
         # plmc-specific parameters need to be set to a
         # numerical value to make the to_file function work
-        self.encode_unused_fields()
+        self._encode_unused_fields()
 
         super(MeanFieldCouplingsModel, self).to_file(
             out_file,
