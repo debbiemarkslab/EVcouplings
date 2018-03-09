@@ -19,6 +19,9 @@ before_install:
 install:
 - python setup.py sdist --formats=zip -k
 - find ./dist -iname "*.zip" -print0 | xargs -0 pip install
+before_script:
+- wget http://marks.hms.harvard.edu/evcouplings_test_cases.tar.gz
+- tar -xf evcouplings_test_cases.tar.gz -C $HOME/
 script:
 - python -m unittest discover -s test -p "Test*.py"
 deploy:
