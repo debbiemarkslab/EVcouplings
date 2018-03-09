@@ -20,13 +20,6 @@ class TestUtilsHelpers(TestCase):
         overlap = range_overlap((1,2), (3,4))
         self.assertEqual(overlap, 0)
 
-    def test_range_overlap_noOverlapNegNumber(self):
-        """
-        Test whether range overlaps are correctly calculated
-        """
-        overlap = range_overlap((-1,-2), (-3,-4))
-        self.assertEqual(overlap, 0)
-
     def test_range_overlap_overlapPosNumber(self):
         """
         Test whether range overlaps are correctly calculated
@@ -34,12 +27,11 @@ class TestUtilsHelpers(TestCase):
         overlap = range_overlap((1, 3), (2, 4))
         self.assertEqual(overlap, 1)
 
-    # def test_range_overlap_overlapNegNumber(self):
-    #     """
-    #     Test whether range overlaps are correctly calculated
-    #     """
-    #     overlap = range_overlap((-2, -4), (-1, -3))
-    #     self.assertEqual(overlap, 1)
+    def test_range_overlap_start_greater_end(self):
+         """
+         Test whether range overlaps are correctly calculated
+         """
+         self.assertRaises(InvalidParameterError, range_overlap, (-2, -4), (-3, -1))
 
 
 class TestUtilsProgressbar(TestCase):

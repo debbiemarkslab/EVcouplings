@@ -11,6 +11,8 @@ from os import path
 import jinja2
 import sys
 
+from evcouplings.utils import InvalidParameterError
+
 
 class PersistentDict(dict):
     ''' Persistent dictionary with an API compatible with shelve and anydbm.
@@ -139,6 +141,8 @@ def range_overlap(a, b):
     Source: http://stackoverflow.com/questions/2953967/
             built-in-function-for-computing-overlap-in-python
 
+    Function assumes that start < end for a and b
+
     .. note::
 
         Ends of range are not inclusive
@@ -157,6 +161,10 @@ def range_overlap(a, b):
     int
         Length of overlap between ranges a and b
     """
+    if a[0] >= a[1]:
+        raise InvalidParameterError("Start has to be smaller than end a[0] < a[1]")
+    if b[0] >= b[1]:
+        raise InvalidParameterError("Start has to be smaller than end b[0] < b[1]")
     return max(0, min(a[1], b[1]) - max(a[0], b[0]))
 
 
