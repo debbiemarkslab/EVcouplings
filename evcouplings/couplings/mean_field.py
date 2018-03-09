@@ -600,6 +600,40 @@ class MeanFieldCouplingsModel(CouplingsModel):
                         "{0:.6f}".format(self.di_scores[i, j])
                     ])) + "\n")
 
+    def adapt_from_plmc_reading(self):
+        """
+        Adaptions that allow to read
+        a mean-field couplings model
+        from file where __read_plmc_v2
+        in CouplingsModel does the
+        heavy lifting.
+
+        This includes:
+        - Manage unused plmc-specific
+        fields as well as the pseudo count
+        field
+        - Modify pair frequencies
+        - Regularize column and pair
+        frequencies (i.e. fill the fields
+        regularized_f_i and regularized_f_ij)
+        """
+        # pseudo-count is saved in lambda_h
+        # (with a negative sign)
+        self.pseudo_count = -self.lambda_h
+        self.lambda_h = None
+
+        # set the frequency of a pair (alpha, alpha)
+        # in position i to the respective single-site
+        # frequency of alpha in position i
+        for i in range(self.L):
+            for alpha in range(self.num_symbols):
+                self.f_ij[i, i, alpha, alpha] = self.f_i[i, alpha]
+
+        # compute pseudo counted frequencies
+        # from raw frequencies
+        self.regularize_f_i()
+        self.regularize_f_ij()
+
 
 def regularize_frequencies(f_i, pseudo_count=0.5):
     """
