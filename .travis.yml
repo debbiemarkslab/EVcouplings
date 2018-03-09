@@ -22,8 +22,6 @@ install:
 before_script:
 - wget http://marks.hms.harvard.edu/evcouplings_test_cases.tar.gz
 - tar -xf evcouplings_test_cases.tar.gz -C $HOME/
-- echo $HOME
-- echo $HOME/test.txt
 script:
 - python -m unittest discover -s test -p "Test*.py"
 deploy:
