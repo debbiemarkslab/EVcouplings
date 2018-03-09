@@ -11,7 +11,7 @@ import tempfile
 import pandas as pd
 from unittest import TestCase
 from copy import deepcopy
-import ruamel_yaml as yaml
+import ruamel.yaml as yaml
 from evcouplings.complex.alignment import *
 from evcouplings.complex.distance import *
 from evcouplings.complex.similarity import *
