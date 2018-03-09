@@ -118,7 +118,8 @@ align_1:
 
 # Alternative protocol: reuse existing alignment and apply postprocessing to generate alignment that is consistent
 # with pipeline requirements. Uncomment, and comment all values in align section above to enable the "existing" protocol
-#    protocol: existing
+#    protocol: complex
+#    alignment_protocol: existing
 #    prefix:
 #    # Path of input alignment. Alignment needs to contain region in form SEQID/start-end, or first_index must be set
 #    input_alignment:
@@ -131,8 +132,9 @@ align_1:
 #    minimum_column_coverage: 70
 #    extract_annotation: True
 
-#    #if using existing alignment protocol, provide a path to the annotations.csv file 
-#    #from the previous run to correctly find the species identifiers for best hit concatenation
+#    # if using existing alignment protocol, provide a path to the annotations.csv file 
+#    # from the monomer run that generated the input alignment
+#    # Needed to correctly find the species identifiers for best hit concatenation
 #    override_annotation_file: 
 
 # Sequence alignment generation/processing for the second monomer.
@@ -207,7 +209,8 @@ align_2:
 
 # Alternative protocol: reuse existing alignment and apply postprocessing to generate alignment that is consistent
 # with pipeline requirements. Uncomment, and comment all values in align section above to enable the "existing" protocol
-#    protocol: existing
+#    protocol: complex
+#    alignment_protocol: existing
 #    prefix:
 #    # Path of input alignment. Alignment needs to contain region in form SEQID/start-end, or first_index must be set
 #    input_alignment:
@@ -219,8 +222,9 @@ align_2:
 #    minimum_sequence_coverage: 50
 #    minimum_column_coverage: 70
 #    extract_annotation: True
-#    #if using existing alignment protocol, provide a path to the annotations.csv file 
-#    #from the previous run to correctly find the species identifiers for best hit concatenation
+#    # if using existing alignment protocol, provide a path to the annotations.csv file 
+#    # from the monomer run that generated the input alignment
+#    # Needed to correctly find the species identifiers for best hit concatenation
 #    override_annotation_file: 
 
 #Generation of concatenated sequence alignment for evolutionary couplings calculation
@@ -458,9 +462,9 @@ environment:
 databases:
     # Sequence databases (only download the ones you want to use). You can also specify arbitrary databases in FASTA format
     # using a database name of your choice here)
-    uniprot: /groups/marks/databases/jackhmmer/uniprot/uniprot_2017_04.fasta
-    uniref100: /groups/marks/databases/jackhmmer/uniref100/uniref100_2017_04.fasta
-    uniref90: /groups/marks/databases/jackhmmer/uniref90/uniref90_2017_04.fasta
+    uniprot: /n/groups/marks/databases/jackhmmer/uniprot/uniprot_2017_04.fasta
+    uniref100: /n/groups/marks/databases/jackhmmer/uniref100/uniref100_2017_04.fasta
+    uniref90: /n/groups/marks/databases/jackhmmer/uniref90/uniref90_2017_04.fasta
 
     # URL do download sequences if sequence_file is not given. {} will be replaced by sequence_id.
     sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
@@ -471,24 +475,24 @@ databases:
     # SIFTS mapping information. Point to file paths in an existing directory, and if these files do not exist, they will be
     # automatically generated and saved at the given file path (this may take a while).
     # Periodically delete these files to more recent versions of SIFTS are used.
-    sifts_mapping_table: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_07_03.csv
-    sifts_sequence_db: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_07_03.fa
+    sifts_mapping_table: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_07_03.csv
+    sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_07_03.fa
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
-    jackhmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
-    hmmbuild: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmbuild
-    hmmsearch: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmsearch
-    plmc: /groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
-    hhfilter: /groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
-    psipred: /groups/marks/software/runpsipred
-    cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
-    maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    jackhmmer: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
+    hmmbuild: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmbuild
+    hmmsearch: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmsearch
+    plmc: /n/groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
+    hhfilter: /n/groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
+    psipred: /n/groups/marks/software/runpsipred
+    cns: /n/groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
+    maxcluster: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
     
     # the following two databases are exclusive to EVcomplex and need to be manually downloaded and saved locally
     # then add the paths to your local copies of the database
     # Download urls: 
     # ena_genome_location_table: https://marks.hms.harvard.edu/evcomplex_databases/cds_pro_2017_02.txt
     # uniprot_to_embl_table: https://marks.hms.harvard.edu/evcomplex_databases/idmapping_uniprot_embl_2017_02.txt 
-    uniprot_to_embl_table: /groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
-    ena_genome_location_table: /groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
+    uniprot_to_embl_table: /n/groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
+    ena_genome_location_table: /n/groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
