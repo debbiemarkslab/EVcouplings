@@ -53,7 +53,7 @@ def evzoom_data(model, ec_threshold=0.9, freq_threshold=0.01,
     matrix : dict
         List containing couplings that will be visualized
     """
-    DIGITS = 1
+    DIGITS = 2
     DIGITS_LOGO = 2
     ecs = model.ecs
 
