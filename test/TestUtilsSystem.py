@@ -29,7 +29,7 @@ class TestUtilsApp(TestCase):
 
     def test_run(self):
         """
-        tests whether the wrun works correctly
+        tests whether the run works correctly
         """
         self.assertEqual((0, 'test\n', ''), run("echo test", shell=True))
 

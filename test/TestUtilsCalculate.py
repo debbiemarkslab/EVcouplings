@@ -4,7 +4,7 @@ from evcouplings.utils import *
 from evcouplings.couplings import CouplingsModel
 import numpy as np
 
-MONO_MODEL = "/Users/bs224/Downloads/monomer_test/couplings/RASH_HUMAN_b03.model"
+MONO_MODEL = "/home/travis/monomer_test/couplings/RASH_HUMAN_b03.model"
 
 
 class TestUtilsHelpers(TestCase):
