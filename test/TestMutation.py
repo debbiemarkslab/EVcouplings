@@ -15,6 +15,7 @@ from evcouplings.mutate.protocol import *
 from evcouplings.couplings.model import CouplingsModel
 
 TRAVIS_PATH = "/home/travis/evcouplings_test_cases/monomer_test"
+#TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/monomer_test"
 
 class TestMutation(TestCase):
 
