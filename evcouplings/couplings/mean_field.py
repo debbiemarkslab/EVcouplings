@@ -664,7 +664,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
 
         self.lambda_h = None
 
-    def to_file(self, out_file, precision="float32", file_format="plmc_v1"):
+    def to_file(self, out_file, precision="float32", file_format="plmc_v2"):
         """
         Writes the model to binary file.
 
