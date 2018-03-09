@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 from bokeh.io import save, output_file
 
 from evcouplings.couplings.model import CouplingsModel
-from evcouplings.couplings.mean_field import MeanFieldCouplingsModel
 from evcouplings.mutate.calculations import (
     single_mutant_matrix, predict_mutation_table
 )
