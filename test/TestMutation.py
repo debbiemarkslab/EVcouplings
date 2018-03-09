@@ -14,22 +14,19 @@ from evcouplings.mutate.calculations import *
 from evcouplings.mutate.protocol import *
 from evcouplings.couplings.model import CouplingsModel
 
-TRAVIS_PATH = "https://marks.hms.harvard.edu/evcouplings_test_cases/complex_test"
-FETCHED_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/monomer_test"
-OUTPUT_PATH = "/Users/AG/Dropbox/evcouplings_dev"
-PREFIX = "test_new"
+TRAVIS_PATH = "/home/travis/evcouplings_test_cases/monomer_test"
 
 class TestMutation(TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestMutation, self).__init__(*args, **kwargs)
 
-        self.model_file = "{}/couplings/RASH_HUMAN_b03.model".format(FETCHED_PATH)
+        self.model_file = "{}/couplings/RASH_HUMAN_b03.model".format(TRAVIS_PATH)
         self.c = CouplingsModel(self.model_file)
         self.c0 = self.c.to_independent_model()
 
         self.singles = pd.read_csv(
-            "{}/mutate/RASH_HUMAN_b03_single_mutant_matrix.csv".format(FETCHED_PATH)
+            "{}/mutate/RASH_HUMAN_b03_single_mutant_matrix.csv".format(TRAVIS_PATH)
         )
 
 
@@ -171,7 +168,7 @@ class TestMutation(TestCase):
         outcfg = standard(**{
             "prefix": tmp_prefix,
             "model_file": self.model_file,
-            "mutation_dataset_file": "{}/mutate/RASH_HUMAN_b03_mutation_dataset.csv".format(FETCHED_PATH)
+            "mutation_dataset_file": "{}/mutate/RASH_HUMAN_b03_mutation_dataset.csv".format(TRAVIS_PATH)
         })
         file_output_keys = [
             "mutation_matrix_plot_files",
