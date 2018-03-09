@@ -393,18 +393,6 @@ class MeanFieldCouplingsModel(CouplingsModel):
         # is the first record in the alignment
         self.target_seq = list(alignment.matrix[0])
 
-        # set plmc-specific parameters to arbitrary value
-        # (cannot be set to None, but must be set to a
-        # numerical value for the to_file method to work properly)
-        self.num_iter = -1
-        self.lambda_J = -1
-        self.lambda_group = -1
-
-        # store pseudo-count in lambda_h
-        # for future reference (the negative
-        # sign simply serves as marker)
-        self.lambda_h = -pseudo_count
-
         # raw single and pair frequencies
         self.f_i = alignment.frequencies
         self.f_ij = alignment.pair_frequencies
@@ -434,6 +422,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
         # from crashing
         self.N_invalid = 0
 
+        self.decode_unused_fields(save_pseudo_count=False)
         self._reset_precomputed()
 
     def _reset_precomputed(self):
@@ -617,10 +606,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
         frequencies (i.e. fill the fields
         regularized_f_i and regularized_f_ij)
         """
-        # pseudo-count is saved in lambda_h
-        # (with a negative sign)
-        self.pseudo_count = -self.lambda_h
-        self.lambda_h = None
+        self.decode_unused_fields()
 
         # set the frequency of a pair (alpha, alpha)
         # in position i to the respective single-site
@@ -633,6 +619,70 @@ class MeanFieldCouplingsModel(CouplingsModel):
         # from raw frequencies
         self.regularize_f_i()
         self.regularize_f_ij()
+
+    def encode_unused_fields(self):
+        """
+        Set plmc-specific parameters
+        (lambda_J, lambda_group, num_iter)
+        to an arbitrary numerical value.
+
+        Note:
+        The field lambda_h is used to store
+        the pseudo count (the negative sign
+        simply serves as marker).
+        """
+        self.lambda_J = -1
+        self.lambda_group = -1
+        self.num_iter = -1
+        self.lambda_h = -self.pseudo_count
+
+    def decode_unused_fields(self, save_pseudo_count=True):
+        """
+        Set plmc-specific parameters
+        to None to ensure correct usage
+        of the object.
+
+        Note:
+        If save_pseudo_count is True,
+        the pseudo count (that was temporarily
+        stored in lambda_h) is stored in the
+        appropriate field.
+
+        Parameters
+        ----------
+        save_pseudo_count : bool, optional (default: True)
+            If True, the pseudo count is read from
+            the field lambda_h and stored in the
+            appropriate field.
+        """
+        self.lambda_J = None
+        self.lambda_group = None
+        self.num_iter = None
+
+        if save_pseudo_count:
+            self.pseudo_count = -self.lambda_h
+
+        self.lambda_h = None
+
+    def to_file(self, out_file, precision="float32", file_format="plmc_v1"):
+        """
+        Writes the model to binary file.
+
+        This method overrides its respective
+        parent method in CouplingsModel.
+
+        For parameter specifications,
+        check the parent method in CouplingsModel.
+        """
+        # plmc-specific parameters need to be set to a
+        # numerical value to make the to_file function work
+        self.encode_unused_fields()
+
+        super(MeanFieldCouplingsModel, self).to_file(
+            out_file,
+            precision=precision,
+            file_format="plmc_v2"
+        )
 
 
 def regularize_frequencies(f_i, pseudo_count=0.5):

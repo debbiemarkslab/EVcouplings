@@ -327,15 +327,6 @@ class CouplingsModel:
                 np.fromfile(f, precision, 5)
             )
 
-            # if model was inferred using mean-field, these parameters are meaningless
-            # and set to -1 in the model file. To prohibit any calculations with these
-            # values, set to None
-            if self.lambda_J < 0:
-                self.lambda_J = None
-
-            if self.lambda_group < 0:
-                self.lambda_group = None
-
             # Read alphabet (make sure we get proper unicode rather than byte string)
             self.alphabet = np.fromfile(
                 f, "S1", self.num_symbols
