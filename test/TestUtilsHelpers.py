@@ -28,10 +28,10 @@ class TestUtilsHelpers(TestCase):
         self.assertEqual(overlap, 1)
 
     def test_range_overlap_start_greater_end(self):
-         """
-         Test whether range overlaps are correctly calculated
-         """
-         self.assertRaises(InvalidParameterError, range_overlap, (-2, -4), (-3, -1))
+        """
+        Test whether range overlaps are correctly calculated
+        """
+        self.assertRaises(InvalidParameterError, range_overlap, (-2, -4), (-3, -1))
 
 
 class TestUtilsProgressbar(TestCase):
