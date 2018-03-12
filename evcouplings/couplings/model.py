@@ -1188,7 +1188,7 @@ class CouplingsModel:
         """
         return self.__4d_access(self.double_mut_mat, i, j, A_i, A_j)
 
-    def to_file(self, out_file, precision="float32", file_format="plmc_v1"):
+    def to_file(self, out_file, precision="float32", file_format="plmc_v2"):
         """
         Writes the potentially modified model again to binary file
 
@@ -1196,6 +1196,11 @@ class CouplingsModel:
         ----------
         out_file: str
             A string specifying the path to a file
+        precision: {"float16", "float32", "float64"}, optional (default: "float32")
+            Numerical NumPy data type specifying the precision
+            used to write numerical values to file
+        file_format : {"plmc_v1", "plmc_v2"}, optional (default: "plmc_v2")
+            Available file formats
         """
         new = file_format.lower() == "plmc_v2"
         with open(out_file, "wb") as f:

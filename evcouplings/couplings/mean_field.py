@@ -671,18 +671,41 @@ class MeanFieldCouplingsModel(CouplingsModel):
         This method overrides its respective
         parent method in CouplingsModel.
 
-        For parameter specifications,
-        check the parent method in CouplingsModel.
+        Parameters
+        ----------
+        out_file: str
+            A string specifying the path to a file
+        precision: {"float16", "float32", "float64"}, optional (default: "float32")
+            Numerical NumPy data type specifying the precision
+            used to write numerical values to file
+        file_format : {"plmc_v2"}, optional (default: "plmc_v2")
+            For now, a mean-field model can only be
+            written to a file in plmc_v2 format. Writing
+            to a plmc_v1 file is not permitted since
+            there is no functionality provided to read a
+            mean-field model in plmc_v1 format.
         """
         # plmc-specific parameters need to be set to a
         # numerical value to make the to_file function work
         self.__encode_unused_fields()
 
+        # writing to a file in plmc_v1 format
+        # is not permitted
+        if file_format == "plmc_v1":
+            raise ValueError(
+                "Illegal file format: plmc_v1. "
+                "Valid option: plmc_v2."
+            )
+
+        # write the model to file
         super(MeanFieldCouplingsModel, self).to_file(
             out_file,
             precision=precision,
-            file_format="plmc_v2"
+            file_format=file_format
         )
+
+        # transform model to its proper state again
+        self.__decode_unused_fields()
 
 
 def regularize_frequencies(f_i, pseudo_count=0.5):
