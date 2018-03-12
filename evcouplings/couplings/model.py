@@ -20,13 +20,6 @@ _SLICE = np.s_[:]
 HAMILTONIAN_COMPONENTS = [FULL, COUPLINGS, FIELDS] = [0, 1, 2]
 NUM_COMPONENTS = len(HAMILTONIAN_COMPONENTS)
 
-# fallback is used when model does not have a defined regularization
-# weight for fields (e.g. plmc_v1 format or mean-field couplings) for
-# inferring the independent model, note that this model may not
-# be directly comparable to the pairwise model (e.g. if it was
-# regularized with pseudocounts during mean-field inference)
-LAMBDA_H_FALLBACK = 0.01
-
 # Methods for fast calculations (moved outside of class for numba jit)
 
 
@@ -334,18 +327,6 @@ class CouplingsModel:
                 np.fromfile(f, precision, 5)
             )
 
-            # if model was inferred using mean-field, these parameters are meaningless
-            # and set to -1 in the model file. To prohibit any calculations with these
-            # values, set to None
-            if self.lambda_h < 0:
-                self.lambda_h = None
-
-            if self.lambda_J < 0:
-                self.lambda_J = None
-
-            if self.lambda_group < 0:
-                self.lambda_group = None
-
             # Read alphabet (make sure we get proper unicode rather than byte string)
             self.alphabet = np.fromfile(
                 f, "S1", self.num_symbols
@@ -396,6 +377,17 @@ class CouplingsModel:
                         count=1
                     )
                     self.J_ij[j, i] = self.J_ij[i, j].T
+
+            # if lambda_h is negative, the model was
+            # inferred using mean-field
+            if self.lambda_h < 0:
+                # cast model to mean field model
+                from evcouplings.couplings.mean_field import MeanFieldCouplingsModel
+                self.__class__ = MeanFieldCouplingsModel
+
+                # handle requirements specific to
+                # the mean-field couplings model
+                self.transform_from_plmc_model()
 
     def __read_plmc_v1(self, filename, precision, alphabet=None):
         """
@@ -909,20 +901,11 @@ class CouplingsModel:
 
         h_i = np.zeros((self.L, self.num_symbols))
 
-        # temporary fix for cases where lambda_h is not defined;
-        # ultimately different inference should be used when this
-        # is because of mean-field model that has pseudocounts instead
-        # of l2 regularization (and therefore no lambda_h or lambda_J)
-        if self.lambda_h is not None:
-            lambda_h = self.lambda_h
-        else:
-            lambda_h = LAMBDA_H_FALLBACK
-
         for i in range(self.L):
             x0 = np.zeros(self.num_symbols)
             h_i[i] = fmin_bfgs(
                 _log_post, x0, _gradient,
-                args=(self.f_i[i], lambda_h, self.N_eff),
+                args=(self.f_i[i], self.lambda_h, self.N_eff),
                 disp=False
             )
 
@@ -1205,7 +1188,7 @@ class CouplingsModel:
         """
         return self.__4d_access(self.double_mut_mat, i, j, A_i, A_j)
 
-    def to_file(self, out_file, precision="float32", file_format="plmc_v1"):
+    def to_file(self, out_file, precision="float32", file_format="plmc_v2"):
         """
         Writes the potentially modified model again to binary file
 
@@ -1213,6 +1196,11 @@ class CouplingsModel:
         ----------
         out_file: str
             A string specifying the path to a file
+        precision: {"float16", "float32", "float64"}, optional (default: "float32")
+            Numerical NumPy data type specifying the precision
+            used to write numerical values to file
+        file_format : {"plmc_v1", "plmc_v2"}, optional (default: "plmc_v2")
+            Available file formats
         """
         new = file_format.lower() == "plmc_v2"
         with open(out_file, "wb") as f:
