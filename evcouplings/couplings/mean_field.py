@@ -14,6 +14,10 @@ from copy import deepcopy
 from evcouplings.align import parse_header
 from evcouplings.couplings import CouplingsModel
 
+# arbitrary value that is written
+# to file for plmc-specific parameters
+_PLACEHOLDER = -1
+
 
 @numba.jit(nopython=True)
 def _flatten_index(i, alpha, num_symbols):
@@ -589,7 +593,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
                         "{0:.6f}".format(self.di_scores[i, j])
                     ])) + "\n")
 
-    def adapt_from_plmc_reading(self):
+    def transform_from_plmc_model(self):
         """
         Adaptions that allow to read
         a mean-field couplings model
@@ -631,9 +635,9 @@ class MeanFieldCouplingsModel(CouplingsModel):
         the pseudo count (the negative sign
         simply serves as marker).
         """
-        self.lambda_J = -1
-        self.lambda_group = -1
-        self.num_iter = -1
+        self.lambda_J = _PLACEHOLDER
+        self.lambda_group = _PLACEHOLDER
+        self.num_iter = _PLACEHOLDER
         self.lambda_h = -self.pseudo_count
 
     def __decode_unused_fields(self, save_pseudo_count=True):

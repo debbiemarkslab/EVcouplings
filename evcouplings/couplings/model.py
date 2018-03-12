@@ -387,7 +387,7 @@ class CouplingsModel:
 
                 # handle requirements specific to
                 # the mean-field couplings model
-                self.adapt_from_plmc_reading()
+                self.transform_from_plmc_model()
 
     def __read_plmc_v1(self, filename, precision, alphabet=None):
         """
