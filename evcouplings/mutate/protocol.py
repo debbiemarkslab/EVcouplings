@@ -14,7 +14,9 @@ from evcouplings.couplings.model import CouplingsModel
 from evcouplings.mutate.calculations import (
     single_mutant_matrix, predict_mutation_table
 )
-import evcouplings
+from evcouplings.visualize.mutations import (
+    plot_mutation_matrix, mutation_pymol_script
+)
 from evcouplings.utils.config import (
     check_required, InvalidParameterError
 )
@@ -77,12 +79,12 @@ def standard(**kwargs):
         output_file(
             filename + ".html", "{} model".format(type_)
         )
-        fig = evcouplings.visualize.mutations.plot_mutation_matrix(model, engine="bokeh")
+        fig = plot_mutation_matrix(model, engine="bokeh")
         save(fig)
         outcfg["mutation_matrix_plot_files"].append(filename + ".html")
 
         # static matplotlib plot
-        evcouplings.visualize.mutations.plot_mutation_matrix(model)
+        plot_mutation_matrix(model)
         plt.savefig(filename + ".pdf", bbox_inches="tight")
         outcfg["mutation_matrix_plot_files"].append(filename + ".pdf")
 
@@ -103,7 +105,7 @@ def standard(**kwargs):
     outcfg["mutations_epistatic_pml_files"] = []
     for model in ["epistatic", "independent"]:
         pml_filename = prefix + "_{}_model.pml".format(model)
-        evcouplings.visualize.mutations.mutation_pymol_script(
+        mutation_pymol_script(
             singles, pml_filename, effect_column="prediction_" + model
         )
         outcfg["mutations_epistatic_pml_files"].append(pml_filename)
