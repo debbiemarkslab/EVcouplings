@@ -1,5 +1,5 @@
 """
-Test cases for concatenation stage of EVCouplings complex pipline
+Test cases for mutate stage of EVCouplings pipline
 
 Author:
     Anna G. Green
