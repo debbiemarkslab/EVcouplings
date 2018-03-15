@@ -27,7 +27,7 @@ before_script:
 - wget http://marks.hms.harvard.edu/evcouplings_test_cases.tar.gz
 - tar -xf evcouplings_test_cases.tar.gz -C $HOME/
 script:
-- coverage run -m discover unittest -s test -p "Test*.py"
+- coverage run -m unittest discover -s test -p "Test*.py"
 deploy:
   provider: pypi
   user: debbiemarkslab
