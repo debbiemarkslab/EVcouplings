@@ -174,9 +174,16 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         genome_location_table_1 = pd.read_csv(genome_location_filename_1)
         genome_location_table_2 = pd.read_csv(genome_location_filename_2)
 
+        if not genome_location_table_1.empty:
         # Number uniprot IDs with EMBL CDS that is not NA
-        embl_cds1 = len(list(set(genome_location_table_1.uniprot_ac)))
-        embl_cds2 = len(list(set(genome_location_table_2.uniprot_ac)))
+            embl_cds1 = len(list(set(genome_location_table_1.uniprot_ac)))
+        else: 
+            embl_cds1 = np.nan
+
+        if not genome_location_table_2.empty:
+            embl_cds2 = len(list(set(genome_location_table_2.uniprot_ac)))
+        else:
+            embl_cds2 = np.nan
 
     else:
         embl_cds1 = np.nan
