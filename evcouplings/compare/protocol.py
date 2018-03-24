@@ -20,7 +20,7 @@ from evcouplings.utils.config import (
 )
 
 from evcouplings.utils.system import (
-    create_prefix_folders, insert_dir, verify_resources,
+    create_prefix_folders, insert_dir, verify_resources, valid_file
 )
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
@@ -33,6 +33,54 @@ from evcouplings.compare.ecs import (
 )
 from evcouplings.visualize import pairs, misc
 
+def complex_probability(ecs, scoring_model, use_all_ecs=False,
+                        score="cn"):
+    """
+    Adds confidence measure for complex evolutionary couplings
+
+    Parameters
+    ----------
+    ecs : pandas.DataFrame
+        Table with evolutionary couplings
+    scoring_model : {"skewnormal", "normal", "evcomplex"}
+        Use this scoring model to assign EC confidence measure
+    use_all_ecs : bool, optional (default: False)
+        If true, fits the scoring model to all ECs;
+        if false, fits the model to only the inter ECs.
+    score : str, optional (default: "cn")
+        Use this score column for confidence assignment
+        
+    Returns
+    -------
+    ecs : pandas.DataFrame
+        EC table with additional column "probability"
+        containing confidence measure
+    """
+    from evcouplings.couplings.pairs import add_mixture_probability
+
+    if use_all_ecs:
+        ecs = add_mixture_probability(
+            ecs, model=scoring_model
+        )
+    else:
+        inter_ecs = ecs.query("segment_i != segment_j")
+        intra_ecs = ecs.query("segment_i == segment_j")
+
+        intra_ecs = add_mixture_probability(
+            intra_ecs, model=scoring_model, score=score
+        )
+
+        inter_ecs = add_mixture_probability(
+            inter_ecs, model=scoring_model, score=score
+        )
+
+        ecs = pd.concat(
+            [intra_ecs, inter_ecs]
+        ).sort_values(
+            score, ascending=False
+        )
+
+    return ecs
 
 def _identify_structures(**kwargs):
     """
@@ -679,7 +727,7 @@ def complex(**kwargs):
         # initialize output EC files
         "ec_compared_all_file": prefix + "_CouplingScoresCompared_all.csv",
         "ec_compared_longrange_file": prefix + "_CouplingScoresCompared_longrange.csv",
-        "ec_compared_inter_file": prefix + "_CouplingScoresCompared_inter.csv",
+        "ec_compared_inter_file": prefix + "_CouplingsScoresCompared_inter.csv",
 
         # initialize output inter distancemap files
         "distmap_inter": prefix + "_distmap_inter",
@@ -957,6 +1005,40 @@ def complex(**kwargs):
 
             # save the inter ECs to a file
             ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
+
+    # create an inter-ecs file with extra information for calibration purposes
+    def _calibration_file(prefix, ec_file):
+
+        if not valid_file(ec_file):
+            return None
+
+        ecs = pd.read_csv(ec_file)
+
+        #add the skewnormal fitted domainwise
+        ecs = complex_probability(
+            ecs, "skewnormal", False
+        )
+        ecs.loc[:,"skewnormal_domainwise"] = ecs.loc[:,"probability"]
+
+        #add the skewnormal fitted on all
+        ecs = complex_probability(
+            ecs, "skewnormal", True
+        )
+        ecs.loc[:,"skewnormal_all"] = ecs.loc[:,"probability"]
+
+
+        #add the evcomplex score
+        ecs = complex_probability(
+            ecs, "evcomplex", True
+        )
+        ecs.loc[:,"evcomplex"] = ecs.loc[:,"probability"]
+
+        #write the file (top 100 only)
+        inter_ecs = ecs.query("segment_i != segment_j")
+        outcfg["calibration_file"] = prefix + "_CouplingScores_inter_calibration.csv"
+        inter_ecs.iloc[0:1000,:].to_csv(outcfg["calibration_file"])
+
+    _calibration_file(prefix, outcfg["ec_compared_longrange_file"])
 
     # create the inter-ecs line drawing script
     if outcfg["ec_compared_inter_file"] is not None and kwargs["plot_highest_count"] is not None:
