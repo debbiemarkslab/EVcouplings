@@ -11,6 +11,8 @@ from os import path
 import jinja2
 import sys
 
+from evcouplings.utils import InvalidParameterError
+
 
 class PersistentDict(dict):
     ''' Persistent dictionary with an API compatible with shelve and anydbm.
@@ -33,7 +35,7 @@ class PersistentDict(dict):
         self.format = format                # 'csv', 'json', or 'pickle'
         self.filename = filename
         if flag != 'n' and os.access(filename, os.R_OK):
-            fileobj = open(filename, 'rb' if format=='pickle' else 'r')
+            fileobj = open(filename, 'rb' if format == 'pickle' else 'r')
             with fileobj:
                 self.load(fileobj)
         dict.__init__(self, *args, **kwds)
@@ -42,9 +44,14 @@ class PersistentDict(dict):
         'Write dict to disk'
         if self.flag == 'r':
             return
+
+        # dont sync if empty
+        if not len(self):
+            return
+
         filename = self.filename
         tempname = filename + '.tmp'
-        fileobj = open(tempname, 'wb' if self.format=='pickle' else 'w')
+        fileobj = open(tempname, 'wb' if self.format =='pickle' else 'w')
         try:
             self.dump(fileobj)
         except Exception:
@@ -66,6 +73,10 @@ class PersistentDict(dict):
         self.close()
 
     def dump(self, fileobj):
+        # if self is empty do not write to file
+        if not self:
+            return
+
         if self.format == 'csv':
             csv.writer(fileobj).writerows(self.items())
         elif self.format == 'json':
@@ -130,6 +141,8 @@ def range_overlap(a, b):
     Source: http://stackoverflow.com/questions/2953967/
             built-in-function-for-computing-overlap-in-python
 
+    Function assumes that start < end for a and b
+
     .. note::
 
         Ends of range are not inclusive
@@ -148,6 +161,10 @@ def range_overlap(a, b):
     int
         Length of overlap between ranges a and b
     """
+    if a[0] >= a[1]:
+        raise InvalidParameterError("Start has to be smaller than end a[0] < a[1]")
+    if b[0] >= b[1]:
+        raise InvalidParameterError("Start has to be smaller than end b[0] < b[1]")
     return max(0, min(a[1], b[1]) - max(a[0], b[0]))
 
 
@@ -198,7 +215,6 @@ class Progressbar(object):
         self.total_size = total_size
         self.current_size = 0
         self.bar_length = bar_length
-
 
     def __iadd__(self, chunk):
         """

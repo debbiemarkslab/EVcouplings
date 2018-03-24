@@ -144,6 +144,10 @@ def find_possible_partners(gene_location_table_1, gene_location_table_2):
     gene_location_table_1.dropna(axis=0, inplace=True)
     gene_location_table_2.dropna(axis=0, inplace=True)
 
+    # after dropping NAs, coerce remaining locations to integers
+    gene_location_table_1[["gene_start", "gene_end"]] = gene_location_table_1[["gene_start", "gene_end"]].astype(int)
+    gene_location_table_2[["gene_start", "gene_end"]] = gene_location_table_2[["gene_start", "gene_end"]].astype(int)
+
     # drop duplicate rows - speeds up calculation
     gene_location_table_1.drop_duplicates(inplace=True)
     gene_location_table_2.drop_duplicates(inplace=True)
