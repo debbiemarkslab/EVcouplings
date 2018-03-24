@@ -21,6 +21,9 @@ from evcouplings.utils.system import (
     create_prefix_folders, verify_resources
 )
 from evcouplings.align.protocol import modify_alignment
+from evcouplings.align import (
+    parse_header
+)
 
 from evcouplings.complex.alignment import (
     write_concatenated_alignment
@@ -252,6 +255,28 @@ def genome_distance(**kwargs):
 
     """
 
+    def _assure_no_overlap(dataframe, pair_identical_ids):
+        original_columns = list(dataframe.columns)
+        print(len(dataframe))
+        dataframe["id_base_1"] = [parse_header(x)[0] for x in dataframe.uniprot_id_1]
+        dataframe["start_1"] = [parse_header(x)[1] for x in dataframe.uniprot_id_1]
+        dataframe["end_1"] = [parse_header(x)[2] for x in dataframe.uniprot_id_1]
+        dataframe["id_base_2"] = [parse_header(x)[0] for x in dataframe.uniprot_id_2]
+        dataframe["start_2"] = [parse_header(x)[1] for x in dataframe.uniprot_id_2]
+        dataframe["end_2"] = [parse_header(x)[2] for x in dataframe.uniprot_id_2]
+
+        if pair_identical_ids:
+            # remove ids that are identical and overlap
+            filtered_df = dataframe.query(
+                "id_base_1 != id_base_2 or (end_1 =< start_2 or end_2 =< start_1)"
+            )
+
+        else:
+            # remove identical ids
+            filtered_df = dataframe.query("id_base_1 != id_base_2")
+        print(len(filtered_df))
+        return filtered_df[original_columns]
+
     check_required(
         kwargs,
         [
@@ -262,7 +287,8 @@ def genome_distance(**kwargs):
             "first_segments", "second_segments",
             "genome_distance_threshold",
             "first_genome_location_file",
-            "second_genome_location_file"
+            "second_genome_location_file",
+            "pair_identical_ids"
         ]
     )
 
@@ -296,6 +322,11 @@ def genome_distance(**kwargs):
     # find all possible matches
     possible_partners = find_possible_partners(
         gene_location_table_1, gene_location_table_2
+    )
+
+    # remove ids/regions with overlapping region
+    possible_partners = _assure_no_overlap(
+        possible_partners, kwargs["pair_identical_ids"]
     )
 
     # find the best reciprocal matches
