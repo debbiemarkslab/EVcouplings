@@ -40,8 +40,6 @@ class AzureDumper(ResultsDumperInterface):
         self.archive = self.parameters.get("archive", self.config.get("archive"))
 
     def write_tar(self):
-        assert self.archive is not None, "you must define a list of files to be archived"
-
         # if no output keys are requested, nothing to do
         if self.archive is None or len(self.archive) == 0:
             return
@@ -101,6 +99,8 @@ class AzureDumper(ResultsDumperInterface):
             upload_name,
             file_path
         )
+
+        return self.block_blob_service.make_blob_url(self.nice_job_name, upload_name)
 
     def write_files(self):
         assert self.archive is not None, "you must define a list of files to be archived"

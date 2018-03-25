@@ -23,8 +23,6 @@ class LocalDumper(ResultsDumperInterface):
         self.archive = self.parameters.get("archive", self.config.get("archive"))
 
     def write_tar(self):
-        assert self.archive is not None, "You must define a list of files to be archived"
-
         # if no output keys are requested, nothing to do
         if self.archive is None or len(self.archive) == 0:
             return
@@ -65,7 +63,11 @@ class LocalDumper(ResultsDumperInterface):
 
         _, upload_name = os.path.split(file_path)
 
-        copyfile(file_path, self.storage_location + upload_name)
+        final_path = os.path.join(self.storage_location, upload_name)
+
+        copyfile(file_path, final_path)
+
+        return final_path
 
     def write_files(self):
         # TODO: Write each single file to blob in correct folder structure
