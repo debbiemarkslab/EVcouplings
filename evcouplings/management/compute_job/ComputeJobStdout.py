@@ -23,8 +23,26 @@ class ComputeJobStdout(ComputeJobInterface):
             print("{} status has changed to {}".format(self.job_name, status))
             self.status = status
 
-    def get_jobs_from_group(self):
-        print("This function has no meaning in the context of the local Compute Job.")
-
     def get_job(self):
         print("{} is in stage '{}' and status '{}'".format(self.job_name, self.stage, self.status))
+
+        return {
+            "name": self.job_name,
+            "job_group": "none",
+            "status": self.status,
+            "stage": self.stage,
+            "created_at": None,
+            "updated_at": None
+        }
+
+    def get_jobs_from_group(self):
+        print("[get_jobs_from_group]: This function has no meaning in the context of the local Compute Job.")
+
+        return [{
+            "name": self.job_name,
+            "job_group": "none",
+            "status": self.status,
+            "stage": self.stage,
+            "created_at": None,
+            "updated_at": None
+        }]
