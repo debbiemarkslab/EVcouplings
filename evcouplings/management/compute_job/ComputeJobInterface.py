@@ -12,7 +12,7 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
 
         pass
 
-    @abc.abstractmethod(property)
+    @abc.abstractproperty
     def name(self):
         """
          #TODO: figure out this, apply for:
