@@ -36,7 +36,7 @@ CONFIG_NAME = "{}_config.txt"
 
 def _update_dictionary_recursively(original, overwrite):
     """
-    Function to recursively overwrite a dictionary with new values (can both extend + overwrite)
+    Function to recursively overwrite a dictionary with new values (doesn't extend! (aka.: lists are overwritten!)
     :param original: original dictionary, that gets overwritten
     :param overwrite: updates to apply on original dictionary
     """
@@ -46,6 +46,29 @@ def _update_dictionary_recursively(original, overwrite):
         else:
             original[k] = v
     return original
+
+
+def _extend_dictionary_recursively(original, overwrite):
+    """
+    Same as _update_dictionary_recursively, but extends lists (elements are appended at the end)
+    :param original: original dictionary, that gets extended
+    :param overwrite: updates to apply on original dictionary
+    :return:
+    """
+    for k, v in overwrite.items():
+        print(k)
+        if isinstance(v, list):
+            assert isinstance(original[k], list), "Cannot extend list and non-list types {}.".format(k)
+            original[k] = original.get(k) + v
+            print("\tentered list")
+        elif isinstance(v, collections.Mapping):
+            original[k] = _extend_dictionary_recursively(original.get(k, {}), v)
+            print("\tentered recursion")
+        else:
+            print("\tentered general")
+            original[k] = v
+    return original
+
 
 
 def substitute_config(**kwargs):
