@@ -14,4 +14,3 @@ jinja2
 biopython
 sqlalchemy
 seaborn
-azure-storage-blob
