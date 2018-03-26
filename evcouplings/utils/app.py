@@ -40,7 +40,6 @@ def _update_dictionary_recursively(original, overwrite):
     :param original: original dictionary, that gets overwritten
     :param overwrite: updates to apply on original dictionary
     """
-    # TODO: if array type, merge arrays. Make sure data types are conserved
     for k, v in overwrite.items():
         if isinstance(v, collections.Mapping):
             original[k] = _update_dictionary_recursively(original.get(k, {}), v)
