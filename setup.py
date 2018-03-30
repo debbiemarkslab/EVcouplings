@@ -78,10 +78,14 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     # IMPORTANT: script names need to be in lower case ! ! ! (otherwise
     # deinstallation does not work)
+
+    # Note: evcouplings.utils.app depends on the names evcouplings_runcfg
+    # and evcouplings_summarize, so any change here must be applied there too!
     entry_points={
         'console_scripts': [
             'evcouplings=evcouplings.utils.app:app',
             'evcouplings_runcfg=evcouplings.utils.pipeline:app',
+            'evcouplings_summarize=evcouplings.utils.summarize:app',
             'evcouplings_dbupdate=evcouplings.utils.update_database:app'
         ],
     },
