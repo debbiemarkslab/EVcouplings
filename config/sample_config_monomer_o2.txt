@@ -253,7 +253,7 @@ compare:
     # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
     # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent). 
     # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
-    pdb_search_method: jackhmmer
+    pdb_alignment_method: jackhmmer
 
 # Settings for Mutation effect predictions
 mutate:
@@ -345,8 +345,8 @@ management:
 
 # Computational environment for batch jobs (using evcouplings command line application)
 environment:
-    # current options for engine: lsf, local (for local, only set cores and leave all other fields blank)
-    # If your batch engine of choice (SGE, Slurm, Torque) is not available yet, please consider contributing by
+    # current options for engine: lsf, local, slurm (for local, only set cores and leave all other fields blank)
+    # If your batch engine of choice (e.g. SGE, Torque) is not available yet, please consider contributing by
     # implementing it and submitting a pull request!
     # Note that "cores" will override the "cpu" parameter for "global"
     engine: slurm
@@ -357,7 +357,7 @@ environment:
 
     # command that will be executed before running actual computation (can be used to set up environment)
     configuration:
-        - source activate evcouplings_o2
+        - source activate evcouplings_stable
 
 # Paths to databases used by evcouplings.
 databases:

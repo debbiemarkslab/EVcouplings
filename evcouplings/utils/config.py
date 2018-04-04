@@ -106,10 +106,9 @@ def check_required(params, keys):
     keys : list-like
         Set of parameters that has to be present in params
 
-    Returns
-    -------
-    bool
-        True if all parameters present, False otherwise
+    Raises
+    ------
+    MissingParameterError
     """
     missing = [k for k in keys if k not in params]
 

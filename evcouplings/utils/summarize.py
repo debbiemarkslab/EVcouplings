@@ -360,7 +360,7 @@ PIPELINE_TO_SUMMARIZER = {
 @click.argument('pipeline', nargs=1, required=True)
 @click.argument('prefix', nargs=1, required=True)
 @click.argument('configs', nargs=-1)
-def run(**kwargs):
+def app(**kwargs):
     """
     Create summary statistics for evcouplings pipeline runs
     """
@@ -377,4 +377,4 @@ def run(**kwargs):
 
 
 if __name__ == '__main__':
-    run()
+    app()
