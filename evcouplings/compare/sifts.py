@@ -763,9 +763,16 @@ class SIFTS:
              if c not in hit_columns]
         )
 
-        hits_grouped = hits.groupby(
-            hit_columns
-        ).agg(agg_types).reset_index()
+        # only aggregate if we have anything to aggregate,
+        # otherwise pandas drops the index columns
+        # alignment_id, pdb_id, pdb_chain and things go
+        # wrong horribly in the following join
+        if len(hits) > 0:
+            hits_grouped = hits.groupby(
+                hit_columns
+            ).agg(agg_types).reset_index()
+        else:
+            hits_grouped = hits
 
         # join with mapping information
         hits_grouped = hits_grouped.merge(

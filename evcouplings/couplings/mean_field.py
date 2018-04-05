@@ -9,9 +9,14 @@ Authors:
 
 import numpy as np
 import numba
+from copy import deepcopy
 
 from evcouplings.align import parse_header
 from evcouplings.couplings import CouplingsModel
+
+# arbitrary value that is written
+# to file for plmc-specific parameters
+_PLACEHOLDER = -1
 
 
 @numba.jit(nopython=True)
@@ -218,7 +223,7 @@ class MeanFieldDCA(object):
 
     def regularize_frequencies(self, pseudo_count=0.5):
         """
-        Returns/calculates single-site frequencies
+        Returns single-site frequencies
         regularized by a pseudo-count of symbols
         in alignment.
 
@@ -238,10 +243,9 @@ class MeanFieldDCA(object):
             relative column frequencies of all symbols
             regularized by a pseudo-count.
         """
-        num_symbols = self.alignment.num_symbols
-        self.regularized_frequencies = (
-            (1. - pseudo_count) * self.alignment.frequencies +
-            (pseudo_count / float(num_symbols))
+        self.regularized_frequencies = regularize_frequencies(
+            self.alignment.frequencies,
+            pseudo_count=pseudo_count
         )
         return self.regularized_frequencies
 
@@ -267,25 +271,10 @@ class MeanFieldDCA(object):
             containing relative pairwise frequencies of all
             symbols regularized by a pseudo-count.
         """
-        # add a pseudo-count to the frequencies
-        self.regularized_pair_frequencies = (
-            (1. - pseudo_count) * self.alignment.pair_frequencies +
-            (pseudo_count / float(self.alignment.num_symbols ** 2))
+        self.regularized_pair_frequencies = regularize_pair_frequencies(
+            self.alignment.pair_frequencies,
+            pseudo_count=pseudo_count
         )
-
-        # again, set the "pair frequency" of two identical
-        # symbols in the same position to the respective
-        # single-site frequency (and all other entries
-        # in matrices concerning position pair (i, i) to zero)
-        id_matrix = np.identity(self.alignment.num_symbols)
-        for i in range(self.alignment.L):
-            for alpha in range(self.alignment.num_symbols):
-                for beta in range(self.alignment.num_symbols):
-                    self.regularized_pair_frequencies[i, i, alpha, beta] = (
-                        (1. - pseudo_count) * self.alignment.pair_frequencies[i, i, alpha, beta] +
-                        (pseudo_count / self.alignment.num_symbols) * id_matrix[alpha, beta]
-                    )
-
         return self.regularized_pair_frequencies
 
     def compute_covariance_matrix(self):
@@ -408,19 +397,11 @@ class MeanFieldCouplingsModel(CouplingsModel):
         # is the first record in the alignment
         self.target_seq = list(alignment.matrix[0])
 
-        # set plmc-specific parameters to arbitrary value
-        # (cannot be set to None, but must be set to a
-        # numerical value for the to_file method to work properly)
-        self.num_iter = -1
-        self.lambda_h = -1
-        self.lambda_J = -1
-        self.lambda_group = -1
-
         # raw single and pair frequencies
         self.f_i = alignment.frequencies
         self.f_ij = alignment.pair_frequencies
 
-        # raw single and pair frequencies
+        # regularized single and pair frequencies
         self.regularized_f_i = regularized_f_i
         self.regularized_f_ij = regularized_f_ij
 
@@ -445,6 +426,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
         # from crashing
         self.N_invalid = 0
 
+        self.__decode_unused_fields(save_pseudo_count=False)
         self._reset_precomputed()
 
     def _reset_precomputed(self):
@@ -498,6 +480,50 @@ class MeanFieldCouplingsModel(CouplingsModel):
             by="di", ascending=False
         )
 
+    def regularize_f_i(self):
+        """
+        Returns single-site frequencies
+        regularized by a pseudo-count of
+        symbols in alignment.
+
+        This method sets the attribute
+        self.regularized_f_i and returns
+        a reference to it.
+
+        Returns
+        -------
+        np.array
+            Matrix of size L x num_symbols containing
+            relative column frequencies of all symbols
+            regularized by a pseudo-count.
+        """
+        self.regularized_f_i = regularize_frequencies(
+            self.f_i, pseudo_count=self.pseudo_count
+        )
+        return self.regularized_f_i
+
+    def regularize_f_ij(self):
+        """
+        Returns pairwise frequencies
+        regularized by a pseudo-count of
+        symbols in alignment.
+
+        This method sets the attribute
+        self.regularized_f_ij and returns
+        a reference to it.
+
+        Returns
+        -------
+        np.array
+            Matrix of size L x L x num_symbols x num_symbols
+            containing relative pairwise frequencies of all
+            symbols regularized by a pseudo-count.
+        """
+        self.regularized_f_ij = regularize_pair_frequencies(
+            self.f_ij, pseudo_count=self.pseudo_count
+        )
+        return self.regularized_f_ij
+
     def tilde_fields(self, i, j):
         """Compute h_tilde fields of the two-site model.
 
@@ -530,6 +556,24 @@ class MeanFieldCouplingsModel(CouplingsModel):
 
         return self._di_scores
 
+    def to_independent_model(self):
+        """
+        Compute a single-site model.
+
+        This method overrides its respective
+        parent method in CouplingsModel.
+
+        Returns
+        -------
+        MeanFieldCouplingsModel
+            Copy of object turned into independent model
+        """
+        c0 = deepcopy(self)
+        c0.h_i = np.log(self.regularized_f_i)
+        c0.J_ij.fill(0)
+        c0._reset_precomputed()
+        return c0
+
     def to_raw_ec_file(self, couplings_file):
         """
         Write mutual and direct information to the EC file.
@@ -548,6 +592,198 @@ class MeanFieldCouplingsModel(CouplingsModel):
                         "{0:.6f}".format(self.mi_scores_raw[i, j]),
                         "{0:.6f}".format(self.di_scores[i, j])
                     ])) + "\n")
+
+    def transform_from_plmc_model(self):
+        """
+        Adaptions that allow to read
+        a mean-field couplings model
+        from file where __read_plmc_v2
+        in CouplingsModel does the
+        heavy lifting.
+
+        This includes:
+        - Manage unused plmc-specific
+        fields as well as the pseudo count
+        field
+        - Modify pair frequencies
+        - Regularize column and pair
+        frequencies (i.e. fill the fields
+        regularized_f_i and regularized_f_ij)
+        """
+        self.__decode_unused_fields()
+
+        # set the frequency of a pair (alpha, alpha)
+        # in position i to the respective single-site
+        # frequency of alpha in position i
+        for i in range(self.L):
+            for alpha in range(self.num_symbols):
+                self.f_ij[i, i, alpha, alpha] = self.f_i[i, alpha]
+
+        # compute pseudo counted frequencies
+        # from raw frequencies
+        self.regularize_f_i()
+        self.regularize_f_ij()
+
+    def __encode_unused_fields(self):
+        """
+        Set plmc-specific parameters
+        (lambda_J, lambda_group, num_iter)
+        to an arbitrary numerical value.
+
+        Note:
+        The field lambda_h is used to store
+        the pseudo count (the negative sign
+        simply serves as marker).
+        """
+        self.lambda_J = _PLACEHOLDER
+        self.lambda_group = _PLACEHOLDER
+        self.num_iter = _PLACEHOLDER
+        self.lambda_h = -self.pseudo_count
+
+    def __decode_unused_fields(self, save_pseudo_count=True):
+        """
+        Set plmc-specific parameters
+        to None to ensure correct usage
+        of the object.
+
+        Note:
+        If save_pseudo_count is True,
+        the pseudo count (that was temporarily
+        stored in lambda_h) is stored in the
+        appropriate field.
+
+        Parameters
+        ----------
+        save_pseudo_count : bool, optional (default: True)
+            If True, the pseudo count is read from
+            the field lambda_h and stored in the
+            appropriate field.
+        """
+        self.lambda_J = None
+        self.lambda_group = None
+        self.num_iter = None
+
+        if save_pseudo_count:
+            self.pseudo_count = -self.lambda_h
+
+        self.lambda_h = None
+
+    def to_file(self, out_file, precision="float32", file_format="plmc_v2"):
+        """
+        Writes the model to binary file.
+
+        This method overrides its respective
+        parent method in CouplingsModel.
+
+        Parameters
+        ----------
+        out_file: str
+            A string specifying the path to a file
+        precision: {"float16", "float32", "float64"}, optional (default: "float32")
+            Numerical NumPy data type specifying the precision
+            used to write numerical values to file
+        file_format : {"plmc_v2"}, optional (default: "plmc_v2")
+            For now, a mean-field model can only be
+            written to a file in plmc_v2 format. Writing
+            to a plmc_v1 file is not permitted since
+            there is no functionality provided to read a
+            mean-field model in plmc_v1 format.
+        """
+        # plmc-specific parameters need to be set to a
+        # numerical value to make the to_file function work
+        self.__encode_unused_fields()
+
+        # writing to a file in plmc_v1 format
+        # is not permitted
+        if file_format == "plmc_v1":
+            raise ValueError(
+                "Illegal file format: plmc_v1. "
+                "Valid option: plmc_v2."
+            )
+
+        # write the model to file
+        super(MeanFieldCouplingsModel, self).to_file(
+            out_file,
+            precision=precision,
+            file_format=file_format
+        )
+
+        # transform model to its proper state again
+        self.__decode_unused_fields()
+
+
+def regularize_frequencies(f_i, pseudo_count=0.5):
+    """
+    Returns/calculates single-site frequencies
+    regularized by a pseudo-count of symbols
+    in alignment.
+
+    Parameters
+    ----------
+    f_i : np.array
+        Matrix of size L x num_symbols
+        containing column frequencies.
+    pseudo_count : float, optional (default: 0.5)
+        The value to be added as pseudo-count.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x num_symbols containing
+        relative column frequencies of all symbols
+        regularized by a pseudo-count.
+    """
+    _, num_symbols = f_i.shape
+    regularized_frequencies = (
+        (1. - pseudo_count) * f_i +
+        (pseudo_count / float(num_symbols))
+    )
+    return regularized_frequencies
+
+
+def regularize_pair_frequencies(f_ij, pseudo_count=0.5):
+    """
+    Add pseudo-count to pairwise frequencies
+    to regularize in the case of insufficient
+    data availability.
+
+    Parameters
+    ----------
+    f_ij : np.array
+        Matrix of size L x L x num_symbols x
+        num_symbols containing pair frequencies.
+    pseudo_count : float, optional (default: 0.5)
+        The value to be added as pseudo-count.
+
+    Returns
+    -------
+    np.array
+        Matrix of size L x L x num_symbols x num_symbols
+        containing relative pairwise frequencies of all
+        symbols regularized by a pseudo-count.
+    """
+    L, _, num_symbols, _ = f_ij.shape
+
+    # add a pseudo-count to the frequencies
+    regularized_pair_frequencies = (
+        (1. - pseudo_count) * f_ij +
+        (pseudo_count / float(num_symbols ** 2))
+    )
+
+    # again, set the "pair frequency" of two identical
+    # symbols in the same position to the respective
+    # single-site frequency (and all other entries
+    # in matrices concerning position pair (i, i) to zero)
+    id_matrix = np.identity(num_symbols)
+    for i in range(L):
+        for alpha in range(num_symbols):
+            for beta in range(num_symbols):
+                regularized_pair_frequencies[i, i, alpha, beta] = (
+                    (1. - pseudo_count) * f_ij[i, i, alpha, beta] +
+                    (pseudo_count / num_symbols) * id_matrix[alpha, beta]
+                )
+
+    return regularized_pair_frequencies
 
 
 @numba.jit(nopython=True)
