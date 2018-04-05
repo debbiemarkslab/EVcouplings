@@ -456,15 +456,15 @@ environment:
 
     # command that will be executed before running actual computation (can be used to set up environment)
     configuration:
-        - source activate evcouplings_stable
+        
 
 # Paths to databases used by evcouplings.
 databases:
     # Sequence databases (only download the ones you want to use). You can also specify arbitrary databases in FASTA format
     # using a database name of your choice here)
-    uniprot: /n/groups/marks/databases/jackhmmer/uniprot/uniprot_2017_04.fasta
-    uniref100: /n/groups/marks/databases/jackhmmer/uniref100/uniref100_2017_04.fasta
-    uniref90: /n/groups/marks/databases/jackhmmer/uniref90/uniref90_2017_04.fasta
+    uniprot: /n/groups/marks/databases/jackhmmer/uniprot/uniprot_current.o2.fasta
+    uniref100: /n/groups/marks/databases/jackhmmer/uniref100/uniref100_current.o2.fasta
+    uniref90: /n/groups/marks/databases/jackhmmer/uniref90/uniref90_current.o2.fasta
 
     # URL do download sequences if sequence_file is not given. {} will be replaced by sequence_id.
     sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
@@ -475,8 +475,16 @@ databases:
     # SIFTS mapping information. Point to file paths in an existing directory, and if these files do not exist, they will be
     # automatically generated and saved at the given file path (this may take a while).
     # Periodically delete these files to more recent versions of SIFTS are used.
-    sifts_mapping_table: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_07_03.csv
-    sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_07_03.fa
+    sifts_mapping_table: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.csv
+    sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.fasta
+    
+    # the following two databases are exclusive to EVcomplex and need to be manually downloaded and saved locally
+    # then add the paths to your local copies of the database
+    # Download urls: 
+    # ena_genome_location_table: https://marks.hms.harvard.edu/evcomplex_databases/cds_pro_2017_02.txt
+    # uniprot_to_embl_table: https://marks.hms.harvard.edu/evcomplex_databases/idmapping_uniprot_embl_2017_02.txt 
+    uniprot_to_embl_table: /n/groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
+    ena_genome_location_table: /n/groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
@@ -489,10 +497,3 @@ tools:
     cns: /n/groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
     maxcluster: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
     
-    # the following two databases are exclusive to EVcomplex and need to be manually downloaded and saved locally
-    # then add the paths to your local copies of the database
-    # Download urls: 
-    # ena_genome_location_table: https://marks.hms.harvard.edu/evcomplex_databases/cds_pro_2017_02.txt
-    # uniprot_to_embl_table: https://marks.hms.harvard.edu/evcomplex_databases/idmapping_uniprot_embl_2017_02.txt 
-    uniprot_to_embl_table: /n/groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
-    ena_genome_location_table: /n/groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
