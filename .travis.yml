@@ -35,5 +35,7 @@ deploy:
     secure: "E37SGJt1FlNlsKAaGle3T5KCZC32+yd8Exek/WG1Q9PQAFhOEJFyKka/dOb+dSh/vXA1xRwctifovILJrp/Klwv94Wk+HeY7kNsUC1AKjYTTpWM1lvdo+ljCKnB5ryANy4C/QlEtLYp0vrm5UeyYTLxiZ2xXqFCDkyBwScBaWRxreEqNh33pjuWrMirizGKQ4Qgx9yrorGW/cQZu8w8Xer8Ms1cM3lzU0UPAQAeobmE7HVThJQQuOAzhhBfEL7WMiaVVrLQj1lxO+euPRo0pOWFyNuDYpZv509VGqyYtUbS2O1YMTG7ADL+sZ8ZsBEwZYavpZ05BkQ7XUQRUxh+vkrLoIzAjrcK+L+jS/JpaaT85oUto0XT9fdaL5HAtNfwe+zmLoNYDYA+i6VBTrdHGFhHPLxufIzqm86Ak0uPnRLULXejxLdus7qX0dEcl2jsLaTHZix0qUq0MN4z232c6iAMoYxmRGv7uoD+JRdQ7WZeaG6Ll/yagZ994D0KnB6JeDsMLukRjStTKl8QM9uumopAbdnLacS62/CRxkxWefCBwKAUbJb5xEvGSazqFqW+H4xToNG5VEi4XAQpJEIT0gZg3uu1/0uWFGKTMqND5ojtzXXV4LXmnLerw2KOoHkQPLtCVYJXGi6Zes2Zb9PhVxidGU46XFNnCdWSCedDjJ/Q="
   on:
     tags: true
+    python: '3.6'
+
 after_success:
 - codecov
