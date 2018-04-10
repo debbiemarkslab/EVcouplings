@@ -34,7 +34,6 @@ import evcouplings.compare.protocol as cm
 import evcouplings.mutate.protocol as mt
 import evcouplings.fold.protocol as fd
 import evcouplings.complex.protocol as pp
-import evcouplings.management.protocol as mg
 
 # supported pipelines
 #
@@ -51,16 +50,14 @@ PIPELINES = {
         ("couplings", cp.run, None),
         ("compare", cm.run, None),
         ("mutate", mt.run, None),
-        ("fold", fd.run, None),
-        ("management", mg.run, None)
+        ("fold", fd.run, None)
     ],
     "protein_complex": [
         ("align_1", ap.run, "first_"),
         ("align_2", ap.run, "second_"),
         ("concatenate", pp.run, None),
         ("couplings", cp.run, None),
-        ("compare", cm.run, None),
-        ("management", mg.run, None)
+        ("compare", cm.run, None)
     ]
 }
 
