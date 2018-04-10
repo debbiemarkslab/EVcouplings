@@ -1,3 +1,4 @@
+from evcouplings.management.compute_job import ComputeJobMongo
 from evcouplings.management.compute_job.ComputeJobSQL import ComputeJobSQL
 from evcouplings.management.compute_job.ComputeJobStdout import ComputeJobStdout
 
@@ -12,7 +13,8 @@ EStatus = (lambda **enums: type('Enum', (), enums))(
 
 COMPUTEJOBTRACKER = {
     "local": ComputeJobStdout,
-    "sql": ComputeJobSQL
+    "sql": ComputeJobSQL,
+    "mongo": ComputeJobMongo
 }
 
 

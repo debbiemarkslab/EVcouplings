@@ -1,4 +1,10 @@
 from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface
+import datetime
+
+
+#TODO: when logging is implemented, rewrite this:
+def log(item):
+    pass
 
 
 class ComputeJobStdout(ComputeJobInterface):
@@ -12,19 +18,24 @@ class ComputeJobStdout(ComputeJobInterface):
         })
 
         self.job_name = self.management.get("job_name", "Current job")
-        self.stage = "none"
-        self.status = "none"
+
+        self.status = "init"
+        self.stage = "init"
+        self.created_at = datetime.datetime.now
+        self.updated_at = datetime.datetime.now
 
     def update_job_status(self, status=None, stage=None):
         if stage is not None:
-            print("{} is entering stage {}".format(self.job_name, stage))
+            log("{} is entering stage {}".format(self.name, stage))
             self.stage = stage
         elif status is not None:
-            print("{} status has changed to {}".format(self.job_name, status))
+            log("{} status has changed to {}".format(self.name, status))
             self.status = status
 
+        self.updated_at = datetime.datetime.now()
+
     def get_jobs_from_group(self):
-        print("This function has no meaning in the context of the local Compute Job.")
+        log("This function has no meaning in the context of the local Compute Job.")
 
     def get_job(self):
-        print("{} is in stage '{}' and status '{}'".format(self.job_name, self.stage, self.status))
+        log("{} is in stage '{}' and status '{}'".format(self.job_name, self.stage, self.status))

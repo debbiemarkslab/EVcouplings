@@ -22,7 +22,7 @@ class _ComputeJob(_Base):
     __tablename__ = "compute_jobs"
 
     # human-readable job name (must be unique)
-    name = Column(String(100), primary_key=True)
+    job_name = Column(String(100), primary_key=True)
 
     # the job_hash this job is associated with
     # (foreign key in group key if this table
@@ -40,7 +40,7 @@ class _ComputeJob(_Base):
     # time the job started running
     created_at = Column(DateTime, default=datetime.datetime.now)
 
-    # time the job finished running
+    # last time job was updated
     updated_at = Column(DateTime, default=datetime.datetime.now)
 
 
@@ -66,6 +66,11 @@ class ComputeJobSQL(ComputeJobInterface):
 
         self.database_uri = self.compute_job.get("database_uri")
         assert self.database_uri is not None, "database_uri must be defined"
+
+        self.status = "init"
+        self.stage = "init"
+        self.created_at = datetime.datetime.now()
+        self.updated_at = datetime.datetime.now()
 
     def update_job_status(self, status=None, stage=None):
         """
@@ -95,18 +100,20 @@ class ComputeJobSQL(ComputeJobInterface):
             # create new entry if not already existing
             if q is None:
                 q = _ComputeJob(
-                    name=self.job_name,
+                    job_name=self.job_name,
                     job_group=self.job_group
                 )
                 session.commit()
 
             # if status is given, update
             if status is not None:
-                q.status = status
+                self.status = status
+                q.status = self.status
 
             # if stage is given, update
             if stage is not None:
-                q.stage = stage
+                self.stage = stage
+                q.stage = self.stage
 
             # update finish time (i.e. final finish
             # time when job status is set for the last time)
