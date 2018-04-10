@@ -26,10 +26,10 @@ def entropy(X, normalize=False):
         Entropy of X
     """
     X_ = X[X > 0]
-    H = -np.sum(X_ * np.log(X_))
+    H = -np.sum(X_ * np.log2(X_))
 
     if normalize:
-        return 1 - (H / np.log(len(X)))
+        return 1 - (H / np.log2(len(X)))
     else:
         return H
 
@@ -62,6 +62,7 @@ def entropy_vector(model, normalize=True):
     )
 
     return cons
+
 
 def entropy_map(model, normalize=True):
     """
