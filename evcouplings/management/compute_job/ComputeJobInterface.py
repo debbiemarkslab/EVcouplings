@@ -19,7 +19,6 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     # Properties
-
     @property
     @abc.abstractmethod
     def job_name(self):
@@ -28,11 +27,6 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
     @job_name.getter
     @abc.abstractmethod
     def job_name(self):
-        raise NotImplementedError
-
-    @job_name.setter
-    @abc.abstractmethod
-    def job_name(self, value):
         raise NotImplementedError
 
     @property
@@ -45,11 +39,6 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
     def job_group(self):
         raise NotImplementedError
 
-    @job_group.setter
-    @abc.abstractmethod
-    def job_group(self, value):
-        raise NotImplementedError
-
     @property
     @abc.abstractmethod
     def status(self):
@@ -58,11 +47,6 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
     @status.getter
     @abc.abstractmethod
     def status(self):
-        raise NotImplementedError
-
-    @status.setter
-    @abc.abstractmethod
-    def status(self, value):
         raise NotImplementedError
 
     @property
@@ -75,11 +59,6 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
     def stage(self):
         raise NotImplementedError
 
-    @stage.setter
-    @abc.abstractmethod
-    def stage(self, value):
-        raise NotImplementedError
-
     @property
     @abc.abstractmethod
     def created_at(self):
@@ -88,11 +67,6 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
     @created_at.getter
     @abc.abstractmethod
     def created_at(self):
-        raise NotImplementedError
-
-    @created_at.setter
-    @abc.abstractmethod
-    def created_at(self, value):
         raise NotImplementedError
 
     @property
@@ -105,7 +79,10 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
     def updated_at(self):
         raise NotImplementedError
 
-    @updated_at.setter
-    @abc.abstractmethod
-    def updated_at(self, value):
-        raise NotImplementedError
+
+class DocumentNotFound(Exception):
+    """
+    Exception for not finding a document that should be there in the database
+    """
+
+DATABASE_NAME = "compute_jobs"

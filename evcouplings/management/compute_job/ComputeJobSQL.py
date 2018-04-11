@@ -3,9 +3,10 @@ from sqlalchemy import (
     create_engine
 )
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.declarative import declarative_base
-from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface
+from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface, DocumentNotFound, DATABASE_NAME
 import datetime
 
 
@@ -19,7 +20,7 @@ class _ComputeJob(_Base):
     (these are stored in config file to keep table schema
     stable).
     """
-    __tablename__ = "compute_jobs"
+    __tablename__ = DATABASE_NAME
 
     # human-readable job name (must be unique)
     job_name = Column(String(100), primary_key=True)
@@ -46,31 +47,80 @@ class _ComputeJob(_Base):
 
 class ComputeJobSQL(ComputeJobInterface):
 
+    def job_name(self):
+        return self._job_name
+
+    def job_group(self):
+        return self._job_group
+
+    def status(self):
+        return self._status
+
+    def stage(self):
+        return self._stage
+
+    def created_at(self):
+        return self._created_at
+
+    def updated_at(self):
+        return self._updated_at
+
     def __init__(self, config):
         super(ComputeJobSQL, self).__init__(config)
 
         # Get things from management
-        self.management = self.config.get("management")
-        assert self.management is not None, "You must pass a full config file with a management field"
+        self._management = self.config.get("management")
+        assert self._management is not None, "You must pass a full config file with a management field"
 
-        self.job_name = self.management.get("job_name")
+        self._job_name = self._management.get("job_name")
         assert self.job_name is not None, "config.management must contain a job_name"
 
-        self.job_group = self.management.get("job_group")
+        self._job_group = self._management.get("job_group")
         assert self.job_group is not None, "config.management must contain a job_group"
 
         # Get things from management.job_database (this is where connection string + db type live)
-        self.compute_job = self.management.get("compute_job")
-        assert self.compute_job is not None, \
+        self._compute_job = self._management.get("compute_job")
+        assert self._compute_job is not None, \
             "You must define compute_job parameters in the management section of the config!"
 
-        self.database_uri = self.compute_job.get("database_uri")
-        assert self.database_uri is not None, "database_uri must be defined"
+        self._database_uri = self._compute_job.get("database_uri")
+        assert self._database_uri is not None, "database_uri must be defined"
 
-        self.status = "init"
-        self.stage = "init"
-        self.created_at = datetime.datetime.now()
-        self.updated_at = datetime.datetime.now()
+        self._status = "initialized"
+        self._stage = "initialized"
+        self._created_at = datetime.datetime.now()
+        self._updated_at = datetime.datetime.now()
+
+        # connect to DB and create session
+        engine = create_engine(self._database_uri, poolclass=NullPool)
+        Session = sessionmaker(bind=engine)
+        session = Session()
+
+        # make sure all tables are there in database
+        _Base.metadata.create_all(bind=engine)
+
+        try:
+            # see if we can find the job in the database already
+            q = session.query(_ComputeJob).get(self._job_name)
+
+            # create new entry if not already existing
+            if q is None:
+                _ComputeJob(
+                    job_name=self._job_name,
+                    job_group=self._job_group
+                )
+                session.commit()
+            else:
+                self._created_at = q.created_at
+                self._updated_at = q.updated_at
+                self._status = q.status
+                self._stage = q.stage
+        except:
+            session.rollback()
+            raise
+
+        finally:
+            session.close()
 
     def update_job_status(self, status=None, stage=None):
         """
@@ -86,7 +136,7 @@ class ComputeJobSQL(ComputeJobInterface):
         """
 
         # connect to DB and create session
-        engine = create_engine(self.database_uri, poolclass=NullPool)
+        engine = create_engine(self._database_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -94,26 +144,18 @@ class ComputeJobSQL(ComputeJobInterface):
         _Base.metadata.create_all(bind=engine)
 
         try:
-            # see if we can find the job in the database already
-            q = session.query(_ComputeJob).get(self.job_name)
-
-            # create new entry if not already existing
-            if q is None:
-                q = _ComputeJob(
-                    job_name=self.job_name,
-                    job_group=self.job_group
-                )
-                session.commit()
+            # Finds one or raises exception
+            q = session.query(_ComputeJob).filter(self._job_name).one()
 
             # if status is given, update
             if status is not None:
-                self.status = status
-                q.status = self.status
+                self._status = status
+                q.status = self._status
 
             # if stage is given, update
             if stage is not None:
-                self.stage = stage
-                q.stage = self.stage
+                self._stage = stage
+                q.stage = self._stage
 
             # update finish time (i.e. final finish
             # time when job status is set for the last time)
@@ -122,6 +164,11 @@ class ComputeJobSQL(ComputeJobInterface):
             # commit changes to database
             session.add(q)
             session.commit()
+
+        except NoResultFound:
+            session.rollback()
+            raise DocumentNotFound()
+
         except:
             session.rollback()
             raise
@@ -131,7 +178,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
     def get_job(self):
         # connect to DB and create session
-        engine = create_engine(self.database_uri, poolclass=NullPool)
+        engine = create_engine(self._database_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -139,7 +186,7 @@ class ComputeJobSQL(ComputeJobInterface):
         _Base.metadata.create_all(bind=engine)
 
         result = session.query(_ComputeJob) \
-            .get(self.job_name)
+            .get(self._job_name)
 
         session.close()
 
@@ -147,7 +194,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
     def get_jobs_from_group(self):
         # connect to DB and create session
-        engine = create_engine(self.database_uri, poolclass=NullPool)
+        engine = create_engine(self._database_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -155,9 +202,10 @@ class ComputeJobSQL(ComputeJobInterface):
         _Base.metadata.create_all(bind=engine)
 
         results = session.query(_ComputeJob) \
-            .filter(_ComputeJob.job_group == self.job_group) \
+            .filter(_ComputeJob.job_group == self._job_group) \
             .all()
 
         session.close()
 
         return results
+
