@@ -9,6 +9,8 @@ import ftplib
 import datetime
 import os
 import errno
+import zlib
+
 from functools import partial
 from pathlib import Path
 
@@ -54,7 +56,7 @@ def symlink_force(target, link_name):
             raise e
 
 
-def download_ftp_file(ftp_url, ftp_cwd, file_url, output_path, file_handling="wb", verbose=False):
+def download_ftp_file(ftp_url, ftp_cwd, file_url, output_path, file_handling="wb", gziped=False, verbose=False):
     """
     Downloads a gzip file from a remote ftp server and
     decompresses it on the fly into an output file
@@ -74,21 +76,26 @@ def download_ftp_file(ftp_url, ftp_cwd, file_url, output_path, file_handling="wb
     verbose : bool
         determines whether a progressbar is printed
     """
-    def _callback(_bar, chunk):
-         out.write(chunk)
-         _bar += len(chunk)
+    def _callback(_bar, decompressor, chunk):
+        if gziped:
+            out.write(decompressor.decompress(chunk))
+        else:
+            out.write(chunk)
+        if verbose:
+            _bar += len(chunk)
 
     ftp = ftplib.FTP(ftp_url)
     ftp.login()
     ftp.cwd(ftp_cwd)
     with open(output_path, file_handling) as out:
-        if verbose:
-            filesize = ftp.size(file_url)
-            pbar = Progressbar(filesize)
-            callback = partial(_callback, pbar)
-        else:
-            callback = out.write
-        ftp.retrbinary('RETR %s' % file_url, callback)
+        filesize = ftp.size(file_url)
+        pbar = Progressbar(filesize) if verbose else None
+
+        # automatic header detection
+        decompressor = zlib.decompressobj(zlib.MAX_WBITS | 32)
+        callback = partial(_callback, pbar, decompressor)
+        ftp.retrbinary('RETR %s' % file_url, callback,
+                       blocksize=8192)
     ftp.quit()
 
 
@@ -112,7 +119,7 @@ def run(**kwargs):
     if verbose:
         print("Updating SIFTS")
 
-    SIFTS_dir = kwargs.get("sifts", os.path.realpath(__file__))
+    SIFTS_dir = os.path.abspath(kwargs.get("sifts", os.path.realpath(__file__)))
     # create directory if it does not exist
     # ignores if directory on the way already exist
     dir = Path(SIFTS_dir)
@@ -130,8 +137,8 @@ def run(**kwargs):
         symlink_force(sifts_fasta, sifts_curr.format(extension="fasta"))
 
     # update uniref
-    db_path = kwargs.get("db", os.path.realpath(__file__))
-    for db_type in ["uniref100", "uniref90", "uniprot"]:
+    db_path = os.path.abspath(kwargs.get("db", os.path.realpath(__file__)))
+    for db_type in ["uniprot", "uniref100", "uniref90" ]:
 
         if verbose:
             print("Updating", db_type)
@@ -148,17 +155,18 @@ def run(**kwargs):
             for i, type_d in enumerate(["sprot", "trembl"]):
                 if i:
                     file_url = UNIPROT_FILE.format(type=type_d)
-                    download_ftp_file(UNIPROT_URL, UNIPROT_CWD, file_url, out_path, file_handling="ab", verbose=verbose)
+                    download_ftp_file(UNIPROT_URL, UNIPROT_CWD, file_url, out_path, gziped=True,
+                                      file_handling="ab", verbose=verbose)
                 else:
                     file_url = UNIPROT_FILE.format(type=type_d)
-                    download_ftp_file(UNIPROT_URL, UNIPROT_CWD, file_url, out_path, verbose=verbose)
+                    download_ftp_file(UNIPROT_URL, UNIPROT_CWD, file_url, out_path, gziped=True, verbose=verbose)
         else:
             # download uniref db
             db_file = DB_FILE.format(type=db_type)
             db_cwd = DB_CWD.format(type=db_type)
             out_path = os.path.join(db_full_path, DB_SUFFIX.format(type=db_type, year=year, month=month))
             db_curr = os.path.join(db_full_path, DB_CURRENT.format(type=db_type))
-            download_ftp_file(DB_URL, db_cwd, db_file, out_path, verbose=verbose)
+            download_ftp_file(DB_URL, db_cwd, db_file, out_path, gziped=True, verbose=verbose)
 
         if symlink:
             symlink_force(out_path, db_curr)
@@ -179,6 +187,7 @@ def app(**kwargs):
     Update database command line interface
     """
     run(**kwargs)
+
 
 if __name__ == "__main__":
     app()

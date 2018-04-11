@@ -3,7 +3,7 @@ Visualization of evolutionary couplings (contact maps etc.)
 
 Authors:
   Thomas A. Hopf
-  Anna G. Green (complex_contact_map)
+  Anna G. Green (complex_contact_map, enrichment_pymol_script non-legacy version)
 """
 
 from copy import deepcopy
@@ -401,8 +401,8 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
             )
         )
 
-        def _boundary_union(original_boundaries,new_boundaries_axis1,
-                            new_boundaries_axis2,axis1=True,axis2=True,
+        def _boundary_union(original_boundaries, new_boundaries_axis1,
+                            new_boundaries_axis2, axis1=True, axis2=True,
                             symmetric=False):
             # determine whether to use the original boundaries or the
             # corresponding monomer boundaries - whichever spans more
@@ -1164,10 +1164,9 @@ def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
 
 
 def enrichment_pymol_script(enrichment_table, output_file,
-                            sphere_view=True, chain=None):
+                            sphere_view=True, chain=None, legacy=False):
     """
     Create a Pymol .pml script to visualize EC "enrichment"
-
     Parameters
     ----------
     enrichment_table : pandas.DataFrame
@@ -1183,27 +1182,74 @@ def enrichment_pymol_script(enrichment_table, output_file,
         "cartoon putty"
     chain : str, optional (default: None)
         Use this PDB chain in residue selection
+    legacy: bool, optional (default: False)
+        Use legacy (2011) red and yellow colormap
+        for EC enrichment
     """
-    t = enrichment_table.query("enrichment > 1")
+    if legacy: 
+        t = enrichment_table.query("enrichment > 1")
+        t.loc[:, "b_factor"] = t.enrichment
+        # compute boundaries for highly coupled residues
+        # that will be specially highlighted
+        boundary1 = int(0.05 * len(t))  # top 5%
+        boundary2 = int(0.15 * len(t))  # top 15%
 
-    # compute boundaries for highly coupled residues
-    # that will be specially highlighted
-    boundary1 = int(0.05 * len(t))  # top 5%
-    boundary2 = int(0.15 * len(t))  # top 15%
+        t.loc[:, "b_factor"] = t.enrichment
 
-    t.loc[:, "b_factor"] = t.enrichment
+        # set color for "low" enrichment (anything > 1)
+        t.loc[:, "color"] = "yelloworange"
 
-    # set color for "low" enrichment (anything > 1)
-    t.loc[:, "color"] = "yelloworange"
+        # high
+        t.loc[t.iloc[0:boundary1].index, "color"] = "red"
 
-    # high
-    t.loc[t.iloc[0:boundary1].index, "color"] = "red"
+        # medium
+        t.loc[t.iloc[boundary1:boundary2].index, "color"] = "orange"
+        
+    else:
+        t = deepcopy(enrichment_table)
+        t.loc[:, "b_factor"] = t.enrichment
 
-    # medium
-    t.loc[t.iloc[boundary1:boundary2].index, "color"] = "orange"
+        # set boundaries for enrichment levels
+        # that will be specially highlighted
+        # create nine subsets
+        boundary_list = [
+                int(0.11 * len(t)),
+                int(0.22 * len(t)),
+                int(0.33 * len(t)),
+                int(0.44 * len(t)),
+                int(0.55 * len(t)),
+                int(0.66 * len(t)),
+                int(0.77 * len(t)),
+                int(0.88 * len(t)),
+                int(1.00 * len(t))
+            ]
+
+        # list of colors to color each category
+        # must be same length and order as boundary_list
+        # list of rgb tuples
+        color_list = [
+            (77, 0, 75),  # dark purple
+            (129, 15, 124),
+            (136, 65, 157),
+            (140, 107, 177),
+            (140, 150, 198),
+            (158, 188, 218),
+            (191, 211, 230),
+            (224, 236, 244),
+            (247, 252, 253)  # almost white
+        ]
+
+        # convert to fractions
+        color_list = [(x / 255, y / 255, z / 255) for x, y, z in color_list]
+
+        prior_boundary = 0
+
+        for idx, boundary in enumerate(boundary_list):
+            t.loc[t.iloc[prior_boundary:boundary].index, "color"] = 'color{}'.format(idx)
+            prior_boundary = boundary
 
     if sphere_view:
-        t.loc[t.iloc[0:boundary2].index, "show"] = "spheres"
+        t.loc[t.iloc[0:boundary].index, "show"] = "spheres"
 
     if chain is not None:
         chain_sel = ", chain '{}'".format(chain)
@@ -1211,15 +1257,26 @@ def enrichment_pymol_script(enrichment_table, output_file,
         chain_sel = ""
 
     with open(output_file, "w") as f:
-        f.write("as cartoon{}\n".format(chain_sel))
-        f.write("color grey80{}\n".format(chain_sel))
 
         if chain is None:
             f.write("alter all, b=0.0\n")
         else:
             f.write("alter chain '{}', b=0.0\n".format(chain))
 
+        # for leagcy mode, background color is grey80
+        if legacy:
+            f.write("color grey80{}\n".format(chain_sel))
+
+        # for non-legacy mode, background color is the last color in the spectrum
+        else:
+            for idx, c in enumerate(color_list):
+                f.write("set_color color{}, [{},{},{}]\n".format(idx, c[0], c[1], c[2]))
+            f.write("color color{}{}\n".format(len(boundary_list) - 1, chain_sel))
+        
+        f.write("as cartoon{}\n".format(chain_sel))
+
         pymol_mapping(t, f, chain)
 
         if not sphere_view:
             f.write("cartoon putty{}\n".format(chain_sel))
+

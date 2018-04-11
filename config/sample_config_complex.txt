@@ -119,7 +119,8 @@ align_1:
 
 # Alternative protocol: reuse existing alignment and apply postprocessing to generate alignment that is consistent
 # with pipeline requirements. Uncomment, and comment all values in align section above to enable the "existing" protocol
-#    protocol: existing
+#    protocol: complex
+#    alignment_protocol: existing
 #    prefix:
 #    # Path of input alignment. Alignment needs to contain region in form SEQID/start-end, or first_index must be set
 #    input_alignment:
@@ -132,8 +133,9 @@ align_1:
 #    minimum_column_coverage: 70
 #    extract_annotation: True
 
-#    #if using existing alignment protocol, provide a path to the annotations.csv file 
-#    #from the previous run to correctly find the species identifiers for best hit concatenation
+#    # if using existing alignment protocol, provide a path to the annotations.csv file 
+#    # from the monomer run that generated the input alignment
+#    # Needed to correctly find the species identifiers for best hit concatenation
 #    override_annotation_file: 
 
 # Sequence alignment generation/processing for the second monomer.
@@ -208,7 +210,8 @@ align_2:
 
 # Alternative protocol: reuse existing alignment and apply postprocessing to generate alignment that is consistent
 # with pipeline requirements. Uncomment, and comment all values in align section above to enable the "existing" protocol
-#    protocol: existing
+#    protocol: complex
+#    alignment_protocol: existing
 #    prefix:
 #    # Path of input alignment. Alignment needs to contain region in form SEQID/start-end, or first_index must be set
 #    input_alignment:
@@ -220,8 +223,9 @@ align_2:
 #    minimum_sequence_coverage: 50
 #    minimum_column_coverage: 70
 #    extract_annotation: True
-#    #if using existing alignment protocol, provide a path to the annotations.csv file 
-#    #from the previous run to correctly find the species identifiers for best hit concatenation
+#    # if using existing alignment protocol, provide a path to the annotations.csv file 
+#    # from the monomer run that generated the input alignment
+#    # Needed to correctly find the species identifiers for best hit concatenation
 #    override_annotation_file: 
 
 #Generation of concatenated sequence alignment for evolutionary couplings calculation
@@ -255,10 +259,10 @@ concatenate:
     # already present in the alignment). If blank, no filtering. If filtering, HHfilter must be installed.
     seqid_filter:
     
-    # Only include alignment columns with at least x% residues (rather than gaps) during model inference
+    # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
     minimum_sequence_coverage: 50
     
-    # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
+    # Only include alignment columns with at least x% residues (rather than gaps) during model inference
     minimum_column_coverage: 50
 
     # compute the redundancy-reduced number of effective sequences (M_eff) already in the alignment stage.
@@ -320,8 +324,8 @@ couplings:
 
 # Compare ECs to known 3D structures
 compare:
-    # Current options: standard, complex_compare
-    protocol: complex_compare
+    # Current options: standard, complex
+    protocol: complex
     
     # Following parameters will be usually overriden by global settings / output of previous stage
     prefix:
@@ -335,6 +339,12 @@ compare:
     # sequence_id and SIFTS database (sequence_id must be UniProt AC/ID in this case)
     first_by_alignment: True
     second_by_alignment: True
+    # Alignment method to use to search the PDB Seqres database. Options: jackhmmer, hmmsearch
+    # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
+    # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent). 
+    # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
+    first_pdb_alignment_method: jackhmmer
+    second_pdb_alignment_method: jackhmmer
     
     # Leave this parameter empty to use all PDB structures for given sequence_id, otherwise
     # will be limited to the given IDs (single value or list). Important: note that this acts only as a filter on the
@@ -354,7 +364,7 @@ compare:
 
     # compare to multimer contacts (if multiple chains of the same sequence or its homologs are present in a structure)
     first_compare_multimer: True
-    second_compare_multimer:
+    second_compare_multimer: True
 
     # settings for sequence alignment against PDB sequences using jackhmmer
     # (additional settings like iterations possible, compare to align stage)
@@ -379,7 +389,10 @@ compare:
     # Return an error if we fail to automatically retrieve information about a given pdb id
     raise_missing: False
     
-    # Set atom_filter to "CA" to compute C_alpha distances instead of minimum atom distances. If blank, will compute minimum atom distance
+    # Filter that defines which atoms will be used for distance calculations. If empty/None, no filter will be
+    # applied (resulting in the computation of minimum atom distances between all pairs of atoms). If setting to any
+    # particular PDB atom type, only these atoms will be used for the computation (e.g. CA will give C_alpha distances,
+    # CB will give C_beta distances, etc.)
     atom_filter:
 
     # Distance cutoff (Angstrom) for a true positive pair
@@ -420,6 +433,7 @@ mutate:
     # prefix:
     # model_file:
 
+
 # These settings allow job status tracking using a database, and result collection in an archive
 management:
     # URI of database
@@ -443,27 +457,27 @@ management:
 
 # Computational environment for batch jobs (using evcouplings command line application)
 environment:
-    # current options for engine: lsf, local (for local, only set cores and leave all other fields blank)
-    # If your batch engine of choice (SGE, Slurm, Torque) is not available yet, please consider contributing by
+    # current options for engine: lsf, slurm, local (for local, only set cores and leave all other fields blank)
+    # If your batch engine of choice (e.g. SGE, Torque) is not available yet, please consider contributing by
     # implementing it and submitting a pull request!
     # Note that "cores" will override the "cpu" parameter for "global"
-    engine: lsf
-    queue: mcore
+    engine: slurm
+    queue: medium
     cores: 2
-    memory: 20000
-    time: 48:0
+    memory: 15000
+    time: 2-0:0:0
 
     # command that will be executed before running actual computation (can be used to set up environment)
     configuration:
-        - source activate evcouplings_env
+        
 
 # Paths to databases used by evcouplings.
 databases:
     # Sequence databases (only download the ones you want to use). You can also specify arbitrary databases in FASTA format
     # using a database name of your choice here)
-    uniprot: /groups/marks/databases/jackhmmer/uniprot/uniprot_2017_04.fasta
-    uniref100: /groups/marks/databases/jackhmmer/uniref100/uniref100_2017_04.fasta
-    uniref90: /groups/marks/databases/jackhmmer/uniref90/uniref90_2017_04.fasta
+    uniprot: /n/groups/marks/databases/jackhmmer/uniprot/uniprot_current.o2.fasta
+    uniref100: /n/groups/marks/databases/jackhmmer/uniref100/uniref100_current.o2.fasta
+    uniref90: /n/groups/marks/databases/jackhmmer/uniref90/uniref90_current.o2.fasta
 
     # URL do download sequences if sequence_file is not given. {} will be replaced by sequence_id.
     sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
@@ -471,18 +485,28 @@ databases:
     # Directory with PDB MMTF structures (leave blank to fetch structures from web)
     pdb_mmtf_dir:
 
-    # SIFTS mapping information. Point to valid directory, and if these files do not exist, they will be automatically generated
-    # (this may take a while). Periodically delete these files to more recent versions of SIFTS are used.
-    sifts_mapping_table: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_07_03.csv
-    sifts_sequence_db: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_2017_07_03.fa
+    # SIFTS mapping information. Point to file paths in an existing directory, and if these files do not exist, they will be
+    # automatically generated and saved at the given file path (this may take a while).
+    # Periodically delete these files to more recent versions of SIFTS are used.
+    sifts_mapping_table: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.csv
+    sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.fasta
+    
+    # the following two databases are exclusive to EVcomplex and need to be manually downloaded and saved locally
+    # then add the paths to your local copies of the database
+    # Download urls: 
+    # ena_genome_location_table: https://marks.hms.harvard.edu/evcomplex_databases/cds_pro_2017_02.txt
+    # uniprot_to_embl_table: https://marks.hms.harvard.edu/evcomplex_databases/idmapping_uniprot_embl_2017_02.txt 
+    uniprot_to_embl_table: /n/groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
+    ena_genome_location_table: /n/groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
-    jackhmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
-    plmc: /groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
-    hhfilter: /groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
-    psipred: /groups/marks/software/runpsipred
-    cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
-    maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
-    uniprot_to_embl_table : /groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
-    ena_genome_location_table : /groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
+    jackhmmer: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
+    hmmbuild: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmbuild
+    hmmsearch: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmsearch
+    plmc: /n/groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
+    hhfilter: /n/groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
+    psipred: /n/groups/marks/software/runpsipred
+    cns: /n/groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
+    maxcluster: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    

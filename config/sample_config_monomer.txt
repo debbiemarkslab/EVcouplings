@@ -219,7 +219,10 @@ compare:
 
     # Comparison and plotting settings
     
-    # Set atom_filter to "CA" to compute C_alpha distances instead of minimum atom distances. If blank, will compute minimum atom distance
+    # Filter that defines which atoms will be used for distance calculations. If empty/None, no filter will be
+    # applied (resulting in the computation of minimum atom distances between all pairs of atoms). If setting to any
+    # particular PDB atom type, only these atoms will be used for the computation (e.g. CA will give C_alpha distances,
+    # CB will give C_beta distances, etc.)
     atom_filter:
 
     # Distance cutoff (Angstrom) for a true positive pair
@@ -245,6 +248,12 @@ compare:
 
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
+
+    # Alignment method to use to search the PDB Seqres database. Options: jackhmmer, hmmsearch
+    # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
+    # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent). 
+    # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
+    pdb_alignment_method: jackhmmer
 
 # Settings for Mutation effect predictions
 mutate:
@@ -336,27 +345,27 @@ management:
 
 # Computational environment for batch jobs (using evcouplings command line application)
 environment:
-    # current options for engine: lsf, local (for local, only set cores and leave all other fields blank)
-    # If your batch engine of choice (SGE, Slurm, Torque) is not available yet, please consider contributing by
+    # current options for engine: lsf, local, slurm (for local, only set cores and leave all other fields blank)
+    # If your batch engine of choice (e.g. SGE, Torque) is not available yet, please consider contributing by
     # implementing it and submitting a pull request!
     # Note that "cores" will override the "cpu" parameter for "global"
-    engine: lsf
-    queue: mcore
+    engine: slurm
+    queue: medium
     cores: 2
     memory: 15000
-    time: 48:0
+    time: 2-0:0:0
 
     # command that will be executed before running actual computation (can be used to set up environment)
     configuration:
-        - source activate evcouplings_env
+        
 
 # Paths to databases used by evcouplings.
 databases:
     # Sequence databases (only download the ones you want to use). You can also specify arbitrary databases in FASTA format
     # using a database name of your choice here)
-    uniprot: /groups/marks/databases/jackhmmer/uniprot/uniprot_current.fasta
-    uniref100: /groups/marks/databases/jackhmmer/uniref100/uniref100_current.fasta
-    uniref90: /groups/marks/databases/jackhmmer/uniref90/uniref90_current.fasta
+    uniprot: /n/groups/marks/databases/jackhmmer/uniprot/uniprot_current.o2.fasta
+    uniref100: /n/groups/marks/databases/jackhmmer/uniref100/uniref100_current.o2.fasta
+    uniref90: /n/groups/marks/databases/jackhmmer/uniref90/uniref90_current.o2.fasta
 
     # URL do download sequences if sequence_file is not given. {} will be replaced by sequence_id.
     sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
@@ -364,16 +373,19 @@ databases:
     # Directory with PDB MMTF structures (leave blank to fetch structures from web)
     pdb_mmtf_dir:
 
-    # SIFTS mapping information. Point to valid directory, and if these files do not exist, they will be automatically generated
-    # (this may take a while). Periodically delete these files to more recent versions of SIFTS are used.
-    sifts_mapping_table: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.csv
-    sifts_sequence_db: /groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.fasta
+    # SIFTS mapping information. Point to file paths in an existing directory, and if these files do not exist, they will be
+    # automatically generated and saved at the given file path (this may take a while).
+    # Periodically delete these files to more recent versions of SIFTS are used.
+    sifts_mapping_table: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.csv
+    sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.fasta
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
-    jackhmmer: /groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
-    plmc: /groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
-    hhfilter: /groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
-    psipred: /groups/marks/software/runpsipred
-    cns: /groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
-    maxcluster: /groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    jackhmmer: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/jackhmmer
+    plmc: /n/groups/marks/pipelines/evcouplings/software/plmc/bin/plmc
+    hmmbuild: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmbuild
+    hmmsearch: /n/groups/marks/pipelines/evcouplings/software/hmmer-3.1b2-linux-intel-x86_64/binaries/hmmsearch
+    hhfilter: /n/groups/marks/pipelines/evcouplings/software/hh-suite/bin/hhfilter
+    psipred: /n/groups/marks/software/runpsipred_o2
+    cns: /n/groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
+    maxcluster: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
