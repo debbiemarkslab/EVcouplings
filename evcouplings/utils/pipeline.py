@@ -3,10 +3,13 @@ Pipelining of different stages of method
 
 Authors:
   Thomas A. Hopf
+  C.D.
 """
 
 # chose backend for command-line usage
 import matplotlib
+
+from evcouplings.management import delete_outputs
 
 matplotlib.use("Agg")
 
@@ -211,6 +214,9 @@ def execute(**config):
 
         # update global state with outputs of stage
         global_state = {**global_state, **outcfg}
+
+    # delete selected output files if requested
+    global_state = delete_outputs(config, global_state)
 
     # write final global state of pipeline
     write_config_file(
