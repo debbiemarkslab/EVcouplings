@@ -11,7 +11,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from bokeh.io import save, output_file
 
-from evcouplings.couplings.model import CouplingsModel
+from evcouplings.couplings.model import (
+    CouplingsModel, ComplexCouplingsModel
+)
 from evcouplings.mutate.calculations import (
     single_mutant_matrix, predict_mutation_table
 )
@@ -23,7 +25,7 @@ from evcouplings.utils.system import (
     create_prefix_folders, verify_resources
 )
 from evcouplings.couplings.mapping import (
-    Segment, SegmentIndexMapper
+    Segment
 )
 
 
@@ -182,21 +184,10 @@ def complex(**kwargs):
     create_prefix_folders(prefix)
 
     # load couplings object
-    c = CouplingsModel(kwargs["model_file"])
-
-    # add the segment information to the couplings model
     first_segment = Segment.from_list(kwargs["segments"][0])
     second_segment = Segment.from_list(kwargs["segments"][1])
 
-    index_start = first_segment.region_start
-    r = SegmentIndexMapper(
-        True,  # use focus mode
-        index_start,  # first index of first segment
-        first_segment,
-        second_segment
-    )
-
-    c = r.patch_model(model=c)
+    c = ComplexCouplingsModel(kwargs["model_file"], first_segment, second_segment)
 
     # create the independent model
     c0 = c.to_independent_model()
@@ -250,7 +241,7 @@ def complex(**kwargs):
     dataset_file = kwargs["mutation_dataset_file"]
     if dataset_file is not None:
         verify_resources("Dataset file does not exist", dataset_file)
-        data = pd.read_csv(dataset_file, comment="#")
+        data = pd.read_csv(dataset_file, comment="#", sep=";")
 
         if "segment" not in data.columns:
             raise ValueError(
