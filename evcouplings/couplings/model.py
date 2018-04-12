@@ -5,15 +5,18 @@ sequences and perform calculations using the model
 
 Authors:
   Thomas A. Hopf
-  Anna G. Green (to_inter_segment_model)
+  Anna G. Green (ComplexCouplingsModel)
 """
-
 from collections import Iterable
 from copy import deepcopy
 
 from numba import jit
 import numpy as np
 import pandas as pd
+
+from evcouplings.couplings.mapping import (
+    SegmentIndexMapper
+)
 
 # Constants
 
@@ -916,32 +919,6 @@ class CouplingsModel:
         c0._reset_precomputed()
         return c0
 
-    def to_inter_segment_model(self):
-        """
-        Convert model to inter-segment only
-        parameters, ie the J_ijs that correspond
-        to inter-protein or inter-domain residue pairs.
-        All other parameters are set to 0.
-
-        Returns
-        -------
-        CouplingsModel
-            Copy of object turned into inter-only Epistatic model
-        """
-
-        h_i = np.zeros((self.L, self.num_symbols))
-        J_ij = np.zeros(self.J_ij.shape)
-
-        for idx_i, i in enumerate(self.index_list):
-            for idx_j, j in enumerate(self.index_list):
-                if i[0] != j[0]:  # if the segment identifier is different
-                    J_ij[idx_i, idx_j] = self.J_ij[idx_i, idx_j]
-
-        ci = deepcopy(self)
-        ci.h_i = h_i
-        ci.J_ij = J_ij
-        ci._reset_precomputed()
-        return ci
 
     # syntactic sugar to access most important member variables in target numbering space
 
@@ -1269,3 +1246,54 @@ class CouplingsModel:
                 for i in range(self.L - 1):
                     for j in range(i + 1, self.L):
                         self.J_ij[i, j].astype(precision).tofile(f)
+
+class ComplexCouplingsModel(CouplingsModel):
+    """
+    Complex specific Couplings Model that handles
+    segments and provides the option to convert model
+    into inter-segment only.
+    """
+
+    def __init__(self, filename, first_segment, second_segment,
+                 precision="float32", file_format="plmc_v2", **kwargs):
+
+        super().__init__(filename, precision="float32", file_format="plmc_v2", **kwargs)
+
+        # initialize the segment index mapper to update model numbering
+        index_start = first_segment.region_start
+        r = SegmentIndexMapper(
+            True,  # use focus mode
+            index_start,  # first index of first segment
+            first_segment,
+            second_segment
+        )
+
+        # update model numbering
+        self = r.patch_model(model=self)
+
+    def to_inter_segment_model(self):
+        """
+        Convert model to inter-segment only
+        parameters, ie the J_ijs that correspond
+        to inter-protein or inter-domain residue pairs.
+        All other parameters are set to 0.
+
+        Returns
+        -------
+        CouplingsModel
+            Copy of object turned into inter-only Epistatic model
+        """
+
+        h_i = np.zeros((self.L, self.num_symbols))
+        J_ij = np.zeros(self.J_ij.shape)
+
+        for idx_i, i in enumerate(self.index_list):
+            for idx_j, j in enumerate(self.index_list):
+                if i[0] != j[0]:  # if the segment identifier is different
+                    J_ij[idx_i, idx_j] = self.J_ij[idx_i, idx_j]
+
+        ci = deepcopy(self)
+        ci.h_i = h_i
+        ci.J_ij = J_ij
+        ci._reset_precomputed()
+        return ci
