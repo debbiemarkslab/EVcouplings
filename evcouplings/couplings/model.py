@@ -919,7 +919,6 @@ class CouplingsModel:
         c0._reset_precomputed()
         return c0
 
-
     # syntactic sugar to access most important member variables in target numbering space
 
     def __map(self, indices, mapping):
@@ -1246,6 +1245,7 @@ class CouplingsModel:
                 for i in range(self.L - 1):
                     for j in range(i + 1, self.L):
                         self.J_ij[i, j].astype(precision).tofile(f)
+
 
 class ComplexCouplingsModel(CouplingsModel):
     """
