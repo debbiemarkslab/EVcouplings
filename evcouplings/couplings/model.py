@@ -1247,25 +1247,39 @@ class CouplingsModel:
                         self.J_ij[i, j].astype(precision).tofile(f)
 
 
-class ComplexCouplingsModel(CouplingsModel):
+class MultiSegmentCouplingsModel(CouplingsModel):
     """
     Complex specific Couplings Model that handles
     segments and provides the option to convert model
     into inter-segment only.
     """
 
-    def __init__(self, filename, first_segment, second_segment,
+    def __init__(self, filename, *segments,
                  precision="float32", file_format="plmc_v2", **kwargs):
 
-        super().__init__(filename, precision="float32", file_format="plmc_v2", **kwargs)
+        """
+        filename : str
+            Binary Jij file containing model parameters from plmc software
+        alphabet : str
+            Symbols corresponding to model states (e.g. "-ACGT").
+        precision : {"float32", "float64"}, default: "float32"
+            Sets if input file has single (float32) or double precision (float64)
+        }
+        file_format : {"plmc_v2", "plmc_v1"}, default: "plmc_v2"
+            File format of parameter file.
+        segments: list of evcouplings.couplings.Segment
+
+        """
+
+        super().__init__(filename, precision, file_format, **kwargs)
 
         # initialize the segment index mapper to update model numbering
+        first_segment = segments[0]
         index_start = first_segment.region_start
         r = SegmentIndexMapper(
             True,  # use focus mode
             index_start,  # first index of first segment
-            first_segment,
-            second_segment
+            *segments
         )
 
         # update model numbering

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from bokeh.io import save, output_file
 
 from evcouplings.couplings.model import (
-    CouplingsModel, ComplexCouplingsModel
+    CouplingsModel, MultiSegmentCouplingsModel
 )
 from evcouplings.mutate.calculations import (
     single_mutant_matrix, predict_mutation_table
@@ -187,7 +187,7 @@ def complex(**kwargs):
     first_segment = Segment.from_list(kwargs["segments"][0])
     second_segment = Segment.from_list(kwargs["segments"][1])
 
-    c = ComplexCouplingsModel(kwargs["model_file"], first_segment, second_segment)
+    c = MultiSegmentCouplingsModel(kwargs["model_file"], first_segment, second_segment)
 
     # create the independent model
     c0 = c.to_independent_model()

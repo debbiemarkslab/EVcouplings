@@ -12,12 +12,13 @@ import pandas as pd
 import ruamel_yaml as yaml
 from copy import deepcopy
 from unittest import TestCase
+import evcouplings
 from evcouplings.mutate.calculations import *
 from evcouplings.mutate.protocol import *
 from evcouplings.couplings.model import CouplingsModel
 
-TRAVIS_PATH = "/home/travis/evcouplings_test_cases"
-#TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B"
+#TRAVIS_PATH = "/home/travis/evcouplings_test_cases"
+TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B"
 MONOMER_PATH = "{}/monomer_test".format(TRAVIS_PATH)
 COMPLEX_PATH = "{}/complex_test".format(TRAVIS_PATH)
 
@@ -167,9 +168,9 @@ class TestMutation(TestCase):
     # def test_protcol_standard(self):
     #         """
     #         TODO: fix circular dependency problem. Currently, lines 80, 85, and 106 of the mutate
-        #     protocol will throw an error
+    #         protocol will throw an error
     #         in testing because of their import statements. DO NOT change the import statements in
-        #     the protocol.py itself else
+    #         the protocol.py itself else
     #         you will break the protocol in production (even if it works in testing)
     #         """
     #         tmp_prefix = "tmp_"
@@ -198,8 +199,6 @@ class TestMutation(TestCase):
     #                     self.assertTrue(os.path.isfile(_file))
     #                     self.assertTrue(os.path.getsize(_file) > 0)
     #                     os.unlink(_file)
-#
-
 
 class TestMutationComplex(TestCase):
 
@@ -212,7 +211,7 @@ class TestMutationComplex(TestCase):
         first_segment = Segment.from_list(config["segments"][0])
         second_segment = Segment.from_list(config["segments"][1])
 
-        self.c = ComplexCouplingsModel(self.model_file, first_segment, second_segment)
+        self.c = MultiSegmentCouplingsModel(self.model_file, first_segment, second_segment)
         self.c0 = self.c.to_independent_model()
         self.singles = pd.read_csv("{}/mutate/mutant_matrix.csv".format(COMPLEX_PATH))
 
