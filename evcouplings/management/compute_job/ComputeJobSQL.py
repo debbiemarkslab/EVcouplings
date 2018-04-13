@@ -84,10 +84,10 @@ class ComputeJobSQL(ComputeJobInterface):
         assert self._management is not None, "You must pass a full config file with a management field"
 
         self._job_name = self._management.get("job_name")
-        assert self.job_name is not None, "config.management must contain a job_name"
+        assert self._job_name is not None, "config.management must contain a job_name"
 
         self._job_group = self._management.get("job_group")
-        assert self.job_group is not None, "config.management must contain a job_group"
+        assert self._job_group is not None, "config.management must contain a job_group"
 
         # Get things from management.job_database (this is where connection string + db type live)
         self._compute_job = self._management.get("compute_job")
