@@ -62,7 +62,7 @@ class ComputeJobMongo(ComputeJobInterface):
         collection = db[DATABASE_NAME]
 
         # Will expire the document after time is > than updated_at + TTL
-        collection.ensure_index("updated_at", expireAfterSeconds=TTL.get('minute'))
+        collection.ensure_index("updated_at", expireAfterSeconds=TTL.get('month'))
 
         q = collection.find_one({
             '_id': self._job_name
