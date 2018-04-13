@@ -13,6 +13,17 @@ import datetime
 _Base = declarative_base()
 
 
+def _serialize(sqlAlchemyObject):
+    return {
+        "job_name": sqlAlchemyObject.job_name,
+        "job_group": sqlAlchemyObject.job_group,
+        "created_at": sqlAlchemyObject.created_at,
+        "updated_at": sqlAlchemyObject.updated_at,
+        "status": sqlAlchemyObject.status,
+        "stage": sqlAlchemyObject.stage,
+    }
+
+
 class _ComputeJob(_Base):
     """
     Single compute job. Holds general information about job
@@ -191,7 +202,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
         session.close()
 
-        return result
+        return _serialize(result)
 
     def get_jobs_from_group(self):
         # connect to DB and create session
@@ -208,5 +219,5 @@ class ComputeJobSQL(ComputeJobInterface):
 
         session.close()
 
-        return results
+        return [_serialize(r) for r in results]
 

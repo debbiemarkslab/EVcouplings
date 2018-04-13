@@ -117,8 +117,26 @@ class ComputeJobMongo(ComputeJobInterface):
 
         client.close()
 
-    def get_jobs_from_group(self):
-        print("This function has no meaning in the context of the local Compute Job.")
-
     def get_job(self):
-        print("{} is in stage '{}' and status '{}'".format(self._job_name, self._stage, self._status))
+        # Connect to mongo and get URI database
+        client = MongoClient(self._database_uri)
+        db = client.get_default_database()
+        collection = db[DATABASE_NAME]
+
+        q = collection.find_one({
+            '_id': self._job_name
+        })
+
+        return q
+
+    def get_jobs_from_group(self):
+        # Connect to mongo and get URI database
+        client = MongoClient(self._database_uri)
+        db = client.get_default_database()
+        collection = db[DATABASE_NAME]
+
+        q = collection.find({
+            'job_group': self._job_group
+        })
+
+        return list(q)
