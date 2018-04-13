@@ -105,10 +105,11 @@ class ComputeJobSQL(ComputeJobInterface):
 
             # create new entry if not already existing
             if q is None:
-                _ComputeJob(
+                q = _ComputeJob(
                     job_name=self._job_name,
                     job_group=self._job_group
                 )
+                session.add(q)
                 session.commit()
             else:
                 self._created_at = q.created_at
@@ -145,7 +146,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
         try:
             # Finds one or raises exception
-            q = session.query(_ComputeJob).filter(self._job_name).one()
+            q = session.query(_ComputeJob).filter(_ComputeJob.job_name == self._job_name).one()
 
             # if status is given, update
             if status is not None:
