@@ -117,6 +117,8 @@ class ComputeJobMongo(ComputeJobInterface):
 
         client.close()
 
+        return q
+
     def get_job(self):
         # Connect to mongo and get URI database
         client = MongoClient(self._database_uri)

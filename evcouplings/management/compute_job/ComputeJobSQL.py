@@ -177,6 +177,8 @@ class ComputeJobSQL(ComputeJobInterface):
             session.add(q)
             session.commit()
 
+            result = _serialize(q)
+
         except NoResultFound:
             session.rollback()
             raise DocumentNotFound()
@@ -187,6 +189,8 @@ class ComputeJobSQL(ComputeJobInterface):
 
         finally:
             session.close()
+
+        return result
 
     def get_job(self):
         # connect to DB and create session

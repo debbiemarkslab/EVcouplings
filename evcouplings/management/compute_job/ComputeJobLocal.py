@@ -2,12 +2,18 @@ from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInt
 import datetime
 
 
-#TODO: when logging is implemented, rewrite this:
-def log(item):
-    pass
+def _serialize(computeJobLocalObject):
+    return {
+        "job_name": computeJobLocalObject.job_name(),
+        "job_group": computeJobLocalObject.job_group(),
+        "created_at": computeJobLocalObject.created_at(),
+        "updated_at": computeJobLocalObject.updated_at(),
+        "status": computeJobLocalObject.status(),
+        "stage": computeJobLocalObject.stage(),
+    }
 
 
-class ComputeJobStdout(ComputeJobInterface):
+class ComputeJobLocal(ComputeJobInterface):
 
     def job_name(self):
         return self._job_name
@@ -28,7 +34,7 @@ class ComputeJobStdout(ComputeJobInterface):
         return self._updated_at
 
     def __init__(self, config):
-        super(ComputeJobStdout, self).__init__(config)
+        super(ComputeJobLocal, self).__init__(config)
 
         # Fallback: if no management section is defined, this will just log current status for job
         self._management = self.config.get("management", {
@@ -46,16 +52,16 @@ class ComputeJobStdout(ComputeJobInterface):
 
     def update_job_status(self, status=None, stage=None):
         if stage is not None:
-            log("{} is entering stage {}".format(self._job_name, stage))
             self._stage = stage
         elif status is not None:
-            log("{} status has changed to {}".format(self._job_name, status))
             self._status = status
 
         self._updated_at = datetime.datetime.now()
 
+        return _serialize(self)
+
     def get_jobs_from_group(self):
-        log("This function has no meaning in the context of the local Compute Job.")
+        return [_serialize(self)]
 
     def get_job(self):
-        log("{} is in stage '{}' and status '{}'".format(self._job_name, self._stage, self._status))
+        return _serialize(self)
