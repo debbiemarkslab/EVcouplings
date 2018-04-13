@@ -1,7 +1,6 @@
 from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface, DocumentNotFound, DATABASE_NAME
 from pymongo import MongoClient
 import datetime
-from bson.objectid import ObjectId
 
 TTL = {
     'month': 60 * 60 * 24 * 31,
