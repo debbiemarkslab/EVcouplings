@@ -11,33 +11,37 @@ class LocalDumper(ResultsDumperInterface):
     def __init__(self, config):
         super(LocalDumper, self).__init__(config)
 
+        self._management = self.config.get("management")
+        assert self._management is not None, "You must pass a full config file with a management field"
+
         # IMPORTANT: fallback for old way things are done
-        self.parameters = self.config.get("dumper", {
+        self._dumper = self._management.get("dumper", {
             "storage_location": self.config.get("prefix"),
             "operating_in_same_location": True
         })
 
-        self.storage_location = self.parameters.get("storage_location")
-        assert self.storage_location is not None, "Storage location must be defined to know where files should be stored locally"
+        self._storage_location = self._dumper.get("storage_location")
+        assert self._storage_location is not None, "Storage location must be defined to know " \
+                                                   "where files should be stored locally. If no storage_location " \
+                                                   "is defined, prefix must be defined."
 
-        self.archive = self.parameters.get("archive", self.config.get("archive"))
+        self._archive = self._management.get("archive")
+        self.tracked_files = self._dumper.get("tracked_files")
 
     def write_tar(self):
-        assert self.archive is not None, "You must define a list of files to be archived"
-
         # if no output keys are requested, nothing to do
-        if self.archive is None or len(self.archive) == 0:
+        if self._archive is None or len(self._archive) == 0:
             return
 
-        if not os.path.exists(self.storage_location):
-            os.makedirs(self.storage_location)
+        if not os.path.exists(self._storage_location):
+            os.makedirs(self._storage_location)
 
-        tar_file = self.storage_location + ".tar.gz"
+        tar_file = self._storage_location + ".tar.gz"
 
         # create archive
         with tarfile.open(tar_file, "w:gz") as tar:
             # add files based on keys one by one
-            for k in self.archive:
+            for k in self._archive:
                 # skip missing keys or ones not defined
                 if k not in self.config or self.config[k] is None:
                     continue
@@ -54,7 +58,7 @@ class LocalDumper(ResultsDumperInterface):
         return tar_file
 
     def tar_path(self):
-        return self.storage_location + ".tar.gz"
+        return self._storage_location + ".tar.gz"
 
     def download_tar(self):
         # In the case of a local dumper, this is a null operation
@@ -65,13 +69,13 @@ class LocalDumper(ResultsDumperInterface):
 
         _, upload_name = os.path.split(file_path)
 
-        copyfile(file_path, self.storage_location + upload_name)
+        copyfile(file_path, self._storage_location + upload_name)
 
     def write_files(self):
         # TODO: Write each single file to blob in correct folder structure
         pass
 
     def clear(self):
-        rmtree(self.storage_location, ignore_errors=True)
+        rmtree(self._storage_location, ignore_errors=True)
 
 
