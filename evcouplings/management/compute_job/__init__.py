@@ -1,6 +1,6 @@
 from evcouplings.management.compute_job.ComputeJobMongo import ComputeJobMongo
 from evcouplings.management.compute_job.ComputeJobSQL import ComputeJobSQL
-from evcouplings.management.compute_job.ComputeJobStdout import ComputeJobStdout
+from evcouplings.management.compute_job.ComputeJobLocal import ComputeJobLocal
 
 
 """
@@ -19,7 +19,7 @@ EStatus = (lambda **enums: type('Enum', (), enums))(
 Tracker types. Default and fallback is "local"
 """
 COMPUTE_JOB_TRACKER = {
-    "local": ComputeJobStdout,
+    "local": ComputeJobLocal,
     "sql": ComputeJobSQL,
     "mongo": ComputeJobMongo
 }

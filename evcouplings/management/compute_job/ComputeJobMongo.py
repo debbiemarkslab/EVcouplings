@@ -1,7 +1,6 @@
 from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface, DocumentNotFound, DATABASE_NAME
 from pymongo import MongoClient
 import datetime
-from bson.objectid import ObjectId
 
 TTL = {
     'month': 60 * 60 * 24 * 31,
@@ -38,10 +37,10 @@ class ComputeJobMongo(ComputeJobInterface):
         assert self._management is not None, "You must pass a full config file with a management field"
 
         self._job_name = self._management.get("job_name")
-        assert self.job_name is not None, "config.management must contain a job_name"
+        assert self._job_name is not None, "config.management must contain a job_name"
 
         self._job_group = self._management.get("job_group")
-        assert self.job_group is not None, "config.management must contain a job_group"
+        assert self._job_group is not None, "config.management must contain a job_group"
 
         # Get things from management.job_database (this is where connection string + db type live)
         self._compute_job = self._management.get("compute_job")
@@ -62,7 +61,7 @@ class ComputeJobMongo(ComputeJobInterface):
         collection = db[DATABASE_NAME]
 
         # Will expire the document after time is > than updated_at + TTL
-        collection.ensure_index("updated_at", expireAfterSeconds=TTL.get('minute'))
+        collection.ensure_index("updated_at", expireAfterSeconds=TTL.get('month'))
 
         q = collection.find_one({
             '_id': self._job_name
@@ -117,8 +116,28 @@ class ComputeJobMongo(ComputeJobInterface):
 
         client.close()
 
-    def get_jobs_from_group(self):
-        print("This function has no meaning in the context of the local Compute Job.")
+        return q
 
     def get_job(self):
-        print("{} is in stage '{}' and status '{}'".format(self._job_name, self._stage, self._status))
+        # Connect to mongo and get URI database
+        client = MongoClient(self._database_uri)
+        db = client.get_default_database()
+        collection = db[DATABASE_NAME]
+
+        q = collection.find_one({
+            '_id': self._job_name
+        })
+
+        return q
+
+    def get_jobs_from_group(self):
+        # Connect to mongo and get URI database
+        client = MongoClient(self._database_uri)
+        db = client.get_default_database()
+        collection = db[DATABASE_NAME]
+
+        q = collection.find({
+            'job_group': self._job_group
+        })
+
+        return list(q)

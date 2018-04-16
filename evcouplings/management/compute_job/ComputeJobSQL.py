@@ -13,6 +13,17 @@ import datetime
 _Base = declarative_base()
 
 
+def _serialize(sqlAlchemyObject):
+    return {
+        "job_name": sqlAlchemyObject.job_name,
+        "job_group": sqlAlchemyObject.job_group,
+        "created_at": sqlAlchemyObject.created_at,
+        "updated_at": sqlAlchemyObject.updated_at,
+        "status": sqlAlchemyObject.status,
+        "stage": sqlAlchemyObject.stage,
+    }
+
+
 class _ComputeJob(_Base):
     """
     Single compute job. Holds general information about job
@@ -73,10 +84,10 @@ class ComputeJobSQL(ComputeJobInterface):
         assert self._management is not None, "You must pass a full config file with a management field"
 
         self._job_name = self._management.get("job_name")
-        assert self.job_name is not None, "config.management must contain a job_name"
+        assert self._job_name is not None, "config.management must contain a job_name"
 
         self._job_group = self._management.get("job_group")
-        assert self.job_group is not None, "config.management must contain a job_group"
+        assert self._job_group is not None, "config.management must contain a job_group"
 
         # Get things from management.job_database (this is where connection string + db type live)
         self._compute_job = self._management.get("compute_job")
@@ -105,10 +116,11 @@ class ComputeJobSQL(ComputeJobInterface):
 
             # create new entry if not already existing
             if q is None:
-                _ComputeJob(
+                q = _ComputeJob(
                     job_name=self._job_name,
                     job_group=self._job_group
                 )
+                session.add(q)
                 session.commit()
             else:
                 self._created_at = q.created_at
@@ -145,7 +157,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
         try:
             # Finds one or raises exception
-            q = session.query(_ComputeJob).filter(self._job_name).one()
+            q = session.query(_ComputeJob).filter(_ComputeJob.job_name == self._job_name).one()
 
             # if status is given, update
             if status is not None:
@@ -165,6 +177,8 @@ class ComputeJobSQL(ComputeJobInterface):
             session.add(q)
             session.commit()
 
+            result = _serialize(q)
+
         except NoResultFound:
             session.rollback()
             raise DocumentNotFound()
@@ -175,6 +189,8 @@ class ComputeJobSQL(ComputeJobInterface):
 
         finally:
             session.close()
+
+        return result
 
     def get_job(self):
         # connect to DB and create session
@@ -190,7 +206,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
         session.close()
 
-        return result
+        return _serialize(result)
 
     def get_jobs_from_group(self):
         # connect to DB and create session
@@ -207,4 +223,4 @@ class ComputeJobSQL(ComputeJobInterface):
 
         session.close()
 
-        return results
+        return [_serialize(r) for r in results]
