@@ -1,4 +1,3 @@
-from evcouplings.management.dumper.AzureDumper import AzureDumper
 from evcouplings.management.dumper.LocalDumper import LocalDumper
 from evcouplings.management.dumper.MongoDumper import MongoDumper
 
@@ -8,7 +7,6 @@ Dumper types. Default and fallback is "local"
 """
 DUMPERS = {
     "local": LocalDumper,
-    "azure": AzureDumper,
     "mongo": MongoDumper
 }
 
