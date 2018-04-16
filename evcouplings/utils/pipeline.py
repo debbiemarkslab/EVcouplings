@@ -10,6 +10,9 @@ Authors:
 import matplotlib
 
 from evcouplings.management import delete_outputs
+from evcouplings.management import (
+    get_dumper, get_compute_job_tracker, EStatus
+)
 
 matplotlib.use("Agg")
 
@@ -28,8 +31,6 @@ from evcouplings.utils.config import (
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources
 )
-from evcouplings.management.compute_job import get_compute_job_tracker
-from evcouplings.management.compute_job import EStatus
 
 import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp
@@ -314,6 +315,11 @@ def execute_wrapped(**config):
         Global output state of pipeline
     """
     compute_job_tracker = get_compute_job_tracker(config)
+
+    # TODO: next line+
+    # file_dumper = get_dumper(config)
+
+
     # make sure the prefix in configuration is valid
     try:
         prefix = verify_prefix(**config)
