@@ -102,7 +102,7 @@ class AzureDumper(ResultsDumperInterface):
 
         return self.block_blob_service.make_blob_url(self.nice_job_name, upload_name)
 
-    def write_files(self):
+    def move_out_config_files(self, out_config):
         assert self.archive is not None, "you must define a list of files to be archived"
         # TODO: Write each single file to blob in correct folder structure
         pass

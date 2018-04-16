@@ -69,14 +69,14 @@ class LocalDumper(ResultsDumperInterface):
 
         _, upload_name = os.path.split(file_path)
 
-        final_path = os.path.join(self.storage_location, upload_name)
+        final_path = os.path.join(self._storage_location, upload_name)
 
         copyfile(file_path, final_path)
 
         return final_path
 
-    def write_files(self):
-        # TODO: Write each single file to blob in correct folder structure
+    def move_out_config_files(self, out_config):
+        # TODO
         pass
 
     def clear(self):

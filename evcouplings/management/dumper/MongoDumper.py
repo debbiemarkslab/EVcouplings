@@ -45,6 +45,11 @@ class MongoDumper(ResultsDumperInterface):
         if self._archive is None or len(self._archive) == 0:
             return
 
+        index = self.tar_path()
+
+        if index is not None:
+            return index
+
         tar_file = temp()
 
         # create archive
@@ -96,7 +101,6 @@ class MongoDumper(ResultsDumperInterface):
         return temp_file
 
     def write_file(self, file_path, aliases=None):
-        # TODO: Make sure that you are not writing twice same file
         assert file_path is not None, "You must pass the location of a file"
 
         _, upload_name = os.path.split(file_path)
@@ -104,6 +108,14 @@ class MongoDumper(ResultsDumperInterface):
         client = MongoClient(self._database_uri)
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
+
+        db_file = fs.find_one(filter={
+            "filename": upload_name,
+            "job_name": self._job_name,
+        })
+
+        if db_file is not None:
+            return db_file['_id']
 
         with open(file_path, "rb") as f:
             if aliases is not None:
@@ -114,10 +126,6 @@ class MongoDumper(ResultsDumperInterface):
         client.close()
 
         return index
-
-    def write_files(self):
-        # TODO: Write each single file to blob in correct folder structure
-        pass
 
     def move_out_config_files(self, out_config):
         # TODO: Make sure that you are not rewriting field that already is outconfig
@@ -151,5 +159,3 @@ class MongoDumper(ResultsDumperInterface):
     def clear(self):
         client = MongoClient(self._database_uri)
         return client.drop_database(self._nice_job_name)
-
-

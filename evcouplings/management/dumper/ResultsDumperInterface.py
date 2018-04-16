@@ -32,9 +32,9 @@ class ResultsDumperInterface(object, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def write_files(self):
+    def move_out_config_files(self, out_config):
         """
-        Writes file in `archive` as separate entities in dumper location.
+        Writes files listed in out_config and dumper's tracked_files
         If used in management after runs finalized, behaves like `cp`
         """
         raise NotImplementedError
