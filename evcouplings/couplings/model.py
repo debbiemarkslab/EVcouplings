@@ -5,7 +5,7 @@ sequences and perform calculations using the model
 
 Authors:
   Thomas A. Hopf
-  Anna G. Green (ComplexCouplingsModel)
+  Anna G. Green (MultiSegmentCouplingsModel)
 """
 from collections import Iterable
 from copy import deepcopy
@@ -252,8 +252,6 @@ class CouplingsModel:
         ----------
         filename : str
             Binary Jij file containing model parameters from plmc software
-        alphabet : str
-            Symbols corresponding to model states (e.g. "-ACGT").
         precision : {"float32", "float64"}, default: "float32"
             Sets if input file has single (float32) or double precision (float64)
         }
@@ -265,6 +263,9 @@ class CouplingsModel:
             parameters used by this class. Users are responsible for supplying
             the missing values (e.g. regularization strength, alphabet or M_eff)
             manually via the respective member variables/properties.
+
+        TODO: constructor for CouplingsModel (and all the other subclasses)
+        should be able to take a filehandle so one can read them from arbitrary streams
         """
         if file_format == "plmc_v2":
             self.__read_plmc_v2(filename, precision)
@@ -1252,6 +1253,7 @@ class MultiSegmentCouplingsModel(CouplingsModel):
     Complex specific Couplings Model that handles
     segments and provides the option to convert model
     into inter-segment only.
+
     """
 
     def __init__(self, filename, *segments,
@@ -1260,8 +1262,6 @@ class MultiSegmentCouplingsModel(CouplingsModel):
         """
         filename : str
             Binary Jij file containing model parameters from plmc software
-        alphabet : str
-            Symbols corresponding to model states (e.g. "-ACGT").
         precision : {"float32", "float64"}, default: "float32"
             Sets if input file has single (float32) or double precision (float64)
         }
@@ -1269,11 +1269,18 @@ class MultiSegmentCouplingsModel(CouplingsModel):
             File format of parameter file.
         segments: list of evcouplings.couplings.Segment
 
+        TODO: have a additional constructor/class method that can take an existing
+        loaded instance of a CouplingsModel and turn it into a MultiSegmentCouplingsModel
+
+
         """
 
         super().__init__(filename, precision, file_format, **kwargs)
 
         # initialize the segment index mapper to update model numbering
+        if len(segments) == 0:
+            raise(ValueError, "Must provide at least one segment for MultiSegmentCouplingsModel")
+
         first_segment = segments[0]
         index_start = first_segment.region_start
         r = SegmentIndexMapper(
@@ -1283,7 +1290,7 @@ class MultiSegmentCouplingsModel(CouplingsModel):
         )
 
         # update model numbering
-        self = r.patch_model(model=self)
+        r.patch_model(model=self)
 
     def to_inter_segment_model(self):
         """

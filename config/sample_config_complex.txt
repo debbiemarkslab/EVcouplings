@@ -426,7 +426,8 @@ mutate:
     # Options: standard, complex
     protocol: complex
 
-    # predict the following dataset file (.csv file, mutants like A102V or A102V,K199W in column "mutant")
+    # predict the following dataset file (.csv file, mutants like A102V or A102V,K199W in column "mutant"
+    # segments in column "segment" as "A_1" and "B_1" for first and second monomers, one segment specified per mutation)
     mutation_dataset_file:
 
     # Inputs set by global stage and output of previous stages

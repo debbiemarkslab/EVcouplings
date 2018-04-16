@@ -3,7 +3,7 @@ Visualization of mutation effects
 
 Authors:
   Thomas A. Hopf
-  Anna G. Green (mutation_complexes_pymol_script)
+  Anna G. Green (mutation_pymol_script generalization)
 """
 
 from math import isnan
@@ -307,7 +307,7 @@ def matrix_base_bokeh(matrix, positions, substitutions,
         else:
             wt_symbol = None
             if type(pos) is tuple:
-                pos = " ".join(map(str,pos))
+                pos = " ".join(map(str, pos))
             else:
                 pos = str(pos)
 
@@ -587,17 +587,10 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
         if label_filter is not None and not label_filter(pos):
             continue
 
-        # if position is of type tuple, we have multiple segments
-        if type(pos) is tuple:
-            # convert tuple to display-friendly string
-            pos_to_display = " ".join(map(str,pos))
-        else:
-            pos_to_display = pos
-
         # determine what position label should be
         if show_wt_char and wildtype_sequence is not None:
             wt_symbol = wildtype_sequence[i]
-            if type(pos) is tuple and len(pos)==2:
+            if type(pos) is tuple and len(pos) == 2:
                 # label will be in format segment AA pos, eg B_1 A 151
                 label = "{} {} {}".format(pos[0], wt_symbol, pos[1])
             else:
@@ -605,7 +598,7 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
 
         else:
             if type(pos) is tuple:
-                label = " ".join(map(str,pos))
+                label = " ".join(map(str, pos))
             else:
                 label = str(pos)
 
@@ -703,78 +696,6 @@ def matrix_base_mpl(matrix, positions, substitutions, conservation=None,
 def mutation_pymol_script(mutation_table, output_file,
                           effect_column="prediction_epistatic",
                           mutant_column="mutant", agg_func="mean",
-                          cmap=plt.cm.RdBu_r, chain=None):
-    """
-    Create a Pymol .pml script to visualize single mutation
-    effects
-
-    Parameters
-    ----------
-    mutation_table : pandas.DataFrame
-        Table with mutation effects (will be filtered
-        for single mutants)
-    output_file : str
-        File path where to store pml script
-    effect_column : str, optional (default: "prediction_epistatic")
-        Column in mutation_table that contains mutation effects
-    mutant_column : str, optional (default: "mutant")
-        Column in mutation_table that contains mutations
-        (in format "A123G")
-    agg_func : str, optional (default: "mean")
-        Function used to aggregate single mutations into one
-        aggregated effect per position (any pandas aggregation
-        operation, including "mean", "min, "max")
-    cmap : matplotlib.colors.LinearSegmentedColormap, optional
-            (default: plt.cm.RdBu_r)
-        Colormap used to map mutation effects to colors
-    chain : str, optional (default: None)
-        Use this PDB chain in residue selection
-
-    Raises
-    ------
-    ValueError
-        If no single mutants contained in mutation_table
-    """
-    # split mutation strings
-    t = split_mutants(mutation_table, mutant_column)
-
-    # only pick single mutants
-    t = t.query("num_mutations == 1")
-
-    if len(t) == 0:
-        raise ValueError(
-            "mutation_table does not contain any single "
-            "amino acid substitutions."
-        )
-
-    # aggregate into positional information
-    t = t.loc[:, ["pos", effect_column]].rename(
-        columns={"pos": "i", effect_column: "effect"}
-    )
-
-    t_agg = t.groupby("i").agg(agg_func).reset_index()
-    t_agg.loc[:, "i"] = pd.to_numeric(t_agg.i).astype(int)
-
-    # map aggregated effects to colors
-    max_val = t_agg.effect.abs().max()
-    mapper = colormap(-max_val, max_val, cmap)
-    t_agg.loc[:, "color"] = t_agg.effect.map(mapper)
-    t_agg.loc[:, "show"] = "spheres"
-
-    if chain is not None:
-        chain_sel = ", chain '{}'".format(chain)
-    else:
-        chain_sel = ""
-
-    with open(output_file, "w") as f:
-        f.write("as cartoon{}\n".format(chain_sel))
-        f.write("color grey80{}\n".format(chain_sel))
-
-        pymol_mapping(t_agg, f, chain, atom="CA")
-
-def mutation_complexes_pymol_script(mutation_table, output_file,
-                          effect_column="prediction_epistatic",
-                          mutant_column="mutant", agg_func="mean",
                           cmap=plt.cm.RdBu_r, segment_to_chain_mapping=None):
     """
     Create a Pymol .pml script to visualize single mutation
@@ -799,9 +720,16 @@ def mutation_complexes_pymol_script(mutation_table, output_file,
     cmap : matplotlib.colors.LinearSegmentedColormap, optional
             (default: plt.cm.RdBu_r)
         Colormap used to map mutation effects to colors
-    segment_to_chain_mapping: dict of str, default: None
-        maps segment identifiers used to index couplings model
-        to chains to be used in Pymol script
+    segment_to_chain_mapping: str or dict(str -> str), optional (default: None)
+        PDB chain(s) that should be targeted by line drawing
+
+        * If None, residues will be selected
+          py position alone, which may cause wrong assignments
+          if multiple chains are present in the structure.
+
+        * Different chains can be assigned for position
+          if a dictionary that maps from segment (str) to PDB chain (str)
+          is given.
 
     Raises
     ------
@@ -823,16 +751,26 @@ def mutation_complexes_pymol_script(mutation_table, output_file,
             "amino acid substitutions."
         )
 
-    #
+    # add a segment column if missing
     if "segment" not in t.columns:
-        t.loc[:,"segment"] = None
+        t.loc[:, "segment"] = None
 
     with open(output_file, "w") as f:
 
         #handle each segment independently
+        # have to fill NaNs with a string for groupby to work
+        t = t.fillna("none")
         for segment_name, _t in t.groupby("segment"):
 
-            if not segment_name in segment_to_chain_mapping:
+            if segment_to_chain_mapping is None:
+                print("no chain mapping")
+                chain = None
+
+            elif type(segment_to_chain_mapping) is str:
+                print("found a string")
+                chain = segment_to_chain_mapping
+
+            elif segment_name not in segment_to_chain_mapping:
                 raise ValueError(
                       "Segment name {} has no mapping to PyMOL "
                       "chain. Available mappings are: {}".format(

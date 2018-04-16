@@ -22,7 +22,7 @@ COMPONENT_TO_INDEX = {
 }
 
 
-def extract_mutations(mutation_string, offset=0):
+def extract_mutations(mutation_string, offset=0, sep=","):
     """
     Turns a string containing mutations of the format I100V into a list of tuples with
     format (100, 'I', 'V') (index, from, to)
@@ -33,6 +33,8 @@ def extract_mutations(mutation_string, offset=0):
         Comma-separated list of one or more mutations (e.g. "K50R,I100V")
     offset : int, default: 0
         Offset to be added to the index/position of each mutation
+    sep : str, default ","
+        String used to separate multiple mutations
 
     Returns
     -------
@@ -40,7 +42,7 @@ def extract_mutations(mutation_string, offset=0):
         List of tuples of the form (index+offset, from, to)
     """
     if mutation_string.lower() not in ["wild", "wt", ""]:
-        mutations = mutation_string.split(",")
+        mutations = mutation_string.split(sep)
         return list(map(
             lambda x: (int(x[1:-1]) + offset, x[0], x[-1]),
             mutations
@@ -132,16 +134,20 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
         segments = pred.loc[:, "segment"]
 
         # split each comma-delimited string of mutations into a list
-        # TODO: what is the correct delimiter we require?
         mutations_separated = map(extract_mutations, mutations)
 
-        # split each semicolon-delimited string of segments into a list
-        # TODO: what is the correct delimiter we require?
-        segments_separated = [x.split(";") for x in segments]
+        # split each comma-delimited string of segments into a list
+        segments_separated = [x.split(",") for x in segments]
         mutation_list = []
 
         # create a list of mutation in the format
-        # [[((segment, pos) aa_from, aa_to), ((segment, pos) aa_from, aa_to)], [((segment, pos) aa_from, aa_to)]]
+        # [[((segment, pos), aa_from, aa_to), ((segment, pos) aa_from, aa_to)], [((segment, pos) aa_from, aa_to)]]
+        if len([segments_separated]) != len([mutations_separated]):
+            raise(
+                ValueError,
+                "Number of mutations provided does not match number of segments of origin provided."
+            )
+
         for segment_subset, mutation_subset in zip(segments_separated, mutations_separated):
             _mutation_list = [
                 ((seg, pos), aa_from, aa_to) for
@@ -153,7 +159,7 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
 
     # else if the segment argument was provided
     # designate that as the segment for every mutation
-    elif not (segment is None):
+    elif segment is not None:
         mutations_separated = map(extract_mutations, mutations)
         mutation_list = []
         for mutation_subset in mutations_separated:

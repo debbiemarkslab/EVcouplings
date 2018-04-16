@@ -9,7 +9,7 @@ import unittest
 import os
 import tempfile
 import pandas as pd
-import ruamel_yaml as yaml
+import ruamel.yaml as yaml
 from copy import deepcopy
 from unittest import TestCase
 import evcouplings
@@ -17,8 +17,8 @@ from evcouplings.mutate.calculations import *
 from evcouplings.mutate.protocol import *
 from evcouplings.couplings.model import CouplingsModel
 
-#TRAVIS_PATH = "/home/travis/evcouplings_test_cases"
-TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B"
+TRAVIS_PATH = "/home/travis/evcouplings_test_cases"
+#TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B"
 MONOMER_PATH = "{}/monomer_test".format(TRAVIS_PATH)
 COMPLEX_PATH = "{}/complex_test".format(TRAVIS_PATH)
 
@@ -164,6 +164,7 @@ class TestMutation(TestCase):
         split_mutations = split_mutants(data, "mutations")
 
         pd.testing.assert_frame_equal(output, split_mutations)
+
 
     # def test_protcol_standard(self):
     #         """

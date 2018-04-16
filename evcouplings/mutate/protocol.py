@@ -27,13 +27,18 @@ from evcouplings.utils.system import (
 from evcouplings.couplings.mapping import (
     Segment
 )
+from evcouplings.compare.protocol import (
+    COMPLEX_CHAIN_NAMES
+)
 
 
 def standard(**kwargs):
     """
     Protocol:
-    Compare ECs for single proteins (or domains)
-    to 3D structure information
+    Mutation effect calculation and visualization for protein monomers
+
+    TODO: eventually merge with complexes to make a protocol agnostic to the
+    number of segments
 
     Parameters
     ----------
@@ -141,8 +146,7 @@ def standard(**kwargs):
 def complex(**kwargs):
     """
     Protocol:
-    Compare ECs for single proteins (or domains)
-    to 3D structure information
+    Mutation effect prediction and visualization for protein complexes
 
     Parameters
     ----------
@@ -183,11 +187,16 @@ def complex(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
-    # load couplings object
-    first_segment = Segment.from_list(kwargs["segments"][0])
-    second_segment = Segment.from_list(kwargs["segments"][1])
+    # load segments to create couplings object
+    segment_objects = []
+    for segment_list in kwargs["segments"]:
+        segment_objects.append(Segment.from_list(segment_list))
 
-    c = MultiSegmentCouplingsModel(kwargs["model_file"], first_segment, second_segment)
+    first_segment_name = kwargs["segments"][0][0]
+    second_segment_name = kwargs["segments"][1][0]
+
+    # load couplings object
+    c = MultiSegmentCouplingsModel(kwargs["model_file"], *segment_objects)
 
     # create the independent model
     c0 = c.to_independent_model()
@@ -231,9 +240,12 @@ def complex(**kwargs):
     outcfg["mutations_epistatic_pml_files"] = []
     for model in ["epistatic", "independent", "inter_segment"]:
         pml_filename = prefix + "_{}_model.pml".format(model)
-        evcouplings.visualize.mutations.mutation_complexes_pymol_script(
+        evcouplings.visualize.mutations.mutation_pymol_script(
             singles, pml_filename, effect_column="prediction_" + model,
-            segment_to_chain_mapping={"A_1": "A", "B_1": "B"}
+            segment_to_chain_mapping={
+                first_segment_name: COMPLEX_CHAIN_NAMES[0],
+                second_segment_name: COMPLEX_CHAIN_NAMES[1]
+            }
         )
         outcfg["mutations_epistatic_pml_files"].append(pml_filename)
 
@@ -241,7 +253,8 @@ def complex(**kwargs):
     dataset_file = kwargs["mutation_dataset_file"]
     if dataset_file is not None:
         verify_resources("Dataset file does not exist", dataset_file)
-        data = pd.read_csv(dataset_file, comment="#", sep=";")
+        data = pd.read_csv(dataset_file, comment="#", sep=",")
+        print(data)
 
         if "segment" not in data.columns:
             raise ValueError(
