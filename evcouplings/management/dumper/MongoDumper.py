@@ -5,6 +5,7 @@ from evcouplings.utils import valid_file, temp
 from pymongo import MongoClient
 import gridfs
 import re
+from copy import deepcopy
 
 
 class MongoDumper(ResultsDumperInterface):
@@ -35,7 +36,7 @@ class MongoDumper(ResultsDumperInterface):
             "This job name's length is too long. You must shorten it. Name: {}".format(self._nice_job_name)
 
         self._archive = self._management.get("archive")
-        self.tracked_files = self._dumper.get("tracked_files")
+        self._tracked_files = self._dumper.get("tracked_files")
 
     def write_tar(self):
         assert self._archive is not None, "You must define a list of files to be archived"
@@ -116,6 +117,34 @@ class MongoDumper(ResultsDumperInterface):
     def write_files(self):
         # TODO: Write each single file to blob in correct folder structure
         pass
+
+    def move_out_config_files(self, out_config):
+
+        if self._tracked_files is None:
+            return out_config
+
+        result = deepcopy(out_config)
+
+        # add files based on keys one by one
+        for k in self._tracked_files:
+            # skip missing keys or ones not defined
+            if k not in out_config or out_config[k] is None:
+                continue
+
+            # distinguish between files and lists of files
+            if k.endswith("files"):
+                intermediate_result = list()
+                for f in out_config[k]:
+                    if valid_file(f):
+                        index = self.write_file(f, aliases=[k, f])
+                        intermediate_result.append(index)
+                result[k] = intermediate_result
+            else:
+                if valid_file(out_config[k]):
+                    index = self.write_file(out_config[k], aliases=[k])
+                    result[k] = index
+
+        return result
 
     def clear(self):
         client = MongoClient(self._database_uri)
