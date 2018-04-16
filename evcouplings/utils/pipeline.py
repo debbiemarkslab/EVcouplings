@@ -3,10 +3,13 @@ Pipelining of different stages of method
 
 Authors:
   Thomas A. Hopf
+  C.D.
 """
 
 # chose backend for command-line usage
 import matplotlib
+
+from evcouplings.management import delete_outputs
 
 matplotlib.use("Agg")
 
@@ -34,7 +37,6 @@ import evcouplings.compare.protocol as cm
 import evcouplings.mutate.protocol as mt
 import evcouplings.fold.protocol as fd
 import evcouplings.complex.protocol as pp
-import evcouplings.management.protocol as mg
 
 # supported pipelines
 #
@@ -51,16 +53,14 @@ PIPELINES = {
         ("couplings", cp.run, None),
         ("compare", cm.run, None),
         ("mutate", mt.run, None),
-        ("fold", fd.run, None),
-        ("management", mg.run, None)
+        ("fold", fd.run, None)
     ],
     "protein_complex": [
         ("align_1", ap.run, "first_"),
         ("align_2", ap.run, "second_"),
         ("concatenate", pp.run, None),
         ("couplings", cp.run, None),
-        ("compare", cm.run, None),
-        ("management", mg.run, None)
+        ("compare", cm.run, None)
     ]
 }
 
@@ -214,6 +214,9 @@ def execute(**config):
 
         # update global state with outputs of stage
         global_state = {**global_state, **outcfg}
+
+    # delete selected output files if requested
+    global_state = delete_outputs(config, global_state)
 
     # write final global state of pipeline
     write_config_file(

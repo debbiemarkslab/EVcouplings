@@ -252,10 +252,13 @@ def genome_distance(**kwargs):
             "first_alignment_file", "second_alignment_file",
             "first_focus_sequence", "second_focus_sequence",
             "first_focus_mode", "second_focus_mode",
+            "first_region_start", "second_region_start",
             "first_segments", "second_segments",
             "genome_distance_threshold",
             "first_genome_location_file",
-            "second_genome_location_file"
+            "second_genome_location_file",
+            "first_annotation_file",
+            "second_annotation_file"
         ]
     )
 
@@ -301,8 +304,8 @@ def genome_distance(**kwargs):
     else:
         id_pairing = id_pairing_unfiltered
 
-    id_pairing.loc[:, "id_1"] = id_pairing["uniprot_id_1"]
-    id_pairing.loc[:, "id_2"] = id_pairing["uniprot_id_2"]
+    id_pairing.loc[:, "id_1"] = id_pairing.loc[:, "uniprot_id_1"]
+    id_pairing.loc[:, "id_2"] = id_pairing.loc[:, "uniprot_id_2"]
 
     # write concatenated alignment with distance filtering
     # TODO: save monomer alignments?
@@ -343,6 +346,8 @@ def genome_distance(**kwargs):
     #   sequence which will be passed into plmc with -f
     outcfg = aln_outcfg
     outcfg["raw_alignment_file"] = raw_alignment_file
+    outcfg["first_concatenated_monomer_alignment_file"] = mon_alignment_file_1
+    outcfg["second_concatenated_monomer_alignment_file"] = mon_alignment_file_2
     outcfg["focus_sequence"] = target_seq_id
 
     # Update the segments
@@ -419,13 +424,13 @@ def best_hit(**kwargs):
 
         # read in annotation to a file and rename the appropriate column
         annotation_table = read_species_annotation_table(annotations_file)
-        print(annotation_table.head())
+
         # read identity file
         similarities = pd.read_csv(identities_file)
 
         # create a pd.DataFrame containing the best hit in each organism
         most_similar_in_species = most_similar_by_organism(similarities, annotation_table)
-        print(most_similar_in_species.head())
+
         if use_best_reciprocal:
             paralogs = find_paralogs(
                 target_sequence, annotation_table, similarities,
@@ -504,6 +509,8 @@ def best_hit(**kwargs):
     #   sequence which will be passed into plmc with -f
     outcfg = aln_outcfg
     outcfg["raw_alignment_file"] = raw_alignment_file
+    outcfg["first_concatenated_monomer_alignment_file"] = mon_alignment_file_1
+    outcfg["second_concatenated_monomer_alignment_file"] = mon_alignment_file_2
     outcfg["focus_sequence"] = target_seq_id
 
     # Update the segments

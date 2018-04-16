@@ -717,7 +717,7 @@ def complex(**kwargs):
     first_aux_prefix = insert_dir(aux_prefix, "first_monomer", rootname_subdir=False)
     create_prefix_folders(first_aux_prefix)
 
-        # store auxiliary files here (too much for average user)
+    # store auxiliary files here (too much for average user)
     second_aux_prefix = insert_dir(aux_prefix, "second_monomer", rootname_subdir=False)
     create_prefix_folders(second_aux_prefix)
 

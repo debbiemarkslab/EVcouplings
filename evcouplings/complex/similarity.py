@@ -54,7 +54,6 @@ def read_species_annotation_table(annotation_file):
 
     return data[["id", "name", "species"]]
 
-
 def most_similar_by_organism(similarities, id_to_organism):
     """
     For each species in the alignment, finds the sequence 
