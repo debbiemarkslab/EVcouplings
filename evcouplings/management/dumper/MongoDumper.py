@@ -96,6 +96,7 @@ class MongoDumper(ResultsDumperInterface):
         return temp_file
 
     def write_file(self, file_path, aliases=None):
+        # TODO: Make sure that you are not writing twice same file
         assert file_path is not None, "You must pass the location of a file"
 
         _, upload_name = os.path.split(file_path)
@@ -119,6 +120,7 @@ class MongoDumper(ResultsDumperInterface):
         pass
 
     def move_out_config_files(self, out_config):
+        # TODO: Make sure that you are not rewriting field that already is outconfig
 
         if self._tracked_files is None:
             return out_config
