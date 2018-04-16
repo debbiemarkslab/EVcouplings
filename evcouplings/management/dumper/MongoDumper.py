@@ -2,9 +2,9 @@ import tarfile
 import os
 from evcouplings.management.dumper.ResultsDumperInterface import ResultsDumperInterface
 from evcouplings.utils import valid_file, temp
-from shutil import copyfile, rmtree
 from pymongo import MongoClient
 import gridfs
+import re
 
 
 class MongoDumper(ResultsDumperInterface):
@@ -26,6 +26,13 @@ class MongoDumper(ResultsDumperInterface):
 
         self._database_uri = self._dumper.get("database_uri")
         assert self._database_uri is not None, "database_uri must be defined"
+
+        # This is used to define a bucket for this job
+        # https://docs.mongodb.com/manual/reference/limits/#restrictions-on-db-names
+        self._nice_job_name = re.sub(r'[/|\\. "$*<>:?]', "_", self._job_name)
+
+        assert len(self._nice_job_name) < 64, \
+            "This job name's length is too long. You must shorten it. Name: {}".format(self._nice_job_name)
 
         self._archive = self._management.get("archive")
         self.tracked_files = self._dumper.get("tracked_files")
@@ -56,36 +63,62 @@ class MongoDumper(ResultsDumperInterface):
                     if valid_file(self.config[k]):
                         tar.add(self.config[k])
 
-        client = MongoClient(self._database_uri)
-        db = client.gridfs_runfiles
-        fs = gridfs.GridFS(db)
-
-        with open(tar_file, "rb") as f:
-            index = fs.put(f, job_name=self._job_name)
-
-        client.close()
+        index = self.write_file(tar_file, aliases=['results_archive'])
 
         return index
 
     def tar_path(self):
-        return self.storage_location + ".tar.gz"
+        client = MongoClient(self._database_uri)
+        db = client[self._nice_job_name]
+        fs = gridfs.GridFS(db)
+
+        results_archive = fs.find_one(filter={
+            "job_name": self._job_name,
+            "aliases": "results_archive"
+        })
+
+        return results_archive._id
 
     def download_tar(self):
-        # In the case of a local dumper, this is a null operation
-        return self.tar_path()
+        index = self.tar_path()
 
-    def write_file(self, file_path):
+        client = MongoClient(self._database_uri)
+        db = client[self._nice_job_name]
+        fs = gridfs.GridFS(db)
+
+        results_archive = fs.get(index)
+
+        temp_file = temp()
+        f = open(temp_file, 'wb')
+        f.write(results_archive.read())
+
+        return temp_file
+
+    def write_file(self, file_path, aliases=None):
         assert file_path is not None, "You must pass the location of a file"
 
         _, upload_name = os.path.split(file_path)
 
-        copyfile(file_path, self.storage_location + upload_name)
+        client = MongoClient(self._database_uri)
+        db = client[self._nice_job_name]
+        fs = gridfs.GridFS(db)
+
+        with open(file_path, "rb") as f:
+            if aliases is not None:
+                index = fs.put(f, job_name=self._job_name, filename=upload_name, aliases=aliases)
+            else:
+                index = fs.put(f, job_name=self._job_name, filename=upload_name)
+
+        client.close()
+
+        return index
 
     def write_files(self):
         # TODO: Write each single file to blob in correct folder structure
         pass
 
     def clear(self):
-        rmtree(self.storage_location, ignore_errors=True)
+        client = MongoClient(self._database_uri)
+        return client.drop_database(self._nice_job_name)
 
 

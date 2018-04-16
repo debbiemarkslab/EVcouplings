@@ -12,21 +12,6 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
 
         pass
 
-    @abc.abstractproperty
-    def name(self):
-        """
-         #TODO: figure out this, apply for:
-
-            "name": self.job_name,
-            "job_group": "none",
-            "status": self.status,
-            "stage": self.stage,
-            "created_at": None,
-            "updated_at": None
-
-        """
-        pass
-
     @abc.abstractmethod
     def update_job_status(self, status=None, stage=None):
         """
@@ -120,5 +105,6 @@ class DocumentNotFound(Exception):
     """
     Exception for not finding a document that should be there in the database
     """
+
 
 DATABASE_NAME = "compute_jobs"
