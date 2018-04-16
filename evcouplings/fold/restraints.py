@@ -10,7 +10,7 @@ from pkg_resources import resource_filename
 from evcouplings.utils.config import read_config_file
 from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.system import verify_resources
-
+from evcouplings.compare.protocol import COMPLEX_CHAIN_NAMES
 
 def _folding_config(config_file=None):
     """
@@ -277,3 +277,54 @@ def ec_dist_restraints(ec_pairs, output_file,
                     comment=AA1_to_AA3[aa_i] + " " + AA1_to_AA3[aa_j]
                 )
                 f.write(r + "\n")
+
+def docking_restraints(ec_pairs, output_file,
+                       restraint_formatter, config_file=None):
+    """
+    Create .tbl file with distance restraints
+    for docking
+
+    Parameters
+    ----------
+    ec_pairs : pandas.DataFrame
+        Table with EC pairs that will be turned
+        into distance restraints
+        (with columns i, j, A_i, A_j, segment_i, segment_j)
+    output_file : str
+        Path to file in which restraints will be saved
+    restraint_formatter : function
+        Function called to create string representation of restraint
+    config_file : str, optional (default: None)
+        Path to config file with folding settings. If None,
+        will use default settings included in package
+        (restraints.yml).
+    """
+    # get configuration (default or user-supplied)
+    cfg = _folding_config(config_file)["docking_restraints"]
+
+    with open(output_file, "w") as f:
+        # create distance restraints per EC row in table
+        for idx, ec in ec_pairs.iterrows():
+            i, j, aa_i, aa_j, segment_i, segment_j = \
+                ec["i"], ec["j"], ec["A_i"], ec["A_j"], ec["segment_i"], ec["segment_j"]
+
+            chain_i = COMPLEX_CHAIN_NAMES[0]
+            chain_j = COMPLEX_CHAIN_NAMES[1]
+
+            # write i to j restraint
+            r = restraint_formatter(
+                i, chain_i, j, chain_j,
+                dist=cfg["dist"],
+                lower=cfg["lower"],
+                upper=cfg["upper"],
+            )
+            f.write(r + "\n")
+
+            # write j to i restraint
+            r = restraint_formatter(
+                j, chain_j, i, chain_i,
+                dist=cfg["dist"],
+                lower=cfg["lower"],
+                upper=cfg["upper"],
+            )
+            f.write(r + "\n")
