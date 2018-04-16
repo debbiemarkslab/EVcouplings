@@ -12,6 +12,7 @@ from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.system import verify_resources
 from evcouplings.compare.protocol import COMPLEX_CHAIN_NAMES
 
+
 def _folding_config(config_file=None):
     """
     Load CNS folding configuration
@@ -277,6 +278,7 @@ def ec_dist_restraints(ec_pairs, output_file,
                     comment=AA1_to_AA3[aa_i] + " " + AA1_to_AA3[aa_j]
                 )
                 f.write(r + "\n")
+
 
 def docking_restraints(ec_pairs, output_file,
                        restraint_formatter, config_file=None):

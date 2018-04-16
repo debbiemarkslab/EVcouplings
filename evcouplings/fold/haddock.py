@@ -5,9 +5,9 @@ Authors:
   Anna G. Green
 """
 
+
 def haddock_dist_restraint(resid_i, chain_i, resid_j, chain_j,
-                       dist, lower, upper, weight=None,
-                       comment=None):
+                           dist, lower, upper, comment=None):
     """
     Create a CNS distance restraint string
 
@@ -53,6 +53,5 @@ def haddock_dist_restraint(resid_i, chain_i, resid_j, chain_j,
             dist, upper, lower
         )
     )
-
 
     return r

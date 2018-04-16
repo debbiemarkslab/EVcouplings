@@ -38,6 +38,7 @@ from evcouplings.utils.system import (
 )
 from evcouplings.visualize.pymol import pymol_secondary_structure
 
+
 def secondary_structure(**kwargs):
     """
     Predict or load secondary structure for an
