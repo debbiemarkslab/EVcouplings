@@ -47,8 +47,8 @@ class ComputeJobLocal(ComputeJobInterface):
 
         self._status = "init"
         self._stage = "init"
-        self._created_at = datetime.datetime.now
-        self._updated_at = datetime.datetime.now
+        self._created_at = datetime.datetime.now()
+        self._updated_at = datetime.datetime.now()
 
     def update_job_status(self, status=None, stage=None):
         if stage is not None:
