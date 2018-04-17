@@ -162,7 +162,9 @@ class MongoDumper(ResultsDumperInterface):
 
     def clear(self):
         client = MongoClient(self._database_uri)
-        return client.drop_database(self._nice_job_name)
+        result = client.drop_database(self._nice_job_name)
+        client.close()
+        return result
 
     # Particular methods of this implementation
     def get_files(self, alias):
