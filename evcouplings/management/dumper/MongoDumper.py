@@ -81,9 +81,13 @@ class MongoDumper(ResultsDumperInterface):
         })
 
         if results_archive is not None:
-            return results_archive._id
+            index = results_archive._id
         else:
-            return None
+            index = None
+
+        client.close()
+
+        return index
 
     def download_tar(self):
         index = self.tar_path()
@@ -97,6 +101,8 @@ class MongoDumper(ResultsDumperInterface):
         temp_file = temp()
         f = open(temp_file, 'wb')
         f.write(results_archive.read())
+
+        client.close()
 
         return temp_file
 
@@ -115,7 +121,7 @@ class MongoDumper(ResultsDumperInterface):
         })
 
         if db_file is not None:
-            return db_file['_id']
+            return db_file._id
 
         with open(file_path, "rb") as f:
             if aliases is not None:
@@ -157,3 +163,45 @@ class MongoDumper(ResultsDumperInterface):
     def clear(self):
         client = MongoClient(self._database_uri)
         return client.drop_database(self._nice_job_name)
+
+    # Particular methods of this implementation
+    def get_files(self, alias):
+        """
+        Find a file or a list of files based on their alias.
+        :param alias: can be something like "remapped_pdb_files", the original file path or file name
+        :return: A list of ObjectId's or an empty list, if no file is matched
+        """
+        client = MongoClient(self._database_uri)
+        db = client[self._nice_job_name]
+        fs = gridfs.GridFS(db)
+
+        files = fs.find(filter={
+            "job_name": self._job_name,
+            "$or": [{
+                "aliases": alias,
+            }, {
+                "filename": alias
+            }]
+        })
+
+        files = list(files)
+
+        client.close()
+
+        return files
+
+    def get_bucket(self):
+        client = MongoClient(self._database_uri)
+        db = client[self._nice_job_name]
+        fs = gridfs.GridFS(db)
+
+        return fs
+
+    @staticmethod
+    def serialize_file_list(files):
+        return [{
+            "_id": f._id,
+            "filename": f.filename,
+            "created_at": f.upload_date,
+            "aliases": f.aliases
+                 } for f in files]
