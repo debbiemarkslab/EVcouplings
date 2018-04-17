@@ -33,6 +33,10 @@ from evcouplings.compare.ecs import (
 )
 from evcouplings.visualize import pairs, misc
 
+# chain names to be used for complex PDB remapping
+COMPLEX_CHAIN_NAMES = ("A", "B")
+
+
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
                         score="cn"):
     """
@@ -81,6 +85,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         )
 
     return ecs
+
 
 def _identify_structures(**kwargs):
     """
@@ -765,7 +770,7 @@ def complex(**kwargs):
     first_aux_prefix = insert_dir(aux_prefix, "first_monomer", rootname_subdir=False)
     create_prefix_folders(first_aux_prefix)
 
-        # store auxiliary files here (too much for average user)
+    # store auxiliary files here (too much for average user)
     second_aux_prefix = insert_dir(aux_prefix, "second_monomer", rootname_subdir=False)
     create_prefix_folders(second_aux_prefix)
 
@@ -906,8 +911,12 @@ def complex(**kwargs):
         raise_missing=False
     )
 
-    d_intra_i, d_multimer_i, seqmap_i = _compute_monomer_distance_maps(first_sifts_map, "first", "A")
-    d_intra_j, d_multimer_j, seqmap_j = _compute_monomer_distance_maps(second_sifts_map, "second", "B")
+    d_intra_i, d_multimer_i, seqmap_i = _compute_monomer_distance_maps(
+        first_sifts_map, "first", COMPLEX_CHAIN_NAMES[0]
+    )
+    d_intra_j, d_multimer_j, seqmap_j = _compute_monomer_distance_maps(
+        second_sifts_map, "second", COMPLEX_CHAIN_NAMES[1]
+    )
 
     # compute inter distance map if sifts map for each monomer exists
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
@@ -1050,7 +1059,10 @@ def complex(**kwargs):
             inter_ecs.iloc[:kwargs["plot_highest_count"], :],
             outcfg["ec_lines_compared_pml_file"],
             distance_cutoff=kwargs["distance_cutoff"],
-            chain={first_segment_name: "A", second_segment_name: "B"}
+            chain={
+                first_segment_name: COMPLEX_CHAIN_NAMES[0],
+                second_segment_name: COMPLEX_CHAIN_NAMES[1]
+            }
         )
 
     # Remap the complex crystal structures, if available

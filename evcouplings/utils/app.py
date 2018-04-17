@@ -13,14 +13,12 @@ Authors:
 
 import re
 from copy import deepcopy
-from sys import executable
 from os import path
 
 import click
 
 from evcouplings import utils
 from evcouplings.utils import pipeline, database
-from evcouplings.utils import summarize
 
 from evcouplings.utils.system import (
     create_prefix_folders, ResourceError, valid_file
@@ -250,12 +248,8 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         the contents of this dictionary will be
         equal to the single element of config_files)
     """
-    python = executable
-    pipeline_path = path.abspath(pipeline.__file__)
-    summarize_path = path.abspath(summarize.__file__)
-
-    cmd_base = "{} {}".format(python, pipeline_path)
-    summ_base = "{} {}".format(python, summarize_path)
+    cmd_base = "evcouplings_runcfg"
+    summ_base = "evcouplings_summarize"
 
     # determine output directory for config files
     prefix = global_config["global"]["prefix"]
@@ -479,6 +473,7 @@ def app(**kwargs):
     constant.
     """
     run(**kwargs)
+
 
 if __name__ == '__main__':
     app()

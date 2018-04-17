@@ -1016,11 +1016,13 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         create_prefix_folders(output_prefix)
 
     # determine which combinations of chains to look at
-    # (anything that has same PDB identifier)
+    # (anything that has same PDB identifier)...
     combis = sifts_result_i.hits.reset_index().merge(
         sifts_result_j.hits.reset_index(),
         on="pdb_id", suffixes=("_i", "_j")
     )
+    # but not the same chain (else we get i to i contacts)
+    combis = combis.query("pdb_chain_i != pdb_chain_j")
 
     # extract chains for each subunit
     chains_i = _get_chains(sifts_result_i)
