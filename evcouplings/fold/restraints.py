@@ -321,12 +321,3 @@ def docking_restraints(ec_pairs, output_file,
                 upper=cfg["upper"],
             )
             f.write(r + "\n")
-
-            # write j to i restraint
-            r = restraint_formatter(
-                j, chain_j, i, chain_i,
-                dist=cfg["dist"],
-                lower=cfg["lower"],
-                upper=cfg["upper"],
-            )
-            f.write(r + "\n")
