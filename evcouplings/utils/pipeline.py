@@ -134,8 +134,15 @@ def execute(**config):
     # the end of workflow below
     num_stages_to_run = len(stages)
 
-    # set job status to running
+    # Compute job tracker tracks job status (stage job's in)
+    # Useful for web-bound runs, but can be used also with sqlite and a local interface
     compute_job_tracker = get_compute_job_tracker(config)
+
+    # File dumper will take care of moving certain files from FS to another location
+    # Target locations can be: another dir on FS or FS like storages like GridFS, Azure Blob,...
+    file_dumper = get_dumper(config)
+
+    # set tracker to running
     compute_job_tracker.update_job_status(status=EStatus.RUN)
 
     # iterate through individual stages
@@ -155,6 +162,7 @@ def execute(**config):
         # config files for input and output of stage
         stage_incfg = "{}_{}.incfg".format(stage_prefix, stage)
         stage_outcfg = "{}_{}.outcfg".format(stage_prefix, stage)
+        stage_dumper = "{}_{}.dumper".format(stage_prefix, stage)
 
         # update current stage of job
         compute_job_tracker.update_job_status(stage=stage)
@@ -187,6 +195,9 @@ def execute(**config):
             # save output of stage in config file
             write_config_file(stage_outcfg, outcfg)
 
+            dumper_out_config = file_dumper.move_out_config_files(outcfg)
+            write_config_file(stage_dumper, dumper_out_config)
+
             # one less stage to put through after we ran this...
             num_stages_to_run -= 1
         else:
@@ -215,6 +226,9 @@ def execute(**config):
 
         # update global state with outputs of stage
         global_state = {**global_state, **outcfg}
+
+    # Writes zip if archive is populated in management
+    file_dumper.write_tar(global_state)
 
     # delete selected output files if requested
     global_state = delete_outputs(config, global_state)
@@ -314,11 +328,14 @@ def execute_wrapped(**config):
     outcfg : dict
         Global output state of pipeline
     """
+
+    # Compute job tracker tracks job status (stage job's in)
+    # Useful for web-bound runs, but can be used also with sqlite and a local interface
     compute_job_tracker = get_compute_job_tracker(config)
 
-    # TODO: next line+
-    # file_dumper = get_dumper(config)
-
+    # File dumper will take care of moving certain files from FS to another location
+    # Target locations can be: another dir on FS or FS like storages like GridFS, Azure Blob,...
+    file_dumper = get_dumper(config)
 
     # make sure the prefix in configuration is valid
     try:
@@ -340,12 +357,14 @@ def execute_wrapped(**config):
     # handler for external interruptions
     # (needs config for database access)
     def _handler(signal_, frame):
-        # set job status to terminated in database
-        compute_job_tracker.update_job_status(status=EStatus.TERM)
-
         # create file flag that job was terminated
         with open(prefix + ".terminated", "w") as f:
             f.write("SIGNAL: {}\n".format(signal_))
+
+        # Last two operations before unwinding. If these fail, no big deal:
+        # set job status to terminated in database
+        compute_job_tracker.update_job_status(status=EStatus.TERM)
+        file_dumper.write_file(prefix + ".terminated", aliases=['terminated'])
 
         # terminate program
         sys.exit(1)
@@ -368,12 +387,15 @@ def execute_wrapped(**config):
         return outcfg
 
     except Exception as e:
-        # set status in database to failed
-        compute_job_tracker.update_job_status(status=EStatus.FAIL)
-
         # create failed file flag
         with open(prefix + ".failed", "w") as f:
             f.write(traceback.format_exc())
+
+        # Last two operations before unwinding. If these fail, no big deal:
+        # set job status to failed in database
+        compute_job_tracker.update_job_status(status=EStatus.FAIL)
+        file_dumper.write_file(prefix + ".failed", aliases=['failed'])
+
 
         # raise exception again after we updated status
         raise

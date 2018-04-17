@@ -38,8 +38,9 @@ class MongoDumper(ResultsDumperInterface):
         self._archive = self._management.get("archive")
         self._tracked_files = self._dumper.get("tracked_files")
 
-    def write_tar(self):
-        assert self._archive is not None, "You must define a list of files to be archived"
+    def write_tar(self, global_state):
+        if self._archive is None or len(self._archive) == 0:
+            return
 
         index = self.tar_path()
 
@@ -53,17 +54,17 @@ class MongoDumper(ResultsDumperInterface):
             # add files based on keys one by one
             for k in self._archive:
                 # skip missing keys or ones not defined
-                if k not in self.config or self.config[k] is None:
+                if k not in global_state or global_state[k] is None:
                     continue
 
                 # distinguish between files and lists of files
                 if k.endswith("files"):
-                    for f in self.config[k]:
+                    for f in global_state[k]:
                         if valid_file(f):
                             tar.add(f)
                 else:
-                    if valid_file(self.config[k]):
-                        tar.add(self.config[k])
+                    if valid_file(global_state[k]):
+                        tar.add(global_state[k])
 
         index = self.write_file(tar_file, aliases=['results_archive'])
 
@@ -127,8 +128,6 @@ class MongoDumper(ResultsDumperInterface):
         return index
 
     def move_out_config_files(self, out_config):
-        # TODO: Make sure that you are not rewriting field that already is outconfig
-
         if self._tracked_files is None:
             return out_config
 
