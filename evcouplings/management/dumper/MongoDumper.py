@@ -41,10 +41,6 @@ class MongoDumper(ResultsDumperInterface):
     def write_tar(self):
         assert self._archive is not None, "You must define a list of files to be archived"
 
-        # if no output keys are requested, nothing to do
-        if self._archive is None or len(self._archive) == 0:
-            return
-
         index = self.tar_path()
 
         if index is not None:
@@ -83,7 +79,10 @@ class MongoDumper(ResultsDumperInterface):
             "aliases": "results_archive"
         })
 
-        return results_archive._id
+        if results_archive is not None:
+            return results_archive._id
+        else:
+            return None
 
     def download_tar(self):
         index = self.tar_path()
