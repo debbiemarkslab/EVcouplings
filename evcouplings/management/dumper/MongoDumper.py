@@ -197,7 +197,7 @@ class MongoDumper(ResultsDumperInterface):
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
 
-        return fs
+        return fs, client
 
     @staticmethod
     def serialize_file_list(files):
