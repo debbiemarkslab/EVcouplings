@@ -9,9 +9,9 @@ Authors:
 # chose backend for command-line usage
 import matplotlib
 
-from evcouplings.management import delete_outputs
 from evcouplings.management import (
-    get_dumper, get_compute_job_tracker, EStatus
+    delete_outputs,get_dumper, get_compute_job_tracker,
+    EStatus
 )
 
 matplotlib.use("Agg")
