@@ -192,18 +192,28 @@ class MongoDumper(ResultsDumperInterface):
 
         return files
 
-    def get_bucket(self):
-        client = MongoClient(self._database_uri)
-        db = client[self._nice_job_name]
-        fs = gridfs.GridFS(db)
-
-        return fs, client
-
     @staticmethod
     def serialize_file_list(files):
+        """
+        Serializes GridOut objects into dictionaries
+        :param files: an array of GridOut objects
+        :return: and array of dictionaries containing file metadata
+        """
         return [{
             "_id": f._id,
             "filename": f.filename,
             "created_at": f.upload_date,
             "aliases": f.aliases
                  } for f in files]
+
+    def get_bucket(self):
+        """
+        Returns FS bucket for this job. This is the most general approach for storing and retrieving
+
+        :return: the collection (to find on) and the connection (to close, if not used anymore)
+        """
+        client = MongoClient(self._database_uri)
+        db = client[self._nice_job_name]
+        fs = gridfs.GridFS(db)
+
+        return fs, client
