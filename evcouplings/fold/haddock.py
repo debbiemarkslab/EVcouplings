@@ -42,10 +42,10 @@ def haddock_dist_restraint(resid_i, chain_i, resid_j, chain_j,
         comment_str = ""
 
     r = (
-        "{}\n"
+        "! {}\n"
         "assign (resid {} and segid {})\n"
         "(\n"
-        " (resid {} and name {}) \n"
+        " (resid {} and segid {}) \n"
         ") {} {} {}".format(
             comment_str,
             resid_i, chain_i,
