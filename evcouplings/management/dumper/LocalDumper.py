@@ -17,7 +17,7 @@ class LocalDumper(ResultsDumperInterface):
 
         # IMPORTANT: fallback for old way things are done
         self._dumper = self._management.get("dumper", {
-            "storage_location": self.config.get("prefix"),
+            "storage_location": self.config.get("global").get("prefix"),
             "operating_in_same_location": True
         })
 
