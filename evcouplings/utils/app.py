@@ -53,6 +53,7 @@ def _update_dictionary_recursively(original, overwrite, max_depth=1, depth=0):
     return result
 
 
+# WARNING: Currently not in use!
 def _extend_dictionary_recursively(original, overwrite, max_depth=1, depth=0):
     """
     Same as _update_dictionary_recursively, but extends lists (elements are appended at the end)
@@ -78,7 +79,6 @@ def _extend_dictionary_recursively(original, overwrite, max_depth=1, depth=0):
             print("\tentered general")
             result[k] = v
     return result
-
 
 
 def substitute_config(**kwargs):
