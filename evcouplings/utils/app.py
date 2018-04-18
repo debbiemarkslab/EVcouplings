@@ -32,40 +32,52 @@ from evcouplings.utils.config import (
 CONFIG_NAME = "{}_config.txt"
 
 
-def _update_dictionary_recursively(original, overwrite):
+def _update_dictionary_recursively(original, overwrite, max_depth=1, depth=0):
     """
     Function to recursively overwrite a dictionary with new values (doesn't extend! (aka.: lists are overwritten!)
     :param original: original dictionary, that gets overwritten
     :param overwrite: updates to apply on original dictionary
+    :param max_depth: Maximum depth of object indentation [Default: 2]
+    :param depth: Current depth of indentation [Default: 0, DON'T CHANGE]
+    :return: recursively updated object
     """
+
+    result = deepcopy(original)
+
     for k, v in overwrite.items():
-        if isinstance(v, collections.Mapping):
-            original[k] = _update_dictionary_recursively(original.get(k, {}), v)
+        if depth < max_depth and isinstance(v, collections.Mapping):
+            result[k] = _update_dictionary_recursively(result.get(k, {}), v, max_depth=max_depth, depth=depth+1)
         else:
-            original[k] = v
-    return original
+            result[k] = v
+
+    return result
 
 
-def _extend_dictionary_recursively(original, overwrite):
+def _extend_dictionary_recursively(original, overwrite, max_depth=1, depth=0):
     """
     Same as _update_dictionary_recursively, but extends lists (elements are appended at the end)
     :param original: original dictionary, that gets extended
     :param overwrite: updates to apply on original dictionary
-    :return:
+    :param max_depth: Maximum depth of object indentation [Default: 2]
+    :param depth: Current depth of indentation [Default: 0, DON'T CHANGE]
+    :return: recursively extended object
     """
+
+    result = deepcopy(original)
+
     for k, v in overwrite.items():
         print(k)
-        if isinstance(v, list):
-            assert isinstance(original[k], list), "Cannot extend list and non-list types {}.".format(k)
-            original[k] = original.get(k) + v
+        if depth < max_depth and isinstance(v, list):
+            assert isinstance(result[k], list), "Cannot extend list and non-list types {}.".format(k)
+            result[k] = result.get(k) + v
             print("\tentered list")
-        elif isinstance(v, collections.Mapping):
-            original[k] = _extend_dictionary_recursively(original.get(k, {}), v)
+        elif depth < max_depth and isinstance(v, collections.Mapping):
+            result[k] = _extend_dictionary_recursively(result.get(k, {}), v, max_depth=max_depth, depth=depth+1)
             print("\tentered recursion")
         else:
             print("\tentered general")
-            original[k] = v
-    return original
+            result[k] = v
+    return result
 
 
 
@@ -266,7 +278,7 @@ def unroll_config(config):
             }
 
             # apply subconfig delta
-            _update_dictionary_recursively(sub_config, delta_config)
+            sub_config = _update_dictionary_recursively(sub_config, delta_config)
 
             configs[sub_prefix] = sub_config
 
