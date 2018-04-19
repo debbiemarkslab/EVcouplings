@@ -27,7 +27,6 @@ stages:
     - concatenate
     - couplings
     - compare
-    - management
 
     
 # Global job settings. These will override settings of the same name in each of the stages.
