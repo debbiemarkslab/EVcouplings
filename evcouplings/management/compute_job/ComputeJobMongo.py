@@ -42,13 +42,8 @@ class ComputeJobMongo(ComputeJobInterface):
         self._job_group = self._management.get("job_group")
         assert self._job_group is not None, "config.management must contain a job_group"
 
-        # Get things from management.job_database (this is where connection string + db type live)
-        self._compute_job = self._management.get("compute_job")
-        assert self._compute_job is not None, \
-            "You must define compute_job parameters in the management section of the config!"
-
-        self._database_uri = self._compute_job.get("database_uri")
-        assert self._database_uri is not None, "database_uri must be defined"
+        self._compute_job_uri = self._management.get("compute_job_uri")
+        assert self._compute_job_uri is not None, "compute_job_uri must be defined"
 
         self._status = "initialized"
         self._stage = "initialized"
@@ -56,7 +51,7 @@ class ComputeJobMongo(ComputeJobInterface):
         self._updated_at = datetime.datetime.now()
 
         # Connect to mongo and get URI database
-        client = MongoClient(self._database_uri)
+        client = MongoClient(self._compute_job_uri)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 
@@ -99,7 +94,7 @@ class ComputeJobMongo(ComputeJobInterface):
         update['updated_at'] = self._updated_at
 
         # Connect to mongo and get URI database
-        client = MongoClient(self._database_uri)
+        client = MongoClient(self._compute_job_uri)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 
@@ -120,7 +115,7 @@ class ComputeJobMongo(ComputeJobInterface):
 
     def get_job(self):
         # Connect to mongo and get URI database
-        client = MongoClient(self._database_uri)
+        client = MongoClient(self._compute_job_uri)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 
@@ -132,7 +127,7 @@ class ComputeJobMongo(ComputeJobInterface):
 
     def get_jobs_from_group(self):
         # Connect to mongo and get URI database
-        client = MongoClient(self._database_uri)
+        client = MongoClient(self._compute_job_uri)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 

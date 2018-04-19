@@ -37,7 +37,6 @@ def get_compute_job_tracker(config):
     # Fallback mechanism: if management not defined, or if compute_job in management not defined: use local
     compute_job = config\
         .get("management", {})\
-        .get("compute_job", {})\
-        .get("type", "local")
+        .get("compute_job_type", "local")
 
     return COMPUTE_JOB_TRACKER.get(compute_job)(config)

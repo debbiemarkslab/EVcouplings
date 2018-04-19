@@ -20,13 +20,8 @@ class MongoDumper(ResultsDumperInterface):
         self._job_name = self._management.get("job_name")
         assert self._job_name is not None, "config.management must contain a job_name"
 
-        # Get things from management.dumper (this is where connection string + approach live)
-        self._dumper = self._management.get("dumper")
-        assert self._dumper is not None, \
-            "You must define dumper parameters in the management section of the config!"
-
-        self._database_uri = self._dumper.get("database_uri")
-        assert self._database_uri is not None, "database_uri must be defined"
+        self._dumper_uri = self._management.get("dumper_uri")
+        assert self._dumper_uri is not None, "dumper_uri must be defined"
 
         # This is used to define a bucket for this job
         # https://docs.mongodb.com/manual/reference/limits/#restrictions-on-db-names
@@ -35,14 +30,14 @@ class MongoDumper(ResultsDumperInterface):
         assert len(self._nice_job_name) < 64, \
             "This job name's length is too long. You must shorten it. Name: {}".format(self._nice_job_name)
 
-        self._tracked_files = self._dumper.get("tracked_files")
+        self._tracked_files = self._management.get("tracked_files")
 
     def write_file(self, file_path, aliases=None):
         assert file_path is not None, "You must pass the location of a file"
 
         _, upload_name = os.path.split(file_path)
 
-        client = MongoClient(self._database_uri)
+        client = MongoClient(self._dumper_uri)
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
 
@@ -92,7 +87,7 @@ class MongoDumper(ResultsDumperInterface):
         return result
 
     def clear(self):
-        client = MongoClient(self._database_uri)
+        client = MongoClient(self._dumper_uri)
         result = client.drop_database(self._nice_job_name)
         client.close()
         return result
@@ -104,7 +99,7 @@ class MongoDumper(ResultsDumperInterface):
         :param alias: can be something like "remapped_pdb_files", the original file path or file name
         :return: A list of ObjectId's or an empty list, if no file is matched
         """
-        client = MongoClient(self._database_uri)
+        client = MongoClient(self._dumper_uri)
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
 
@@ -143,7 +138,7 @@ class MongoDumper(ResultsDumperInterface):
 
         :return: the collection (to find on) and the connection (to close, if not used anymore)
         """
-        client = MongoClient(self._database_uri)
+        client = MongoClient(self._dumper_uri)
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
 

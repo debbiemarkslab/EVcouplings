@@ -15,20 +15,15 @@ class LocalDumper(ResultsDumperInterface):
         self._management = self.config.get("management")
         assert self._management is not None, "You must pass a full config file with a management field"
 
-        # IMPORTANT: fallback for old way things are done
-        self._dumper = self._management.get("dumper", {
-            "storage_location": self.config.get("global").get("prefix"),
-            "operating_in_same_location": True
-        })
+        self._dumper_storage_location = self._management.get("dumper_storage_location",
+                                                             self.config.get("global").get("prefix"))
+        assert self._dumper_storage_location is not None, "Storage location must be defined to know " \
+                                                          "where files should be stored locally." \
+                                                          "If no storage_location is defined, prefix must be defined."
 
-        self._storage_location = self._dumper.get("storage_location")
-        assert self._storage_location is not None, "Storage location must be defined to know " \
-                                                   "where files should be stored locally. If no storage_location " \
-                                                   "is defined, prefix must be defined."
+        self._operating_in_place = self._dumper_storage_location == self.config.get("global").get("prefix")
 
-        self._operating_in_place = self._dumper.get("operating_in_same_location")
-
-        self._tracked_files = self._dumper.get("tracked_files")
+        self._tracked_files = self._management.get("tracked_files")
 
     def write_file(self, file_path):
 
@@ -39,7 +34,7 @@ class LocalDumper(ResultsDumperInterface):
 
         _, upload_name = os.path.split(file_path)
 
-        final_path = os.path.join(self._storage_location, upload_name)
+        final_path = os.path.join(self._dumper_storage_location, upload_name)
 
         copyfile(file_path, final_path)
 
@@ -73,6 +68,6 @@ class LocalDumper(ResultsDumperInterface):
         return result
 
     def clear(self):
-        rmtree(self._storage_location, ignore_errors=True)
+        rmtree(self._dumper_storage_location, ignore_errors=True)
 
 

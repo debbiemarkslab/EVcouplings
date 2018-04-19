@@ -20,7 +20,6 @@ def get_dumper(config):
     # Fallback mechanism: if management not defined, or location in dumper not defined: use local
     dumper = config \
         .get("management", {}) \
-        .get("dumper", {})\
-        .get("location", "local")
+        .get("dumper", "local")
 
     return DUMPERS.get(dumper)(config)

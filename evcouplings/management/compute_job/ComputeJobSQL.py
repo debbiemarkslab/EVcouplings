@@ -89,13 +89,8 @@ class ComputeJobSQL(ComputeJobInterface):
         self._job_group = self._management.get("job_group")
         assert self._job_group is not None, "config.management must contain a job_group"
 
-        # Get things from management.job_database (this is where connection string + db type live)
-        self._compute_job = self._management.get("compute_job")
-        assert self._compute_job is not None, \
-            "You must define compute_job parameters in the management section of the config!"
-
-        self._database_uri = self._compute_job.get("database_uri")
-        assert self._database_uri is not None, "database_uri must be defined"
+        self._compute_job_uri = self._management.get("compute_job_uri")
+        assert self._compute_job_uri is not None, "database_uri must be defined"
 
         self._status = "initialized"
         self._stage = "initialized"
@@ -103,7 +98,7 @@ class ComputeJobSQL(ComputeJobInterface):
         self._updated_at = datetime.datetime.now()
 
         # connect to DB and create session
-        engine = create_engine(self._database_uri, poolclass=NullPool)
+        engine = create_engine(self._compute_job_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -148,7 +143,7 @@ class ComputeJobSQL(ComputeJobInterface):
         """
 
         # connect to DB and create session
-        engine = create_engine(self._database_uri, poolclass=NullPool)
+        engine = create_engine(self._compute_job_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -194,7 +189,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
     def get_job(self):
         # connect to DB and create session
-        engine = create_engine(self._database_uri, poolclass=NullPool)
+        engine = create_engine(self._compute_job_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -210,7 +205,7 @@ class ComputeJobSQL(ComputeJobInterface):
 
     def get_jobs_from_group(self):
         # connect to DB and create session
-        engine = create_engine(self._database_uri, poolclass=NullPool)
+        engine = create_engine(self._compute_job_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
