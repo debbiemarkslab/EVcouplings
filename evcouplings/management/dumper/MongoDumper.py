@@ -35,76 +35,7 @@ class MongoDumper(ResultsDumperInterface):
         assert len(self._nice_job_name) < 64, \
             "This job name's length is too long. You must shorten it. Name: {}".format(self._nice_job_name)
 
-        self._archive = self._management.get("archive")
         self._tracked_files = self._dumper.get("tracked_files")
-
-    def write_tar(self, global_state):
-        if self._archive is None or len(self._archive) == 0:
-            return
-
-        index = self.tar_path()
-
-        if index is not None:
-            return index
-
-        tar_file = temp()
-
-        # create archive
-        with tarfile.open(tar_file, "w:gz") as tar:
-            # add files based on keys one by one
-            for k in self._archive:
-                # skip missing keys or ones not defined
-                if k not in global_state or global_state[k] is None:
-                    continue
-
-                # distinguish between files and lists of files
-                if k.endswith("files"):
-                    for f in global_state[k]:
-                        if valid_file(f):
-                            tar.add(f)
-                else:
-                    if valid_file(global_state[k]):
-                        tar.add(global_state[k])
-
-        index = self.write_file(tar_file, aliases=['results_archive'])
-
-        return index
-
-    def tar_path(self):
-        client = MongoClient(self._database_uri)
-        db = client[self._nice_job_name]
-        fs = gridfs.GridFS(db)
-
-        results_archive = fs.find_one(filter={
-            "job_name": self._job_name,
-            "aliases": "results_archive"
-        })
-
-        if results_archive is not None:
-            index = results_archive._id
-        else:
-            index = None
-
-        client.close()
-
-        return index
-
-    def download_tar(self):
-        index = self.tar_path()
-
-        client = MongoClient(self._database_uri)
-        db = client[self._nice_job_name]
-        fs = gridfs.GridFS(db)
-
-        results_archive = fs.get(index)
-
-        temp_file = temp()
-        f = open(temp_file, 'wb')
-        f.write(results_archive.read())
-
-        client.close()
-
-        return temp_file
 
     def write_file(self, file_path, aliases=None):
         assert file_path is not None, "You must pass the location of a file"

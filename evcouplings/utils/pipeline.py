@@ -10,9 +10,9 @@ Authors:
 import matplotlib
 
 from evcouplings.management import (
-    delete_outputs,get_dumper, get_compute_job_tracker,
-    EStatus
-)
+    delete_outputs, get_dumper, get_compute_job_tracker,
+    EStatus,
+    create_archive)
 
 matplotlib.use("Agg")
 
@@ -227,8 +227,13 @@ def execute(**config):
         # update global state with outputs of stage
         global_state = {**global_state, **outcfg}
 
-    # Writes zip if archive is populated in management
-    file_dumper.write_tar(global_state)
+    # create results archive
+    archive_file = prefix + ".tar.gz"
+    create_archive(config, global_state, archive_file)
+    global_state["archive_file"] = archive_file
+
+    # Dump archive is in tracked files list
+    file_dumper.move_out_config_files({"archive_file": archive_file})
 
     # delete selected output files if requested
     global_state = delete_outputs(config, global_state)

@@ -7,35 +7,6 @@ class ResultsDumperInterface(object, metaclass=abc.ABCMeta):
         self.config = config
 
     @abc.abstractmethod
-    def write_tar(self, global_state):
-        """
-        Writes `.tar.gz` based on files in `archive` list and files listed in global_state.
-        If archive is None, will pass.
-        :param global_state: the global state object, after all stages have been run.
-                                acts as pointer keeper to the files needed to be archived.
-        :return: A sting indicating the location of the tar (could be fs or HTTP) or None
-                    if nothing is listed in management.archive
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def tar_path(self):
-        """
-        Get tar path
-        :return: A sting indicating the location of the tar (could be fs or HTTP)
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def download_tar(self):
-        """
-        Get tar path on local fs. If remote, fetches tar and makes available in temp folder.
-        Is not autogarbaged!
-        :return: A sting indicating the location of the tar on fs
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
     def move_out_config_files(self, out_config):
         """
         Writes files listed in out_config and dumper's tracked_files.
