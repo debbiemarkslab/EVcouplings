@@ -21,8 +21,9 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @staticmethod
     @abc.abstractmethod
-    def get_jobs_from_group(self):
+    def get_jobs_from_group(group_id, connection_string):
         """
         Get all compute jobs from job group.
         This implies that management.compute_job and management.job_group are defined.
@@ -31,8 +32,9 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
+    @staticmethod
     @abc.abstractmethod
-    def get_job(self):
+    def get_job(job_id, connection_string):
         """
         Get this compute job
         :return: A dict with compute job parameters

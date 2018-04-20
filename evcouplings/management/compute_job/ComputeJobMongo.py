@@ -113,26 +113,28 @@ class ComputeJobMongo(ComputeJobInterface):
 
         return q
 
-    def get_job(self):
+    @staticmethod
+    def get_job(job_id, connection_string):
         # Connect to mongo and get URI database
-        client = MongoClient(self._compute_job_uri)
+        client = MongoClient(connection_string)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 
         q = collection.find_one({
-            '_id': self._job_name
+            '_id': job_id
         })
 
         return q
 
-    def get_jobs_from_group(self):
+    @staticmethod
+    def get_jobs_from_group(group_id, connection_string):
         # Connect to mongo and get URI database
-        client = MongoClient(self._compute_job_uri)
+        client = MongoClient(connection_string)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 
         q = collection.find({
-            'job_group': self._job_group
+            'job_group': group_id
         })
 
         return list(q)

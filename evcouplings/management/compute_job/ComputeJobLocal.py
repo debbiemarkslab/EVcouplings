@@ -60,8 +60,24 @@ class ComputeJobLocal(ComputeJobInterface):
 
         return _serialize(self)
 
-    def get_jobs_from_group(self):
-        return [_serialize(self)]
+    @staticmethod
+    def get_jobs_from_group(group_id, _):
+        return [{
+            "job_name": None,
+            "job_group": group_id,
+            "created_at": None,
+            "updated_at": None,
+            "status": None,
+            "stage": None,
+        }]
 
-    def get_job(self):
-        return _serialize(self)
+    @staticmethod
+    def get_job(job_id, _):
+        return {
+            "job_name": job_id,
+            "job_group": None,
+            "created_at": None,
+            "updated_at": None,
+            "status": None,
+            "stage": None,
+        }

@@ -187,9 +187,10 @@ class ComputeJobSQL(ComputeJobInterface):
 
         return result
 
-    def get_job(self):
+    @staticmethod
+    def get_job(job_id, connection_string):
         # connect to DB and create session
-        engine = create_engine(self._compute_job_uri, poolclass=NullPool)
+        engine = create_engine(connection_string, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -197,15 +198,16 @@ class ComputeJobSQL(ComputeJobInterface):
         _Base.metadata.create_all(bind=engine)
 
         result = session.query(_ComputeJob) \
-            .get(self._job_name)
+            .get(job_id)
 
         session.close()
 
         return _serialize(result)
 
-    def get_jobs_from_group(self):
+    @staticmethod
+    def get_jobs_from_group(group_id, connection_string):
         # connect to DB and create session
-        engine = create_engine(self._compute_job_uri, poolclass=NullPool)
+        engine = create_engine(connection_string, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -213,7 +215,7 @@ class ComputeJobSQL(ComputeJobInterface):
         _Base.metadata.create_all(bind=engine)
 
         results = session.query(_ComputeJob) \
-            .filter(_ComputeJob.job_group == self._job_group) \
+            .filter(_ComputeJob.job_group == group_id) \
             .all()
 
         session.close()
