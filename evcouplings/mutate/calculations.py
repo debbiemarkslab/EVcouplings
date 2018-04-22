@@ -217,7 +217,7 @@ def single_mutant_matrix(model, output_column="prediction_epistatic",
             # if position is a tuple, it is in format
             # (segment_id, position). Else, there is
             # no segment information
-            if type(pos) is tuple:
+            if isinstance(pos, tuple):
                 position_str = pos[1]
                 segment = pos[0]
 

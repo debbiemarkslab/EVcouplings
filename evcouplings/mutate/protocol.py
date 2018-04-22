@@ -12,7 +12,10 @@ import matplotlib.pyplot as plt
 from bokeh.io import save, output_file
 
 from evcouplings.couplings.model import (
-    CouplingsModel, MultiSegmentCouplingsModel
+    CouplingsModel
+)
+from evcouplings.couplings.mapping import (
+    MultiSegmentCouplingsModel
 )
 from evcouplings.mutate.calculations import (
     single_mutant_matrix, predict_mutation_table
@@ -254,7 +257,6 @@ def complex(**kwargs):
     if dataset_file is not None:
         verify_resources("Dataset file does not exist", dataset_file)
         data = pd.read_csv(dataset_file, comment="#", sep=",")
-        print(data)
 
         if "segment" not in data.columns:
             raise ValueError(
