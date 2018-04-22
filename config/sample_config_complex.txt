@@ -439,7 +439,8 @@ mutate:
 fold:
     protocol: complex_dock
 
-      prefix:
+    # Inputs set by global stage and output of previous stages
+    prefix:
 
     # generate restraint files with inter-protein ECs above the following score cutoffs
     dock_probability_cutoffs:
