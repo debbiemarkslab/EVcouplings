@@ -594,9 +594,7 @@ def complex_dock(**kwargs):
         Output configuration of the pipeline, including
         the following fields:
 
-        * sec_struct_file
-        * folding_ec_file
-        * folded_structure_files
+        * docking_restraints_files
     """
     check_required(
         kwargs,
@@ -604,7 +602,6 @@ def complex_dock(**kwargs):
             "prefix", "ec_file",
             "segments", "dock_probability_cutoffs",
             "dock_lowest_count", "dock_highest_count", "dock_increase",
-
         ]
     )
 
@@ -664,7 +661,7 @@ def complex_dock(**kwargs):
 
     outcfg["docking_restraint_files"] = []
     for job_ecs, job_suffix in folding_runs:
-        job_filename = prefix+job_suffix
+        job_filename = prefix + job_suffix
         docking_restraints(job_ecs, job_filename, haddock_dist_restraint)
         outcfg["docking_restraint_files"].append(job_filename)
 

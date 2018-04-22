@@ -4,13 +4,13 @@ evolutionary couplings and secondary structure predictions
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (docking restraints)
 """
 
 from pkg_resources import resource_filename
 from evcouplings.utils.config import read_config_file
 from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.system import verify_resources
-from evcouplings.compare.protocol import COMPLEX_CHAIN_NAMES
 
 
 def _folding_config(config_file=None):
@@ -307,11 +307,14 @@ def docking_restraints(ec_pairs, output_file,
     with open(output_file, "w") as f:
         # create distance restraints per EC row in table
         for idx, ec in ec_pairs.iterrows():
-            i, j, aa_i, aa_j, segment_i, segment_j = \
+            i, j, aa_i, aa_j, segment_i, segment_j = (
                 ec["i"], ec["j"], ec["A_i"], ec["A_j"], ec["segment_i"], ec["segment_j"]
+            )
 
-            chain_i = COMPLEX_CHAIN_NAMES[0]
-            chain_j = COMPLEX_CHAIN_NAMES[1]
+            # extract chain names based on segment names
+            # A_1 -> A, B_1 -> B
+            chain_i = segment_i.split("_")[0]
+            chain_j = segment_j.split("_")[0]
 
             # write i to j restraint
             r = restraint_formatter(
