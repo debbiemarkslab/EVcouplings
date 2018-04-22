@@ -4,12 +4,14 @@ internal model numbering.
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (MultiSegmentCouplingsModel)
 """
 
 from collections import Iterable
 from copy import deepcopy
 from evcouplings.couplings.model import CouplingsModel
 import pandas as pd
+import numpy as np
 
 
 class Segment:

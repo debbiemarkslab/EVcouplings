@@ -5,7 +5,6 @@ sequences and perform calculations using the model
 
 Authors:
   Thomas A. Hopf
-  Anna G. Green (MultiSegmentCouplingsModel)
 """
 from collections import Iterable
 from copy import deepcopy
