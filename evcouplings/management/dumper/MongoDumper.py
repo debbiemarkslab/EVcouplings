@@ -76,7 +76,7 @@ class MongoDumper(ResultsDumperInterface):
                 intermediate_result = list()
                 for f in out_config[k]:
                     if valid_file(f):
-                        index = self.write_file(f, aliases=[k, f])
+                        index = self.write_file(f, aliases=[k])
                         intermediate_result.append(index)
                 result[k] = intermediate_result
             else:
