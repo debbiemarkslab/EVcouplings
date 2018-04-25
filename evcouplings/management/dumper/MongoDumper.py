@@ -103,14 +103,17 @@ class MongoDumper(ResultsDumperInterface):
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
 
-        files = fs.find(filter={
-            "job_name": self._job_name,
-            "$or": [{
-                "aliases": alias,
-            }, {
-                "filename": alias
-            }]
-        })
+        if alias is None:
+            files = fs.find()
+        else:
+            files = fs.find(filter={
+                "job_name": self._job_name,
+                "$or": [{
+                    "aliases": alias,
+                }, {
+                    "filename": alias
+                }]
+            })
 
         files = list(files)
 
