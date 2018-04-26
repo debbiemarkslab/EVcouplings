@@ -14,11 +14,15 @@ class LocalDumper(ResultsDumperInterface):
         self._management = self.config.get("management")
         assert self._management is not None, "You must pass a full config file with a management field"
 
-        self._dumper_storage_location = self._management.get("dumper_storage_location",
-                                                             self.config.get("global").get("prefix"))
+        self._dumper_storage_location = self._management.get("dumper_storage_location")
         assert self._dumper_storage_location is not None, "Storage location must be defined to know " \
                                                           "where files should be stored locally." \
                                                           "If no storage_location is defined, prefix must be defined."
+
+        self._job_name = self._management.get("job_name")
+        assert self._job_name is not None, "config.management must contain a job_name"
+
+        self._dumper_storage_location = os.path.join(self._dumper_storage_location, self._job_name)
 
         self._operating_in_place = self._dumper_storage_location == self.config.get("global").get("prefix")
 
