@@ -10,9 +10,8 @@ Authors:
 import matplotlib
 
 from evcouplings.utils.management import (
-    delete_outputs, get_dumper, get_compute_job_tracker,
-    EStatus,
-    create_archive)
+    get_dumper, get_compute_job_tracker,
+    EStatus, create_archive, delete_outputs )
 
 matplotlib.use("Agg")
 
