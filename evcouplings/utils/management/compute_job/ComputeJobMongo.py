@@ -40,7 +40,6 @@ class ComputeJobMongo(ComputeJobInterface):
         assert self._job_name is not None, "config.management must contain a job_name"
 
         self._job_group = self._management.get("job_group")
-        assert self._job_group is not None, "config.management must contain a job_group"
 
         self._compute_job_uri = self._management.get("compute_job_uri")
         assert self._compute_job_uri is not None, "compute_job_uri must be defined"

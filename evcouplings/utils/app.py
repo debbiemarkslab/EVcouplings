@@ -243,11 +243,6 @@ def unroll_config(config):
             # create full prefix for subjob
             sub_config["global"]["prefix"] = sub_prefix
 
-            # Reference to global prefix: used in database to create documents with correct grouping
-            sub_config["management"] = {
-                "job_group": prefix
-            }
-
             # apply subconfig delta
             sub_config = _update_dictionary_recursively(sub_config, delta_config)
 
