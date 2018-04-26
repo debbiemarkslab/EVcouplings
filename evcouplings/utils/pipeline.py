@@ -76,7 +76,7 @@ EXTENSION_FAILED = ".failed"
 
 # suffix of file that will be generated if execution
 # runs through sucessfully
-EXTENSION_DONE = ".done"
+EXTENSION_FINISHED = ".finished"
 
 
 def execute(**config):
@@ -350,7 +350,7 @@ def execute_wrapped(**config):
     # delete terminated/failed flags from previous
     # executions of pipeline
     for ext in [
-        EXTENSION_FAILED, EXTENSION_TERMINATED, EXTENSION_DONE,
+        EXTENSION_FAILED, EXTENSION_TERMINATED, EXTENSION_FINISHED,
     ]:
         try:
             os.remove(prefix + ext)
@@ -361,7 +361,7 @@ def execute_wrapped(**config):
     # (needs config for database access)
     def _handler(signal_, frame):
         # create file flag that job was terminated
-        with open(prefix + ".terminated", "w") as f:
+        with open(prefix + EXTENSION_TERMINATED, "w") as f:
             f.write("SIGNAL: {}\n".format(signal_))
 
         # Last two operations before unwinding. If these fail, no big deal:
@@ -384,14 +384,14 @@ def execute_wrapped(**config):
 
         # if we made it here, job was sucessfully run to completing
         # create file flag that job was terminated
-        with open(prefix + ".finished", "w") as f:
+        with open(prefix + EXTENSION_FINISHED, "w") as f:
             f.write(repr(outcfg))
 
         return outcfg
 
     except Exception as e:
         # create failed file flag
-        with open(prefix + ".failed", "w") as f:
+        with open(prefix + EXTENSION_FAILED, "w") as f:
             f.write(traceback.format_exc())
 
         # Last two operations before unwinding. If these fail, no big deal:
