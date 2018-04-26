@@ -194,7 +194,11 @@ def execute(**config):
             write_config_file(stage_outcfg, outcfg)
 
             dumper_out_config = file_dumper.move_out_config_files(outcfg)
-            write_config_file(stage_dumper, dumper_out_config)
+
+            # If not using the NullDumper, then some files are gonna be moved.
+            # Output final file location in dumper file
+            if dumper_out_config is not None:
+                write_config_file(stage_dumper, dumper_out_config)
 
             # one less stage to put through after we ran this...
             num_stages_to_run -= 1
