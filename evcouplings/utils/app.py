@@ -3,7 +3,6 @@ evcouplings command-line app
 
 Authors:
   Thomas A. Hopf
-  C.D.
 
 .. todo::
 
@@ -50,34 +49,6 @@ def _update_dictionary_recursively(original, overwrite, max_depth=1, depth=0):
         else:
             result[k] = v
 
-    return result
-
-
-# WARNING: Currently not in use!
-def _extend_dictionary_recursively(original, overwrite, max_depth=1, depth=0):
-    """
-    Same as _update_dictionary_recursively, but extends lists (elements are appended at the end)
-    :param original: original dictionary, that gets extended
-    :param overwrite: updates to apply on original dictionary
-    :param max_depth: Maximum depth of object indentation [Default: 2]
-    :param depth: Current depth of indentation [Default: 0, DON'T CHANGE]
-    :return: recursively extended object
-    """
-
-    result = deepcopy(original)
-
-    for k, v in overwrite.items():
-        print(k)
-        if depth < max_depth and isinstance(v, list):
-            assert isinstance(result[k], list), "Cannot extend list and non-list types {}.".format(k)
-            result[k] = result.get(k) + v
-            print("\tentered list")
-        elif depth < max_depth and isinstance(v, collections.Mapping):
-            result[k] = _extend_dictionary_recursively(result.get(k, {}), v, max_depth=max_depth, depth=depth+1)
-            print("\tentered recursion")
-        else:
-            print("\tentered general")
-            result[k] = v
     return result
 
 

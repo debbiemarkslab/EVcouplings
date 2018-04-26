@@ -3,7 +3,6 @@ Pipelining of different stages of method
 
 Authors:
   Thomas A. Hopf
-  C.D.
 """
 
 # chose backend for command-line usage
