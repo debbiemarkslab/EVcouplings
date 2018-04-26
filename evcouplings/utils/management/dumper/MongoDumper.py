@@ -13,8 +13,6 @@ Authors:
 import os
 from evcouplings.utils.management.dumper import ResultsDumperInterface
 from evcouplings.utils import valid_file, InvalidParameterError
-from pymongo import MongoClient
-import gridfs
 import re
 from copy import deepcopy
 
@@ -47,6 +45,9 @@ class MongoDumper(ResultsDumperInterface):
         self._tracked_files = self._management.get("tracked_files")
 
     def write_file(self, file_path, aliases=None):
+        from pymongo import MongoClient
+        import gridfs
+
         if file_path is None:
             raise InvalidParameterError("You must pass the location of a file")
 
@@ -102,6 +103,8 @@ class MongoDumper(ResultsDumperInterface):
         return result
 
     def clear(self):
+        from pymongo import MongoClient
+
         client = MongoClient(self._dumper_uri)
         result = client.drop_database(self._nice_job_name)
         client.close()
@@ -121,6 +124,9 @@ class MongoDumper(ResultsDumperInterface):
         A list of GridOut objects or an empty list, if no file is matched
 
         """
+        from pymongo import MongoClient
+        import gridfs
+
         client = MongoClient(self._dumper_uri)
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
@@ -173,6 +179,8 @@ class MongoDumper(ResultsDumperInterface):
         fs, client: the collection (to find on) and the connection (to close, if not used anymore)
 
         """
+        from pymongo import MongoClient
+        import gridfs
 
         client = MongoClient(self._dumper_uri)
         db = client[self._nice_job_name]

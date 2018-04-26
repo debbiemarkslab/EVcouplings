@@ -8,7 +8,6 @@ Authors:
 from evcouplings.utils import InvalidParameterError
 from evcouplings.utils.management.compute_job.ComputeJobInterface import (
     ComputeJobInterface, DocumentNotFound, DATABASE_NAME)
-from pymongo import MongoClient
 import datetime
 
 TTL = {
@@ -39,6 +38,10 @@ class ComputeJobMongo(ComputeJobInterface):
         return self._updated_at
 
     def __init__(self, config):
+        from pymongo import MongoClient
+
+        self._MongoClient = MongoClient
+
         super(ComputeJobMongo, self).__init__(config)
 
         # Get things from management
@@ -62,7 +65,7 @@ class ComputeJobMongo(ComputeJobInterface):
         self._updated_at = datetime.datetime.now()
 
         # Connect to mongo and get URI database
-        client = MongoClient(self._compute_job_uri)
+        client = self._MongoClient(self._compute_job_uri)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 
@@ -105,7 +108,7 @@ class ComputeJobMongo(ComputeJobInterface):
         update['updated_at'] = self._updated_at
 
         # Connect to mongo and get URI database
-        client = MongoClient(self._compute_job_uri)
+        client = self._MongoClient(self._compute_job_uri)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 
@@ -126,6 +129,8 @@ class ComputeJobMongo(ComputeJobInterface):
 
     @staticmethod
     def get_job(job_id, connection_string):
+        from pymongo import MongoClient
+
         # Connect to mongo and get URI database
         client = MongoClient(connection_string)
         db = client.get_default_database()
@@ -139,6 +144,8 @@ class ComputeJobMongo(ComputeJobInterface):
 
     @staticmethod
     def get_jobs_from_group(group_id, connection_string):
+        from pymongo import MongoClient
+
         # Connect to mongo and get URI database
         client = MongoClient(connection_string)
         db = client.get_default_database()
