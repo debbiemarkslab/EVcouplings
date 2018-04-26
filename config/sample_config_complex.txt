@@ -27,6 +27,7 @@ stages:
     - concatenate
     - couplings
     - compare
+    - mutate
     
 # Global job settings. These will override settings of the same name in each of the stages.
 # These are typically the settings you want to modify for each of your jobs, together with some settings in the align stage.
@@ -419,6 +420,19 @@ compare:
 
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
+    
+# Settings for Mutation effect predictions
+mutate:
+    # Options: standard, complex
+    protocol: complex
+
+    # predict the following dataset file (.csv file, mutants like A102V or A102V,K199W in column "mutant"
+    # segments in column "segment" as "A_1" and "B_1" for first and second monomers, one segment specified per mutation)
+    mutation_dataset_file:
+
+    # Inputs set by global stage and output of previous stages
+    # prefix:
+    # model_file:
 
 
 # These settings allow job status tracking using a database, and result collection in an archive

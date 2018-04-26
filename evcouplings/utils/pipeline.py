@@ -60,6 +60,7 @@ PIPELINES = {
         ("concatenate", pp.run, None),
         ("couplings", cp.run, None),
         ("compare", cm.run, None),
+        ("mutate", mt.run, None)
     ]
 }
 
