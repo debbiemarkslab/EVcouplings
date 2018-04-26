@@ -1,3 +1,13 @@
+"""
+Zero/Null extension of results dumper:
+will do absolutely nothing.
+
+Used as fallback (and for intellectual consistency) if no dumper is specified.
+
+Authors:
+  Christian Dallago
+"""
+
 from evcouplings.utils.management.dumper import ResultsDumperInterface
 
 

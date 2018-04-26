@@ -1,3 +1,10 @@
+"""
+Local extension of file dumper: will copy "tracked_files" to the new location.
+
+Authors:
+  Christian Dallago
+"""
+
 import os
 from copy import deepcopy
 

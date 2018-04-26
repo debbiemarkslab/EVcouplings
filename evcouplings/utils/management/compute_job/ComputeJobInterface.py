@@ -1,3 +1,11 @@
+"""
+Abstract interface for job trackers.
+Can be extended to store status of job on a database system.
+
+Authors:
+  Christian Dallago
+"""
+
 import abc
 
 

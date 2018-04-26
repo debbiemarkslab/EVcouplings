@@ -1,3 +1,10 @@
+"""
+Abstract interface to handle files and stage-specific output configurations after a stage has been executed.
+
+Authors:
+  Christian Dallago
+"""
+
 import abc
 
 

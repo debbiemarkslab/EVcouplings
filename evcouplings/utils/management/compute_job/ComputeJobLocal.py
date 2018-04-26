@@ -1,3 +1,10 @@
+"""
+Local extension of compute job interface: will ideally write results of status changes to a logger.
+
+Authors:
+  Christian Dallago
+"""
+
 from evcouplings.utils.management.compute_job import ComputeJobInterface
 import datetime
 

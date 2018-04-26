@@ -1,4 +1,13 @@
+"""
+Cleanup tasks after job completion: create tar archive and delete files
+
+Authors:
+  Thomas A. Hopf
+  Christian Dallago
+"""
+
 import os
+import tarfile
 
 from evcouplings.utils import valid_file
 

@@ -1,3 +1,12 @@
+"""
+SQL based extension of job tracker:
+will update an SQL-like instance with current stage and status of a running job.
+
+Authors:
+  Thomas A. Hopf
+  Christian Dallago
+"""
+
 from sqlalchemy import (
     Column, String, DateTime,
     create_engine
@@ -6,7 +15,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.declarative import declarative_base
-from evcouplings.utils.management.compute_job import ComputeJobInterface, DocumentNotFound, DATABASE_NAME
+from evcouplings.utils.management.compute_job.ComputeJobInterface import (
+    ComputeJobInterface, DocumentNotFound, DATABASE_NAME)
 import datetime
 
 

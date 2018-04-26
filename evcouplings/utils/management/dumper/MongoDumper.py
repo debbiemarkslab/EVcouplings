@@ -1,3 +1,15 @@
+"""
+Document based extension of results dumper:
+will copy tracked file to a bucket/collection in mongo,
+which will contain "fs.files" and "fs.chunks" collections for the files.
+
+It will also contain a collection "outconfigs" with one document
+containing the key-value pares in the outconfigs (except files).
+
+Authors:
+  Christian Dallago
+"""
+
 import os
 from evcouplings.utils.management.dumper import ResultsDumperInterface
 from evcouplings.utils import valid_file

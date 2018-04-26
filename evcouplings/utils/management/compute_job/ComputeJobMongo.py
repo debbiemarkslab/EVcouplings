@@ -1,4 +1,13 @@
-from evcouplings.utils.management.compute_job import ComputeJobInterface, DocumentNotFound, DATABASE_NAME
+"""
+Document based extension of job tracker:
+will update a mongo instance with current stage and status of a running job.
+
+Authors:
+  Christian Dallago
+"""
+
+from evcouplings.utils.management.compute_job.ComputeJobInterface import (
+    ComputeJobInterface, DocumentNotFound, DATABASE_NAME)
 from pymongo import MongoClient
 import datetime
 
