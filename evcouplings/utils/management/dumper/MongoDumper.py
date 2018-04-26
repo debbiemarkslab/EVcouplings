@@ -12,7 +12,7 @@ Authors:
 
 import os
 from evcouplings.utils.management.dumper import ResultsDumperInterface
-from evcouplings.utils import valid_file
+from evcouplings.utils import valid_file, InvalidParameterError
 from pymongo import MongoClient
 import gridfs
 import re
@@ -26,25 +26,29 @@ class MongoDumper(ResultsDumperInterface):
 
         # Get things from management
         self._management = self.config.get("management")
-        assert self._management is not None, "You must pass a full config file with a management field"
+        if self._management is None:
+            raise InvalidParameterError("You must pass a full config file with a management field")
 
         self._job_name = self._management.get("job_name")
-        assert self._job_name is not None, "config.management must contain a job_name"
+        if self._job_name is None:
+            raise InvalidParameterError("config.management must contain a job_name")
 
         self._dumper_uri = self._management.get("dumper_uri")
-        assert self._dumper_uri is not None, "dumper_uri must be defined"
+        if self._dumper_uri is None:
+            raise InvalidParameterError("dumper_uri must be defined")
 
         # This is used to define a bucket for this job
         # https://docs.mongodb.com/manual/reference/limits/#restrictions-on-db-names
         self._nice_job_name = re.sub(r'[/|\\. "$*<>:?]', "_", self._job_name)
-
-        assert len(self._nice_job_name) < 64, \
-            "This job name's length is too long. You must shorten it. Name: {}".format(self._nice_job_name)
+        if len(self._nice_job_name) > 64:
+            raise InvalidParameterError("This job name's length is too long. You must shorten it. Name: {}"
+                                        .format(self._nice_job_name))
 
         self._tracked_files = self._management.get("tracked_files")
 
     def write_file(self, file_path, aliases=None):
-        assert file_path is not None, "You must pass the location of a file"
+        if file_path is None:
+            raise InvalidParameterError("You must pass the location of a file")
 
         _, upload_name = os.path.split(file_path)
 

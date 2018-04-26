@@ -15,6 +15,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.declarative import declarative_base
+
+from evcouplings.utils import InvalidParameterError
 from evcouplings.utils.management.compute_job.ComputeJobInterface import (
     ComputeJobInterface, DocumentNotFound, DATABASE_NAME)
 import datetime
@@ -91,15 +93,18 @@ class ComputeJobSQL(ComputeJobInterface):
 
         # Get things from management
         self._management = self.config.get("management")
-        assert self._management is not None, "You must pass a full config file with a management field"
+        if self._management is None:
+            raise InvalidParameterError("You must pass a full config file with a management field")
 
         self._job_name = self._management.get("job_name")
-        assert self._job_name is not None, "config.management must contain a job_name"
+        if self._job_name is None:
+            raise InvalidParameterError("config.management must contain a job_name")
 
         self._job_group = self._management.get("job_group")
 
         self._compute_job_uri = self._management.get("compute_job_uri")
-        assert self._compute_job_uri is not None, "database_uri must be defined"
+        if self._compute_job_uri is None:
+            raise InvalidParameterError("compute_job_uri must be defined")
 
         self._status = "initialized"
         self._stage = "initialized"

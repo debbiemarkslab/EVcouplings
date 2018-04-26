@@ -9,7 +9,7 @@ import os
 from copy import deepcopy
 
 from evcouplings.utils.management.dumper import ResultsDumperInterface
-from evcouplings.utils import valid_file
+from evcouplings.utils import valid_file, InvalidParameterError
 from shutil import copyfile, rmtree
 
 
@@ -19,15 +19,17 @@ class LocalDumper(ResultsDumperInterface):
         super(LocalDumper, self).__init__(config)
 
         self._management = self.config.get("management")
-        assert self._management is not None, "You must pass a full config file with a management field"
+        if self._management is None:
+            raise InvalidParameterError("You must pass a full config file with a management field")
 
         self._dumper_storage_location = self._management.get("dumper_storage_location")
-        assert self._dumper_storage_location is not None, "Storage location must be defined to know " \
-                                                          "where files should be stored locally." \
-                                                          "If no storage_location is defined, prefix must be defined."
+        if self._dumper_storage_location is None:
+            raise InvalidParameterError("Storage location must be defined to know where files should be stored locally."
+                                        " If no storage_location is defined, prefix must be defined.")
 
         self._job_name = self._management.get("job_name")
-        assert self._job_name is not None, "config.management must contain a job_name"
+        if self._job_name is None:
+            raise InvalidParameterError("config.management must contain a job_name")
 
         self._dumper_storage_location = os.path.join(self._dumper_storage_location, self._job_name)
 
@@ -40,7 +42,8 @@ class LocalDumper(ResultsDumperInterface):
         if self._operating_in_place:
             return file_path
 
-        assert file_path is not None, "You must pass the location of a file"
+        if file_path is None:
+            raise InvalidParameterError("You must pass the location of a file")
 
         _, upload_name = os.path.split(file_path)
 
