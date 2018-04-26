@@ -399,7 +399,6 @@ def execute_wrapped(**config):
         compute_job_tracker.update_job_status(status=EStatus.FAIL)
         file_dumper.write_file(prefix + ".failed", aliases=['failed'])
 
-
         # raise exception again after we updated status
         raise
 
