@@ -1,9 +1,7 @@
 from evcouplings.utils.management.dumper import LocalDumper, NullDumper, MongoDumper
 
 
-"""
-Dumper types. Fallback is "null"
-"""
+# Dumper types. Fallback is "null"
 DUMPERS = {
     "local": LocalDumper,
     "mongo": MongoDumper,
@@ -14,9 +12,18 @@ DUMPERS = {
 def get_dumper(config):
     """
     Based on config, get back dumper (where to store zip file and/or run results and/or intermediate results)
-    :param config: flattened config at management stage. Expects `dumper` key or falls back on local.
-    :return: Object implementing functions of the ResultsDumperInterface class
+    Will fallback to a NullDumper, which won't do anything.
+
+    Parameters
+    ----------
+    config A complete config (not flattened!)
+
+    Returns
+    -------
+    Object extending ResultsDumperInterface
+
     """
+
     # Fallback mechanism: if management not defined, or location in dumper not defined: use NullDumper
     dumper = config \
         .get("management", {}) \

@@ -3,9 +3,7 @@ from evcouplings.utils.management.compute_job import ComputeJobSQL
 from evcouplings.utils.management.compute_job import ComputeJobLocal
 
 
-"""
-Status of job. Resolves to string
-"""
+# Status of job. Resolves to string
 EStatus = (lambda **enums: type('Enum', (), enums))(
     INIT="initialized",
     PEND="pending",
@@ -15,9 +13,7 @@ EStatus = (lambda **enums: type('Enum', (), enums))(
     TERM="terminated",  # job was terminated externally
 )
 
-"""
-Tracker types. Default and fallback is "local"
-"""
+# Tracker types. Default and fallback is "local"
 COMPUTE_JOB_TRACKER = {
     "local": ComputeJobLocal,
     "sql": ComputeJobSQL,
@@ -28,10 +24,16 @@ COMPUTE_JOB_TRACKER = {
 def get_compute_job_tracker(config):
     """
     Based on config, get back the type of job tracker.
+    Will check management.compute_job_type or fallback on local
 
-    Will check management.compute_job.type
-    :param config: The complete job config (not flattened)
-    :return: Object implementing functions of the ComputeJobInterface class
+    Parameters
+    ----------
+    config a complete config (not flatted!)
+
+    Returns
+    -------
+    Object that extends ComputerJobInterface
+
     """
 
     # Fallback mechanism: if management not defined, or if compute_job in management not defined: use local

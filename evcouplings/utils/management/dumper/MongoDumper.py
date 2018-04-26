@@ -103,12 +103,19 @@ class MongoDumper(ResultsDumperInterface):
         client.close()
         return result
 
-    # Particular methods of this implementation
+    # Particular methods of this class
     def get_files(self, alias):
         """
         Find a file or a list of files based on their alias.
-        :param alias: can be something like "remapped_pdb_files", the original file path or file name
-        :return: A list of ObjectId's or an empty list, if no file is matched
+
+        Parameters
+        ----------
+        alias Can be something like "remapped_pdb_files", the original file path or file name
+
+        Returns
+        -------
+        A list of GridOut objects or an empty list, if no file is matched
+
         """
         client = MongoClient(self._dumper_uri)
         db = client[self._nice_job_name]
@@ -136,8 +143,15 @@ class MongoDumper(ResultsDumperInterface):
     def serialize_file_list(files):
         """
         Serializes GridOut objects into dictionaries
-        :param files: an array of GridOut objects
-        :return: and array of dictionaries containing file metadata
+
+        Parameters
+        ----------
+        files An array of GridOut objects
+
+        Returns
+        -------
+        Array of dictionaries containing file metadata
+
         """
         return [{
             "_id": f._id,
@@ -148,10 +162,14 @@ class MongoDumper(ResultsDumperInterface):
 
     def get_bucket(self):
         """
-        Returns FS bucket for this job. This is the most general approach for storing and retrieving
+        Returns FS bucket for this job. This is the most general approach for storing and retrieving.
 
-        :return: the collection (to find on) and the connection (to close, if not used anymore)
+        Returns
+        -------
+        fs, client: the collection (to find on) and the connection (to close, if not used anymore)
+
         """
+
         client = MongoClient(self._dumper_uri)
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)

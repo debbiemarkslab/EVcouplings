@@ -24,8 +24,16 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
     def update_job_status(self, status=None, stage=None):
         """
         Updates the status and/or stage of the job. Status should be EStatus
-        :param status: EStatus status. Default is None, which won't update it.
-        :param stage: string representing compute stage (e.g.: align, compare,...). Default None, which won't update the field
+
+        Parameters
+        ----------
+        status EStatus status. Default is None, which won't update it.
+        stage string representing compute stage (e.g.: align, compare,...). Default None, which won't update the field
+
+        Returns
+        -------
+        dictionary representing current job status
+
         """
         raise NotImplementedError
 
@@ -34,9 +42,17 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
     def get_jobs_from_group(group_id, connection_string):
         """
         Get all compute jobs from job group.
-        This implies that management.compute_job and management.job_group are defined.
-        Returns sensible results on database-backed extensions of the abstract class only.
-        :return: An array of dictionaries containing fields like name, group_id, etc.
+
+
+        Parameters
+        ----------
+        group_id the group id to look for
+        connection_string the connection string for the database of choice
+
+        Returns
+        -------
+        An array of dictionaries containing fields like name, group_id, etc.
+
         """
         raise NotImplementedError
 
@@ -44,8 +60,15 @@ class ComputeJobInterface(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_job(job_id, connection_string):
         """
-        Get this compute job
-        :return: A dict with compute job parameters
+
+        Parameters
+        ----------
+        job_id the id of the job to look for
+        connection_string the connection string for the database of choice
+
+        Returns
+        -------
+        A dictionary with compute job status
         """
         raise NotImplementedError
 
