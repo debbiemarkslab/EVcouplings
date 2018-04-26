@@ -1,7 +1,6 @@
-import tarfile
 import os
-from evcouplings.management.dumper.ResultsDumperInterface import ResultsDumperInterface
-from evcouplings.utils import valid_file, temp
+from evcouplings.utils.management.dumper import ResultsDumperInterface
+from evcouplings.utils import valid_file
 from pymongo import MongoClient
 import gridfs
 import re

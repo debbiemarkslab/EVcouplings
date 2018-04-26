@@ -9,7 +9,7 @@ Authors:
 # chose backend for command-line usage
 import matplotlib
 
-from evcouplings.management import (
+from evcouplings.utils.management import (
     delete_outputs, get_dumper, get_compute_job_tracker,
     EStatus,
     create_archive)

@@ -1,6 +1,5 @@
 import os
-from evcouplings.management.dumper import get_dumper
-from evcouplings.management.compute_job import get_compute_job_tracker, EStatus
+from evcouplings.utils.management.compute_job import get_compute_job_tracker, EStatus
 from evcouplings.utils import valid_file
 
 

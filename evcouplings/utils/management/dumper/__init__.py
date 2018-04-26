@@ -1,5 +1,5 @@
-from evcouplings.management.dumper.LocalDumper import LocalDumper
-from evcouplings.management.dumper.MongoDumper import MongoDumper
+from evcouplings.utils.management.dumper import LocalDumper
+from evcouplings.utils.management.dumper.MongoDumper import MongoDumper
 
 
 """

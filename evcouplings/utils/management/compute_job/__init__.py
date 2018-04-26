@@ -1,6 +1,6 @@
-from evcouplings.management.compute_job.ComputeJobMongo import ComputeJobMongo
-from evcouplings.management.compute_job.ComputeJobSQL import ComputeJobSQL
-from evcouplings.management.compute_job.ComputeJobLocal import ComputeJobLocal
+from evcouplings.utils.management.compute_job import ComputeJobMongo
+from evcouplings.utils.management.compute_job import ComputeJobSQL
+from evcouplings.utils.management.compute_job import ComputeJobLocal
 
 
 """

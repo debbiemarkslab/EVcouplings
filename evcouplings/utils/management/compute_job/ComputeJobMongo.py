@@ -1,4 +1,4 @@
-from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface, DocumentNotFound, DATABASE_NAME
+from evcouplings.utils.management.compute_job import ComputeJobInterface, DocumentNotFound, DATABASE_NAME
 from pymongo import MongoClient
 import datetime
 

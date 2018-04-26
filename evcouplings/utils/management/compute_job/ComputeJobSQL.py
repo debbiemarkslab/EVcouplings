@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.declarative import declarative_base
-from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface, DocumentNotFound, DATABASE_NAME
+from evcouplings.utils.management.compute_job import ComputeJobInterface, DocumentNotFound, DATABASE_NAME
 import datetime
 
 

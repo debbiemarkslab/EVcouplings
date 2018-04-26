@@ -1,8 +1,7 @@
-import tarfile
 import os
 from copy import deepcopy
 
-from evcouplings.management.dumper.ResultsDumperInterface import ResultsDumperInterface
+from evcouplings.utils.management.dumper import ResultsDumperInterface
 from evcouplings.utils import valid_file
 from shutil import copyfile, rmtree
 

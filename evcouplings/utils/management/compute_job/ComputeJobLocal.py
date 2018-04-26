@@ -1,4 +1,4 @@
-from evcouplings.management.compute_job.ComputeJobInterface import ComputeJobInterface
+from evcouplings.utils.management.compute_job import ComputeJobInterface
 import datetime
 
 
