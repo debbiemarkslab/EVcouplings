@@ -33,9 +33,6 @@ from evcouplings.compare.ecs import (
 )
 from evcouplings.visualize import pairs, misc
 
-# chain names to be used for complex PDB remapping
-COMPLEX_CHAIN_NAMES = ("A", "B")
-
 
 def _identify_structures(**kwargs):
     """
@@ -770,6 +767,9 @@ def complex(**kwargs):
     first_segment_name = kwargs["segments"][0][0]
     second_segment_name = kwargs["segments"][1][0]
 
+    first_chain_name = first_segment_name[0]
+    second_chain_name = second_segment_name[0]
+
     # Step 2: Compute distance maps
     def _compute_monomer_distance_maps(sifts_map, name_prefix, chain_name):
 
@@ -862,10 +862,10 @@ def complex(**kwargs):
     )
 
     d_intra_i, d_multimer_i, seqmap_i = _compute_monomer_distance_maps(
-        first_sifts_map, "first", COMPLEX_CHAIN_NAMES[0]
+        first_sifts_map, "first", first_chain_name
     )
     d_intra_j, d_multimer_j, seqmap_j = _compute_monomer_distance_maps(
-        second_sifts_map, "second", COMPLEX_CHAIN_NAMES[1]
+        second_sifts_map, "second", second_chain_name
     )
 
     # compute inter distance map if sifts map for each monomer exists
@@ -976,8 +976,8 @@ def complex(**kwargs):
             outcfg["ec_lines_compared_pml_file"],
             distance_cutoff=kwargs["distance_cutoff"],
             chain={
-                first_segment_name: COMPLEX_CHAIN_NAMES[0],
-                second_segment_name: COMPLEX_CHAIN_NAMES[1]
+                first_segment_name: first_chain_name,
+                second_segment_name: second_chain_name
             }
         )
 

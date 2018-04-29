@@ -7,9 +7,11 @@ Authors:
 
 
 def haddock_dist_restraint(resid_i, chain_i, resid_j, chain_j,
-                           dist, lower, upper, comment=None):
+                           dist, lower, upper, atom_i=None, atom_j=None,
+                           comment=None):
     """
-    Create a CNS distance restraint string
+    Create an ambiguous restraint string for uploading into
+    Haddock v2.2 webserver.
 
     Parameters
     ----------
@@ -27,6 +29,10 @@ def haddock_dist_restraint(resid_i, chain_i, resid_j, chain_j,
         Lower bound delta on distance
     upper : float
         Upper bound delta on distance
+    atom_i : str, optional (default: None)
+        Name of first atom
+    atom_j : str, optional (default: None)
+        Name of first atom
     comment : str, optional (default: None)
         Print comment at the end of restraint line
 
@@ -37,19 +43,29 @@ def haddock_dist_restraint(resid_i, chain_i, resid_j, chain_j,
     """
 
     if comment is not None:
-        comment_str = "! {}".format(comment)
+        comment_str = "{}".format(comment)
     else:
         comment_str = ""
 
+    if atom_i is not None:
+        atom_str_i = " and name {}".format(atom_i)
+    else:
+        atom_str_i = ""
+
+    if atom_j is not None:
+        atom_str_j = " and name {}".format(atom_j)
+    else:
+        atom_str_j = ""
+
     r = (
         "! {}\n"
-        "assign (resid {} and segid {})\n"
+        "assign (resid {} and segid {}{})\n"
         "(\n"
-        " (resid {} and segid {}) \n"
+        " (resid {} and segid {}{})\n"
         ") {} {} {}".format(
             comment_str,
-            resid_i, chain_i,
-            resid_j, chain_j,
+            resid_i, chain_i, atom_str_i,
+            resid_j, chain_j, atom_str_j,
             dist, upper, lower
         )
     )

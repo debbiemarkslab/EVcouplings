@@ -331,7 +331,7 @@ def docking_restraints(ec_pairs, output_file,
         (restraints.yml).
     """
     # get configuration (default or user-supplied)
-    cfg = _folding_config(config_file)["docking_restraints"]
+    cfg = _docking_config(config_file)["docking_restraints"]
 
     with open(output_file, "w") as f:
         # create distance restraints per EC row in table
@@ -342,8 +342,8 @@ def docking_restraints(ec_pairs, output_file,
 
             # extract chain names based on segment names
             # A_1 -> A, B_1 -> B
-            chain_i = segment_i.split("_")[0]
-            chain_j = segment_j.split("_")[0]
+            chain_i = segment_i[0]
+            chain_j = segment_j[0]
 
             # write i to j restraint
             r = restraint_formatter(

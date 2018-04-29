@@ -30,9 +30,6 @@ from evcouplings.utils.system import (
 from evcouplings.couplings.mapping import (
     Segment
 )
-from evcouplings.compare.protocol import (
-    COMPLEX_CHAIN_NAMES
-)
 
 
 def standard(**kwargs):
@@ -198,6 +195,9 @@ def complex(**kwargs):
     first_segment_name = kwargs["segments"][0][0]
     second_segment_name = kwargs["segments"][1][0]
 
+    first_chain_name = first_segment_name[0]
+    second_chain_name = second_segment_name[0]
+
     # load couplings object
     c = MultiSegmentCouplingsModel(kwargs["model_file"], *segment_objects)
 
@@ -246,8 +246,8 @@ def complex(**kwargs):
         evcouplings.visualize.mutations.mutation_pymol_script(
             singles, pml_filename, effect_column="prediction_" + model,
             segment_to_chain_mapping={
-                first_segment_name: COMPLEX_CHAIN_NAMES[0],
-                second_segment_name: COMPLEX_CHAIN_NAMES[1]
+                first_segment_name: first_chain_name,
+                second_segment_name: second_chain_name
             }
         )
         outcfg["mutations_epistatic_pml_files"].append(pml_filename)
