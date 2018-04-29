@@ -42,6 +42,35 @@ def _folding_config(config_file=None):
 
     return read_config_file(config_file)
 
+def _docking_config(config_file=None):
+    """
+    Load docking configuration
+
+    Parameters
+    ----------
+    config_file: str, optional (default: None)
+        Path to configuration file. If None,
+        loads default configuration included
+        with package.
+
+    Returns
+    -------
+    dict
+        Loaded configuration
+    """
+    if config_file is None:
+        # get path of config within package
+        config_file = resource_filename(
+            __name__, "cns_templates/haddock_restraints.yml"
+        )
+
+    # check if config file exists and read
+    verify_resources(
+        "Folding config file does not exist or is empty", config_file
+    )
+
+    return read_config_file(config_file)
+
 
 def secstruct_dist_restraints(residues, output_file,
                               restraint_formatter, config_file=None,
