@@ -15,8 +15,8 @@ from unittest import TestCase
 from evcouplings.fold import haddock_dist_restraint
 from evcouplings.fold.protocol import complex_dock
 
-#TRAVIS_PATH = "/home/travis/evcouplings_test_cases"
-TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B"
+TRAVIS_PATH = "/home/travis/evcouplings_test_cases"
+#TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B"
 COMPLEX_PATH = "{}/complex_test".format(TRAVIS_PATH)
 
 class TestComplexDock(TestCase):
