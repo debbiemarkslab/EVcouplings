@@ -611,6 +611,11 @@ def complex_dock(**kwargs):
     # make sure output directory exists
     create_prefix_folders(prefix)
 
+    verify_resources(
+        "EC file does not exist and/or is empty",
+        kwargs["ec_file"]
+    )
+
     ecs_all = pd.read_csv(kwargs["ec_file"])
     ecs_dock = ecs_all.query("segment_i != segment_j")
 

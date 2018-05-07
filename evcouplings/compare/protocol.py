@@ -664,10 +664,9 @@ def complex(**kwargs):
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter",
             "first_compare_multimer", "second_compare_multimer",
-            "distance_cutoff",
+            "distance_cutoff", "segments",
             "first_sequence_id", "second_sequence_id",
             "first_sequence_file", "second_sequence_file",
-            "first_segments", "second_segments",
             "first_target_sequence_file", "second_target_sequence_file",
             "scale_sizes"
         ]
