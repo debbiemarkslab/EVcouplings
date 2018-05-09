@@ -11,7 +11,7 @@ Authors:
 """
 
 import os
-from evcouplings.utils.management.dumper import ResultsDumperInterface
+from evcouplings.utils.management.dumper.ResultsDumperInterface import ResultsDumperInterface
 from evcouplings.utils import valid_file, InvalidParameterError
 import re
 from copy import deepcopy

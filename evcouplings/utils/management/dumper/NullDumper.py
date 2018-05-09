@@ -8,7 +8,7 @@ Authors:
   Christian Dallago
 """
 
-from evcouplings.utils.management.dumper import ResultsDumperInterface
+from evcouplings.utils.management.dumper.ResultsDumperInterface import ResultsDumperInterface
 
 
 class NullDumper(ResultsDumperInterface):

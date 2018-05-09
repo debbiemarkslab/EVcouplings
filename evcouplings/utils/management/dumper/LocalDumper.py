@@ -8,7 +8,7 @@ Authors:
 import os
 from copy import deepcopy
 
-from evcouplings.utils.management.dumper import ResultsDumperInterface
+from evcouplings.utils.management.dumper.ResultsDumperInterface import ResultsDumperInterface
 from evcouplings.utils import valid_file, InvalidParameterError
 from shutil import copyfile, rmtree
 
