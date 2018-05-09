@@ -22,6 +22,7 @@ from evcouplings.utils.config import (
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources,
 )
+from evcouplings.couplings import Segment
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
     intra_dists, multimer_dists, remap_chains,
@@ -763,11 +764,11 @@ def complex(**kwargs):
             "Compare stage for protein complexes requires exactly two segments"
         )
 
-    first_segment_name = kwargs["segments"][0][0]
-    second_segment_name = kwargs["segments"][1][0]
+    first_segment_name = Segment.from_list(kwargs["segments"][0]).segment_id
+    second_segment_name = Segment.from_list(kwargs["segments"][1]).segment_id
 
-    first_chain_name = first_segment_name[0]
-    second_chain_name = second_segment_name[0]
+    first_chain_name = Segment.from_list(kwargs["segments"][0]).default_chain_name()
+    second_chain_name = Segment.from_list(kwargs["segments"][1]).default_chain_name()
 
     # Step 2: Compute distance maps
     def _compute_monomer_distance_maps(sifts_map, name_prefix, chain_name):

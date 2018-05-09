@@ -192,11 +192,11 @@ def complex(**kwargs):
     for segment_list in kwargs["segments"]:
         segment_objects.append(Segment.from_list(segment_list))
 
-    first_segment_name = kwargs["segments"][0][0]
-    second_segment_name = kwargs["segments"][1][0]
+    first_segment_name = Segment.from_list(kwargs["segments"][0]).segment_id
+    second_segment_name = Segment.from_list(kwargs["segments"][1]).segment_id
 
-    first_chain_name = first_segment_name[0]
-    second_chain_name = second_segment_name[0]
+    first_chain_name = Segment.from_list(kwargs["segments"][0]).default_chain_name()
+    second_chain_name = Segment.from_list(kwargs["segments"][1]).default_chain_name()
 
     # load couplings object
     c = MultiSegmentCouplingsModel(kwargs["model_file"], *segment_objects)
