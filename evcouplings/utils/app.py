@@ -16,11 +16,14 @@ from copy import deepcopy
 from os import path
 import collections
 import click
-import evcouplings.utils.management.compute_job
 from evcouplings import utils
 from evcouplings.utils import pipeline
 from evcouplings.utils.system import (
     create_prefix_folders, ResourceError, valid_file
+)
+
+from evcouplings.utils.management import (
+    EStatus, get_compute_job_tracker
 )
 from evcouplings.utils.config import (
     check_required, InvalidParameterError,
@@ -347,8 +350,8 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         job_cfg_file = CONFIG_NAME.format(job)
 
         # set job status in database to pending
-        job_tracker = pipeline.get_compute_job_tracker(job_cfg)
-        job_tracker.update_job_status(status=evcouplings.utils.management.compute_job.EStatus.PEND)
+        job_tracker = get_compute_job_tracker(job_cfg)
+        job_tracker.update_job_status(status=EStatus.PEND)
 
         # create submission command
         env = job_cfg["environment"]
