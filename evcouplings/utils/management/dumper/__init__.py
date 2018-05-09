@@ -1,4 +1,6 @@
-from evcouplings.utils.management.dumper import LocalDumper, NullDumper, MongoDumper
+from evcouplings.utils.management.dumper.LocalDumper import LocalDumper
+from evcouplings.utils.management.dumper.NullDumper import NullDumper
+from evcouplings.utils.management.dumper.MongoDumper import MongoDumper
 
 
 # Dumper types. Fallback is "null"
