@@ -5,7 +5,7 @@ Authors:
   Christian Dallago
 """
 
-from evcouplings.utils.management.compute_job import ComputeJobInterface
+from evcouplings.utils.management.compute_job.ComputeJobInterface import ComputeJobInterface
 import datetime
 
 
