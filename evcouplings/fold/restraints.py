@@ -4,6 +4,7 @@ evolutionary couplings and secondary structure predictions
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (docking restraints)
 """
 
 from pkg_resources import resource_filename
@@ -32,6 +33,35 @@ def _folding_config(config_file=None):
         # get path of config within package
         config_file = resource_filename(
             __name__, "cns_templates/restraints.yml"
+        )
+
+    # check if config file exists and read
+    verify_resources(
+        "Folding config file does not exist or is empty", config_file
+    )
+
+    return read_config_file(config_file)
+
+def _docking_config(config_file=None):
+    """
+    Load docking configuration
+
+    Parameters
+    ----------
+    config_file: str, optional (default: None)
+        Path to configuration file. If None,
+        loads default configuration included
+        with package.
+
+    Returns
+    -------
+    dict
+        Loaded configuration
+    """
+    if config_file is None:
+        # get path of config within package
+        config_file = resource_filename(
+            __name__, "cns_templates/haddock_restraints.yml"
         )
 
     # check if config file exists and read
@@ -277,3 +307,49 @@ def ec_dist_restraints(ec_pairs, output_file,
                     comment=AA1_to_AA3[aa_i] + " " + AA1_to_AA3[aa_j]
                 )
                 f.write(r + "\n")
+
+
+def docking_restraints(ec_pairs, output_file,
+                       restraint_formatter, config_file=None):
+    """
+    Create .tbl file with distance restraints
+    for docking
+
+    Parameters
+    ----------
+    ec_pairs : pandas.DataFrame
+        Table with EC pairs that will be turned
+        into distance restraints
+        (with columns i, j, A_i, A_j, segment_i, segment_j)
+    output_file : str
+        Path to file in which restraints will be saved
+    restraint_formatter : function
+        Function called to create string representation of restraint
+    config_file : str, optional (default: None)
+        Path to config file with folding settings. If None,
+        will use default settings included in package
+        (restraints.yml).
+    """
+    # get configuration (default or user-supplied)
+    cfg = _docking_config(config_file)["docking_restraints"]
+
+    with open(output_file, "w") as f:
+        # create distance restraints per EC row in table
+        for idx, ec in ec_pairs.iterrows():
+            i, j, aa_i, aa_j, segment_i, segment_j = (
+                ec["i"], ec["j"], ec["A_i"], ec["A_j"], ec["segment_i"], ec["segment_j"]
+            )
+
+            # extract chain names based on segment names
+            # A_1 -> A, B_1 -> B
+            chain_i = segment_i[0]
+            chain_j = segment_j[0]
+
+            # write i to j restraint
+            r = restraint_formatter(
+                i, chain_i, j, chain_j,
+                dist=cfg["dist"],
+                lower=cfg["lower"],
+                upper=cfg["upper"],
+            )
+            f.write(r + "\n")

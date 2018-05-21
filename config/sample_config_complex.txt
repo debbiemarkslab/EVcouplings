@@ -28,6 +28,7 @@ stages:
     - couplings
     - compare
     - mutate
+    - fold
     
 # Global job settings. These will override settings of the same name in each of the stages.
 # These are typically the settings you want to modify for each of your jobs, together with some settings in the align stage.
@@ -433,6 +434,24 @@ mutate:
     # Inputs set by global stage and output of previous stages
     # prefix:
     # model_file:
+
+# Settings for generating restraints for docking (using Haddock)
+fold:
+    protocol: complex_dock
+
+    # Inputs set by global stage and output of previous stages
+    prefix:
+
+    # generate restraint files with inter-protein ECs above the following score cutoffs
+    dock_probability_cutoffs:
+      - 0.9
+      - 0.99
+
+    # generate restraint files fixed numbers of ECS. Integers will be interpreted as absolute numbers,
+    # floats as fractions of L (model length)
+    dock_lowest_count: 5
+    dock_highest_count: 10
+    dock_increase: 5
 
 
 # These settings allow job status tracking using a database, and result collection in an archive

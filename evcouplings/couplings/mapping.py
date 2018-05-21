@@ -98,6 +98,20 @@ class Segment:
             self.positions
         ]
 
+    def default_chain_name(self):
+        """
+        Retrieve default PDB chain identifier the segment will
+        be mapped to in 3D structures (by convention, segments in
+        the pipeline are named A_1, A_2, ..., B_1, B_2, ...; the default
+        chain identifier is anything before the underscore).
+
+        Returns
+        -------
+        chain : str
+            Default PDB chain identifier the segment maps to
+        """
+        return self.segment_id.split("_")[0]
+
 
 class SegmentIndexMapper:
     """
