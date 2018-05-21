@@ -227,7 +227,7 @@ class TestMutationComplex(TestCase):
             self.c0, self.singles, output_column="prediction_independent"
         )
 
-        pd.testing.assert_frame_equal(self.singles, _singles)
+        pd.testing.assert_frame_equal(self.singles, _singles, check_less_precise=True)
 
     def test_predict_mutation_table_empty_segment(self):
         """
