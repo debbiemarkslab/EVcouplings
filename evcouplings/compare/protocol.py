@@ -1047,7 +1047,10 @@ def complex(**kwargs):
         outcfg["calibration_file"] = prefix + "_CouplingScores_inter_calibration.csv"
         inter_ecs.iloc[0:1000,:].to_csv(outcfg["calibration_file"])
 
-    _calibration_file(prefix, outcfg["ec_compared_longrange_file"])
+    if valid_file(outcfg["ec_compared_longrange_file"]):
+    	_calibration_file(prefix, outcfg["ec_compared_longrange_file"])
+    else:
+    	_calibration_file(prefix, kwargs["ec_file"])
 
     # create the inter-ecs line drawing script
     if outcfg["ec_compared_inter_file"] is not None and kwargs["plot_highest_count"] is not None:
