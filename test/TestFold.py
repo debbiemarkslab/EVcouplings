@@ -78,27 +78,27 @@ class TestComplexDock(TestCase):
 
         self.assertEqual(r, desired_output)
 
-    def test_haddock_restraint_with_atom(self):
-        """
-        test whether evcouplings.fold.haddock.haddock_dist_restraint returns
-        the correct string
-        :return:
-        """
-        r = haddock_dist_restraint(
-            "10", "A", "11", "B",
-            "1.0", "0.0", "2.0", atom_i = "CA",
-            atom_j="CA", comment="COMMENT"
-        )
-
-        desired_output = (
-            "! COMMENT\n"
-            "assign (resid 10 and segid A and name CA)\n"
-            "(\n"
-            " (resid 11 and segid B and name CA)\n"
-            ") 1.0 2.0 0.0"
-        )
-
-        self.assertEqual(r, desired_output)
+    # def test_haddock_restraint_with_atom(self):
+    #     """
+    #     test whether evcouplings.fold.haddock.haddock_dist_restraint returns
+    #     the correct string
+    #     :return:
+    #     """
+    #     r = haddock_dist_restraint(
+    #         "10", "A", "11", "B",
+    #         "1.0", "0.0", "2.0", atom_i = "CA",
+    #         atom_j="CA", comment="COMMENT"
+    #     )
+    #
+    #     desired_output = (
+    #         "! COMMENT\n"
+    #         "assign (resid 10 and segid A and name CA)\n"
+    #         "(\n"
+    #         " (resid 11 and segid B and name CA)\n"
+    #         ") 1.0 2.0 0.0"
+    #     )
+    #
+    #     self.assertEqual(r, desired_output)
 
 
     def test_protocol(self):

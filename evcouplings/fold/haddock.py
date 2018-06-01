@@ -48,12 +48,15 @@ def haddock_dist_restraint(resid_i, chain_i, resid_j, chain_j,
         comment_str = ""
 
     if atom_i is not None:
-        atom_str_i = " and name {}".format(atom_i)
+        # TODO: adding the atom strings causes an error in docking. Needs debugging.
+        # atom_str_i = " and name {}".format(atom_i)
+        atom_str_i = ""
     else:
         atom_str_i = ""
 
     if atom_j is not None:
-        atom_str_j = " and name {}".format(atom_j)
+        # atom_str_j = " and name {}".format(atom_j)
+        atom_str_j = ""
     else:
         atom_str_j = ""
 
