@@ -171,8 +171,8 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
     embl_cds1 = np.nan
     embl_cds2 = np.nan
 
-    if genome_location_filename_1 is not None and \
-    genome_location_filename_2 is not None:
+    if (genome_location_filename_1 is not None and
+        genome_location_filename_2 is not None):
 
         genome_location_table_1 = pd.read_csv(genome_location_filename_1)
         genome_location_table_2 = pd.read_csv(genome_location_filename_2)
