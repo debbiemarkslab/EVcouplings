@@ -10,6 +10,7 @@ import numpy as np
 from evcouplings.align.alignment import (
     Alignment, parse_header
 )
+from evcouplings.utils import InvalidParameterError
 
 SPECIES_ANNOTATION_COLUMNS = ["OS", "Tax"]
 
@@ -55,9 +56,11 @@ def read_species_annotation_table(annotation_file):
 
     # if we did not find an annotation column, return an error
     if annotation_column is None:
-        raise ValueError("provided annotation file {} has no annotation information".format(
-            annotation_file
-        ))
+        raise InvalidParameterError(
+            "provided annotation file {} has no annotation information".format(
+                annotation_file
+            )
+        )
 
     # creates a new column called species with the species annotations
     data.loc[:, "species"] = data.loc[:, annotation_column]
