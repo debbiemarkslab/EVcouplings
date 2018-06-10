@@ -10,6 +10,7 @@ import numpy as np
 from evcouplings.align.alignment import (
     Alignment, parse_header
 )
+from evcouplings.utils import InvalidParameterError
 
 SPECIES_ANNOTATION_COLUMNS = ["OS", "Tax"]
 
@@ -38,16 +39,28 @@ def read_species_annotation_table(annotation_file):
 
     # initialize the column to extract the species information from
     annotation_column = None
+    current_num_annotations = 0
 
     # Determine whether to extract based on the "OS" field
     # or the "Tax" field. Generally, OS is for Uniprot
-    annotation_column = SPECIES_ANNOTATION_COLUMNS[0]
-
     for column in SPECIES_ANNOTATION_COLUMNS:
         # if this column contains more non-null values
-        if sum(data[column].notnull()) > sum(data[annotation_column].notnull()):
+        if column not in data:
+            continue
+
+        num_annotations = sum(data[column].notnull())
+        if num_annotations > current_num_annotations:
             # use that column to extract data
             annotation_column = column
+            current_num_annotations = num_annotations
+
+    # if we did not find an annotation column, return an error
+    if annotation_column is None:
+        raise InvalidParameterError(
+            "provided annotation file {} has no annotation information".format(
+                annotation_file
+            )
+        )
 
     # creates a new column called species with the species annotations
     data.loc[:, "species"] = data.loc[:, annotation_column]

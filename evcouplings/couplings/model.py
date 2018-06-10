@@ -6,7 +6,6 @@ sequences and perform calculations using the model
 Authors:
   Thomas A. Hopf
 """
-
 from collections import Iterable
 from copy import deepcopy
 
@@ -248,8 +247,6 @@ class CouplingsModel:
         ----------
         filename : str
             Binary Jij file containing model parameters from plmc software
-        alphabet : str
-            Symbols corresponding to model states (e.g. "-ACGT").
         precision : {"float32", "float64"}, default: "float32"
             Sets if input file has single (float32) or double precision (float64)
         }
@@ -261,6 +258,9 @@ class CouplingsModel:
             parameters used by this class. Users are responsible for supplying
             the missing values (e.g. regularization strength, alphabet or M_eff)
             manually via the respective member variables/properties.
+
+        TODO: constructor for CouplingsModel (and all the other subclasses)
+        should be able to take a filehandle so one can read them from arbitrary streams
         """
         if file_format == "plmc_v2":
             self.__read_plmc_v2(filename, precision)
@@ -1241,3 +1241,4 @@ class CouplingsModel:
                 for i in range(self.L - 1):
                     for j in range(i + 1, self.L):
                         self.J_ij[i, j].astype(precision).tofile(f)
+

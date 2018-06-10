@@ -3,6 +3,7 @@ Protocols for predicting protein 3D structure from ECs
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (complex_dock)
 """
 
 from os import path
@@ -26,7 +27,8 @@ from evcouplings.fold.tools import (
 from evcouplings.fold.cns import cns_dgsa_fold
 from evcouplings.fold.filter import secstruct_clashes
 from evcouplings.fold.ranking import dihedral_ranking
-
+from evcouplings.fold.haddock import haddock_dist_restraint
+from evcouplings.fold.restraints import docking_restraints
 from evcouplings.utils.config import (
     check_required, InvalidParameterError
 )
@@ -576,10 +578,108 @@ def standard(**kwargs):
     return outcfg
 
 
+def complex_dock(**kwargs):
+    """
+    Protocol:
+    Predict 3D structure from evolutionary couplings
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        * docking_restraints_files
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "ec_file",
+            "segments", "dock_probability_cutoffs",
+            "dock_lowest_count", "dock_highest_count", "dock_increase",
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+    outcfg = {}
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    verify_resources(
+        "EC file does not exist and/or is empty",
+        kwargs["ec_file"]
+    )
+
+    ecs_all = pd.read_csv(kwargs["ec_file"])
+    ecs_dock = ecs_all.query("segment_i != segment_j")
+
+    # define the sub-runs ...
+    folding_runs = []
+
+    # ... based on mixture model probability
+    cutoffs = kwargs["dock_probability_cutoffs"]
+
+    if cutoffs is not None and "probability" in ecs_dock.columns:
+        if not isinstance(cutoffs, list):
+            cutoffs = [cutoffs]
+
+        for c in cutoffs:
+            sig_ecs = ecs_dock.query("probability >= @c")
+            if len(sig_ecs) > 0:
+                folding_runs.append(
+                    (sig_ecs,
+                     "_significant_ECs_{}_restraints.tbl".format(c))
+                )
+
+    # ... and on simple EC counts/bins
+    flc = kwargs["dock_lowest_count"]
+    fhc = kwargs["dock_highest_count"]
+    fi = kwargs["dock_increase"]
+    if flc is not None and fhc is not None and fi is not None:
+        num_sites = len(set(ecs_dock.i.unique())) + len(set(ecs_dock.j.unique()))
+
+        # transform fraction of number of sites into discrete number of ECs
+        def _discrete_count(x):
+            if isinstance(x, float):
+                x = ceil(x * num_sites)
+            return int(x)
+
+        # range of plots to make
+        lowest = _discrete_count(flc)
+        highest = _discrete_count(fhc)
+        step = _discrete_count(fi)
+
+        # append to list of jobs to run
+        folding_runs += [
+            (
+                ecs_dock.iloc[:c],
+                "_{}_restraints.tbl".format(c)
+            )
+            for c in range(lowest, highest + 1, step)
+        ]
+
+    outcfg["docking_restraint_files"] = []
+    for job_ecs, job_suffix in folding_runs:
+        job_filename = prefix + job_suffix
+        docking_restraints(job_ecs, job_filename, haddock_dist_restraint)
+        outcfg["docking_restraint_files"].append(job_filename)
+
+    return outcfg
+
+
 # list of available folding protocols
 PROTOCOLS = {
     # standard EVfold protocol
     "standard": standard,
+
+    # create docking restraint for complexes
+    "complex_dock": complex_dock
 }
 
 

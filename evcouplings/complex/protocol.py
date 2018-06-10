@@ -167,20 +167,21 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
     )
     
     # If the user provided genome location files, calculate the number
-    # of ids for which we found an embl CDS
-    if genome_location_filename_1 is not None and \
-    genome_location_filename_2 is not None:
+    # of ids for which we found an embl CDS. Default value is np.nan
+    embl_cds1 = np.nan
+    embl_cds2 = np.nan
+
+    if (genome_location_filename_1 is not None and
+        genome_location_filename_2 is not None):
 
         genome_location_table_1 = pd.read_csv(genome_location_filename_1)
         genome_location_table_2 = pd.read_csv(genome_location_filename_2)
 
         # Number uniprot IDs with EMBL CDS that is not NA
-        embl_cds1 = len(list(set(genome_location_table_1.uniprot_ac)))
-        embl_cds2 = len(list(set(genome_location_table_2.uniprot_ac)))
-
-    else:
-        embl_cds1 = np.nan
-        embl_cds2 = np.nan
+        if "uniprot_ac" in genome_location_table_1.columns:
+            embl_cds1 = len(list(set(genome_location_table_1.uniprot_ac)))
+        if "uniprot_ac" in genome_location_table_2.columns:
+            embl_cds2 = len(list(set(genome_location_table_2.uniprot_ac)))
 
     concatenation_data = [
         num_seqs_1,

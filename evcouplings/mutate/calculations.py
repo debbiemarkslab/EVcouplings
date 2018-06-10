@@ -7,6 +7,7 @@ High-level mutation calculation functions for EVmutation
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (generalization for multiple segments)
 """
 
 import numpy as np
@@ -21,7 +22,7 @@ COMPONENT_TO_INDEX = {
 }
 
 
-def extract_mutations(mutation_string, offset=0):
+def extract_mutations(mutation_string, offset=0, sep=","):
     """
     Turns a string containing mutations of the format I100V into a list of tuples with
     format (100, 'I', 'V') (index, from, to)
@@ -32,6 +33,8 @@ def extract_mutations(mutation_string, offset=0):
         Comma-separated list of one or more mutations (e.g. "K50R,I100V")
     offset : int, default: 0
         Offset to be added to the index/position of each mutation
+    sep : str, default ","
+        String used to separate multiple mutations
 
     Returns
     -------
@@ -39,7 +42,7 @@ def extract_mutations(mutation_string, offset=0):
         List of tuples of the form (index+offset, from, to)
     """
     if mutation_string.lower() not in ["wild", "wt", ""]:
-        mutations = mutation_string.split(",")
+        mutations = mutation_string.split(sep)
         return list(map(
             lambda x: (int(x[1:-1]) + offset, x[0], x[-1]),
             mutations
@@ -49,7 +52,8 @@ def extract_mutations(mutation_string, offset=0):
 
 
 def predict_mutation_table(model, table, output_column="prediction_epistatic",
-                           mutant_column="mutant", hamiltonian="full"):
+                           mutant_column="mutant", hamiltonian="full",
+                           segment=None):
     """
     Predicts all mutants in a dataframe and adds predictions
     as a new column.
@@ -79,6 +83,10 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
         Use full Hamiltonian of exponential model (default),
         or only couplings / fields for statistical energy
         calculation.
+    segment: str, default: None
+        Specificy a segment identifier to use for the positions in the mutation
+        table. This will only be used if the mutation table doesn't already have
+        a segments column.
 
     Returns
     -------
@@ -86,11 +94,11 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
         Dataframe with added column (mutant_column) that contains computed
         mutation effects
     """
-    def _predict_mutant(mutation_str):
+    def _predict_mutant(m):
         try:
-            m = extract_mutations(mutation_str)
             delta_E = model.delta_hamiltonian(m)
             return delta_E[_component]
+
         except ValueError:
             return np.nan
 
@@ -120,8 +128,54 @@ def predict_mutation_table(model, table, output_column="prediction_epistatic",
     else:
         mutations = pred.loc[:, mutant_column]
 
+    # if there is a segment column, use that to apply
+    # segment information to every mutation
+    if "segment" in pred.columns and pred.loc[:, "segment"].notnull().all():
+        segments = pred.loc[:, "segment"]
+
+        # split each comma-delimited string of mutations into a list
+        mutations_separated = map(extract_mutations, mutations)
+
+        # split each comma-delimited string of segments into a list
+        segments_separated = [x.split(",") for x in segments]
+        mutation_list = []
+
+        # create a list of mutation in the format
+        # [[((segment, pos), aa_from, aa_to), ((segment, pos) aa_from, aa_to)], [((segment, pos) aa_from, aa_to)]]
+        if len([segments_separated]) != len([mutations_separated]):
+            raise(
+                ValueError,
+                "Number of mutations provided does not match number of segments of origin provided."
+            )
+
+        for segment_subset, mutation_subset in zip(segments_separated, mutations_separated):
+            _mutation_list = [
+                ((seg, pos), aa_from, aa_to) for
+                (seg, (pos, aa_from, aa_to)) in zip(
+                    segment_subset, mutation_subset
+                )
+            ]
+            mutation_list.append(_mutation_list)
+
+    # else if the segment argument was provided
+    # designate that as the segment for every mutation
+    elif segment is not None:
+        mutations_separated = map(extract_mutations, mutations)
+        mutation_list = []
+        for mutation_subset in mutations_separated:
+            _mutation_list = [
+                ((segment, pos), aa_from, aa_to) for
+                (pos, aa_from, aa_to) in mutation_subset
+            ]
+            mutation_list.append(_mutation_list)
+
+    else:
+        mutation_list = map(extract_mutations, mutations)
+
     # predict mutations and add to table
-    pred.loc[:, output_column] = mutations.map(_predict_mutant)
+    pred.loc[:, output_column] = [
+        _predict_mutant(m) for m in mutation_list
+    ]
 
     return pred
 
@@ -160,13 +214,25 @@ def single_mutant_matrix(model, output_column="prediction_epistatic",
             if exclude_self_subs and subs == model.seq(pos):
                 continue
 
-            mutant = "{}{}{}".format(model.seq(pos), pos, subs)
+            # if position is a tuple, it is in format
+            # (segment_id, position). Else, there is
+            # no segment information
+            if isinstance(pos, tuple):
+                position_str = pos[1]
+                segment = pos[0]
+
+            else:
+                position_str = pos
+                segment = np.nan
+
             wt = model.seq(pos)
+            mutant = "{}{}{}".format(wt, position_str, subs)
 
             res.append(
                 {
+                    "segment": segment,
                     "mutant": mutant,
-                    "pos": pos,
+                    "pos": position_str,
                     "wt": wt,
                     "subs": subs,
                     "frequency": model.fi(pos, subs),
@@ -177,7 +243,7 @@ def single_mutant_matrix(model, output_column="prediction_epistatic",
 
     pred = pd.DataFrame(res)
     return pred.loc[
-        :, ["mutant", "pos", "wt", "subs", "frequency",
+        :, ["segment", "mutant", "pos", "wt", "subs", "frequency",
             "column_conservation", output_column]
     ]
 
