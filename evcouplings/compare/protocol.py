@@ -22,6 +22,7 @@ from evcouplings.utils.config import (
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources,
 )
+from evcouplings.couplings import Segment
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
     intra_dists, multimer_dists, remap_chains,
@@ -664,10 +665,9 @@ def complex(**kwargs):
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter",
             "first_compare_multimer", "second_compare_multimer",
-            "distance_cutoff",
+            "distance_cutoff", "segments",
             "first_sequence_id", "second_sequence_id",
             "first_sequence_file", "second_sequence_file",
-            "first_segments", "second_segments",
             "first_target_sequence_file", "second_target_sequence_file",
             "scale_sizes"
         ]
@@ -764,8 +764,11 @@ def complex(**kwargs):
             "Compare stage for protein complexes requires exactly two segments"
         )
 
-    first_segment_name = kwargs["segments"][0][0]
-    second_segment_name = kwargs["segments"][1][0]
+    first_segment_name = Segment.from_list(kwargs["segments"][0]).segment_id
+    second_segment_name = Segment.from_list(kwargs["segments"][1]).segment_id
+
+    first_chain_name = Segment.from_list(kwargs["segments"][0]).default_chain_name()
+    second_chain_name = Segment.from_list(kwargs["segments"][1]).default_chain_name()
 
     # Step 2: Compute distance maps
     def _compute_monomer_distance_maps(sifts_map, name_prefix, chain_name):
@@ -858,8 +861,12 @@ def complex(**kwargs):
         raise_missing=False
     )
 
-    d_intra_i, d_multimer_i, seqmap_i = _compute_monomer_distance_maps(first_sifts_map, "first", "A")
-    d_intra_j, d_multimer_j, seqmap_j = _compute_monomer_distance_maps(second_sifts_map, "second", "B")
+    d_intra_i, d_multimer_i, seqmap_i = _compute_monomer_distance_maps(
+        first_sifts_map, "first", first_chain_name
+    )
+    d_intra_j, d_multimer_j, seqmap_j = _compute_monomer_distance_maps(
+        second_sifts_map, "second", second_chain_name
+    )
 
     # compute inter distance map if sifts map for each monomer exists
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
@@ -968,7 +975,10 @@ def complex(**kwargs):
             inter_ecs.iloc[:kwargs["plot_highest_count"], :],
             outcfg["ec_lines_compared_pml_file"],
             distance_cutoff=kwargs["distance_cutoff"],
-            chain={first_segment_name: "A", second_segment_name: "B"}
+            chain={
+                first_segment_name: first_chain_name,
+                second_segment_name: second_chain_name
+            }
         )
 
     # Remap the complex crystal structures, if available
