@@ -41,6 +41,40 @@ from evcouplings.align.ena import (
 )
 
 
+def _verify_sequence_id(sequence_id):
+    """
+    Verify if a target sequence identifier is in proper
+    format for the pipeline to run without errors
+    (not none, and contains no whitespace)
+        
+    Parameters
+    ----------
+    id : str
+        Target sequence identifier to verify
+
+    Raises
+    ------
+    InvalidParameterError
+        If sequence identifier is not valid
+    """
+    if sequence_id is None:
+        raise InvalidParameterError(
+            "Target sequence identifier (sequence_id) must be defined and "
+            "cannot be None/null."
+        )
+
+    try:
+        if len(sequence_id.split()) != 1 or len(sequence_id) != len(sequence_id.strip()):
+            raise InvalidParameterError(
+                "Target sequence identifier (sequence_id) may not contain any "
+                "whitespace (spaces, tabs, ...)"
+            )
+    except AttributeError:
+        raise InvalidParameterError(
+            "Target sequence identifier (sequence_id) must be a string"
+        )
+
+
 def _make_hmmsearch_raw_fasta(alignment_result, prefix):
     """
     HMMsearch results do not contain the query sequence
@@ -665,10 +699,8 @@ def existing(**kwargs):
     # Target sequence of alignment
     sequence_id = kwargs["sequence_id"]
 
-    if sequence_id is None:
-        raise InvalidParameterError(
-            "Parameter sequence_id must be defined"
-        )
+    # check if sequence identifier is valid
+    _verify_sequence_id(sequence_id)
 
     # First, find focus sequence in alignment
     focus_index = None
@@ -999,6 +1031,9 @@ def jackhmmer_search(**kwargs):
     )
     prefix = kwargs["prefix"]
 
+    # check if sequence identifier is valid
+    _verify_sequence_id(kwargs["sequence_id"])
+
     # make sure output directory exists
     create_prefix_folders(prefix)
 
@@ -1260,6 +1295,9 @@ def hmmbuild_and_search(**kwargs):
     )
     prefix = kwargs["prefix"]
 
+    # check if sequence identifier is valid
+    _verify_sequence_id(kwargs["sequence_id"])
+
     # make sure output directory exists
     create_prefix_folders(prefix)
 
@@ -1343,7 +1381,6 @@ def hmmbuild_and_search(**kwargs):
         "raw_alignment_file": ali["alignment"],
         "hittable_file": ali["domtblout"],
     }
-
 
     # convert the raw output alignment to fasta format 
     # and add the appropriate query sequecne
