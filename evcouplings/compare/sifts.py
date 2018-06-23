@@ -412,6 +412,16 @@ class SIFTS:
                 # fetch sequence chunk
                 seqs = fetch_uniprot_mapping(ch)
 
+                # rename identifiers in sequence file, so
+                # we can circumvent Uniprot sequence identifiers
+                # being prefixed by hmmer if a hit has exactly the
+                # same identifier as the query sequence
+                seqs = seqs.replace(
+                    ">sp|", ">evsp|",
+                ).replace(
+                    ">tr|", ">evtr|",
+                )
+
                 # then store to FASTA file
                 f.write(seqs)
 
