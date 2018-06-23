@@ -20,23 +20,20 @@ from copy import deepcopy
 
 import pandas as pd
 import requests
-import numpy as np
 
 from evcouplings.align.alignment import (
     Alignment, read_fasta, parse_header
 )
-
 from evcouplings.align.protocol import (
-	jackhmmer_search, hmmbuild_and_search, _make_hmmsearch_raw_fasta
+    jackhmmer_search, hmmbuild_and_search
 )
-
 from evcouplings.align.tools import read_hmmer_domtbl
-from evcouplings.compare.mapping import alignment_index_mapping, map_indices
+from evcouplings.compare.mapping import map_indices
 from evcouplings.utils.system import (
     get_urllib, ResourceError, valid_file, tempdir
 )
 from evcouplings.utils.config import (
-    parse_config, check_required
+    parse_config, check_required, InvalidParameterError
 )
 from evcouplings.utils.helpers import range_overlap
 
@@ -47,7 +44,7 @@ SIFTS_REST_API = "http://www.ebi.ac.uk/pdbe/api/mappings/uniprot_segments/{}"
 # TODO: make this default parametrization more explicit (e.g. a config file in repository)
 # these parameters are fed as a default into SIFTS.by_alignment so that the method can be
 # easily used without a configuration file/any further setup
-JACKHMMER_CONFIG = """
+HMMER_CONFIG = """
 prefix:
 sequence_id:
 sequence_file:
@@ -115,12 +112,15 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
     return r.text
 
 
-def find_homologs(**kwargs):
+def find_homologs(pdb_alignment_method="jackhmmer", **kwargs):
     """
     Identify homologs using jackhmmer or hmmbuild/hmmsearch
 
     Parameters
     ----------
+    pdb_alignment_method : {"jackhmmer", "hmmsearch"}, 
+             optional (default: "jackhmmer")
+        Sequence alignment method used for searching the PDB
     **kwargs
         Passed into jackhmmer / hmmbuild_and_search protocol
         (see documentation for available options)
@@ -135,7 +135,7 @@ def find_homologs(**kwargs):
     """
 
     # load default configuration
-    config = parse_config(JACKHMMER_CONFIG)
+    config = parse_config(HMMER_CONFIG)
 
     # update with overrides from kwargs
     config = {
@@ -152,7 +152,7 @@ def find_homologs(**kwargs):
     )
 
     # run hmmsearch (possibly preceded by hmmbuild)
-    if kwargs["pdb_alignment_method"] == "hmmsearch":
+    if pdb_alignment_method == "hmmsearch":
         # set up config to run hmmbuild_and_search on the unfiltered alignment file
         updated_config = deepcopy(config)
         updated_config["alignment_file"] = config["raw_focus_alignment_file"]
@@ -166,7 +166,7 @@ def find_homologs(**kwargs):
     # run jackhmmer against sequence database
     # at this point we have already checked to ensure
     # that the input is either jackhmmer or hmmsearch
-    else:
+    elif pdb_alignment_method == "jackhmmer":
         ar = jackhmmer_search(**config)
 
         with open(ar["raw_alignment_file"]) as a:
@@ -176,6 +176,11 @@ def find_homologs(**kwargs):
         # if necessary
         with open(config["prefix"] + "_raw.fasta", "w") as f:
             ali.write(f)
+    else:
+        raise InvalidParameterError(
+            "Invalid pdb_alignment_method selected. Valid options are: " +
+            ", ".join(["jackhmmer", "hmmsearch"])
+        )
 
     # read hmmer hittable and simplify
     hits = read_hmmer_domtbl(ar["hittable_file"])
@@ -618,8 +623,6 @@ class SIFTS:
         Find structures by sequence alignment between
         query sequence and sequences in PDB.
 
-        # TODO: offer option to start from HMM profile for this
-
         Parameters
         ----------
         min_overlap : int, optional (default: 20)
@@ -631,11 +634,22 @@ class SIFTS:
             protein in PDB structures). Should be set to
             False to identify homomultimeric contacts.
         **kwargs
-            Passed into jackhmmer_search protocol
-            (see documentation for available options).
-            Additionally, if "prefix" is given, individual
-            mappings will be saved to files suffixed by
-            the respective key in mapping table.
+            Defines the behaviour of find_homologs() function
+            used to find homologs by sequence alignment:
+            - which alignment method is used (pdb_alignment_method),
+              defaults to "jackhmmer" in find_homologs()
+            - parameters passed into the protocol for the selected
+              alignment method (e.g. evcouplings.align.jackhmmer_search).
+              Default parameters are set in the HMMER_CONFIG string in this
+              module, other parameters will need to be overriden; these
+              minimally are:
+              - sequence_id (or sequence_file if using an input file) 
+              - path to alignment method binaries used for respective
+                method, e.g. using the jackhmmer, or hmmsearch and hmmbuild
+                parameters.
+            - additionally, if "prefix" is given,
+              individual mappings will be saved to files suffixed
+              by the respective key in mapping table.
 
         Returns
         -------
