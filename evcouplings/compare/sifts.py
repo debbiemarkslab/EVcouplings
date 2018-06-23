@@ -155,7 +155,7 @@ def find_homologs(pdb_alignment_method="jackhmmer", **kwargs):
     if pdb_alignment_method == "hmmsearch":
         # set up config to run hmmbuild_and_search on the unfiltered alignment file
         updated_config = deepcopy(config)
-        updated_config["alignment_file"] = config["raw_focus_alignment_file"]
+        updated_config["alignment_file"] = config.get("raw_focus_alignment_file")
         ar = hmmbuild_and_search(**updated_config)
 
         # For hmmbuild and search, we have to read the raw focus alignment file
@@ -636,17 +636,24 @@ class SIFTS:
         **kwargs
             Defines the behaviour of find_homologs() function
             used to find homologs by sequence alignment:
-            - which alignment method is used (pdb_alignment_method),
-              defaults to "jackhmmer" in find_homologs()
+            - which alignment method is used 
+              (pdb_alignment_method: {"jackhmmer", "hmmsearch"}, 
+              default: "jackhmmer"),
             - parameters passed into the protocol for the selected
-              alignment method (e.g. evcouplings.align.jackhmmer_search).
+              alignment method (evcouplings.align.jackhmmer_search or
+              evcouplings.align.hmmbuild_and_search).
+              
               Default parameters are set in the HMMER_CONFIG string in this
               module, other parameters will need to be overriden; these
               minimally are:
-              - sequence_id (or sequence_file if using an input file) 
-              - path to alignment method binaries used for respective
-                method, e.g. using the jackhmmer, or hmmsearch and hmmbuild
-                parameters.
+              - for pdb_alignment_method == "jackhmmer":
+                - sequence_id : str, identifier of target sequence
+                - jackhmmer : str, path to jackhmmer binary if not on path                
+              - for pdb_alignment_method == "hmmsearch":
+                - sequence_id : str, identifier of target sequence
+                - raw_focus_alignment_file : str, path to input alignment file  
+                - hmmbuild : str, path to hmmbuild binary if not on path
+                - hmmsearch : str, path to search binary if not on path
             - additionally, if "prefix" is given,
               individual mappings will be saved to files suffixed
               by the respective key in mapping table.
