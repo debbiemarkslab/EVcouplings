@@ -79,7 +79,9 @@ def _make_hmmsearch_raw_fasta(alignment_result, prefix):
         if len(match_index) != query_sequence_ali.L:
             raise ValueError(
                 "HMMsearch result {} does not have a one-to-one"
-                " mapping to the query sequence columns".format(ar["raw_alignment_file"])
+                " mapping to the query sequence columns".format(
+                    alignment_result["raw_alignment_file"]
+                )
             )
 
         gapped_query_sequence = ""
