@@ -30,6 +30,8 @@ ALPHABET_DNA = GAP + ALPHABET_DNA_NOGAP
 ALPHABET_RNA_NOGAP = "ACGU"
 ALPHABET_RNA = GAP + ALPHABET_RNA_NOGAP
 
+HMMER_PREFIX_WARNING = "# WARNING: seq names have been made unique by adding a prefix of"
+
 
 def read_fasta(fileobj):
     """
@@ -111,7 +113,7 @@ StockholmAlignment = namedtuple(
 )
 
 
-def read_stockholm(fileobj, read_annotation=False):
+def read_stockholm(fileobj, read_annotation=False, raise_hmmer_prefixes=True):
     """
     Generator function to read Stockholm format alignment
     file (e.g. from hmmer).
@@ -129,6 +131,10 @@ def read_stockholm(fileobj, read_annotation=False):
         Stockholm alignment file
     read_annotation : bool, optional (default=False)
         Read annotation columns from alignment
+    raise_hmmer_prefixes : bool, optional (default: True)
+        HMMER adds number prefixes to sequence identifiers if
+        identifiers are not unique. If True, the parser will
+        raise an exception if the alignment has such prefixes.
 
     Returns
     -------
@@ -163,6 +169,17 @@ def read_stockholm(fileobj, read_annotation=False):
             raise ValueError(
                 "Not a valid Stockholm alignment: "
                 "Header missing. {}".format(line.rstrip())
+            )
+
+        if raise_hmmer_prefixes and line.startswith(HMMER_PREFIX_WARNING):
+            raise ValueError(
+                "HMMER added identifier prefixes to alignment because of non-unique "
+                "sequence identifiers. Either some sequence identifier is present "
+                "twice in the sequence database, or your target sequence identifier is "
+                "the same as an identifier in the database. In the first case, please fix "
+                "your sequence database. In the second case, please choose a different "
+                "sequence identifier for your target sequence that does not overlap with "
+                "the sequence database."
             )
 
         # annotation lines
@@ -584,7 +601,8 @@ class Alignment:
 
     @classmethod
     def from_file(cls, fileobj, format="fasta",
-                  a3m_inserts="first", **kwargs):
+                  a3m_inserts="first", raise_hmmer_prefixes=True,
+                  **kwargs):
         """
         Construct an alignment object by reading in an
         alignment file.
@@ -598,6 +616,12 @@ class Alignment:
         a3m_inserts : {"first", "delete"}, optional (default: "first")
             Strategy to deal with inserts in a3m alignment files
             (see read_a3m documentation for details)
+        raise_hmmer_prefixes : bool, optional (default: True)
+            HMMER adds number prefixes to sequence identifiers in Stockholm
+            files if identifiers are not unique. If True, the parser will
+            raise an exception if a Stockholm alignment has such prefixes.
+        **kwargs
+            Additional arguments to be passed to class constructor
 
         Returns
         -------
@@ -618,7 +642,12 @@ class Alignment:
                 seqs[seq_id] = seq
         elif format == "stockholm":
             # only reads first Stockholm alignment contained in file
-            ali = next(read_stockholm(fileobj, read_annotation=True))
+            ali = next(
+                read_stockholm(
+                    fileobj, read_annotation=True,
+                    raise_hmmer_prefixes=raise_hmmer_prefixes
+                )
+            )
             seqs = ali.seqs
             annotation["GF"] = ali.gf
             annotation["GC"] = ali.gc
