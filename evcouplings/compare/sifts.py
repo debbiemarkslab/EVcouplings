@@ -14,7 +14,6 @@ Authors:
 """
 
 from os import path
-import json
 from collections import OrderedDict
 from copy import deepcopy
 
@@ -30,15 +29,15 @@ from evcouplings.align.protocol import (
 from evcouplings.align.tools import read_hmmer_domtbl
 from evcouplings.compare.mapping import map_indices
 from evcouplings.utils.system import (
-    get_urllib, ResourceError, valid_file, tempdir
+    get_urllib, ResourceError, valid_file, tempdir, temp
 )
 from evcouplings.utils.config import (
     parse_config, check_required, InvalidParameterError
 )
 from evcouplings.utils.helpers import range_overlap
 
-UNIPROT_MAPPING_URL = "http://www.uniprot.org/mapping/"
-SIFTS_URL = "ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz"
+UNIPROT_MAPPING_URL = "https://www.uniprot.org/mapping/"
+SIFTS_URL = "ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/uniprot_segments_observed.csv.gz"
 SIFTS_REST_API = "http://www.ebi.ac.uk/pdbe/api/mappings/uniprot_segments/{}"
 
 # TODO: make this default parametrization more explicit (e.g. a config file in repository)
@@ -293,7 +292,7 @@ class SIFTS:
         """
         Create modified SIFTS mapping table (based on
         file at SIFTS_URL). For some of the entries,
-        the Uniprot sequence ranges do not map to a.
+        the Uniprot sequence ranges do not map to a
         SEQRES sequence range of the same length. These
         PDB IDs will be entirely replaced by a segment-
         based mapping extracted from the SIFTS REST API.
@@ -330,12 +329,14 @@ class SIFTS:
 
             return res
 
-        get_urllib(SIFTS_URL, sifts_table_file)
+        # download SIFTS table (gzip-compressed csv) to temp file
+        temp_download_file = temp()
+        get_urllib(SIFTS_URL, temp_download_file)
 
         # load table and rename columns for internal use, if SIFTS
         # ever decided to rename theirs
         table = pd.read_csv(
-            sifts_table_file, comment="#",
+            temp_download_file, comment="#",
             compression="gzip"
         ).rename(
             columns={
@@ -356,6 +357,11 @@ class SIFTS:
             "(resseq_end - resseq_start) != (uniprot_end - uniprot_start)"
         ).pdb_id.unique()
 
+        """
+        # this block disabled for now due to use of new table
+        # based on observed UniProt segments
+        # - can probably be removed eventually
+        
         # collect new mappings from segment based REST API
         res = []
         for i, pdb_id in enumerate(problematic_ids):
@@ -365,12 +371,19 @@ class SIFTS:
             mapping = json.loads(r.text)
 
             res += extract_rows(mapping, pdb_id)
+        """
 
         # remove bad PDB IDs from table and add new mapping
         new_table = table.loc[~table.pdb_id.isin(problematic_ids)]
+
+        """
+        # also disabled due to use of new table based on observed
+        # UniProt segments - can probably be removed eventually 
+        
         new_table = new_table.append(
             pd.DataFrame(res).loc[:, table.columns]
         )
+        """
 
         # save for later reuse
         new_table.to_csv(sifts_table_file, index=False)
