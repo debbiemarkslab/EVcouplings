@@ -272,7 +272,7 @@ class SIFTS:
         )
 
         # final table has still some entries where lengths do not match,
-        # remove thlse
+        # remove these
         self.table = self.table.query(
             "(resseq_end - resseq_start) == (uniprot_end - uniprot_start)"
         )
@@ -352,15 +352,16 @@ class SIFTS:
             }
         )
 
-        # identify problematic PDB IDs
-        problematic_ids = table.query(
-            "(resseq_end - resseq_start) != (uniprot_end - uniprot_start)"
-        ).pdb_id.unique()
-
+        # TODO: remove the following if new segment-based table proves as robust solution
         """
         # this block disabled for now due to use of new table
         # based on observed UniProt segments
         # - can probably be removed eventually
+
+        # identify problematic PDB IDs
+        problematic_ids = table.query(
+            "(resseq_end - resseq_start) != (uniprot_end - uniprot_start)"
+        ).pdb_id.unique()
         
         # collect new mappings from segment based REST API
         res = []
@@ -371,12 +372,10 @@ class SIFTS:
             mapping = json.loads(r.text)
 
             res += extract_rows(mapping, pdb_id)
-        """
 
         # remove bad PDB IDs from table and add new mapping
         new_table = table.loc[~table.pdb_id.isin(problematic_ids)]
 
-        """
         # also disabled due to use of new table based on observed
         # UniProt segments - can probably be removed eventually 
         
@@ -386,7 +385,7 @@ class SIFTS:
         """
 
         # save for later reuse
-        new_table.to_csv(sifts_table_file, index=False)
+        table.to_csv(sifts_table_file, index=False)
 
     def _add_uniprot_ids(self):
         """
