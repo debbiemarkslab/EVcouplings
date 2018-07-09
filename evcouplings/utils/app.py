@@ -47,7 +47,7 @@ def _update_dictionary_recursively(original, overwrite, max_depth=1, depth=0):
     result = deepcopy(original)
 
     for k, v in overwrite.items():
-        if depth < max_depth and isinstance(v, collections.Mapping):
+        if depth < max_depth and isinstance(v, collections.Mapping) and result.get(k) is not None:
             result[k] = _update_dictionary_recursively(result.get(k, {}), v, max_depth=max_depth, depth=depth+1)
         else:
             result[k] = v
