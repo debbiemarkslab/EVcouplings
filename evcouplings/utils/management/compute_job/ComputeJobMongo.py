@@ -11,14 +11,6 @@ from evcouplings.utils.management.compute_job.ComputeJobInterface import (
 import datetime
 
 
-# Optional: define TTL for items in collection, must also uncomment "ensure_index" line (75)
-# TTL = {
-#     'month': 60 * 60 * 24 * 31,
-#     'week': 60 * 60 * 24 * 7,
-#     'minute': 60
-# }
-
-
 class ComputeJobMongo(ComputeJobInterface):
 
     def job_name(self):
@@ -70,9 +62,6 @@ class ComputeJobMongo(ComputeJobInterface):
         client = self._MongoClient(self._compute_job_uri)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
-
-        # Will expire the document after time is > than updated_at + TTL
-        # collection.ensure_index("updated_at", expireAfterSeconds=TTL.get('month'))
 
         q = collection.find_one({
             '_id': self._job_name
