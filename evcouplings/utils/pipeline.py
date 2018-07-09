@@ -9,7 +9,7 @@ Authors:
 import matplotlib
 
 from evcouplings.utils.management import (
-    get_dumper, get_compute_job_tracker,
+    get_dumper, get_metadata_tracker,
     EStatus, create_archive, delete_outputs )
 
 matplotlib.use("Agg")
@@ -136,14 +136,14 @@ def execute(**config):
 
     # Compute job tracker tracks job status (stage job's in)
     # Useful for web-bound runs, but can be used also with sqlite and a local interface
-    compute_job_tracker = get_compute_job_tracker(config)
+    metadata_tracker_uri = get_metadata_tracker(config)
 
     # File dumper will take care of moving certain files from FS to another location
     # Target locations can be: another dir on FS or FS like storages like GridFS, Azure Blob,...
     file_dumper = get_dumper(config)
 
     # set tracker to running
-    compute_job_tracker.update_job_status(status=EStatus.RUN)
+    metadata_tracker_uri.update_job_status(status=EStatus.RUN)
 
     # iterate through individual stages
     for (stage, runner, key_prefix) in pipeline:
@@ -165,7 +165,7 @@ def execute(**config):
         stage_dumper = "{}_{}.dumper".format(stage_prefix, stage)
 
         # update current stage of job
-        compute_job_tracker.update_job_status(stage=stage)
+        metadata_tracker_uri.update_job_status(stage=stage)
 
         # check if stage should be executed
         if stage in stages:
@@ -248,7 +248,7 @@ def execute(**config):
     )
 
     # set job status to done
-    compute_job_tracker.update_job_status(status=EStatus.DONE)
+    metadata_tracker_uri.update_job_status(status=EStatus.DONE)
 
     return global_state
 
@@ -340,7 +340,7 @@ def execute_wrapped(**config):
 
     # Compute job tracker tracks job status (stage job's in)
     # Useful for web-bound runs, but can be used also with sqlite and a local interface
-    compute_job_tracker = get_compute_job_tracker(config)
+    metadata_tracker_uri = get_metadata_tracker(config)
 
     # File dumper will take care of moving certain files from FS to another location
     # Target locations can be: another dir on FS or FS like storages like GridFS, Azure Blob,...
@@ -350,7 +350,7 @@ def execute_wrapped(**config):
     try:
         prefix = verify_prefix(**config)
     except Exception:
-        compute_job_tracker.update_job_status(status=EStatus.TERM)
+        metadata_tracker_uri.update_job_status(status=EStatus.TERM)
         raise
 
     # delete terminated/failed flags from previous
@@ -372,7 +372,7 @@ def execute_wrapped(**config):
 
         # Last two operations before unwinding. If these fail, no big deal:
         # set job status to terminated in database
-        compute_job_tracker.update_job_status(status=EStatus.TERM)
+        metadata_tracker_uri.update_job_status(status=EStatus.TERM)
         file_dumper.write_file(prefix + ".terminated", aliases=['terminated'])
 
         # terminate program
@@ -402,7 +402,7 @@ def execute_wrapped(**config):
 
         # Last two operations before unwinding. If these fail, no big deal:
         # set job status to failed in database
-        compute_job_tracker.update_job_status(status=EStatus.FAIL)
+        metadata_tracker_uri.update_job_status(status=EStatus.FAIL)
         file_dumper.write_file(prefix + ".failed", aliases=['failed'])
 
         # raise exception again after we updated status

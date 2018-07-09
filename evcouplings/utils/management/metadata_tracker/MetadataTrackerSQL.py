@@ -17,8 +17,8 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.declarative import declarative_base
 
 from evcouplings.utils import InvalidParameterError
-from evcouplings.utils.management.compute_job.ComputeJobInterface import (
-    ComputeJobInterface, DocumentNotFound, DATABASE_NAME)
+from evcouplings.utils.management.metadata_tracker.MetadataTrackerInterface import (
+    MetadataTrackerInterface, DocumentNotFound, DATABASE_NAME)
 import datetime
 
 
@@ -68,7 +68,7 @@ class _ComputeJob(_Base):
     updated_at = Column(DateTime, default=datetime.datetime.now)
 
 
-class ComputeJobSQL(ComputeJobInterface):
+class MetadataTrackerSQL(MetadataTrackerInterface):
 
     def job_name(self):
         return self._job_name
@@ -89,7 +89,7 @@ class ComputeJobSQL(ComputeJobInterface):
         return self._updated_at
 
     def __init__(self, config):
-        super(ComputeJobSQL, self).__init__(config)
+        super(MetadataTrackerSQL, self).__init__(config)
 
         # Get things from management
         self._management = self.config.get("management")
@@ -102,9 +102,9 @@ class ComputeJobSQL(ComputeJobInterface):
 
         self._job_group = self._management.get("job_group")
 
-        self._compute_job_uri = self._management.get("compute_job_uri")
-        if self._compute_job_uri is None:
-            raise InvalidParameterError("compute_job_uri must be defined")
+        self._metadata_tracker_uri = self._management.get("metadata_tracker_uri")
+        if self._metadata_tracker_uri is None:
+            raise InvalidParameterError("metadata_tracker_uri must be defined")
 
         self._status = "initialized"
         self._stage = "initialized"
@@ -112,7 +112,7 @@ class ComputeJobSQL(ComputeJobInterface):
         self._updated_at = datetime.datetime.now()
 
         # connect to DB and create session
-        engine = create_engine(self._compute_job_uri, poolclass=NullPool)
+        engine = create_engine(self._metadata_tracker_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 
@@ -157,7 +157,7 @@ class ComputeJobSQL(ComputeJobInterface):
         """
 
         # connect to DB and create session
-        engine = create_engine(self._compute_job_uri, poolclass=NullPool)
+        engine = create_engine(self._metadata_tracker_uri, poolclass=NullPool)
         Session = sessionmaker(bind=engine)
         session = Session()
 

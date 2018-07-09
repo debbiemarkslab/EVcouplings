@@ -23,7 +23,7 @@ from evcouplings.utils.system import (
 )
 
 from evcouplings.utils.management import (
-    EStatus, get_compute_job_tracker
+    EStatus, get_metadata_tracker
 )
 from evcouplings.utils.config import (
     check_required, InvalidParameterError,
@@ -365,7 +365,7 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         job_cfg_file = CONFIG_NAME.format(job)
 
         # set job status in database to pending
-        job_tracker = get_compute_job_tracker(job_cfg)
+        job_tracker = get_metadata_tracker(job_cfg)
         job_tracker.update_job_status(status=EStatus.PEND)
 
         # create submission command

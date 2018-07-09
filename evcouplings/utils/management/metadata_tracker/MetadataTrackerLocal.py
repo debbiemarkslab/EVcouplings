@@ -5,7 +5,7 @@ Authors:
   Christian Dallago
 """
 
-from evcouplings.utils.management.compute_job.ComputeJobInterface import ComputeJobInterface
+from evcouplings.utils.management.metadata_tracker.MetadataTrackerInterface import MetadataTrackerInterface
 import datetime
 
 
@@ -20,7 +20,7 @@ def _serialize(computeJobLocalObject):
     }
 
 
-class ComputeJobLocal(ComputeJobInterface):
+class MetadataTrackerLocal(MetadataTrackerInterface):
 
     def job_name(self):
         return self._job_name
@@ -41,7 +41,7 @@ class ComputeJobLocal(ComputeJobInterface):
         return self._updated_at
 
     def __init__(self, config):
-        super(ComputeJobLocal, self).__init__(config)
+        super(MetadataTrackerLocal, self).__init__(config)
 
         # Fallback: if no management section is defined, this will just log current status for job
         self._management = self.config.get("management", {

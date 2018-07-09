@@ -6,12 +6,12 @@ Authors:
   Christian Dallago
 """
 from evcouplings.utils import InvalidParameterError
-from evcouplings.utils.management.compute_job.ComputeJobInterface import (
-    ComputeJobInterface, DocumentNotFound, DATABASE_NAME)
+from evcouplings.utils.management.metadata_tracker.MetadataTrackerInterface import (
+    MetadataTrackerInterface, DocumentNotFound, DATABASE_NAME)
 import datetime
 
 
-class ComputeJobMongo(ComputeJobInterface):
+class MetadataTrackerMongo(MetadataTrackerInterface):
 
     def job_name(self):
         return self._job_name
@@ -36,7 +36,7 @@ class ComputeJobMongo(ComputeJobInterface):
 
         self._MongoClient = MongoClient
 
-        super(ComputeJobMongo, self).__init__(config)
+        super(MetadataTrackerMongo, self).__init__(config)
 
         # Get things from management
         self._management = self.config.get("management")
@@ -49,9 +49,9 @@ class ComputeJobMongo(ComputeJobInterface):
 
         self._job_group = self._management.get("job_group")
 
-        self._compute_job_uri = self._management.get("compute_job_uri")
-        if self._compute_job_uri is None:
-            raise InvalidParameterError("compute_job_uri must be defined")
+        self._metadata_tracker_uri = self._management.get("metadata_tracker_uri")
+        if self._metadata_tracker_uri is None:
+            raise InvalidParameterError("metadata_tracker_uri must be defined")
 
         self._status = "initialized"
         self._stage = "initialized"
@@ -59,7 +59,7 @@ class ComputeJobMongo(ComputeJobInterface):
         self._updated_at = datetime.datetime.now()
 
         # Connect to mongo and get URI database
-        client = self._MongoClient(self._compute_job_uri)
+        client = self._MongoClient(self._metadata_tracker_uri)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 
@@ -99,7 +99,7 @@ class ComputeJobMongo(ComputeJobInterface):
         update['updated_at'] = self._updated_at
 
         # Connect to mongo and get URI database
-        client = self._MongoClient(self._compute_job_uri)
+        client = self._MongoClient(self._metadata_tracker_uri)
         db = client.get_default_database()
         collection = db[DATABASE_NAME]
 

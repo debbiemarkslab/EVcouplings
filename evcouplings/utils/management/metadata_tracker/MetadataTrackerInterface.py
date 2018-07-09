@@ -9,7 +9,7 @@ Authors:
 import abc
 
 
-class ComputeJobInterface(object, metaclass=abc.ABCMeta):
+class MetadataTrackerInterface(object, metaclass=abc.ABCMeta):
 
     def __init__(self, config):
         """
@@ -140,4 +140,4 @@ class DocumentNotFound(Exception):
     """
 
 
-DATABASE_NAME = "compute_jobs"
+DATABASE_NAME = "metadata"
