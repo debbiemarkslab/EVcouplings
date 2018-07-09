@@ -70,6 +70,17 @@ def substitute_config(**kwargs):
     dict
         Updated configuration
     """
+
+    # try to read in overwrite
+    overwrite_file = kwargs.get("overwrite")
+    if overwrite_file:
+        if not valid_file(overwrite_file):
+            raise ResourceError(
+                "Overwrite file does not exist or is empty: {}".format(
+                    overwrite_file
+                )
+            )
+
     # mapping of command line parameters to config file entries
     CONFIG_MAP = {
         "prefix": ("global", "prefix"),
@@ -97,7 +108,11 @@ def substitute_config(**kwargs):
             )
         )
 
+    overwrite_config = read_config_file(overwrite_file, preserve_order=True)
     config = read_config_file(config_file, preserve_order=True)
+
+    # apply overwrites from overwrite file
+    config = _update_dictionary_recursively(config, overwrite_config)
 
     # substitute command-line parameters into configuration
     # (if straightforward substitution)
@@ -395,7 +410,7 @@ def run(**kwargs):
     kwargs
         See click.option decorators for app() function 
     """
-    # substitute commmand line options in config file
+    # substitute commmand line options in config file, also takes care of overwriting
     config = substitute_config(**kwargs)
 
     # check minimal set of parameters is present in config
@@ -468,6 +483,11 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option(
     "--plmiter", default=None, help="Maximum number of iterations during inference",
     type=int
+)
+@click.option(
+    "-o", "--overwrite", default=None, help="Overwrites to apply to config "
+                                            "e.g. can be job parameters to apply to template: "
+                                            "evcouplings -o job.txt template.txt"
 )
 # environment configuration
 @click.option("-Q", "--queue", default=None, help="Grid queue to run job(s)")
