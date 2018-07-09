@@ -100,6 +100,9 @@ class MongoDumper(ResultsDumperInterface):
                     index = self.write_file(out_config[k], aliases=[k])
                     result[k] = index
 
+        # This will store the new outconfig as an anonymous object in the "metadata" collection of the run's db
+        self.write_metadata(result)
+
         return result
 
     def clear(self):
@@ -187,3 +190,23 @@ class MongoDumper(ResultsDumperInterface):
         fs = gridfs.GridFS(db)
 
         return fs, client
+
+    def write_metadata(self, dictionanry):
+        """
+        Adds dictionary elements as key-value attributes in "metadata" collection of run
+
+        Returns
+        -------
+
+        """
+        from pymongo import MongoClient
+
+        client = MongoClient(self._dumper_uri)
+        db = client[self._nice_job_name]
+        collection = db["metadata"]
+
+        collection.insert_one(dictionanry)
+
+        client.close()
+
+        return
