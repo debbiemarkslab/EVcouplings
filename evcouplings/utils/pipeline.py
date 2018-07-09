@@ -9,7 +9,7 @@ Authors:
 import matplotlib
 
 from evcouplings.utils.management import (
-    get_dumper, get_metadata_tracker,
+    get_results_tracker, get_metadata_tracker,
     EStatus, create_archive, delete_outputs )
 
 matplotlib.use("Agg")
@@ -136,14 +136,14 @@ def execute(**config):
 
     # Compute job tracker tracks job status (stage job's in)
     # Useful for web-bound runs, but can be used also with sqlite and a local interface
-    metadata_tracker_uri = get_metadata_tracker(config)
+    metadata_tracker = get_metadata_tracker(config)
 
-    # File dumper will take care of moving certain files from FS to another location
+    # File results_tracker will take care of moving certain files from FS to another location
     # Target locations can be: another dir on FS or FS like storages like GridFS, Azure Blob,...
-    file_dumper = get_dumper(config)
+    results_tracker = get_results_tracker(config)
 
     # set tracker to running
-    metadata_tracker_uri.update_job_status(status=EStatus.RUN)
+    metadata_tracker.update_job_status(status=EStatus.RUN)
 
     # iterate through individual stages
     for (stage, runner, key_prefix) in pipeline:
@@ -162,10 +162,10 @@ def execute(**config):
         # config files for input and output of stage
         stage_incfg = "{}_{}.incfg".format(stage_prefix, stage)
         stage_outcfg = "{}_{}.outcfg".format(stage_prefix, stage)
-        stage_dumper = "{}_{}.dumper".format(stage_prefix, stage)
+        stage_results_tracker = "{}_{}.results_tracker".format(stage_prefix, stage)
 
         # update current stage of job
-        metadata_tracker_uri.update_job_status(stage=stage)
+        metadata_tracker.update_job_status(stage=stage)
 
         # check if stage should be executed
         if stage in stages:
@@ -195,12 +195,12 @@ def execute(**config):
             # save output of stage in config file
             write_config_file(stage_outcfg, outcfg)
 
-            dumper_out_config = file_dumper.move_out_config_files(outcfg)
+            results_tracker_out_config = results_tracker.move_out_config_files(outcfg)
 
             # If not using the NullDumper, then some files are gonna be moved.
-            # Output final file location in dumper file
-            if dumper_out_config is not None:
-                write_config_file(stage_dumper, dumper_out_config)
+            # Output final file location in results_tracker file
+            if results_tracker_out_config is not None:
+                write_config_file(stage_results_tracker, results_tracker_out_config)
 
             # one less stage to put through after we ran this...
             num_stages_to_run -= 1
@@ -237,7 +237,7 @@ def execute(**config):
     global_state["archive_file"] = archive_file
 
     # Dump archive is in tracked files list
-    file_dumper.move_out_config_files({"archive_file": archive_file})
+    results_tracker.move_out_config_files({"archive_file": archive_file})
 
     # delete selected output files if requested
     global_state = delete_outputs(config, global_state)
@@ -248,7 +248,7 @@ def execute(**config):
     )
 
     # set job status to done
-    metadata_tracker_uri.update_job_status(status=EStatus.DONE)
+    metadata_tracker.update_job_status(status=EStatus.DONE)
 
     return global_state
 
@@ -342,9 +342,9 @@ def execute_wrapped(**config):
     # Useful for web-bound runs, but can be used also with sqlite and a local interface
     metadata_tracker_uri = get_metadata_tracker(config)
 
-    # File dumper will take care of moving certain files from FS to another location
+    # File results_tracker will take care of moving certain files from FS to another location
     # Target locations can be: another dir on FS or FS like storages like GridFS, Azure Blob,...
-    file_dumper = get_dumper(config)
+    results_tracker = get_results_tracker(config)
 
     # make sure the prefix in configuration is valid
     try:
@@ -373,7 +373,7 @@ def execute_wrapped(**config):
         # Last two operations before unwinding. If these fail, no big deal:
         # set job status to terminated in database
         metadata_tracker_uri.update_job_status(status=EStatus.TERM)
-        file_dumper.write_file(prefix + ".terminated", aliases=['terminated'])
+        results_tracker.write_file(prefix + ".terminated", aliases=['terminated'])
 
         # terminate program
         sys.exit(1)
@@ -403,7 +403,7 @@ def execute_wrapped(**config):
         # Last two operations before unwinding. If these fail, no big deal:
         # set job status to failed in database
         metadata_tracker_uri.update_job_status(status=EStatus.FAIL)
-        file_dumper.write_file(prefix + ".failed", aliases=['failed'])
+        results_tracker.write_file(prefix + ".failed", aliases=['failed'])
 
         # raise exception again after we updated status
         raise

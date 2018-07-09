@@ -8,7 +8,7 @@ Authors:
 import abc
 
 
-class ResultsDumperInterface(object, metaclass=abc.ABCMeta):
+class ResultsTrackerInterface(object, metaclass=abc.ABCMeta):
 
     def __init__(self, config):
         self.config = config
@@ -16,7 +16,7 @@ class ResultsDumperInterface(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def move_out_config_files(self, out_config):
         """
-        Writes files listed in out_config and dumper's tracked_files.
+        Writes files listed in out_config and results_tracker's tracked_files.
         Behaves like `cp` if used with local interface
         """
         raise NotImplementedError
@@ -33,6 +33,6 @@ class ResultsDumperInterface(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def clear(self):
         """
-        Deletes all content of dumper. Similar to `rm -rf`. Use carefully.
+        Deletes all content of results_tracker. Similar to `rm -rf`. Use carefully.
         """
         raise NotImplementedError

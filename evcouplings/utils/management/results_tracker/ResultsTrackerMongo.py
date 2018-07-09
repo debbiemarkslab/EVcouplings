@@ -1,5 +1,5 @@
 """
-Document based extension of results dumper:
+Document based extension of results results_tracker:
 will copy tracked file to a bucket/collection in mongo,
 which will contain "fs.files" and "fs.chunks" collections for the files.
 
@@ -11,16 +11,16 @@ Authors:
 """
 
 import os
-from evcouplings.utils.management.dumper.ResultsDumperInterface import ResultsDumperInterface
+from evcouplings.utils.management.results_tracker.ResultsTrackerInterface import ResultsTrackerInterface
 from evcouplings.utils import valid_file, InvalidParameterError
 import re
 from copy import deepcopy
 
 
-class MongoDumper(ResultsDumperInterface):
+class ResultsTrackerMongo(ResultsTrackerInterface):
 
     def __init__(self, config):
-        super(MongoDumper, self).__init__(config)
+        super(ResultsTrackerMongo, self).__init__(config)
 
         # Get things from management
         self._management = self.config.get("management")
@@ -31,9 +31,9 @@ class MongoDumper(ResultsDumperInterface):
         if self._job_name is None:
             raise InvalidParameterError("config.management must contain a job_name")
 
-        self._dumper_uri = self._management.get("dumper_uri")
-        if self._dumper_uri is None:
-            raise InvalidParameterError("dumper_uri must be defined")
+        self._results_tracker_uri = self._management.get("results_tracker_uri")
+        if self._results_tracker_uri is None:
+            raise InvalidParameterError("results_tracker_uri must be defined")
 
         # This is used to define a bucket for this job
         # https://docs.mongodb.com/manual/reference/limits/#restrictions-on-db-names
@@ -53,7 +53,7 @@ class MongoDumper(ResultsDumperInterface):
 
         _, upload_name = os.path.split(file_path)
 
-        client = MongoClient(self._dumper_uri)
+        client = MongoClient(self._results_tracker_uri)
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
 
@@ -108,7 +108,7 @@ class MongoDumper(ResultsDumperInterface):
     def clear(self):
         from pymongo import MongoClient
 
-        client = MongoClient(self._dumper_uri)
+        client = MongoClient(self._results_tracker_uri)
         result = client.drop_database(self._nice_job_name)
         client.close()
         return result
@@ -130,7 +130,7 @@ class MongoDumper(ResultsDumperInterface):
         from pymongo import MongoClient
         import gridfs
 
-        client = MongoClient(self._dumper_uri)
+        client = MongoClient(self._results_tracker_uri)
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
 
@@ -185,7 +185,7 @@ class MongoDumper(ResultsDumperInterface):
         from pymongo import MongoClient
         import gridfs
 
-        client = MongoClient(self._dumper_uri)
+        client = MongoClient(self._results_tracker_uri)
         db = client[self._nice_job_name]
         fs = gridfs.GridFS(db)
 
@@ -201,7 +201,7 @@ class MongoDumper(ResultsDumperInterface):
         """
         from pymongo import MongoClient
 
-        client = MongoClient(self._dumper_uri)
+        client = MongoClient(self._results_tracker_uri)
         db = client[self._nice_job_name]
         collection = db["metadata"]
 

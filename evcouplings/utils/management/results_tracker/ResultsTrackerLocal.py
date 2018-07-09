@@ -1,5 +1,5 @@
 """
-Local extension of file dumper: will copy "tracked_files" to the new location.
+Local extension of file results_tracker: will copy "tracked_files" to the new location.
 
 Authors:
   Christian Dallago
@@ -8,22 +8,22 @@ Authors:
 import os
 from copy import deepcopy
 
-from evcouplings.utils.management.dumper.ResultsDumperInterface import ResultsDumperInterface
+from evcouplings.utils.management.results_tracker.ResultsTrackerInterface import ResultsTrackerInterface
 from evcouplings.utils import valid_file, InvalidParameterError
 from shutil import copyfile, rmtree
 
 
-class LocalDumper(ResultsDumperInterface):
+class ResultsTrackerLocal(ResultsTrackerInterface):
 
     def __init__(self, config):
-        super(LocalDumper, self).__init__(config)
+        super(ResultsTrackerLocal, self).__init__(config)
 
         self._management = self.config.get("management")
         if self._management is None:
             raise InvalidParameterError("You must pass a full config file with a management field")
 
-        self._dumper_storage_location = self._management.get("dumper_storage_location")
-        if self._dumper_storage_location is None:
+        self._results_tracker_location = self._management.get("results_tracker_location")
+        if self._results_tracker_location is None:
             raise InvalidParameterError("Storage location must be defined to know where files should be stored locally."
                                         " If no storage_location is defined, prefix must be defined.")
 
@@ -31,9 +31,9 @@ class LocalDumper(ResultsDumperInterface):
         if self._job_name is None:
             raise InvalidParameterError("config.management must contain a job_name")
 
-        self._dumper_storage_location = os.path.join(self._dumper_storage_location, self._job_name)
+        self._results_tracker_location = os.path.join(self._results_tracker_location, self._job_name)
 
-        self._operating_in_place = self._dumper_storage_location == self.config.get("global").get("prefix")
+        self._operating_in_place = self._results_tracker_location == self.config.get("global").get("prefix")
 
         self._tracked_files = self._management.get("tracked_files")
 
@@ -47,7 +47,7 @@ class LocalDumper(ResultsDumperInterface):
 
         _, upload_name = os.path.split(file_path)
 
-        final_path = os.path.join(self._dumper_storage_location, upload_name)
+        final_path = os.path.join(self._results_tracker_location, upload_name)
 
         copyfile(file_path, final_path)
 
@@ -81,6 +81,6 @@ class LocalDumper(ResultsDumperInterface):
         return result
 
     def clear(self):
-        rmtree(self._dumper_storage_location, ignore_errors=True)
+        rmtree(self._results_tracker_location, ignore_errors=True)
 
 
