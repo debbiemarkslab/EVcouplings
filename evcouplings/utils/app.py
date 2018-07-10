@@ -108,11 +108,13 @@ def substitute_config(**kwargs):
             )
         )
 
-    overwrite_config = read_config_file(overwrite_file, preserve_order=True)
     config = read_config_file(config_file, preserve_order=True)
 
-    # apply overwrites from overwrite file
-    config = _update_dictionary_recursively(config, overwrite_config)
+    if overwrite_file:
+        overwrite_config = read_config_file(overwrite_file, preserve_order=True)
+
+        # apply overwrites from overwrite file
+        config = _update_dictionary_recursively(config, overwrite_config)
 
     # substitute command-line parameters into configuration
     # (if straightforward substitution)
