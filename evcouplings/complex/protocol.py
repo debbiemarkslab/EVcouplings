@@ -27,7 +27,7 @@ from evcouplings.complex.alignment import (
 )
 from evcouplings.complex.distance import (
     find_possible_partners, best_reciprocal_matching,
-    plot_distance_distribution
+    plot_distance_distribution, get_distance
 )
 from evcouplings.complex.similarity import (
     read_species_annotation_table,
@@ -35,6 +35,31 @@ from evcouplings.complex.similarity import (
     filter_best_reciprocal,
     find_paralogs
 )
+
+def remove_overlaps(id_dataframe, amount_overlap_allowed):
+	"""
+	Removes pairs of ids that are from the same sequence
+	and overlap by at least a certain amount
+
+	Paramters
+	---------
+	id_dataframe: pd.DataFrame
+		contains columns id_1, id_2
+	amount_overlap_allowed: int
+		threshold of amount overlap allowed between two sequecnes
+
+	Returns
+	pd.Dataframe
+		id_dataframe filtered to remove overlapping sequences
+	"""
+	temp_dataframe = id_dataframe.copy()
+
+	temp_dataframe["id_str_1"] = [x.split('/')[0] for x in temp_dataframe.id_1]
+	temp_dataframe["id_start_1"] = [x.split('/')[1].split('-')[0] for x in temp_dataframe.id_1]
+	temp_dataframe["id_end_1"] = [x.split('/')[0] for x in temp_dataframe.id_1]
+
+	#condition 1: keep 
+
 
 def modify_complex_segments(outcfg, **kwargs):
     """
@@ -294,6 +319,10 @@ def genome_distance(**kwargs):
         gene_location_table_1, gene_location_table_2
     )
 
+    # filter for overlapping concatenation of same id
+    if kwargs["forbid_overlapping_concatenation"]:
+    	possible_partners = remove_overlaps(possible_partners, kwargs["overlapping_residue_cutoff"])
+
     # find the best reciprocal matches
     id_pairing_unfiltered = best_reciprocal_matching(possible_partners)
 
@@ -403,7 +432,8 @@ def best_hit(**kwargs):
             "first_segments", "second_segments",
             "first_identities_file", "second_identities_file",
             "first_annotation_file", "second_annotation_file",
-            "use_best_reciprocal", "paralog_identity_threshold"
+            "use_best_reciprocal", "paralog_identity_threshold",
+            "forbid_overlapping_concatenation"
         ]
     )
 
@@ -470,6 +500,10 @@ def best_hit(**kwargs):
         on="species",  # merges on species identifiers
         suffixes=("_1", "_2")
     )
+
+    # filter for overlapping concatenation of same id
+    if kwargs["forbid_overlapping_concatenation"]:
+    	species_intersection = remove_overlaps(species_intersection, kwargs["overlapping_residue_cutoff"])
 
     # write concatenated alignment with distance filtering
     # TODO: save monomer alignments?
