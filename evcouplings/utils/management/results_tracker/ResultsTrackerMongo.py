@@ -100,6 +100,11 @@ class ResultsTrackerMongo(ResultsTrackerInterface):
                     index = self.write_file(out_config[k], aliases=[k])
                     result[k] = index
 
+        # Make sure no keys in result will break mongo key indices (aka: no leading $, no . in string).
+        keys = [x for x in list(result.keys()) if '.' in x or '$' in x]
+        for key in keys:
+            result[re.sub(r'[/|\\. "$*<>:?]', "_", key)] = result.pop(key)
+
         # This will store the new outconfig as an anonymous object in the "metadata" collection of the run's db
         self.write_metadata(result)
 
