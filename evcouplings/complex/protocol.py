@@ -321,7 +321,7 @@ def genome_distance(**kwargs):
 
     # filter for overlapping concatenation of same id
     if kwargs["forbid_overlapping_concatenation"]:
-    	possible_partners = remove_overlaps(possible_partners, kwargs["overlapping_residue_cutoff"])
+    	possible_partners = remove_overlaps(possible_partners)
 
     # find the best reciprocal matches
     id_pairing_unfiltered = best_reciprocal_matching(possible_partners)
@@ -503,7 +503,7 @@ def best_hit(**kwargs):
 
     # filter for overlapping concatenation of same id
     if kwargs["forbid_overlapping_concatenation"]:
-    	species_intersection = remove_overlaps(species_intersection, kwargs["overlapping_residue_cutoff"])
+    	species_intersection = remove_overlaps(species_intersection)
 
     # write concatenated alignment with distance filtering
     # TODO: save monomer alignments?
