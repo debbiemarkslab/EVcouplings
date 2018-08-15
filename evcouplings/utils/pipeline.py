@@ -373,7 +373,7 @@ def execute_wrapped(**config):
         # Last two operations before unwinding. If these fail, no big deal:
         # set job status to terminated in database
         metadata_tracker_uri.update_job_status(status=EStatus.TERM)
-        results_tracker.write_file(prefix + ".terminated", aliases=['terminated'])
+        results_tracker.write_file(prefix + ".terminated", aliases=['reason_terminated_file'])
 
         # terminate program
         sys.exit(1)
@@ -403,7 +403,7 @@ def execute_wrapped(**config):
         # Last two operations before unwinding. If these fail, no big deal:
         # set job status to failed in database
         metadata_tracker_uri.update_job_status(status=EStatus.FAIL)
-        results_tracker.write_file(prefix + ".failed", aliases=['failed'])
+        results_tracker.write_file(prefix + ".failed", aliases=['reason_failed_file'])
 
         # raise exception again after we updated status
         raise
