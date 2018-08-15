@@ -1206,7 +1206,7 @@ def enrichment_pymol_script(enrichment_table, output_file,
         t.loc[t.iloc[boundary1:boundary2].index, "color"] = "orange"
 
        # set the boundary for number of residues to be rendered as spheres
-        sphere_boundary = boundary1
+        sphere_boundary = boundary2
 
         
     else:
