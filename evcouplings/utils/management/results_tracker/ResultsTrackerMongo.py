@@ -212,6 +212,23 @@ class ResultsTrackerMongo(ResultsTrackerInterface):
 
         return fs, client
 
+    def get_metadata_container(self):
+        """
+        Returns metadata bucket for this job. This is the most general approach for storing and retrieving metadata.
+
+        Returns
+        -------
+        collection, client: the collection (to find on) and the connection (to close, if not used anymore)
+
+        """
+        from pymongo import MongoClient
+
+        client = MongoClient(self._results_tracker_uri)
+        db = client[self._nice_job_name]
+        collection = db["metadata"]
+
+        return collection, client
+
     def write_metadata(self, dictionanry):
         """
         Adds dictionary elements as key-value attributes in "metadata" collection of run
