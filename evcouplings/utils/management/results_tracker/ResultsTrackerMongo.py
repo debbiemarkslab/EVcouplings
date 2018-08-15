@@ -11,10 +11,28 @@ Authors:
 """
 
 import os
+import re
+import collections
 from evcouplings.utils.management.results_tracker.ResultsTrackerInterface import ResultsTrackerInterface
 from evcouplings.utils import valid_file, InvalidParameterError
-import re
 from copy import deepcopy
+
+
+def _update_dictionary_recursively(original):
+    """
+    Function to recursively change keys of a dictionary with new values. Needed to avoid having dots or $ in key string
+    as this is not supported as keys in Mongo.
+    """
+
+    result = {}
+
+    for k, v in original.items():
+        if isinstance(v, collections.Mapping):
+            result[re.sub(r'[/|\\. "$*<>:?]', "_", k)] = _update_dictionary_recursively(v)
+        else:
+            result[re.sub(r'[/|\\. "$*<>:?]', "_", k)] = v
+
+    return result
 
 
 class ResultsTrackerMongo(ResultsTrackerInterface):
@@ -101,9 +119,7 @@ class ResultsTrackerMongo(ResultsTrackerInterface):
                     result[k] = index
 
         # Make sure no keys in result will break mongo key indices (aka: no leading $, no . in string).
-        keys = [x for x in list(result.keys()) if '.' in x or '$' in x]
-        for key in keys:
-            result[re.sub(r'[/|\\. "$*<>:?]', "_", key)] = result.pop(key)
+        result = _update_dictionary_recursively(result)
 
         # This will store the new outconfig as an anonymous object in the "metadata" collection of the run's db
         self.write_metadata(result)
