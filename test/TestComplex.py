@@ -18,8 +18,8 @@ from evcouplings.complex.similarity import *
 from evcouplings.complex.protocol import *
 from evcouplings.align import Alignment
 
-TRAVIS_PATH = "/home/travis/evcouplings_test_cases/complex_test"
-# TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/complex_test"
+# TRAVIS_PATH = "/home/travis/evcouplings_test_cases/complex_test"
+TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/complex_test"
 
 class TestComplex(TestCase):
 
@@ -72,6 +72,7 @@ class TestComplex(TestCase):
         # input and output configuration
         with open("{}/concatenate/test_new_concatenate.incfg".format(TRAVIS_PATH)) as inf:
             self.incfg = yaml.safe_load(inf)
+            self.incfg["forbid_overlapping_concatenation"] = True
 
         with open("{}/concatenate/test_new_concatenate.outcfg".format(TRAVIS_PATH)) as inf:
             self.outcfg = yaml.safe_load(inf)
@@ -234,6 +235,20 @@ class TestComplex(TestCase):
 
         test_configuration["segments"] = self.outcfg["segments"]
         self.assertDictEqual(test_configuration, _outcfg)
+
+    def test_remove_overlap(self):
+        """
+        tests that modify_complex_segments adds the correct "segments" field to the outcfg dictionary
+        :return:
+        """
+        df = pd.DataFrame({
+            "id_1": ["a/1-100", "b/1-200", "c/10-100"],
+            "id_2": ["a/2-200", "b/300-400", "d/10-100"],
+            "species": ["A", "B", "C"]
+        })
+
+        df1 = remove_overlapping_ids(df)
+        print(df1)
 
     def test_describe_concatenation(self):
         """
