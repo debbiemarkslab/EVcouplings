@@ -234,7 +234,7 @@ def infer_plmc(**kwargs):
     # store useful information about model in outcfg
     outcfg.update({
         "num_sites": plmc_result["num_valid_sites"],
-        "num_sequences": plmc_result["num_valid_seqs"],
+        "num_valid_sequences": plmc_result["num_valid_seqs"],
         "effective_sequences": plmc_result["effective_samples"],
         "region_start": plmc_result["region_start"],
     })
@@ -607,7 +607,7 @@ def mean_field(**kwargs):
     # store useful information about model in outcfg
     outcfg.update({
         "num_sites": model.L,
-        "num_sequences": model.N_valid,
+        "num_valid_sequences": model.N_valid,
         "effective_sequences": float(round(model.N_eff, 1)),
         "region_start": int(model.index_list[0]),
     })
