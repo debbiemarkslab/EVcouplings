@@ -318,7 +318,7 @@ def standard(**kwargs):
 
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
-                        score="cn"):
+                       N_eff=None, score="cn"):
     """
     Adds confidence measure for complex evolutionary couplings
 
@@ -331,6 +331,9 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     use_all_ecs : bool, optional (default: False)
         If true, fits the scoring model to all ECs;
         if false, fits the model to only the inter ECs.
+    N_eff : float, optional (default: None)
+        Effective number of sequences in alignment.
+        Used for EVcomplex score calculation
     score : str, optional (default: "cn")
         Use this score column for confidence assignment
         
@@ -341,19 +344,20 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         containing confidence measure
     """
     if use_all_ecs:
+        # TODO: user proof so that no one runs evcomplex on all ECs?
         ecs = pairs.add_mixture_proability(
-            ecs, model=scoring_model
+            ecs, model=scoring_model, N_eff=N_eff
         )
     else:
         inter_ecs = ecs.query("segment_i != segment_j")
         intra_ecs = ecs.query("segment_i == segment_j")
 
         intra_ecs = pairs.add_mixture_probability(
-            intra_ecs, model=scoring_model, score=score
+            intra_ecs, model=scoring_model, score=score, N_eff=N_eff
         )
 
         inter_ecs = pairs.add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score
+            inter_ecs, model=scoring_model, score=score, N_eff=N_eff
         )
 
         ecs = pd.concat(
@@ -419,7 +423,7 @@ def complex(**kwargs):
             use_all_ecs = False
 
         ecs = complex_probability(
-            ecs, kwargs["scoring_model"], use_all_ecs
+            ecs, kwargs["scoring_model"], use_all_ecs, outcfg["N_eff"]
         )
 
     else:
