@@ -4,7 +4,6 @@ Functions for handling evolutionary couplings data.
 .. todo::
 
     1. clean up
-    2. add Pompom score
     3. add mapping tools (multidomain, complexes)
     4. ECs to matrix
     5. APC on subsets of positions (e.g. for complexes)
@@ -643,7 +642,7 @@ class EVComplexScoreModel:
     score normalization for the number of sequences and length of
     the model
     """
-    def __init__(self, x):
+    def __init__(self, x, N_eff=None):
         """
         Initialize EVcomplex score model
         
@@ -651,8 +650,11 @@ class EVComplexScoreModel:
         ----------
         x : np.array (or list-like)
             EC scores from which to infer the mixture model
+        N_eff : float (optional, efault None)
+            Effective number of sequences from sequence alignment
         """
         self.x = np.array(x)
+        self.N_eff = N_eff
 
     def probability(self, x, plot=False):
         """
@@ -674,11 +676,18 @@ class EVComplexScoreModel:
         # Calculate the minimum score
         min_score = abs(np.min(self.x))
 
-        return x / min_score
+        raw_evcomplex = x / min_score
+
+        # if we have N_eff, use it to calculate the corrected score
+        if self.N_eff:
+            return raw_evcomplex / (1+math.sqrt(self.N_eff))
+
+        # else return the raw score
+        return raw_evcomplex
 
 
 def add_mixture_probability(ecs, model="skewnormal", score="cn",
-                            clamp_mu=False, plot=False):
+                            clamp_mu=False, plot=False, N_eff = None):
     """
     Add lognormal mixture model probability to EC table.
 
@@ -686,9 +695,10 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
     ----------
     ecs : pd.DataFrame
         EC table with scores
-    model : {"skewnormal", "normal"}, optional (default: skewnormal)
+    model : {"skewnormal", "normal", "evcomplex", "evcomplex_uncorrected"}, optional (default: skewnormal)
         Use model with skew-normal or normal distribution
-        for the noise component of mixture model
+        for the noise component of mixture model.
+        For complexes, apply evcomplex or evcomplex_uncorrected scoring
     score : str, optional (default: "cn")
         Score on which mixture model will be based
     clamp_mu : bool, optional (default: False)
@@ -696,6 +706,9 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
         fitting it based on data
     plot : bool, optional (default: False)
         Plot score distribution and probabilities
+    N_eff : float, optional (default: None)
+        Effective number of sequences, needed for corrected EVcomplex
+        score calculation (Hopf et al., 2014 Elife)
 
     Returns
     -------
@@ -712,12 +725,21 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
         mm = ScoreMixtureModel(ecs.loc[:, score].values)
     elif model == "normal":
         mm = LegacyScoreMixtureModel(ecs.loc[:, score].values, clamp_mu)
-    elif model == "evcomplex":
+    elif model == "evcomplex_uncorrected":
         mm = EVComplexScoreModel(ecs.loc[:, score].values)
+    elif model == "evcomplex":
+        if N_eff is None:
+            raise ValueError(
+                "must provide N_eff for EVcomplex score calculation, "
+                "or select model evcomplex_uncorrected"
+            )
+        mm = EVComplexScoreModel(ecs.loc[:, score].values, N_eff)
+
     else:
         raise ValueError(
             "Invalid model selection, valid options are: "
-            "skewnormal, normal"
+            "skewnormal, normal\n"
+            "Complexes only: evcomplex, evcomplex_uncorrected"
         )
 
     # assign probability
