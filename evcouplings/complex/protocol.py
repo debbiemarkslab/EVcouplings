@@ -35,6 +35,9 @@ from evcouplings.complex.similarity import (
     filter_best_reciprocal,
     find_paralogs
 )
+from evcouplings.couplings.mapping import (
+    SegmentIndexMapper, Segment, map_positions
+)
 
 def _split_annotation_string(string):
     id, annotation_str = string.split("/")
@@ -116,6 +119,30 @@ def modify_complex_segments(outcfg, **kwargs):
     outcfg["segments"] = [s.to_list() for s in segments_complex]
 
     return outcfg
+
+def _map_frequencies_file(outcfg, **kwargs):
+    """
+    Renumbers the frequencies file created in complex concatenation
+    to be correctly indexed by segment numbers
+
+    Parameters
+    ----------
+    outcfg : dict
+        The output configuration
+
+    """
+
+    frequencies = pd.read_csv(outcfg["frequencies_file"])
+
+    segments = [
+        Segment.from_list(s) for s in kwargs["segments"]
+    ]
+    seg_mapper = SegmentIndexMapper(
+        kwargs["focus_mode"], outcfg["region_start"], *segments
+    )
+    frequencies = map_positions(frequencies, seg_mapper, "i")
+    frequencies.to_csv(outcfg["frequencies_file"])
+
 
 def _run_describe_concatenation(outcfg, **kwargs):
     """
@@ -555,6 +582,8 @@ def best_hit(**kwargs):
         **kwargs
     )
 
+    # remap the
+
     # make sure we return all the necessary information:
     # * alignment_file: final concatenated alignment that will go into plmc
     # * focus_sequence: this is the identifier of the concatenated target
@@ -570,6 +599,8 @@ def best_hit(**kwargs):
 
     # Describe the statistics of the concatenation
     outcfg = _run_describe_concatenation(outcfg, **kwargs)
+
+    # Correct the nubering in the frequencies file
 
     return outcfg
 
