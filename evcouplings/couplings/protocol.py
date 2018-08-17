@@ -355,22 +355,28 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     if use_all_ecs:
         # TODO: user proof so that no one runs evcomplex on all ECs?
         ecs = pairs.add_mixture_proability(
-            ecs, model=scoring_model, N_effL= Neff_L
+            ecs, model=scoring_model
         )
+
     else:
         inter_ecs = ecs.query("segment_i != segment_j")
-        intra_ecs = ecs.query("segment_i == segment_j")
+        intra1_ecs = ecs.query("segment_i == segment_j == 'A_1'")
+        intra2_ecs = ecs.query("segment_i == segment_j == 'B_1'")
 
-        intra_ecs = pairs.add_mixture_probability(
-            intra_ecs, model=scoring_model, score=score, N_effL= Neff_L
+        intra1_ecs = pairs.add_mixture_probability(
+            intra1_ecs, model=scoring_model, score=score, N_effL=Neff_L
+        )
+
+        intra2_ecs = pairs.add_mixture_probability(
+            intra2_ecs, model=scoring_model, score=score, N_effL=Neff_L
         )
 
         inter_ecs = pairs.add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score, N_effL= Neff_L
+            inter_ecs, model=scoring_model, score=score, N_effL=Neff_L
         )
 
         ecs = pd.concat(
-            [intra_ecs, inter_ecs]
+            [intra1_ecs, intra2_ecs, inter_ecs]
         ).sort_values(
             score, ascending=False
         )
