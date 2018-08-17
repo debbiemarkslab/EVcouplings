@@ -9,6 +9,7 @@ import unittest
 import os
 import tempfile
 import pandas as pd
+import ruamel_yaml as yaml
 from unittest import TestCase
 from evcouplings.couplings.pairs import *
 
@@ -21,6 +22,11 @@ class TestCouplings(TestCase):
         super(TestCouplings, self).__init__(*args, **kwargs)
         self.raw_ec_file = "{}/couplings/test_new_ECs.txt".format(TRAVIS_PATH)
         self.couplings_file = "{}/couplings/test_new_CouplingScores.csv".format(TRAVIS_PATH)
+        self.ecs = pd.read_csv(self.couplings_file)
+        self.inter_ecs = self.ecs.query("segment_i != segment_j")
+
+        with open("{}/couplings/test_new_couplings.outcfg".format(TRAVIS_PATH)) as inf:
+            self.outcfg = yaml.safe_load(inf)
 
         self.monomer_couplings = "{}_CouplingScores.csv".format(TRAVIS_PATH_MONOMER)
         self.enrichment_file = "{}_enrichment.csv".format(TRAVIS_PATH_MONOMER)
@@ -48,13 +54,59 @@ class TestCouplings(TestCase):
         _enrichment_scores = enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6).reset_index(drop=True)
         pd.testing.assert_frame_equal(enrichment_scores, _enrichment_scores)
 
-    def test_add_mixture_probability(self):
-        pass
-    def test_EVcomplexScoreModel_probability(self):
-        """
+    def test_add_mixture_probability_skewnormal(self):
+        ecs_with_prob = add_mixture_probability(
+            self.inter_ecs, model="skewnormal"
+        )
 
+        _test_ecs = pd.read_csv(
+            "{}/couplings/test_new_CouplingScores_skewnormal.csv".format(TRAVIS_PATH), index_col=0
+        )
+        pd.testing.assert_frame_equal(ecs_with_prob, _test_ecs)
+
+
+    def test_add_mixture_probability_normal(self):
+        ecs_with_prob = add_mixture_probability(
+            self.inter_ecs, model="normal"
+        )
+
+        _test_ecs = pd.read_csv(
+            "{}/couplings/test_new_CouplingScores_normal.csv".format(TRAVIS_PATH), index_col=0
+        )
+        pd.testing.assert_frame_equal(ecs_with_prob, _test_ecs)
+
+    def test_add_mixture_probability_evcomplex_uncorrected(self):
+        ecs_with_prob = add_mixture_probability(
+            self.inter_ecs, model="evcomplex_uncorrected"
+        )
+
+        _test_ecs = pd.read_csv(
+            "{}/couplings/test_new_CouplingScores_evc_raw.csv".format(TRAVIS_PATH), index_col=0
+        )
+        pd.testing.assert_frame_equal(ecs_with_prob, _test_ecs)
+
+    def test_add_mixture_probability_evcomplex(self):
+        NeffL = self.outcfg["effective_sequences"] / self.outcfg["num_sites"]
+        ecs_with_prob = add_mixture_probability(
+            self.inter_ecs, model="evcomplex", N_effL= NeffL
+        )
+
+        _test_ecs = pd.read_csv(
+            "{}/couplings/test_new_CouplingScores_evc.csv".format(TRAVIS_PATH), index_col=0
+        )
+        pd.testing.assert_frame_equal(ecs_with_prob, _test_ecs)
+
+    def test_add_mixture_probability_evcomplex_error(self):
+        """
+        tests that EVcomplex score cannot be calculated without a user-supplied Meff
         :return:
         """
-        pass
+        with self.assertRaises(ValueError):
+            add_mixture_probability(self.ecs, model="evcomplex")
+
+    def test_add_mixture_probability_invalid_selection(self):
+        with self.assertRaises(ValueError):
+            add_mixture_probability(self.ecs, model="fake news")
+
 if __name__ == '__main__':
     unittest.main()
