@@ -15,7 +15,7 @@ Authors:
   Anna G. Green (EVComplex Score code)
 """
 
-from math import ceil
+import math
 from copy import deepcopy
 
 import numpy as np
@@ -97,7 +97,7 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     # calculate absolute number of pairs if
     # fraction of length is given
     if isinstance(num_pairs, float):
-        num_pairs = int(ceil(num_pairs * num_pos))
+        num_pairs = int(math.ceil(num_pairs * num_pos))
 
     # get longrange ECs and sort by score
     sorted_ecs = ecs.query(
@@ -642,7 +642,7 @@ class EVComplexScoreModel:
     score normalization for the number of sequences and length of
     the model
     """
-    def __init__(self, x, N_eff=None):
+    def __init__(self, x, N_effL=None):
         """
         Initialize EVcomplex score model
         
@@ -650,11 +650,11 @@ class EVComplexScoreModel:
         ----------
         x : np.array (or list-like)
             EC scores from which to infer the mixture model
-        N_eff : float (optional, efault None)
-            Effective number of sequences from sequence alignment
+        N_effL : float (optional, efault None)
+            Effective number of sequences divided by L
         """
         self.x = np.array(x)
-        self.N_eff = N_eff
+        self.N_effL = N_effL
 
     def probability(self, x, plot=False):
         """
@@ -678,16 +678,16 @@ class EVComplexScoreModel:
 
         raw_evcomplex = x / min_score
 
-        # if we have N_eff, use it to calculate the corrected score
-        if self.N_eff:
-            return raw_evcomplex / (1+math.sqrt(self.N_eff))
+        # if we have N_effL, use it to calculate the corrected score
+        if self.N_effL:
+            return raw_evcomplex / (1+math.sqrt(self.N_effL))
 
         # else return the raw score
         return raw_evcomplex
 
 
 def add_mixture_probability(ecs, model="skewnormal", score="cn",
-                            clamp_mu=False, plot=False, N_eff = None):
+                            clamp_mu=False, plot=False, N_effL = None):
     """
     Add lognormal mixture model probability to EC table.
 
@@ -707,7 +707,7 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
     plot : bool, optional (default: False)
         Plot score distribution and probabilities
     N_eff : float, optional (default: None)
-        Effective number of sequences, needed for corrected EVcomplex
+        Effective number of sequences divided by model length, needed for corrected EVcomplex
         score calculation (Hopf et al., 2014 Elife)
 
     Returns
@@ -728,12 +728,12 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
     elif model == "evcomplex_uncorrected":
         mm = EVComplexScoreModel(ecs.loc[:, score].values)
     elif model == "evcomplex":
-        if N_eff is None:
+        if N_effL is None:
             raise ValueError(
                 "must provide N_eff for EVcomplex score calculation, "
                 "or select model evcomplex_uncorrected"
             )
-        mm = EVComplexScoreModel(ecs.loc[:, score].values, N_eff)
+        mm = EVComplexScoreModel(ecs.loc[:, score].values, N_effL)
 
     else:
         raise ValueError(

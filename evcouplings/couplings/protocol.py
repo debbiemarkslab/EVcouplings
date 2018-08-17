@@ -318,7 +318,7 @@ def standard(**kwargs):
 
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
-                       N_eff=None, score="cn"):
+                       N_eff=None, num_sites=None, score="cn"):
     """
     Adds confidence measure for complex evolutionary couplings
 
@@ -334,6 +334,8 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     N_eff : float, optional (default: None)
         Effective number of sequences in alignment.
         Used for EVcomplex score calculation
+    num_sites : int, optional (default: None)
+        Number of positions in alignment
     score : str, optional (default: "cn")
         Use this score column for confidence assignment
         
@@ -343,21 +345,28 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         EC table with additional column "probability"
         containing confidence measure
     """
+
+    # if user provided both parameters, calculate Neff/L
+    if N_eff and num_sites:
+        Neff_L = N_eff/num_sites
+    else:
+        Neff_L = None
+
     if use_all_ecs:
         # TODO: user proof so that no one runs evcomplex on all ECs?
         ecs = pairs.add_mixture_proability(
-            ecs, model=scoring_model, N_eff=N_eff
+            ecs, model=scoring_model, N_effL= Neff_L
         )
     else:
         inter_ecs = ecs.query("segment_i != segment_j")
         intra_ecs = ecs.query("segment_i == segment_j")
 
         intra_ecs = pairs.add_mixture_probability(
-            intra_ecs, model=scoring_model, score=score, N_eff=N_eff
+            intra_ecs, model=scoring_model, score=score, N_effL= Neff_L
         )
 
         inter_ecs = pairs.add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score, N_eff=N_eff
+            inter_ecs, model=scoring_model, score=score, N_effL= Neff_L
         )
 
         ecs = pd.concat(
@@ -423,7 +432,7 @@ def complex(**kwargs):
             use_all_ecs = False
 
         ecs = complex_probability(
-            ecs, kwargs["scoring_model"], use_all_ecs, outcfg["N_eff"]
+            ecs, kwargs["scoring_model"], use_all_ecs, outcfg["effective_sequences"], outcfg["num_sites"]
         )
 
     else:
