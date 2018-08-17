@@ -69,6 +69,12 @@ class TestComplex(TestCase):
         paralog_file = "{}/concatenate/test_new_paralog_table.csv".format(TRAVIS_PATH)
         self.paralog_table = pd.read_csv(paralog_file, index_col=0, header=0)
 
+        # table of frequencies
+        self.uncorrected_frequency_file = "{}/concatenate/test_new_frequencies_uncorrected.csv".format(TRAVIS_PATH)
+        corrected_frequency_file = "{}/concatenate/test_new_frequencies.csv".format(TRAVIS_PATH)
+        self.freq_file = corrected_frequency_file
+        self.freqs = pd.read_csv(corrected_frequency_file, index_col=0, header=0)
+
         # input and output configuration
         with open("{}/concatenate/test_new_concatenate.incfg".format(TRAVIS_PATH)) as inf:
             self.incfg = yaml.safe_load(inf)
@@ -247,8 +253,15 @@ class TestComplex(TestCase):
             "species": ["A", "B", "C"]
         })
 
-        df1 = remove_overlapping_ids(df)
-        print(df1)
+        df1 = remove_overlapping_ids(df).reset_index(drop=True)
+
+        desired_output = pd.DataFrame({
+            "id_1": ["b/1-200", "c/10-100"],
+            "id_2": ["b/300-400", "d/10-100"],
+            "species": ["B", "C"]
+        })
+
+        pd.testing.assert_frame_equal(df1, desired_output)
 
     def test_describe_concatenation(self):
         """
@@ -431,6 +444,14 @@ class TestComplex(TestCase):
         self.assertTrue(os.path.getsize(outfile.name) > 0)
         outfile.close()
         os.unlink(outfile.name)
+
+    def test_map_frequencies(self):
+        """
+        tests _map_frequences_file
+        :return:
+        """
+        freqs = map_frequencies_file(self.uncorrected_frequency_file, self.outcfg, **self.incfg)
+        pd.testing.assert_frame_equal(freqs, self.freqs)
 
 if __name__ == '__main__':
     unittest.main()

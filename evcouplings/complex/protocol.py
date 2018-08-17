@@ -62,7 +62,6 @@ def remove_overlapping_ids(id_dataframe):
     temp_dataframe = id_dataframe.copy()
 
     id_strings = [_split_annotation_string(x) for x in temp_dataframe.id_1]
-    print(id_strings)
     temp_dataframe["id_string_1"], temp_dataframe["r_s_1"], temp_dataframe["r_e_1"] = \
         zip(*id_strings)
 
@@ -120,7 +119,7 @@ def modify_complex_segments(outcfg, **kwargs):
 
     return outcfg
 
-def _map_frequencies_file(outcfg, **kwargs):
+def map_frequencies_file(frequencies_file, outcfg, **kwargs):
     """
     Renumbers the frequencies file created in complex concatenation
     to be correctly indexed by segment numbers
@@ -132,16 +131,16 @@ def _map_frequencies_file(outcfg, **kwargs):
 
     """
 
-    frequencies = pd.read_csv(outcfg["frequencies_file"])
+    frequencies = pd.read_csv(frequencies_file)
 
     segments = [
-        Segment.from_list(s) for s in kwargs["segments"]
+        Segment.from_list(s) for s in outcfg["segments"]
     ]
     seg_mapper = SegmentIndexMapper(
-        kwargs["focus_mode"], outcfg["region_start"], *segments
+        kwargs["first_focus_mode"], outcfg["region_start"], *segments
     )
     frequencies = map_positions(frequencies, seg_mapper, "i")
-    frequencies.to_csv(outcfg["frequencies_file"])
+    return frequencies
 
 
 def _run_describe_concatenation(outcfg, **kwargs):
@@ -434,6 +433,9 @@ def genome_distance(**kwargs):
     outcfg["distance_plot_file"] = prefix + "_distplot.pdf"
     plot_distance_distribution(id_pairing_unfiltered, outcfg["distance_plot_file"])
 
+    # Correct the nubering in the frequencies file
+    map_frequencies_file(outcfg["frequencies_file"], outcfg, **kwargs).to_csv(outcfg["frequencies_file"])
+
     return outcfg
 
 
@@ -601,6 +603,7 @@ def best_hit(**kwargs):
     outcfg = _run_describe_concatenation(outcfg, **kwargs)
 
     # Correct the nubering in the frequencies file
+    map_frequencies_file(outcfg["frequencies_file"], outcfg, **kwargs).to_csv(outcfg["frequencies_file"])
 
     return outcfg
 
