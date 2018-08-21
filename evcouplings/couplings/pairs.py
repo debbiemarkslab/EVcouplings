@@ -4,7 +4,6 @@ Functions for handling evolutionary couplings data.
 .. todo::
 
     1. clean up
-    2. add Pompom score
     3. add mapping tools (multidomain, complexes)
     4. ECs to matrix
     5. APC on subsets of positions (e.g. for complexes)
@@ -13,10 +12,10 @@ Authors:
   Thomas A. Hopf
   Agnes Toth-Petroczy (original mixture model code)
   John Ingraham (skew normal mixture model)
-  Anna G. Green (EVComplex Score code)
+  Anna G. Green (EVComplex Score code, segment-aware enrichment calculation )
 """
 
-from math import ceil
+import math
 from copy import deepcopy
 
 import numpy as np
@@ -65,9 +64,6 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     Calculate EC "enrichment" as first described in
     Hopf et al., Cell, 2012.
 
-    .. todo::
-
-        Make this handle segments if they are in EC table
 
     Parameters
     ----------
@@ -91,37 +87,49 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
         Sorted table with enrichment values for each
         position in the sequence
     """
-    # determine how many positions ECs are over
-    pos = set(ecs.i.unique()) | set(ecs.j.unique())
-    num_pos = len(pos)
+
+    # check if the provided table has segments...
+    if "segment_i" in ecs.columns and "segment_j" in ecs.columns:
+        has_segments = True
+    # ... and if not, create them
+    else:
+        has_segments = False
+        ecs["segment_i"] = "A_1"
+        ecs["segment_j"] = "A_1"
+
+    # stack dataframe so it contains each
+    # EC twice as forward and backward pairs
+    # (i, j) and (j, i)
+    flipped = ecs.rename(
+        columns={
+            "i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i",
+            "segment_i": "segment_j", "segment_j": "segment_i"
+        }
+    )
+
+    stacked_ecs = ecs.append(flipped)
+
+    # determine how many positions ECs are over using the combined dataframe
+    num_pos = len(stacked_ecs.groupby(["i", "A_i", "segment_i"]))
 
     # calculate absolute number of pairs if
     # fraction of length is given
     if isinstance(num_pairs, float):
-        num_pairs = int(ceil(num_pairs * num_pos))
+        num_pairs = int(math.ceil(num_pairs * num_pos))
 
-    # get longrange ECs and sort by score
-    sorted_ecs = ecs.query(
+    # sort the stacked ECs
+    stacked_sorted_ecs = stacked_ecs.query(
         "abs(i-j) >= {}".format(min_seqdist)
     ).sort_values(
         by=score, ascending=False
     )
 
-    # select top EC pairs
-    top_ecs = sorted_ecs.iloc[0:num_pairs]
+    # take the top num *2 (because each EC represented twice)
+    top_ecs = stacked_sorted_ecs[0:num_pairs * 2]
 
-    # stack dataframe so it contains each
-    # EC twice as forward and backward pairs
-    # (i, j) and (j, i)
-    flipped = top_ecs.rename(
-        columns={"i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i"}
-    )
-
-    stacked_ecs = top_ecs.append(flipped)
-
-    # now sum cumulative strength of EC for each position
+    # calculate sum of EC scores for each position
     ec_sums = pd.DataFrame(
-        stacked_ecs.groupby(["i", "A_i"]).sum()
+        top_ecs.groupby(["i", "A_i", "segment_i"]).sum()
     )
 
     # average EC strength for top ECs
@@ -131,7 +139,12 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     # an individual position exceeds average strength in top
     ec_sums.loc[:, "enrichment"] = ec_sums.loc[:, score] / avg_degree
 
-    e = ec_sums.reset_index().loc[:, ["i", "A_i", "enrichment"]]
+    # if the ecs had segment information, return a segment column
+    if has_segments:
+        e = ec_sums.reset_index().loc[:, ["i", "A_i", "segment_i", "enrichment"]]
+    else:
+        e = ec_sums.reset_index().loc[:, ["i", "A_i", "enrichment"]]
+
     return e.sort_values(by="enrichment", ascending=False)
 
 
@@ -643,7 +656,7 @@ class EVComplexScoreModel:
     score normalization for the number of sequences and length of
     the model
     """
-    def __init__(self, x):
+    def __init__(self, x, N_effL=None):
         """
         Initialize EVcomplex score model
         
@@ -651,8 +664,11 @@ class EVComplexScoreModel:
         ----------
         x : np.array (or list-like)
             EC scores from which to infer the mixture model
+        N_effL : float (optional, efault None)
+            Effective number of sequences divided by L
         """
         self.x = np.array(x)
+        self.N_effL = N_effL
 
     def probability(self, x, plot=False):
         """
@@ -674,11 +690,18 @@ class EVComplexScoreModel:
         # Calculate the minimum score
         min_score = abs(np.min(self.x))
 
-        return x / min_score
+        raw_evcomplex = x / min_score
+
+        # if we have N_effL, use it to calculate the corrected score
+        if self.N_effL:
+            return raw_evcomplex / (1+math.sqrt(self.N_effL))
+
+        # else return the raw score
+        return raw_evcomplex
 
 
 def add_mixture_probability(ecs, model="skewnormal", score="cn",
-                            clamp_mu=False, plot=False):
+                            clamp_mu=False, plot=False, N_effL=None):
     """
     Add lognormal mixture model probability to EC table.
 
@@ -686,9 +709,10 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
     ----------
     ecs : pd.DataFrame
         EC table with scores
-    model : {"skewnormal", "normal"}, optional (default: skewnormal)
+    model : {"skewnormal", "normal", "evcomplex", "evcomplex_uncorrected"}, optional (default: skewnormal)
         Use model with skew-normal or normal distribution
-        for the noise component of mixture model
+        for the noise component of mixture model.
+        For complexes, apply evcomplex or evcomplex_uncorrected scoring
     score : str, optional (default: "cn")
         Score on which mixture model will be based
     clamp_mu : bool, optional (default: False)
@@ -696,6 +720,9 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
         fitting it based on data
     plot : bool, optional (default: False)
         Plot score distribution and probabilities
+    N_eff : float, optional (default: None)
+        Effective number of sequences divided by model length, needed for corrected EVcomplex
+        score calculation (Hopf et al., 2014 Elife)
 
     Returns
     -------
@@ -712,12 +739,21 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
         mm = ScoreMixtureModel(ecs.loc[:, score].values)
     elif model == "normal":
         mm = LegacyScoreMixtureModel(ecs.loc[:, score].values, clamp_mu)
-    elif model == "evcomplex":
+    elif model == "evcomplex_uncorrected":
         mm = EVComplexScoreModel(ecs.loc[:, score].values)
+    elif model == "evcomplex":
+        if N_effL is None:
+            raise ValueError(
+                "must provide N_eff for EVcomplex score calculation, "
+                "or select model evcomplex_uncorrected"
+            )
+        mm = EVComplexScoreModel(ecs.loc[:, score].values, N_effL)
+
     else:
         raise ValueError(
             "Invalid model selection, valid options are: "
-            "skewnormal, normal"
+            "skewnormal, normal\n"
+            "Complexes only: evcomplex, evcomplex_uncorrected"
         )
 
     # assign probability

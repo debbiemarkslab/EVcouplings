@@ -35,11 +35,16 @@ from evcouplings.complex.similarity import (
     filter_best_reciprocal,
     find_paralogs
 )
+from evcouplings.couplings.mapping import (
+    SegmentIndexMapper, Segment, map_positions
+)
+
 
 def _split_annotation_string(string):
     id, annotation_str = string.split("/")
     region_start, region_end = annotation_str.split("-")
     return (id, int(region_start), int(region_end))
+
 
 def remove_overlapping_ids(id_dataframe):
     """
@@ -59,7 +64,6 @@ def remove_overlapping_ids(id_dataframe):
     temp_dataframe = id_dataframe.copy()
 
     id_strings = [_split_annotation_string(x) for x in temp_dataframe.id_1]
-    print(id_strings)
     temp_dataframe["id_string_1"], temp_dataframe["r_s_1"], temp_dataframe["r_e_1"] = \
         zip(*id_strings)
 
@@ -116,6 +120,32 @@ def modify_complex_segments(outcfg, **kwargs):
     outcfg["segments"] = [s.to_list() for s in segments_complex]
 
     return outcfg
+
+def map_frequencies_file(frequencies_file, outcfg, **kwargs):
+    """
+    Renumbers the frequencies file created in complex concatenation
+    to be correctly indexed by segment numbers
+
+    Parameters
+    ----------
+    frequencies_file: str
+        path to the frequencies file to be renumbered
+    outcfg : dict
+        The output configuration
+
+    """
+
+    frequencies = pd.read_csv(frequencies_file)
+
+    segments = [
+        Segment.from_list(s) for s in outcfg["segments"]
+    ]
+    seg_mapper = SegmentIndexMapper(
+        kwargs["first_focus_mode"], outcfg["region_start"], *segments
+    )
+    frequencies = map_positions(frequencies, seg_mapper, "i")
+    return frequencies
+
 
 def _run_describe_concatenation(outcfg, **kwargs):
     """
@@ -407,6 +437,9 @@ def genome_distance(**kwargs):
     outcfg["distance_plot_file"] = prefix + "_distplot.pdf"
     plot_distance_distribution(id_pairing_unfiltered, outcfg["distance_plot_file"])
 
+    # Correct the nubering in the frequencies file
+    map_frequencies_file(outcfg["frequencies_file"], outcfg, **kwargs).to_csv(outcfg["frequencies_file"])
+
     return outcfg
 
 
@@ -555,6 +588,8 @@ def best_hit(**kwargs):
         **kwargs
     )
 
+    # remap the
+
     # make sure we return all the necessary information:
     # * alignment_file: final concatenated alignment that will go into plmc
     # * focus_sequence: this is the identifier of the concatenated target
@@ -570,6 +605,9 @@ def best_hit(**kwargs):
 
     # Describe the statistics of the concatenation
     outcfg = _run_describe_concatenation(outcfg, **kwargs)
+
+    # Correct the nubering in the frequencies file
+    map_frequencies_file(outcfg["frequencies_file"], outcfg, **kwargs).to_csv(outcfg["frequencies_file"])
 
     return outcfg
 
