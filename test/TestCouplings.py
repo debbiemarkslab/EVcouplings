@@ -13,10 +13,13 @@ import ruamel_yaml as yaml
 from unittest import TestCase
 from evcouplings.couplings.pairs import *
 
-# TRAVIS_PATH = "/home/travis/evcouplings_test_cases/complex_test"
-TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/complex_test"
-TRAVIS_PATH_MONOMER = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/monomer_test/couplings/RASH_HUMAN_b03"
+TRAVIS_PATH = "/home/travis/evcouplings_test_cases/complex_test"
+TRAVIS_PATH_MONOMER = "/home/travis/evcouplings_test_cases/monomer_test/couplings/RASH_HUMAN_b03"
+
+#TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/complex_test"
+#TRAVIS_PATH_MONOMER = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/monomer_test/couplings/RASH_HUMAN_b03"
 class TestCouplings(TestCase):
+
 
     def __init__(self, *args, **kwargs):
         super(TestCouplings, self).__init__(*args, **kwargs)
@@ -47,11 +50,36 @@ class TestCouplings(TestCase):
 
     def test_enrichment(self):
         """
-        tests the EC enrichment function
+        tests the EC enrichment function when the monomer ECs have no segments
         """
         enrichment_scores = pd.read_csv(self.enrichment_file)
         ecs = pd.read_csv(self.monomer_couplings)
+        ecs = ecs.drop(["segment_i", "segment_j"], axis=1)
         _enrichment_scores = enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6).reset_index(drop=True)
+
+        pd.testing.assert_frame_equal(enrichment_scores, _enrichment_scores)
+
+    def test_enrichment_monomer_segment(self):
+        """
+        tests the EC enrichment function when the monomer ECs have segments
+        """
+        enrichment_scores = pd.read_csv(self.enrichment_file)
+        enrichment_scores["segment_i"] = "A"
+        enrichment_scores = enrichment_scores[['i', 'A_i', 'segment_i', 'enrichment']]
+
+        ecs = pd.read_csv(self.monomer_couplings)
+        _enrichment_scores = enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6).reset_index(drop=True)
+
+        pd.testing.assert_frame_equal(enrichment_scores, _enrichment_scores)
+
+    def test_enrichment_complex_segment(self):
+        """
+        tests the EC enrichment function with complex ECs
+        """
+
+        ecs = pd.read_csv(self.couplings_file)
+        _enrichment_scores = enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6).reset_index(drop=True)
+        enrichment_scores = pd.read_csv(("{0}/couplings/test_new_enrichment.csv".format(TRAVIS_PATH)))
         pd.testing.assert_frame_equal(enrichment_scores, _enrichment_scores)
 
     def test_add_mixture_probability_skewnormal(self):
@@ -63,7 +91,6 @@ class TestCouplings(TestCase):
             "{}/couplings/test_new_CouplingScores_skewnormal.csv".format(TRAVIS_PATH), index_col=0
         )
         pd.testing.assert_frame_equal(ecs_with_prob, _test_ecs)
-
 
     def test_add_mixture_probability_normal(self):
         ecs_with_prob = add_mixture_probability(
@@ -88,7 +115,7 @@ class TestCouplings(TestCase):
     def test_add_mixture_probability_evcomplex(self):
         NeffL = self.outcfg["effective_sequences"] / self.outcfg["num_sites"]
         ecs_with_prob = add_mixture_probability(
-            self.inter_ecs, model="evcomplex", N_effL= NeffL
+            self.inter_ecs, model="evcomplex", N_effL=NeffL
         )
 
         _test_ecs = pd.read_csv(
