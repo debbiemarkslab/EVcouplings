@@ -39,10 +39,12 @@ from evcouplings.couplings.mapping import (
     SegmentIndexMapper, Segment, map_positions
 )
 
+
 def _split_annotation_string(string):
     id, annotation_str = string.split("/")
     region_start, region_end = annotation_str.split("-")
     return (id, int(region_start), int(region_end))
+
 
 def remove_overlapping_ids(id_dataframe):
     """
@@ -126,6 +128,8 @@ def map_frequencies_file(frequencies_file, outcfg, **kwargs):
 
     Parameters
     ----------
+    frequencies_file: str
+        path to the frequencies file to be renumbered
     outcfg : dict
         The output configuration
 
