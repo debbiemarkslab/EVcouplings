@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 from evcouplings.couplings import tools as ct
-from evcouplings.couplings import pairs, mapping
+from evcouplings.couplings import pairs, mapping, enrichment
 from evcouplings.couplings.mean_field import MeanFieldDCA
 from evcouplings.couplings.model import CouplingsModel
 from evcouplings.visualize.parameters import evzoom_json
@@ -318,7 +318,7 @@ def standard(**kwargs):
 
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
-                       N_eff=None, num_sites=None, score="cn"):
+                        N_eff=None, num_sites=None, score="cn"):
     """
     Adds confidence measure for complex evolutionary couplings
 
@@ -382,6 +382,38 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         )
 
     return ecs
+
+def _inter_ec_enrichment(ecs, outcfg, **kwargs):
+    """
+    calculates EC enrichment for inter-protein ECs
+    
+    calculates intra enrichment (using intra-protein ECs) and inter enrichment 
+    (using inter-protein ECs)
+    
+    """# calculate enrichment for complexes
+    intra1_ecs = ecs.query("segment_i == segment_j == 'A_1'")
+    intra2_ecs = ecs.query("segment_i == segment_j == 'B_1'")
+    inter_ecs = ecs.query("segment_i != segment_j")
+
+    intra1_enrichment = enrichment(intra1_ecs, min_seqdist=kwargs["min_sequence_distance"])
+    intra1_enrichment["segment_i"] = "A_1"
+
+    intra2_enrichment = enrichment(intra2_ecs, min_seqdist=kwargs["min_sequence_distance"])
+    intra2_enrichment["segment_i"] = "B_1"
+
+    # for inter ECs, sequence distance is 0
+    inter_enrichment = enrichment(inter_ecs, min_seqdist=0)
+
+    intra_enrichment = pd.concat([
+        intra1_enrichment, intra2_enrichment
+    ]).sort_values(by="enrichment", ascending=False)
+
+    outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(kwargs["prefix"])
+    outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(kwargs["prefix"])
+    intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
+    inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
+
+    return outcfg
 
 
 def complex(**kwargs):
@@ -481,13 +513,9 @@ def complex(**kwargs):
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
 
+    outcfg = _inter_ec_enrichment(ecs, outcfg, **kwargs)
     # TODO: make the following complex-ready
-    # EC enrichment:
-    #
-    # 1) think about making EC enrichment complex-ready and add
-    # it back here - so far it only makes sense if all ECs are
-    # on one segment
-    #
+
     # EVzoom:
     #
     # 1) at the moment, EVzoom will use numbering before remapping
