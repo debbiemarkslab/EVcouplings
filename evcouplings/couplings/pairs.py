@@ -12,7 +12,7 @@ Authors:
   Thomas A. Hopf
   Agnes Toth-Petroczy (original mixture model code)
   John Ingraham (skew normal mixture model)
-  Anna G. Green (EVComplex Score code)
+  Anna G. Green (EVComplex Score code, segment-aware enrichment calculation )
 """
 
 import math
@@ -64,9 +64,6 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     Calculate EC "enrichment" as first described in
     Hopf et al., Cell, 2012.
 
-    .. todo::
-
-        Make this handle segments if they are in EC table
 
     Parameters
     ----------
@@ -90,37 +87,49 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
         Sorted table with enrichment values for each
         position in the sequence
     """
-    # determine how many positions ECs are over
-    pos = set(ecs.i.unique()) | set(ecs.j.unique())
-    num_pos = len(pos)
+
+    # check if the provided table has segments...
+    if "segment_i" in ecs.columns and "segment_j" in ecs.columns:
+        has_segments = True
+    # ... and if not, create them
+    else:
+        has_segments = False
+        ecs["segment_i"] = "A_1"
+        ecs["segment_j"] = "A_1"
+
+    # stack dataframe so it contains each
+    # EC twice as forward and backward pairs
+    # (i, j) and (j, i)
+    flipped = ecs.rename(
+        columns={
+            "i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i",
+            "segment_i": "segment_j", "segment_j": "segment_i"
+        }
+    )
+
+    stacked_ecs = ecs.append(flipped)
+
+    # determine how many positions ECs are over using the combined dataframe
+    num_pos = len(stacked_ecs.groupby(["i", "A_i", "segment_i"]))
 
     # calculate absolute number of pairs if
     # fraction of length is given
     if isinstance(num_pairs, float):
         num_pairs = int(math.ceil(num_pairs * num_pos))
 
-    # get longrange ECs and sort by score
-    sorted_ecs = ecs.query(
+    # sort the stacked ECs
+    stacked_sorted_ecs = stacked_ecs.query(
         "abs(i-j) >= {}".format(min_seqdist)
     ).sort_values(
         by=score, ascending=False
     )
 
-    # select top EC pairs
-    top_ecs = sorted_ecs.iloc[0:num_pairs]
+    # take the top num *2 (because each EC represented twice)
+    top_ecs = stacked_sorted_ecs[0:num_pairs * 2]
 
-    # stack dataframe so it contains each
-    # EC twice as forward and backward pairs
-    # (i, j) and (j, i)
-    flipped = top_ecs.rename(
-        columns={"i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i"}
-    )
-
-    stacked_ecs = top_ecs.append(flipped)
-
-    # now sum cumulative strength of EC for each position
+    # calculate sum of EC scores for each position
     ec_sums = pd.DataFrame(
-        stacked_ecs.groupby(["i", "A_i"]).sum()
+        top_ecs.groupby(["i", "A_i", "segment_i"]).sum()
     )
 
     # average EC strength for top ECs
@@ -130,7 +139,12 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     # an individual position exceeds average strength in top
     ec_sums.loc[:, "enrichment"] = ec_sums.loc[:, score] / avg_degree
 
-    e = ec_sums.reset_index().loc[:, ["i", "A_i", "enrichment"]]
+    # if the ecs had segment information, return a segment column
+    if has_segments:
+        e = ec_sums.reset_index().loc[:, ["i", "A_i", "segment_i", "enrichment"]]
+    else:
+        e = ec_sums.reset_index().loc[:, ["i", "A_i", "enrichment"]]
+
     return e.sort_values(by="enrichment", ascending=False)
 
 
@@ -687,7 +701,7 @@ class EVComplexScoreModel:
 
 
 def add_mixture_probability(ecs, model="skewnormal", score="cn",
-                            clamp_mu=False, plot=False, N_effL = None):
+                            clamp_mu=False, plot=False, N_effL=None):
     """
     Add lognormal mixture model probability to EC table.
 
