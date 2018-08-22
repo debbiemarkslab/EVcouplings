@@ -253,6 +253,10 @@ concatenate:
     # as paralogs. Required for best_hit in best reciprocal mode only
     paralog_identity_threshold: 0.95
     
+    # forbid overlapping regions of the same seqeunce ID from being concatenated
+    # for typical heteromultimeric complexes, this should be true
+    forbid_overlapping_concatenation: true
+    
     # Parameters for filtering of concatenated alignment
     
     # Filter sequence alignment at this % sequence identity cutoff. Can be used to cut computation time in
