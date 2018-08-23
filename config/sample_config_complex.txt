@@ -178,7 +178,7 @@ align_2:
 
     # sequence database (specify possible databases and paths in "databases" section below)
     # note: use uniprot for genome distance based concatenation
-    database: uniref100
+    database: uniprot
 
     # compute the redundancy-reduced number of effective sequences (M_eff) already in the alignment stage.
     # To save compute time, this computation is normally carried out in the couplings stage
