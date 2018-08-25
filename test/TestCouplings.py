@@ -9,7 +9,7 @@ import unittest
 import os
 import tempfile
 import pandas as pd
-import ruamel_yaml as yaml
+import ruamel.yaml as yaml
 from unittest import TestCase
 from evcouplings.couplings.pairs import *
 
