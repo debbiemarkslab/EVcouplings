@@ -354,18 +354,20 @@ compare:
     # Leave this parameter empty to use all PDB structures for given sequence_id, otherwise
     # will be limited to the given IDs (single value or list). Important: note that this acts only as a filter on the
     # structures found by alignment or in the SIFTS table (!)
-    pdb_ids:
+    inter_pdb_ids:
     first_pdb_ids:
     second_pdb_ids:
 
     # Limit number of structures and chains for comparison
-    # Note - the intersection of the monomer structural hits is taken to find the
-    # Inter-protein structures. If you limit the number of monomer structures found in this step, 
-    # you may miss some inter-protein structures
-    first_max_num_structures: 100
-    first_max_num_hits: 100
-    second_max_num_structures: 100
-    second_max_num_hits: 100
+    inter_max_num_structures: 10
+    inter_max_num_hits: 10
+
+    # Limit number chains and structures to use for each monomer comparison, IN ADDITION to those found from the
+    # inter protein compariso
+    first_max_num_structures: 10
+    first_max_num_hits: 10
+    second_max_num_structures: 10
+    second_max_num_hits: 10
 
     # compare to multimer contacts (if multiple chains of the same sequence or its homologs are present in a structure)
     first_compare_multimer: True
