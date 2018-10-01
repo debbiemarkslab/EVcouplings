@@ -713,7 +713,7 @@ def complex(**kwargs):
 
         # initialize output inter distancemap files
         "distmap_inter": prefix + "_distmap_inter",
-        "inter_contacts_file": prefix + "_inter_contacts_file"
+        "inter_contacts_file": prefix + "_inter_contacts.csv"
     }
 
     # Add PDB comparison files for first and second monomer
@@ -785,7 +785,7 @@ def complex(**kwargs):
     inter_protein_hits_full = first_sifts_map_full.hits.merge(
         second_sifts_map_full.hits, on="pdb_id", how="inner", suffixes=["_1", "_2"]
     )
-    outcfg["structure_hits_unfiltered_file"] = prefix + "_inter_structure_hits_full.csv"
+    outcfg["structure_hits_unfiltered_file"] = prefix + "_inter_structure_hits_unfiltered.csv"
     inter_protein_hits_full.to_csv(outcfg["structure_hits_unfiltered_file"])
 
     # Filter for the number of PDB ids to use
@@ -832,6 +832,17 @@ def complex(**kwargs):
 
     first_chain_name = Segment.from_list(kwargs["segments"][0]).default_chain_name()
     second_chain_name = Segment.from_list(kwargs["segments"][1]).default_chain_name()
+
+    # load all structures at once
+    all_ids = set(first_sifts_map.hits.pdb_id).union(
+    	set(second_sifts_map.hits.pdb_id)
+    )
+
+    structures = load_structures(
+        all_ids,
+        kwargs["pdb_mmtf_dir"],
+        raise_missing=False
+    )
 
     # Step 2: Compute distance maps
     def _compute_monomer_distance_maps(sifts_map, name_prefix, chain_name):
@@ -881,7 +892,7 @@ def complex(**kwargs):
             # if we have a multimer contact map, save it
             if d_multimer is not None:
                 d_multimer.to_file(outcfg[name_prefix + "_distmap_multimer"])
-                outcfg[name_prefix + "_multimer_contacts_file"] = prefix + name_prefix + "_contacts_multimer.csv"
+                outcfg[name_prefix + "_multimer_contacts_file"] = prefix + "_" + name_prefix + "_contacts_multimer.csv"
 
                 # save contacts to separate file
                 d_multimer.contacts(
