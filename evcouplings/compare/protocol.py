@@ -20,9 +20,9 @@ from evcouplings.utils.config import (
 )
 
 from evcouplings.utils.system import (
-    create_prefix_folders, insert_dir, verify_resources,
+    create_prefix_folders, insert_dir, verify_resources, valid_file
 )
-from evcouplings.couplings import Segment
+from evcouplings.couplings import Segment, add_mixture_probability
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
     intra_dists, multimer_dists, remap_chains,
@@ -33,6 +33,58 @@ from evcouplings.compare.ecs import (
     coupling_scores_compared, add_precision
 )
 from evcouplings.visualize import pairs, misc
+from evcouplings.compare.enrichment import create_enrichment_table, add_enrichment
+from evcouplings.compare.asa import combine_asa, add_asa
+
+def complex_probability(ecs, scoring_model, use_all_ecs=False,
+                        score="cn", N_effL=None):
+    """
+    Adds confidence measure for complex evolutionary couplings
+
+    Parameters
+    ----------
+    ecs : pandas.DataFrame
+        Table with evolutionary couplings
+    scoring_model : {"skewnormal", "normal", "evcomplex"}
+        Use this scoring model to assign EC confidence measure
+    use_all_ecs : bool, optional (default: False)
+        If true, fits the scoring model to all ECs;
+        if false, fits the model to only the inter ECs.
+    score : str, optional (default: "cn")
+        Use this score column for confidence assignment
+        
+    Returns
+    -------
+    ecs : pandas.DataFrame
+        EC table with additional column "probability"
+        containing confidence measure
+    """
+    from evcouplings.couplings.pairs import add_mixture_probability
+
+    if use_all_ecs:
+        ecs = add_mixture_probability(
+            ecs, model=scoring_model
+        )
+    else:
+        inter_ecs = ecs.query("segment_i != segment_j")
+        intra_ecs = ecs.query("segment_i == segment_j")
+
+        intra_ecs = add_mixture_probability(
+            intra_ecs, model=scoring_model, score=score, N_effL=N_effL
+        )
+
+        inter_ecs = add_mixture_probability(
+            inter_ecs, model=scoring_model, score=score, N_effL=N_effL
+        )
+
+        ecs = pd.concat(
+            [intra_ecs, inter_ecs]
+        ).sort_values(
+            score, ascending=False
+        )
+
+    return ecs
+
 
 def _filter_structures(sifts_map, pdb_ids=None, max_num_hits=None, max_num_structures=None):
 
@@ -910,8 +962,8 @@ def complex(**kwargs):
             outcfg[name_prefix + "_remapped_pdb_files"] = {
                 filename: mapping_index for mapping_index, filename in
                 remap_chains(
-                    sifts_map, aux_prefix, seqmap, chain_name=chain_name,
-                    raise_missing=kwargs["raise_missing"]
+                    sifts_map, aux_prefix, None, chain_name=chain_name,
+                    raise_missing=kwargs["raise_missing"], atom_filter=None
                 ).items()
             }
 
@@ -1029,6 +1081,68 @@ def complex(**kwargs):
             # save the inter ECs to a file
             ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
 
+     # create an inter-ecs file with extra information for calibration purposes
+    def _calibration_file(prefix, ec_file):
+
+        if not valid_file(ec_file):
+            return None
+
+        ecs = pd.read_csv(ec_file)
+
+        #add the skewnormal fitted domainwise
+        ecs = complex_probability(
+            ecs, "skewnormal", False
+        )
+        ecs.loc[:,"skewnormal_domainwise"] = ecs.loc[:,"probability"]
+
+        #add the skewnormal fitted on all
+        ecs = complex_probability(
+            ecs, "skewnormal", True
+        )
+        ecs.loc[:,"skewnormal_all"] = ecs.loc[:,"probability"]
+
+
+        #add the evcomplex score
+        ecs = complex_probability(
+            ecs, "evcomplex_uncorrected", False
+        )
+        ecs.loc[:,"evcomplex_raw"] = ecs.loc[:,"probability"]
+
+        #add the evcomplex score
+        ecs = complex_probability(
+            ecs, "evcomplex", False, N_effL=kwargs["effective_sequences"]/kwargs["num_sites"]
+        )
+        ecs.loc[:,"evcomplex_normed"] = ecs.loc[:,"probability"]
+
+        # enrichment
+        enrichment_table = create_enrichment_table(
+            ecs, d_intra_i, d_intra_j
+        )
+        enrichment_table.to_csv(prefix + "_enrichment_complete.csv")
+        ecs = add_enrichment(enrichment_table, ecs)
+
+        # accessible surface area
+        first_asa = combine_asa(outcfg["first_remapped_pdb_files"], kwargs["prefix"])
+        first_asa["segment_i"] = "A_1"
+
+        second_asa = combine_asa(outcfg["second_remapped_pdb_files"], kwargs["prefix"])
+        second_asa["segment_i"] = "B_1"
+
+        asa = pd.concat([first_asa, second_asa])
+        asa.to_csv(prefix + "_surface_area.csv")
+
+        ecs = add_asa(ecs, asa, asa_column="mean")
+
+        #write the file (top 100 only)
+        inter_ecs = ecs.query("segment_i != segment_j")
+        outcfg["calibration_file"] = prefix + "_CouplingScores_inter_calibration.csv"
+        inter_ecs.iloc[0:1000, :].to_csv(outcfg["calibration_file"])
+
+    if valid_file(outcfg["ec_compared_longrange_file"]):
+        _calibration_file(prefix, outcfg["ec_compared_longrange_file"])
+    else:
+        _calibration_file(prefix, kwargs["ec_file"])
+
     # create the inter-ecs line drawing script
     if outcfg["ec_compared_inter_file"] is not None and kwargs["plot_highest_count"] is not None:
         inter_ecs = ec_table.query("segment_i != segment_j")
@@ -1052,7 +1166,7 @@ def complex(**kwargs):
             remap_complex_chains(
                 first_sifts_map, second_sifts_map,
                 seqmap_i, seqmap_j, output_prefix=aux_prefix,
-                raise_missing=kwargs["raise_missing"]
+                raise_missing=kwargs["raise_missing"], atom_filter=None
             ).items()
         }
 
