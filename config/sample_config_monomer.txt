@@ -140,7 +140,9 @@ align:
 
 # Inference of evolutionary couplings from sequence alignment
 couplings:
-    # current options: standard (model inference using plmc)
+    # current options: 
+    # - standard (model inference using plmc)
+    # - mean_field (mean field direct coupling analysis, see below for required parameters)
     protocol: standard
 
     # number of plmc iterations
@@ -163,13 +165,17 @@ couplings:
     lambda_h: 0.01
     lambda_group:
     scale_clusters:
-
+    
     # reuse ECs and model parameters, if this stage has been run before
     reuse_ecs: True
 
     # Sequence separation filter for generation of CouplingScores_longrange.csv table (i.e. to take out short-range
     # ECs from table, only pairs with abs(i-j)>=min_sequence_distance will be kept.
     min_sequence_distance: 6
+    
+    # The following parameters are specific to the mean field protocol
+    # For now, mean field DCA can only be run with ignore_gaps: False and focus_mode: True
+    # pseudo_count: 0.5
 
     # Following input parameters will usually be overriden by "global" and outputs of "align" stage
     # prefix:
