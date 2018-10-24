@@ -206,9 +206,9 @@ def _identify_structures(**kwargs):
     # Save the pre-filtered SIFTs map
     sifts_map_full = deepcopy(sifts_map)
 
-    # Filter the SIFTS map
+    #Filter the SIFTS map
     sifts_map = _filter_structures(
-        sifts_map_full, kwargs["pdb_ids"], kwargs["max_num_hits"], kwargs["max_num_structures"]
+       sifts_map, kwargs["pdb_ids"], kwargs["max_num_hits"], kwargs["max_num_structures"]
     )
 
     return sifts_map, sifts_map_full
@@ -833,6 +833,9 @@ def complex(**kwargs):
     outcfg, first_sifts_map, first_sifts_map_full = _identify_monomer_structures("first", outcfg, first_aux_prefix)
     outcfg, second_sifts_map, second_sifts_map_full = _identify_monomer_structures("second", outcfg, second_aux_prefix)
 
+    print("First sifts map is len {}, filtered len {}".format(len(first_sifts_map_full.hits), len(first_sifts_map.hits)))
+    print("Second sifts map is len {}, filtered len {}".format(len(second_sifts_map_full.hits), len(second_sifts_map.hits)))
+
     # Determine the inter-protein PDB hits based on the full sifts map for each monomer
     inter_protein_hits_full = first_sifts_map_full.hits.merge(
         second_sifts_map_full.hits, on="pdb_id", how="inner", suffixes=["_1", "_2"]
@@ -848,10 +851,11 @@ def complex(**kwargs):
         kwargs["inter_max_num_hits"],
         kwargs["inter_max_num_structures"]
     )
+    print("number of inter protein hits {}".format(len(inter_protein_sifts.hits)))
     outcfg["structure_hits_file"] = prefix + "_inter_structure_hits.csv"
     inter_protein_sifts.hits.to_csv(outcfg["structure_hits_file"])
     
-    def _add_inter_pdbs(inter_protein_sifts, sifts_map, sifts_map_full, name_prefix):
+    def _add_inter_pdbs(inter_protein_sifts, sifts_map, sifts_map_full, name_prefix,):
         """
         ensures that all pdbs used for inter comparison end up in the monomer SIFTS hits
         """
@@ -869,7 +873,7 @@ def complex(**kwargs):
 
     first_sifts_map = _add_inter_pdbs(inter_protein_sifts, first_sifts_map, first_sifts_map_full, "first")
     second_sifts_map = _add_inter_pdbs(inter_protein_sifts, second_sifts_map, second_sifts_map_full, "second")
-
+    print(len(first_sifts_map.hits))
     # get the segment names from the kwargs
     segment_list = kwargs["segments"]
 
