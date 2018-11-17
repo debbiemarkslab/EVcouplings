@@ -435,12 +435,13 @@ def execute_wrapped(**config):
     # handler for external interruptions
     # (needs config for database access)
     def _handler(signal_, frame):
-        # set job status to terminated in database
-        update_job_status(config, status=EStatus.TERM)
-
         # create file flag that job was terminated
-        with open(prefix + ".terminated", "w") as f:
+        with open(prefix + EXTENSION_TERMINATED, "w") as f:
             f.write("SIGNAL: {}\n".format(signal_))
+
+        # set job status to terminated in database
+        # TODO: store termination reason
+        update_job_status(config, status=EStatus.TERM)
 
         # terminate program
         sys.exit(1)
@@ -457,18 +458,19 @@ def execute_wrapped(**config):
 
         # if we made it here, job was sucessfully run to completing
         # create file flag that job was terminated
-        with open(prefix + ".finished", "w") as f:
+        with open(prefix + EXTENSION_DONE, "w") as f:
             f.write(repr(outcfg))
 
         return outcfg
 
     except Exception as e:
-        # set status in database to failed
-        update_job_status(config, status=EStatus.FAIL)
-
         # create failed file flag
-        with open(prefix + ".failed", "w") as f:
+        with open(prefix + EXTENSION_FAILED, "w") as f:
             f.write(traceback.format_exc())
+
+        # set status in database to failed
+        # TODO: store failure reason
+        update_job_status(config, status=EStatus.FAIL)
 
         # raise exception again after we updated status
         raise
@@ -513,6 +515,7 @@ def app(**kwargs):
 
     # print final result configuration to stdout
     print(outcfg)
+
 
 if __name__ == '__main__':
     app()
