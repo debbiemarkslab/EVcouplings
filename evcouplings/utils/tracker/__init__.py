@@ -70,7 +70,7 @@ def get_result_tracker(config):
     pipeline = config.get("pipeline")
 
     # list of files that tracker should store
-    file_list = management.get("tracker_file_list", [])
+    file_list = management.get("tracker_file_list", None)
 
     # list of files that pipeline will delete
     delete_list = management.get("delete", [])
@@ -125,11 +125,7 @@ def get_result_tracker(config):
     # tracker to extract any sort of parametrization of the tracker
     if tracker_type == "mongodb":
         from evcouplings.utils.tracker.mongodb import MongoDBTracker
-
-        return MongoDBTracker(
-            connection_string, job_id, prefix, pipeline, file_list, delete_list, config,
-            retry_max_number, retry_wait
-        )
+        return MongoDBTracker(**kwargs)
     elif tracker_type == "sql":
         from evcouplings.utils.tracker.sql import SQLTracker
         return SQLTracker(**kwargs)

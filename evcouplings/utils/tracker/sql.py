@@ -97,8 +97,7 @@ class SQLTracker(ResultTracker):
 
     def get(self):
         """
-        Show the current entry (maybe use str or repr?)
-        Turn into get() method?
+        Return the current entry tracked by this tracker
         """
         with self.session_scope() as session:
             query = lambda: session.query(
@@ -213,7 +212,7 @@ class SQLTracker(ResultTracker):
 
             # if we switch into running state, record
             # current time as starting time of actual computation
-            if r.status == EStatus.RUN:
+            if status == EStatus.RUN:
                 if r.time_started is None:
                     r.time_started = func.now()
 
@@ -232,10 +231,6 @@ class SQLTracker(ResultTracker):
         # set termination/fail message
         if message is not None:
             r.message = str(message)
-
-        # if start time has not been set yet, do so
-        if r.time_started is None:
-            r.time_started = func.now()
 
         # update timestamp of last modification
         # (will correspond to finished time at the end)
@@ -266,6 +261,8 @@ class SQLTracker(ResultTracker):
 
             # finally, add updated result state to database record
             r.results = json.dumps(new_result_state)
+
+        session.commit()
 
     def update(self, status=None, message=None, stage=None, results=None):
         with self.session_scope() as session:
@@ -340,6 +337,10 @@ class ComputeJob(Base):
 
     # configuration of job (stringified JSON)
     config = Column(Text)
+
+    # Optional MD5 hash of configuration to identify
+    # unique job configurations
+    fingerprint = Column(String(32))
 
     # results of job (stringified JSON)
     results = Column(Text)
