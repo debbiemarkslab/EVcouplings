@@ -118,3 +118,40 @@ def check_required(params, keys):
                 ", ".join(missing), params
             )
         )
+
+
+def iterate_files(outcfg, subset=None):
+    """
+    Generator function to iterate a list of file
+    items in an outconfig
+
+    Parameters
+    ----------
+    outcfg : dict(str)
+        Configuration to extract file items for iteration from
+    subset : list(str)
+        List of keys in outcfg to restrict iteration to
+
+    Returns
+    -------
+    tuple(str, str, int)
+        Generator over tuples (file path, entry key, index).
+        index will be None if this is a single file entry
+        (i.e. ending with _file rather than _files).
+    """
+    for k, v in outcfg.items():
+        # continue items if there is a subset filter
+        if subset is not None and k not in subset:
+            continue
+
+        # only look at file entries, so skip everything else
+        # if not (k.endswith("_file") or k.endswith("_files")):
+        #    continue
+        if k.endswith("_file"):
+            yield (v, k, None)
+        elif k.endswith("_files"):
+            for i, f in enumerate(v):
+                yield (f, k, i)
+        else:
+            # skip any other entries
+            pass
