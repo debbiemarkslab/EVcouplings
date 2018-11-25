@@ -4,6 +4,10 @@ MongoDB-based result tracker
 Stores outconfig in document and files referenced in outconfig in GridFS.
 Using this tracker requires installing the pymongo package.
 
+TODO: Note that this tracker doesn't handle job reruns gracefully yet, because the result field will be
+progressively overwritten but not reset when the job is rerun. Upon rerun, all stale files would have to be
+removed from GridFS.
+
 # mongod --config /usr/local/etc/mongod.conf
 
 Authors:

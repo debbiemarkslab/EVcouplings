@@ -5,6 +5,9 @@ Using this tracker requires installation of the sqlalchemy package.
 Regarding using models from different sources in Flask-SQLAlchemy:
 https://stackoverflow.com/questions/28789063/associate-external-class-model-with-flask-sqlalchemy
 
+TODO: Note that this tracker doesn't handle job reruns gracefully yet, because the result field will be
+progressively overwritten but not reset when the job is rerun.
+
 Authors:
   Thomas A. Hopf
 """
