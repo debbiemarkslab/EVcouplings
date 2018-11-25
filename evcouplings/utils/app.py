@@ -18,7 +18,10 @@ from os import path
 import click
 
 from evcouplings import utils
-from evcouplings.utils import pipeline, database
+from evcouplings.utils import pipeline
+from evcouplings.utils.tracker import (
+    get_result_tracker, EStatus
+)
 
 from evcouplings.utils.system import (
     create_prefix_folders, ResourceError, valid_file
@@ -331,7 +334,7 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         job_cfg_file = CONFIG_NAME.format(job)
 
         # set job status in database to pending
-        pipeline.update_job_status(job_cfg, status=database.EStatus.PEND)
+        get_result_tracker(job_cfg).update(status=EStatus.PEND)
 
         # create submission command
         env = job_cfg["environment"]

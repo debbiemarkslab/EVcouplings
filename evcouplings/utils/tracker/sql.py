@@ -199,8 +199,7 @@ class SQLTracker(ResultTracker):
             # if we switch into running state, record
             # current time as starting time of actual computation
             if status == EStatus.RUN:
-                if r.time_started is None:
-                    r.time_started = func.now()
+                r.time_started = func.now()
 
                 # pragmatic hack to filling in the location if not
                 # already set - can only do this based on current directory

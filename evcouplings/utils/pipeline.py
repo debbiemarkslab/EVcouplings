@@ -26,8 +26,9 @@ from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources,
     valid_file
 )
-from evcouplings.utils.database import (
-    update_job_status, EStatus
+
+from evcouplings.utils.tracker import (
+    get_result_tracker, EStatus
 )
 
 import evcouplings.align.protocol as ap
@@ -134,8 +135,11 @@ def execute(**config):
     # the end of workflow below
     num_stages_to_run = len(stages)
 
-    # set job status to running
-    update_job_status(config, status=EStatus.RUN)
+    # get job tracker
+    tracker = get_result_tracker(config)
+
+    # set job status to running and also initalize global state
+    tracker.update(status=EStatus.RUN, results=global_state)
 
     # iterate through individual stages
     for (stage, runner, key_prefix) in pipeline:
@@ -156,7 +160,7 @@ def execute(**config):
         stage_outcfg = "{}_{}.outcfg".format(stage_prefix, stage)
 
         # update current stage of job
-        update_job_status(config, stage=stage)
+        tracker.update(stage=stage)
 
         # check if stage should be executed
         if stage in stages:
@@ -215,12 +219,27 @@ def execute(**config):
         # update global state with outputs of stage
         global_state = {**global_state, **outcfg}
 
+        # update state in tracker accordingly
+        tracker.update(results=outcfg)
+
     # create results archive
+    # TODO: should also consider case that there is no archive (no files selected)
     archive_file = prefix + ".tar.gz"
     create_archive(config, global_state, archive_file)
     global_state["archive_file"] = archive_file
 
-    # delete selected output files if requested
+    # TODO: update this accordingly (use same update for both)
+    # TODO: only update if selected for syncing (but tracker.file_list may be None or not exist at all in NullTracker!)
+    if global_state.get("archive_file"):
+        archive_update = {
+            "archive_file": archive_file
+        }
+    else:
+        archive_update = None
+
+    # delete selected output files if requested;
+    # tracker does not need to update here since it won't
+    # sync entries of delete list in the first place
     global_state = delete_outputs(config, global_state)
 
     # write final global state of pipeline
@@ -228,8 +247,10 @@ def execute(**config):
         prefix + FINAL_CONFIG_SUFFIX, global_state
     )
 
-    # set job status to done
-    update_job_status(config, status=EStatus.DONE)
+    # set job status to done and transfer archive if selected for syncing
+    tracker.update(
+        status=EStatus.DONE, results=archive_update
+    )
 
     return global_state
 
@@ -415,11 +436,19 @@ def execute_wrapped(**config):
     outcfg : dict
         Global output state of pipeline
     """
+    # get job tracker
+    tracker = get_result_tracker(config)
+
     # make sure the prefix in configuration is valid
     try:
         prefix = verify_prefix(**config)
     except Exception:
-        update_job_status(config, status=EStatus.TERM)
+        tracker.update(
+            status=EStatus.FAIL,
+            message="Invalid prefix: {}".format(
+                traceback.format_exc()
+            )
+        )
         raise
 
     # delete terminated/failed flags from previous
@@ -440,8 +469,10 @@ def execute_wrapped(**config):
             f.write("SIGNAL: {}\n".format(signal_))
 
         # set job status to terminated in database
-        # TODO: store termination reason
-        update_job_status(config, status=EStatus.TERM)
+        tracker.update(
+            status=EStatus.TERM,
+            message="Terminated with signal: {}\n".format(signal_)
+        )
 
         # terminate program
         sys.exit(1)
@@ -464,13 +495,19 @@ def execute_wrapped(**config):
         return outcfg
 
     except Exception as e:
+        formatted_exception = traceback.format_exc()
+
         # create failed file flag
         with open(prefix + EXTENSION_FAILED, "w") as f:
-            f.write(traceback.format_exc())
+            f.write(formatted_exception)
 
         # set status in database to failed
-        # TODO: store failure reason
-        update_job_status(config, status=EStatus.FAIL)
+        tracker.update(
+            status=EStatus.FAIL,
+            message="Crashed during job execution: {}".format(
+                formatted_exception
+            )
+        )
 
         # raise exception again after we updated status
         raise

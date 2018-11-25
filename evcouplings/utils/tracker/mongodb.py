@@ -227,9 +227,9 @@ class MongoDBTracker(ResultTracker):
         file_update = {}
 
         for file_key, file_items in file_mapping.items():
-            if file_key.endswith("_file"):
+            if file_key.endswith("_file") and file_items is not None:
                 file_update[file_key] = func(file_items, parent_id)
-            elif file_key.endswith("_files"):
+            elif file_key.endswith("_files") and file_items is not None:
                 # files may either be a list of simple filenames (else case, more common)
                 # or a mapping of file names to additional annotation (if case)
                 if isinstance(file_items, Mapping):
