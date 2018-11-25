@@ -13,7 +13,6 @@ from contextlib import contextmanager
 import json
 import os
 from copy import deepcopy
-import time
 
 from sqlalchemy import (
     Column, Integer, String, DateTime, Text,
@@ -23,7 +22,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import DBAPIError
 
-from evcouplings.utils.system import ResourceError
+from evcouplings.utils.helpers import retry
 from evcouplings.utils.tracker import EStatus
 from evcouplings.utils.tracker.base import ResultTracker
 
@@ -97,16 +96,15 @@ class SQLTracker(ResultTracker):
 
     def get(self):
         """
-        Return the current entry tracked by this tracker
+        Return the current entry tracked by this tracker.
+        Does not attempt to retry if database connection fails.
         """
         with self.session_scope() as session:
-            query = lambda: session.query(
+            query_res = session.query(
                 ComputeJob
             ).filter_by(
                 job_id=self.job_id
             ).all()
-
-            query_res = self._retry_query(query, session, rollback=False)
 
             q = [
                 deepcopy(x.__dict__) for x in query_res
@@ -125,8 +123,6 @@ class SQLTracker(ResultTracker):
         """
         Retry database query until success or maximum number of attempts
         is reached
-
-        Based on https://stackoverflow.com/questions/29634488/better-approach-to-handling-sqlalchemy-disconnects
 
         Parameters
         ----------
@@ -148,27 +144,17 @@ class SQLTracker(ResultTracker):
             If execution is not successful within maximum
             number of attempts
         """
-        # initialize maximum number of tries (if None, try forever)
-        num_retries = 0
+        if rollback:
+            retry_action = session.rollback
+        else:
+            retry_action = None
 
-        while self.retry_max_number is None or num_retries <= self.retry_max_number:
-            try:
-                return func()
-            except DBAPIError as e:
-                if num_retries <= self.retry_max_number and e.connection_invalidated:
-                    if rollback:
-                        session.rollback()
-                else:
-                    raise
-
-                # if waiting time is requested, wait before trying again
-                if self.retry_wait is not None:
-                    time.sleep(self.retry_wait)
-
-                num_retries += 1
-
-        raise ResourceError(
-            "Could not successfully execute database query within maximum number of retries"
+        return retry(
+            func,
+            self.retry_max_number,
+            self.retry_wait,
+            exceptions=DBAPIError,
+            retry_action=retry_action
         )
 
     def _execute_update(self, session, q, status=None, message=None, stage=None, results=None):

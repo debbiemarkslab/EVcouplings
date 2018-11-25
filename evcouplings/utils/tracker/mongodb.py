@@ -11,12 +11,13 @@ Authors:
 """
 
 import os
-import time
 from datetime import datetime
+from collections import Mapping
 
 from pymongo import MongoClient, errors
 import gridfs
 
+from evcouplings.utils.helpers import retry
 from evcouplings.utils.system import ResourceError
 from evcouplings.utils.tracker.base import ResultTracker
 from evcouplings.utils.tracker import EStatus
@@ -83,12 +84,10 @@ class MongoDBTracker(ResultTracker):
 
     def get(self):
         """
-        Return the current entry tracked by this tracker
+        Return the current entry tracked by this tracker.
+        Does not attempt to retry if database connection fails.
         """
-        res = self._retry_query(
-            lambda: self.jobs.find({"job_id": self.job_id})
-        )
-
+        res = self.jobs.find({"job_id": self.job_id})
         num_documents = res.count()
 
         if num_documents == 0:
@@ -120,34 +119,33 @@ class MongoDBTracker(ResultTracker):
             If execution is not successful within maximum
             number of attempts
         """
-        # initialize maximum number of tries (if None, try forever)
-        num_retries = 0
-
-        while self.retry_max_number is None or num_retries <= self.retry_max_number:
-            print("try...")  # TODO: remove
-            try:
-                return func()
-            except CATCH_MONGODB_EXCEPTIONS as e:
-                print("exception", e)  # TODO: remove
-                if num_retries >= self.retry_max_number:
-                    raise
-
-                # if waiting time is requested, wait before trying again
-                if self.retry_wait is not None:
-                    time.sleep(self.retry_wait)
-
-                num_retries += 1
-
-        raise ResourceError(
-            "Could not successfully execute database query within maximum number of retries"
+        return retry(
+            func,
+            self.retry_max_number,
+            self.retry_wait,
+            exceptions=CATCH_MONGODB_EXCEPTIONS,
         )
 
     def _insert_file(self, filename, parent_id):
         """
-        # TODO
+        Insert file from filesystem into database
+
+        Parameters
+        ----------
+        filename : str
+            Path to file that is to be inserted
+        parent_id : bson.ObjectId
+            MongoDB identifier of job document this
+            file is linked to
+
+        Returns
+        -------
+        dict
+            Dictionary with keys "filename" (original file
+             path) and "fs_id" (ObjectId of inserted file
+             in GridFS)
         """
         def _insert():
-            print("...STORING", filename, "for", parent_id)  # TODO
             with open(filename, "rb") as f:
                 return self.fs.put(
                     f,
@@ -172,12 +170,29 @@ class MongoDBTracker(ResultTracker):
 
     def _delete_file(self, file_entry, parent_id):
         """
-        # TODO
+        Delete file from GridFS
+
+        Parameters
+        ----------
+        file_entry : dict
+            Dictionary with entries "filename" with full
+            file path (not used here) and "fs_id" (ObjectId
+            of file that should be deleted). This type
+            of dictionary is originally created by _insert_file().
+        parent_id : bson.ObjectId
+            Identifier of parent job document. Currently
+            not used in this function.
         """
         def _delete():
-            self.fs.delete(file_entry["fs_id"])
+            # may run into problems if database was switched
+            # from path-based to GridFS-based file handling
+            # so pass if accessing fs_id fails
+            try:
+                target_file = file_entry["fs_id"]
+                self.fs.delete(target_file)
+            except TypeError:
+                pass
 
-        print("-> delete", file_entry)  # TODO: remove
         self._retry_query(
             _delete
         )
@@ -185,7 +200,29 @@ class MongoDBTracker(ResultTracker):
     @classmethod
     def _apply_to_files(cls, file_mapping, parent_id, func):
         """
-        # TODO
+        Apply function to a set of file entries (single file
+        or list of files) in a dictionary.
+
+        Parameters
+        ----------
+        file_mapping : dict
+            Dictionary with keys that end in "_file"
+            (single file path) or "_files" (list of file
+            paths).
+        parent_id : bson.ObjectId
+            MongoDB identifier of job document this
+            file is linked to
+        func : callable
+            Function to apply to every file in file_mapping
+            (should be either _insert_file() or _delete_file())
+
+        Returns
+        -------
+        file_update : dict
+            Updated version of file_mapping in which file paths
+            are substituted by dictionary that contain items
+            "filename" (original path) and "fs_id"(MongoDB ObjectId
+            of inserted file).
         """
         file_update = {}
 
@@ -193,18 +230,58 @@ class MongoDBTracker(ResultTracker):
             if file_key.endswith("_file"):
                 file_update[file_key] = func(file_items, parent_id)
             elif file_key.endswith("_files"):
-                file_update[file_key] = [
-                    func(file, parent_id) for file in file_items
-                ]
+                # files may either be a list of simple filenames (else case, more common)
+                # or a mapping of file names to additional annotation (if case)
+                if isinstance(file_items, Mapping):
+                    file_update[file_key] = [
+                        {
+                            **func(file, parent_id),
+                            "value": value
+                        }
+                        for file, value in file_items.items()
+                    ]
+                else:
+                    file_update[file_key] = [
+                        func(file, parent_id) for file in file_items
+                    ]
 
         return file_update
 
-    def _update_files(self, results, current_state):
+    def _update_results(self, results, current_state):
         """
-        # TODO
+        Update results in MongoDB, storing files in GridFS
+
+        Parameters
+        ----------
+        results : dict
+            Result document as returned by pipeline, for input
+            in MongoDB
+        current_state : dict
+            Full current state of database entry (including results
+            subdocument)
+
+        Returns
+        -------
+        update : dict
+            Update to "results" subdocument in MongoDB.
+            To be inserted in database by calling function.
         """
-        # partition in files and non files
-        print("--- FILE UPLOAD ---")  # TODO: remove
+        # no file list given -> store files as paths
+        if self.file_list is None:
+            # in this case, store everything but those files that
+            # are in deletion list; no need to distinguish between
+            # file and non-file entries
+            results_update = {
+                k: v for k, v in results.items() if k not in self.delete_list
+            }
+
+            return results_update
+
+        # Otherwise case, store all files that are selected
+        # by file_list in GridFS, and delete any older
+        # versions; keep other non-file entries as they are
+
+        # first, partition in files and non files
 
         # determine which result entries are files
         files = {
@@ -218,13 +295,10 @@ class MongoDBTracker(ResultTracker):
             k not in files
         }
 
-        print("other entries:", other_entries)  # TODO
-
         files_for_storage = {
             k: v for (k, v) in files.items()
             if k in self.file_list
         }
-        print("files for storage:", files_for_storage)  # TODO
 
         # determine which file entries were already present
         # and need to be deleted because they are replaced
@@ -233,7 +307,6 @@ class MongoDBTracker(ResultTracker):
             k: v for (k, v) in current_state.get("results", {}).items()
             if k in files_for_storage
         }
-        print("updated files", outdated_files)
 
         # insert new files, linked to job database entry (parent)
         file_update = self._apply_to_files(
@@ -241,7 +314,6 @@ class MongoDBTracker(ResultTracker):
             parent_id=current_state["_id"],
             func=self._insert_file
         )
-        print("FILE UPDATE RESULT", file_update)
 
         # delete outdated old versions of files
         self._apply_to_files(
@@ -301,13 +373,11 @@ class MongoDBTracker(ResultTracker):
                 # different working directory (e.g. batch submitter in evcouplings app)
                 if current_state.get("location") is None:
                     update["location"] = os.getcwd()
-                    print("Setting location")  # TODO: remove
 
         else:
             # if there is no status field, means we just created the job, so set to init
             if current_state.get("status") is None:
                 update["status"] = EStatus.INIT
-                print("Setting init status")  # TODO: remove
 
         # if stage is given, update
         if stage is not None:
@@ -317,31 +387,17 @@ class MongoDBTracker(ResultTracker):
         if message is not None:
             update["message"] = str(message)
 
+        # update job results
         if results is not None:
-            # no file list given -> store files as paths
-            if self.file_list is None:
-                # in this case, store everything but those files that
-                # are in deletion list
-                print("storing file paths...")  # TODO: remove
-                results_update = {
-                    k: v for k, v in results.items() if k not in self.delete_list
-                }
+            results_update = self._update_results(results, current_state)
 
-            else:
-                # in this case, store all files that are selected
-                # by file_list in GridFS, and delete any older
-                # versions
-                print("storing files in GridFS")  # TODO: remove
-                results_update = self._update_files(results, current_state)
-
+            # merge with other parts of update from above
             update = {
                 **update,
                 **{
                     ("results." + k): v for (k, v) in results_update.items()
                 }
             }
-
-        print("ACTUAL UPDATE:", update)
 
         # second pass of update
         if len(update) > 0:
@@ -352,6 +408,3 @@ class MongoDBTracker(ResultTracker):
                 )
 
             self._retry_query(second_query)
-
-        print("done...")  # TODO: remove
-

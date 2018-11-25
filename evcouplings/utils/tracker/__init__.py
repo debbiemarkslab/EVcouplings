@@ -21,7 +21,7 @@ TRACKER_PASSWORD_KEY = "EVCOUPLINGS_TRACKER_PASSWORD"
 TRACKER_MAX_NUM_RETRIES = None
 
 # default: wait for 5 minutes, unless specified otherwise
-TRACKER_RETRY_WAIT = 300
+TRACKER_RETRY_WAIT = 60
 
 # enumeration of possible job status values
 EStatus = (lambda **enums: type('Enum', (), enums))(
