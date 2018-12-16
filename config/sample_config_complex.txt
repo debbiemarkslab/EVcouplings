@@ -369,7 +369,7 @@ compare:
 
     # settings for sequence alignment against PDB sequences using jackhmmer
     # (additional settings like iterations possible, compare to align stage)
-    sequence_file:
+    first_sequence_file:
     first_first_index:
     first_region:
     first_alignment_min_overlap: 20
