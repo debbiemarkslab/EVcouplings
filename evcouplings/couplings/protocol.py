@@ -672,6 +672,9 @@ def mean_field(**kwargs):
         ascending=False
     )
 
+    # Add dummy probability value for compatibility with downstream code
+    ecs.loc[:, "probability"] = np.nan
+
     is_single_segment = segments is None or len(segments) == 1
     outcfg = {
         **outcfg,
