@@ -403,7 +403,7 @@ class SIFTS:
         # add column to dataframe
         self.table.loc[:, "uniprot_id"] = self.table.loc[:, "uniprot_ac"].map(ac_to_id)
 
-    def create_sequence_file(self, output_file):
+    def create_sequence_file(self, output_file, chunk_size=1000, max_retries=100):
         """
         Create FASTA sequence file containing all UniProt
         sequences of proteins in SIFTS. This file is required
@@ -416,31 +416,68 @@ class SIFTS:
         ----------
         output_file : str
             Path at which to store sequence file
+        chunk_size : int, optional (default: 1000)
+            Retrieve sequences from UniProt in chunks of this size
+            (too large chunks cause the mapping service to stall)
+        max_retries : int, optional (default: 100)
+            Allow this many retries when fetching sequences
+            from UniProt ID mapping service, which unfortunately
+            often suffers from connection failures.
         """
         ids = self.table.uniprot_ac.unique().tolist()
 
-        CHUNK_SIZE = 1000
-        chunks = [
-            ids[i:i + CHUNK_SIZE] for i in range(0, len(ids), CHUNK_SIZE)
+        # retrieve sequences in chunks since ID mapping service
+        # tends to fail on large requests
+        id_chunks = [
+            ids[i:i + chunk_size] for i in range(0, len(ids), chunk_size)
         ]
 
+        # store individual retrieved chunks as list of strings
+        seq_chunks = []
+
+        # keep track of how many retries were necessary and
+        # abort if number exceeds max_retries
+        num_retries = 0
+
+        for ch in id_chunks:
+            # fetch sequence chunk;
+            # if there is a problem retry as long as we stay within
+            # maximum number of retries
+            while True:
+                try:
+                    seqs = fetch_uniprot_mapping(ch)
+                    break
+                except requests.ConnectionError as e:
+                    # count as failed try
+                    num_retries += 1
+
+                    # if we retried too often, abort
+                    if num_retries > max_retries:
+                        raise ResourceError(
+                            "Could not fetch sequences for SIFTS mapping tables from UniProt since "
+                            "maximum number of retries after connection errors was exceeded. Retry "
+                            "at a later time, or call SIFTS.create_sequence_file() with a higher value "
+                            "for max_retries."
+                        ) from e
+
+            # rename identifiers in sequence file, so
+            # we can circumvent Uniprot sequence identifiers
+            # being prefixed by hmmer if a hit has exactly the
+            # same identifier as the query sequence
+            seqs = seqs.replace(
+                ">sp|", ">evsp|",
+            ).replace(
+                ">tr|", ">evtr|",
+            )
+
+            assert seqs.endswith("\n")
+
+            # store for writing
+            seq_chunks.append(seqs)
+
+        # store sequences to FASTA file in one go at the end
         with open(output_file, "w") as f:
-            for ch in chunks:
-                # fetch sequence chunk
-                seqs = fetch_uniprot_mapping(ch)
-
-                # rename identifiers in sequence file, so
-                # we can circumvent Uniprot sequence identifiers
-                # being prefixed by hmmer if a hit has exactly the
-                # same identifier as the query sequence
-                seqs = seqs.replace(
-                    ">sp|", ">evsp|",
-                ).replace(
-                    ">tr|", ">evtr|",
-                )
-
-                # then store to FASTA file
-                f.write(seqs)
+            f.write("".join(seq_chunks))
 
         self.sequence_file = output_file
 
