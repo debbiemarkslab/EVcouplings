@@ -754,16 +754,19 @@ def complex(**kwargs):
     # Step 1: Identify 3D structures for comparison
     def _identify_monomer_structures(name_prefix, outcfg, aux_prefix):
         # create a dictionary with kwargs for just the current monomer
-        # remove the "prefix" kwargs so that we can replace with the 
-        # aux prefix when calling _identify_structures
-        # only replace first occurrence of name_prefix
-        monomer_kwargs = {
-            k.replace(name_prefix + "_", "", 1): v for k, v in kwargs.items() if "prefix" not in k
-        }
+        # any prefix that starts with a name_prefix will overwrite prefixes that do not start
+        # eg, "first_sequence_file" will overwrite "sequence_file"
+        monomer_kwargs = deepcopy(kwargs)
+        for k,v in monomer_kwargs.items():
+            if name_prefix + "_" in k:
+                # only replace first occurrence of name_prefix
+                monomer_kwargs[k.replace(name_prefix + "_", "", 1)] = v
 
-        # this field needs to be set explicitly else it gets overwritten by concatenated file
-        monomer_kwargs["alignment_file"] = kwargs[name_prefix + "_alignment_file"]
-        monomer_kwargs["raw_focus_alignment_file"] = kwargs[name_prefix + "_raw_focus_alignment_file"]
+        # remove the "prefix" kwargs so that we can replace with the
+        # aux prefix when calling _identify_structures
+        monomer_kwargs = {
+            k: v for k, v in kwargs.items() if "prefix" not in k
+        }
 
         # identify structures for that monomer
         sifts_map, sifts_map_full = _identify_structures(
