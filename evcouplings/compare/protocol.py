@@ -1126,6 +1126,12 @@ def complex(**kwargs):
         ecs = add_enrichment(enrichment_table, ecs)
 
         # accessible surface area
+        if not "first_remapped_pdb_files" in outcfg:
+            outcfg["first_remapped_pdb_files"] = []
+
+        if not "second_remapped_pdb_files" in outcfg:
+            outcfg["second_remapped_pdb_files"] = []
+
         first_asa = combine_asa(outcfg["first_remapped_pdb_files"], kwargs["prefix"])
         first_asa["segment_i"] = "A_1"
 

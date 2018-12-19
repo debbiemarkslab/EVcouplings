@@ -108,6 +108,14 @@ def combine_asa(remapped_pdb_files, prefix):
 			"asa": []
 	})
 
+	if len(remapped_pdb_files) == 0:
+		return pd.DataFrame({
+			"i": np.nan,
+			"mean": np.nan,
+			"max": np.nan,
+			"min": np.nan
+		}, index=[0])
+
 	for file in remapped_pdb_files:
 		d = asa_run(file, prefix)
 		data = pd.concat([data,d])
@@ -126,8 +134,8 @@ def combine_asa(remapped_pdb_files, prefix):
 def add_asa(ec_df, asa, asa_column):
 
     s_to_e = {(x,y):z for x,y,z in zip(asa.i, asa.segment_i, asa[asa_column])}
-    ec_df["asa_i"] =[s_to_e[(x,y)] if (x,y) in s_to_e else 0 for x,y in zip(ec_df.i, ec_df.segment_i)]
-    ec_df["asa_j"] =[s_to_e[(x,y)] if (x,y) in s_to_e else 0 for x,y in zip(ec_df.j, ec_df.segment_j)]
+    ec_df["asa_i"] =[s_to_e[(x,y)] if (x,y) in s_to_e else np.nan for x,y in zip(ec_df.i, ec_df.segment_i)]
+    ec_df["asa_j"] =[s_to_e[(x,y)] if (x,y) in s_to_e else np.nan for x,y in zip(ec_df.j, ec_df.segment_j)]
     
     return ec_df
 
