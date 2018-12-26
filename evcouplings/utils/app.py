@@ -238,7 +238,7 @@ def unroll_config(config):
     return configs
 
 
-def run_jobs(configs, global_config, overwrite=False, workdir=None):
+def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_error=True):
     """
     Submit config to pipeline
 
@@ -250,6 +250,16 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         Master configuration (if only one job,
         the contents of this dictionary will be
         equal to the single element of config_files)
+    overwrite : bool, optional (default: False)
+        If True, allows overwriting previous run of the same
+        config, otherwise will fail if results from previous
+        execution are present
+    workdir : str, optional (default: None)
+        Workdir in which to run job (will combine
+        workdir and prefix in joint path)
+    abort_on_error : bool, optional (default: True)
+        Abort entire job submission if error occurs for
+        one of the jobs by propagating RuntimeError
     """
     cmd_base = "evcouplings_runcfg"
     summ_base = "evcouplings_summarize"
@@ -333,9 +343,6 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         job_prefix = job_cfg["global"]["prefix"]
         job_cfg_file = CONFIG_NAME.format(job)
 
-        # set job status in database to pending
-        get_result_tracker(job_cfg).update(status=EStatus.PEND)
-
         # create submission command
         env = job_cfg["environment"]
         cmd = utils.Command(
@@ -359,8 +366,22 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         # store job for later dependency creation
         commands.append(cmd)
 
-        # finally, submit job
-        submitter.submit(cmd)
+        tracker = get_result_tracker(job_cfg)
+
+        try:
+            # finally, submit job
+            submitter.submit(cmd)
+
+            # set job status in database to pending
+            tracker.update(status=EStatus.PEND)
+
+        except RuntimeError as e:
+            # set job as failed in database
+            tracker.update(status=EStatus.FAIL, messsage=str(e))
+
+            # fail entire job submission if requested
+            if abort_on_error:
+                raise
 
     # submit final summarizer
     # (hold for now - summarizer is run after each subjob finishes)
