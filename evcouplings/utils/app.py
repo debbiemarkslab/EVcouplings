@@ -244,7 +244,7 @@ def unroll_config(config):
     return configs
 
 
-def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_error=True):
+def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_error=True, environment=None):
     """
     Submit config to pipeline
 
@@ -266,6 +266,11 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
     abort_on_error : bool, optional (default: True)
         Abort entire job submission if error occurs for
         one of the jobs by propagating RuntimeError
+    environment : str, optional (default: None)
+        Allow to pass value for environment parameter
+        of submitter, will override environment.configuration
+        from global_config (e.g., for setting environment
+        variables like passwords)
     """
     cmd_base = "evcouplings_runcfg"
     summ_base = "evcouplings_summarize"
@@ -357,7 +362,7 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
                 summ_cmd
             ],
             name=job_prefix,
-            environment=env["configuration"],
+            environment=environment or env["configuration"],
             workdir=workdir,
             resources={
                 utils.EResource.queue: env["queue"],
@@ -383,7 +388,7 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
 
         except RuntimeError as e:
             # set job as failed in database
-            tracker.update(status=EStatus.FAIL, messsage=str(e))
+            tracker.update(status=EStatus.FAIL, message=str(e))
 
             # fail entire job submission if requested
             if abort_on_error:
