@@ -13,3 +13,4 @@ bokeh
 jinja2
 biopython
 seaborn
+billiard

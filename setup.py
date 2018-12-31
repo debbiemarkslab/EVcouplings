@@ -96,7 +96,7 @@ setup(
     install_requires=['setuptools>=18.2', 'numpy',
         'pandas', 'scipy', 'numba', 'ruamel.yaml', 'matplotlib', 'requests',
         'mmtf-python', 'click', 'filelock', 'psutil', 'bokeh', 'jinja2',
-        'biopython', 'seaborn'
+        'biopython', 'seaborn', 'billiard'
     ],
 
 )

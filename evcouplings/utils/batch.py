@@ -18,7 +18,7 @@ import psutil
 import queue
 
 import ruamel.yaml as yaml
-import multiprocessing as mp
+import billiard as mp
 
 from tempfile import NamedTemporaryFile
 from enum import Enum

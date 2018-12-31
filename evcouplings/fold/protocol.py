@@ -8,7 +8,7 @@ Authors:
 
 from os import path
 from math import ceil
-import multiprocessing as mp
+import billiard as mp
 from functools import partial
 import shutil
 
