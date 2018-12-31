@@ -14,6 +14,7 @@ Authors:
 import re
 from copy import deepcopy
 from os import path
+from collections import Mapping
 
 import click
 
@@ -230,8 +231,13 @@ def unroll_config(config):
             # apply subconfig delta
             # (assuming parameters are nested in two layers)
             for section in delta_config:
-                for param, value in delta_config[section].items():
-                    sub_config[section][param] = value
+                # if dictionary, substitute all items on second level
+                if isinstance(delta_config[section], Mapping):
+                    for param, value in delta_config[section].items():
+                        sub_config[section][param] = value
+                else:
+                    # substitute entire section (this only affects pipeline stages)
+                    sub_config[section] = delta_config[section]
 
             configs[sub_prefix] = sub_config
 
