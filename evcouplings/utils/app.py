@@ -271,6 +271,20 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
         of submitter, will override environment.configuration
         from global_config (e.g., for setting environment
         variables like passwords)
+
+    Returns
+    -------
+    job_ids : dict
+        Mapping from subjob prefix (keys in configs parameter)
+        to identifier returned by submitter for each of the jobs
+        that was *successfully* submitted (i.e. missing keys from
+        configs param indicate these jobs could not be submitted).
+
+    Raises
+    ------
+    RuntimeError
+        If error encountered during submission and abort_on_error
+        is True
     """
     cmd_base = "evcouplings_runcfg"
     summ_base = "evcouplings_summarize"
@@ -349,6 +363,9 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
     # collect individual submitted jobs here
     commands = []
 
+    # record subjob IDs returned by submitter for each job
+    job_ids = {}
+
     # prepare individual jobs for submission
     for job, job_cfg in configs.items():
         job_prefix = job_cfg["global"]["prefix"]
@@ -381,7 +398,11 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
 
         try:
             # finally, submit job
-            submitter.submit(cmd)
+            current_job_id = submitter.submit(cmd)
+
+            # store run identifier returned by submitter
+            # TODO: consider storing current_job_id using tracker right away
+            job_ids[job] = current_job_id
 
             # set job status in database to pending
             tracker.update(status=EStatus.PEND)
@@ -399,6 +420,9 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
 
     # wait for all runs to finish (but only if blocking)
     submitter.join()
+
+    # return job identifiers
+    return job_ids
 
 
 def run(**kwargs):
