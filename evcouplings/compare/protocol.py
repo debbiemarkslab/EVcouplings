@@ -757,7 +757,7 @@ def complex(**kwargs):
         # any prefix that starts with a name_prefix will overwrite prefixes that do not start
         # eg, "first_sequence_file" will overwrite "sequence_file"
         monomer_kwargs = deepcopy(kwargs)
-        for k,v in monomer_kwargs.items():
+        for k,v in kwargs.items():
             if name_prefix + "_" in k:
                 # only replace first occurrence of name_prefix
                 monomer_kwargs[k.replace(name_prefix + "_", "", 1)] = v
@@ -765,7 +765,7 @@ def complex(**kwargs):
         # remove the "prefix" kwargs so that we can replace with the
         # aux prefix when calling _identify_structures
         monomer_kwargs = {
-            k: v for k, v in kwargs.items() if "prefix" not in k
+            k: v for k, v in monomer_kwargs.items() if "prefix" not in k
         }
 
         # identify structures for that monomer
