@@ -86,6 +86,57 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     return ecs
 
 
+
+def complex_probability(ecs, scoring_model, use_all_ecs=False, N_eff=None,
+                        score="cn"):
+    """
+    Adds confidence measure for complex evolutionary couplings
+
+    Parameters
+    ----------
+    ecs : pandas.DataFrame
+        Table with evolutionary couplings
+    scoring_model : {"skewnormal", "normal", "evcomplex"}
+        Use this scoring model to assign EC confidence measure
+    use_all_ecs : bool, optional (default: False)
+        If true, fits the scoring model to all ECs;
+        if false, fits the model to only the inter ECs.
+    score : str, optional (default: "cn")
+        Use this score column for confidence assignment
+        
+    Returns
+    -------
+    ecs : pandas.DataFrame
+        EC table with additional column "probability"
+        containing confidence measure
+    """
+    from evcouplings.couplings.pairs import add_mixture_probability
+
+    if use_all_ecs:
+        ecs = add_mixture_probability(
+            ecs, model=scoring_model, N_effL=N_eff
+        )
+    else:
+        inter_ecs = ecs.query("segment_i != segment_j")
+        intra_ecs = ecs.query("segment_i == segment_j")
+
+        intra_ecs = add_mixture_probability(
+            intra_ecs, model=scoring_model, score=score, N_effL=N_eff
+        )
+
+        inter_ecs = add_mixture_probability(
+            inter_ecs, model=scoring_model, score=score, N_effL=N_eff
+        )
+
+        ecs = pd.concat(
+            [intra_ecs, inter_ecs]
+        ).sort_values(
+            score, ascending=False
+        )
+
+    return ecs
+
+
 def _filter_structures(sifts_map, pdb_ids=None, max_num_hits=None, max_num_structures=None):
 
     """
@@ -203,6 +254,7 @@ def _identify_structures(**kwargs):
         sifts_map = s.by_uniprot_id(
             kwargs["sequence_id"], reduce_chains=reduce_chains
         )
+
     # Save the pre-filtered SIFTs map
     sifts_map_full = deepcopy(sifts_map)
 
@@ -761,7 +813,7 @@ def complex(**kwargs):
         # initialize output EC files
         "ec_compared_all_file": prefix + "_CouplingScoresCompared_all.csv",
         "ec_compared_longrange_file": prefix + "_CouplingScoresCompared_longrange.csv",
-        "ec_compared_inter_file": prefix + "_CouplingScoresCompared_inter.csv",
+        "ec_compared_inter_file": prefix + "_CouplingsScoresCompared_inter.csv",
 
         # initialize output inter distancemap files
         "distmap_inter": prefix + "_distmap_inter",
@@ -806,16 +858,19 @@ def complex(**kwargs):
     # Step 1: Identify 3D structures for comparison
     def _identify_monomer_structures(name_prefix, outcfg, aux_prefix):
         # create a dictionary with kwargs for just the current monomer
-        # remove the "prefix" kwargs so that we can replace with the 
-        # aux prefix when calling _identify_structures
-        # only replace first occurrence of name_prefix
-        monomer_kwargs = {
-            k.replace(name_prefix + "_", "", 1): v for k, v in kwargs.items() if "prefix" not in k
-        }
+        # any prefix that starts with a name_prefix will overwrite prefixes that do not start
+        # eg, "first_sequence_file" will overwrite "sequence_file"
+        monomer_kwargs = deepcopy(kwargs)
+        for k,v in kwargs.items():
+            if name_prefix + "_" in k:
+                # only replace first occurrence of name_prefix
+                monomer_kwargs[k.replace(name_prefix + "_", "", 1)] = v
 
-        # this field needs to be set explicitly else it gets overwritten by concatenated file
-        monomer_kwargs["alignment_file"] = kwargs[name_prefix + "_alignment_file"]
-        monomer_kwargs["raw_focus_alignment_file"] = kwargs[name_prefix + "_raw_focus_alignment_file"]
+        # remove the "prefix" kwargs so that we can replace with the
+        # aux prefix when calling _identify_structures
+        monomer_kwargs = {
+            k: v for k, v in monomer_kwargs.items() if "prefix" not in k
+        }
 
         # identify structures for that monomer
         sifts_map, sifts_map_full = _identify_structures(
@@ -1085,8 +1140,8 @@ def complex(**kwargs):
             # save the inter ECs to a file
             ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
 
-     # create an inter-ecs file with extra information for calibration purposes
-    def _calibration_file(prefix, ec_file):
+    # create an inter-ecs file with extra information for calibration purposes
+    def _calibration_file(prefix, ec_file, meffL):
 
         if not valid_file(ec_file):
             return None
