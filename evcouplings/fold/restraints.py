@@ -4,13 +4,13 @@ evolutionary couplings and secondary structure predictions
 
 Authors:
   Thomas A. Hopf
+  Anna G. Green (docking restraints)
 """
 
 from pkg_resources import resource_filename
 from evcouplings.utils.config import read_config_file
 from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.system import verify_resources
-from evcouplings.compare.protocol import COMPLEX_CHAIN_NAMES
 
 
 def _folding_config(config_file=None):
@@ -33,6 +33,35 @@ def _folding_config(config_file=None):
         # get path of config within package
         config_file = resource_filename(
             __name__, "cns_templates/restraints.yml"
+        )
+
+    # check if config file exists and read
+    verify_resources(
+        "Folding config file does not exist or is empty", config_file
+    )
+
+    return read_config_file(config_file)
+
+def _docking_config(config_file=None):
+    """
+    Load docking configuration
+
+    Parameters
+    ----------
+    config_file: str, optional (default: None)
+        Path to configuration file. If None,
+        loads default configuration included
+        with package.
+
+    Returns
+    -------
+    dict
+        Loaded configuration
+    """
+    if config_file is None:
+        # get path of config within package
+        config_file = resource_filename(
+            __name__, "cns_templates/haddock_restraints.yml"
         )
 
     # check if config file exists and read
@@ -302,29 +331,23 @@ def docking_restraints(ec_pairs, output_file,
         (restraints.yml).
     """
     # get configuration (default or user-supplied)
-    cfg = _folding_config(config_file)["docking_restraints"]
+    cfg = _docking_config(config_file)["docking_restraints"]
 
     with open(output_file, "w") as f:
         # create distance restraints per EC row in table
         for idx, ec in ec_pairs.iterrows():
-            i, j, aa_i, aa_j, segment_i, segment_j = \
+            i, j, aa_i, aa_j, segment_i, segment_j = (
                 ec["i"], ec["j"], ec["A_i"], ec["A_j"], ec["segment_i"], ec["segment_j"]
+            )
 
-            chain_i = COMPLEX_CHAIN_NAMES[0]
-            chain_j = COMPLEX_CHAIN_NAMES[1]
+            # extract chain names based on segment names
+            # A_1 -> A, B_1 -> B
+            chain_i = segment_i[0]
+            chain_j = segment_j[0]
 
             # write i to j restraint
             r = restraint_formatter(
                 i, chain_i, j, chain_j,
-                dist=cfg["dist"],
-                lower=cfg["lower"],
-                upper=cfg["upper"],
-            )
-            f.write(r + "\n")
-
-            # write j to i restraint
-            r = restraint_formatter(
-                j, chain_j, i, chain_i,
                 dist=cfg["dist"],
                 lower=cfg["lower"],
                 upper=cfg["upper"],

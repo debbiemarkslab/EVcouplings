@@ -12,7 +12,10 @@ import matplotlib.pyplot as plt
 from bokeh.io import save, output_file
 
 from evcouplings.couplings.model import (
-    CouplingsModel, MultiSegmentCouplingsModel
+    CouplingsModel
+)
+from evcouplings.couplings.mapping import (
+    MultiSegmentCouplingsModel
 )
 from evcouplings.mutate.calculations import (
     single_mutant_matrix, predict_mutation_table
@@ -26,9 +29,6 @@ from evcouplings.utils.system import (
 )
 from evcouplings.couplings.mapping import (
     Segment
-)
-from evcouplings.compare.protocol import (
-    COMPLEX_CHAIN_NAMES
 )
 
 
@@ -192,8 +192,11 @@ def complex(**kwargs):
     for segment_list in kwargs["segments"]:
         segment_objects.append(Segment.from_list(segment_list))
 
-    first_segment_name = kwargs["segments"][0][0]
-    second_segment_name = kwargs["segments"][1][0]
+    first_segment_name = Segment.from_list(kwargs["segments"][0]).segment_id
+    second_segment_name = Segment.from_list(kwargs["segments"][1]).segment_id
+
+    first_chain_name = Segment.from_list(kwargs["segments"][0]).default_chain_name()
+    second_chain_name = Segment.from_list(kwargs["segments"][1]).default_chain_name()
 
     # load couplings object
     c = MultiSegmentCouplingsModel(kwargs["model_file"], *segment_objects)
@@ -243,8 +246,8 @@ def complex(**kwargs):
         evcouplings.visualize.mutations.mutation_pymol_script(
             singles, pml_filename, effect_column="prediction_" + model,
             segment_to_chain_mapping={
-                first_segment_name: COMPLEX_CHAIN_NAMES[0],
-                second_segment_name: COMPLEX_CHAIN_NAMES[1]
+                first_segment_name: first_chain_name,
+                second_segment_name: second_chain_name
             }
         )
         outcfg["mutations_epistatic_pml_files"].append(pml_filename)
@@ -254,7 +257,6 @@ def complex(**kwargs):
     if dataset_file is not None:
         verify_resources("Dataset file does not exist", dataset_file)
         data = pd.read_csv(dataset_file, comment="#", sep=",")
-        print(data)
 
         if "segment" not in data.columns:
             raise ValueError(

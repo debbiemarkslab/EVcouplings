@@ -27,7 +27,7 @@ from evcouplings.complex.alignment import (
 )
 from evcouplings.complex.distance import (
     find_possible_partners, best_reciprocal_matching,
-    plot_distance_distribution
+    plot_distance_distribution, get_distance
 )
 from evcouplings.complex.similarity import (
     read_species_annotation_table,
@@ -35,6 +35,53 @@ from evcouplings.complex.similarity import (
     filter_best_reciprocal,
     find_paralogs
 )
+from evcouplings.couplings.mapping import (
+    SegmentIndexMapper, Segment, map_positions
+)
+
+
+def _split_annotation_string(string):
+    id, annotation_str = string.split("/")
+    region_start, region_end = annotation_str.split("-")
+    return (id, int(region_start), int(region_end))
+
+
+def remove_overlapping_ids(id_dataframe):
+    """
+    Removes pairs of ids that are from the same sequence
+    and overlap by at least a certain amount
+
+    Paramters
+    ---------
+    id_dataframe: pd.DataFrame
+        contains columns id_1, id_2
+    amount_overlap_allowed: int
+        threshold of amount overlap allowed between two sequecnes
+
+    Returns
+    pd.Dataframe
+    """
+    temp_dataframe = id_dataframe.copy()
+
+    id_strings = [_split_annotation_string(x) for x in temp_dataframe.id_1]
+    temp_dataframe["id_string_1"], temp_dataframe["r_s_1"], temp_dataframe["r_e_1"] = \
+        zip(*id_strings)
+
+    id_strings = [_split_annotation_string(x) for x in temp_dataframe.id_2]
+    temp_dataframe["id_string_2"], temp_dataframe["r_s_2"], temp_dataframe["r_e_2"] = \
+        zip(*id_strings)
+
+    temp_dataframe["overlap"] = None
+
+    for idx, row in temp_dataframe.iterrows():
+        temp_dataframe.loc[idx, "overlap"] = get_distance(
+            (row["r_s_1"], row["r_e_1"]),
+            (row["r_s_2"], row["r_e_2"])
+        )
+
+    to_keep = temp_dataframe.query("id_string_1 != id_string_2 or overlap > 0")
+
+    return to_keep[id_dataframe.columns]
 
 def modify_complex_segments(outcfg, **kwargs):
     """
@@ -74,6 +121,32 @@ def modify_complex_segments(outcfg, **kwargs):
 
     return outcfg
 
+def map_frequencies_file(frequencies_file, outcfg, **kwargs):
+    """
+    Renumbers the frequencies file created in complex concatenation
+    to be correctly indexed by segment numbers
+
+    Parameters
+    ----------
+    frequencies_file: str
+        path to the frequencies file to be renumbered
+    outcfg : dict
+        The output configuration
+
+    """
+
+    frequencies = pd.read_csv(frequencies_file)
+
+    segments = [
+        Segment.from_list(s) for s in outcfg["segments"]
+    ]
+    seg_mapper = SegmentIndexMapper(
+        kwargs["first_focus_mode"], outcfg["region_start"], *segments
+    )
+    frequencies = map_positions(frequencies, seg_mapper, "i")
+    return frequencies
+
+
 def _run_describe_concatenation(outcfg, **kwargs):
     """
     calculate some basic statistics on the concatenated alignment
@@ -94,26 +167,26 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
                            genome_location_filename_1, genome_location_filename_2,
                            outfile):
     """
-    Describes properties of concatenated alignment. 
+    Describes properties of concatenated alignment.
 
     Writes a csv with the following columns
 
     num_seqs_1 : number of sequences in the first monomer alignment
     num_seqs_2 : number of sequences in the second monomer alignment
-    num_nonred_species_1 : number of unique species annotations in the 
+    num_nonred_species_1 : number of unique species annotations in the
         first monomer alignment
-    num_nonred_species_2 : number of unique species annotations in the 
+    num_nonred_species_2 : number of unique species annotations in the
         second monomer alignment
     num_species_overlap: number of unique species found in both alignments
-    median_num_per_species_1 : median number of paralogs per species in the 
+    median_num_per_species_1 : median number of paralogs per species in the
         first monomer alignmment
-    median_num_per_species_2 : median number of paralogs per species in 
+    median_num_per_species_2 : median number of paralogs per species in
         the second monomer alignment
-    num_with_embl_cds_1 : number of IDs for which we found an EMBL CDS in the 
+    num_with_embl_cds_1 : number of IDs for which we found an EMBL CDS in the
         first monomer alignment (relevant to distance concatention only)
-    num_with_embl_cds_2 : number of IDs for which we found an EMBL CDS in the 
+    num_with_embl_cds_2 : number of IDs for which we found an EMBL CDS in the
         first monomer alignment (relevant to distance concatention only)
-    
+
     Parameters
     ----------
     annotation_file_1 : str
@@ -139,11 +212,11 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         annotation_file_2
     )
     species_2 = annotations_2.species.values
-    
+
     # calculate the number of sequences found in each alignment
     num_seqs_1 = len(annotations_1)
     num_seqs_2 = len(annotations_2)
-    
+
     # calculate the number of species found in each alignment
     # where a species is defined as a unique OS or Tax annotation field
     nonredundant_annotations_1 = len(set(species_1))
@@ -154,7 +227,7 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         set(species_1).intersection(set(species_2))
     )
     n_species_overlap = len(species_overlap)
-    
+
     # calculate the median number of paralogs per species
     n_paralogs_1 = float(
         # counts the number of times each species occurs in the list
@@ -165,11 +238,14 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
     n_paralogs_2 = float(
         np.median(list(Counter(species_2).values()))
     )
-    
+
     # If the user provided genome location files, calculate the number
-    # of ids for which we found an embl CDS
-    if genome_location_filename_1 is not None and \
-    genome_location_filename_2 is not None:
+    # of ids for which we found an embl CDS. Default value is np.nan
+    embl_cds1 = np.nan
+    embl_cds2 = np.nan
+
+    if (genome_location_filename_1 is not None and
+        genome_location_filename_2 is not None):
 
         genome_location_table_1 = pd.read_csv(genome_location_filename_1)
         genome_location_table_2 = pd.read_csv(genome_location_filename_2)
@@ -200,7 +276,7 @@ def describe_concatenation(annotation_file_1, annotation_file_2,
         embl_cds1,
         embl_cds2,
     ]
-    
+
     cols = [
         "num_seqs_1",
         "num_seqs_2",
@@ -314,6 +390,10 @@ def genome_distance(**kwargs):
     id_pairing.loc[:, "id_1"] = id_pairing.loc[:, "uniprot_id_1"]
     id_pairing.loc[:, "id_2"] = id_pairing.loc[:, "uniprot_id_2"]
 
+    # filter for overlapping concatenation of same id
+    if kwargs["forbid_overlapping_concatenation"]:
+        id_pairing = remove_overlapping_ids(id_pairing)
+
     # write concatenated alignment with distance filtering
     # TODO: save monomer alignments?
     target_seq_id, target_seq_index, raw_ali, mon_ali_1, mon_ali_2 = \
@@ -332,11 +412,11 @@ def genome_distance(**kwargs):
 
     mon_alignment_file_1 = prefix + "_monomer_1.fasta"
     with open(mon_alignment_file_1, "w") as of:
-        mon_ali_1.write(of)   
+        mon_ali_1.write(of)
 
     mon_alignment_file_2 = prefix + "_monomer_2.fasta"
     with open(mon_alignment_file_2, "w") as of:
-        mon_ali_2.write(of)   
+        mon_ali_2.write(of)
 
     # filter the alignment
     aln_outcfg, _ = modify_alignment(
@@ -367,6 +447,9 @@ def genome_distance(**kwargs):
     outcfg["distance_plot_file"] = prefix + "_distplot.pdf"
     plot_distance_distribution(id_pairing_unfiltered, outcfg["distance_plot_file"])
 
+    # Correct the nubering in the frequencies file
+    map_frequencies_file(outcfg["frequencies_file"], outcfg, **kwargs).to_csv(outcfg["frequencies_file"])
+
     return outcfg
 
 
@@ -374,7 +457,7 @@ def best_hit(**kwargs):
     """
     Protocol:
 
-    Concatenate alignments based on the best hit 
+    Concatenate alignments based on the best hit
     to the focus sequence in each species
 
     Parameters
@@ -410,7 +493,8 @@ def best_hit(**kwargs):
             "first_segments", "second_segments",
             "first_identities_file", "second_identities_file",
             "first_annotation_file", "second_annotation_file",
-            "use_best_reciprocal", "paralog_identity_threshold"
+            "use_best_reciprocal", "paralog_identity_threshold",
+            "forbid_overlapping_concatenation"
         ]
     )
 
@@ -469,7 +553,7 @@ def best_hit(**kwargs):
         kwargs["paralog_identity_threshold"]
     )
 
-    # merge the two dataframes to get all species found in 
+    # merge the two dataframes to get all species found in
     # both alignments
     species_intersection = most_similar_in_species_1.merge(
         most_similar_in_species_2,
@@ -477,6 +561,10 @@ def best_hit(**kwargs):
         on="species",  # merges on species identifiers
         suffixes=("_1", "_2")
     )
+
+    # filter for overlapping concatenation of same id
+    if kwargs["forbid_overlapping_concatenation"]:
+        species_intersection = remove_overlapping_ids(species_intersection)
 
     # write concatenated alignment with distance filtering
     # TODO: save monomer alignments?
@@ -510,6 +598,8 @@ def best_hit(**kwargs):
         **kwargs
     )
 
+    # remap the
+
     # make sure we return all the necessary information:
     # * alignment_file: final concatenated alignment that will go into plmc
     # * focus_sequence: this is the identifier of the concatenated target
@@ -525,6 +615,9 @@ def best_hit(**kwargs):
 
     # Describe the statistics of the concatenation
     outcfg = _run_describe_concatenation(outcfg, **kwargs)
+
+    # Correct the nubering in the frequencies file
+    map_frequencies_file(outcfg["frequencies_file"], outcfg, **kwargs).to_csv(outcfg["frequencies_file"])
 
     return outcfg
 

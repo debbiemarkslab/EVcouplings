@@ -28,6 +28,7 @@ stages:
     - couplings
     - compare
     - mutate
+    - fold
     
 # Global job settings. These will override settings of the same name in each of the stages.
 # These are typically the settings you want to modify for each of your jobs, together with some settings in the align stage.
@@ -86,7 +87,7 @@ align_1:
 
     # sequence database (specify possible databases and paths in "databases" section below)
     # note: use uniprot for genome distance based concatenation
-    database: uniref100
+    database: uniprot
 
     # compute the redundancy-reduced number of effective sequences (M_eff) already in the alignment stage.
     # To save compute time, this computation is normally carried out in the couplings stage
@@ -177,7 +178,7 @@ align_2:
 
     # sequence database (specify possible databases and paths in "databases" section below)
     # note: use uniprot for genome distance based concatenation
-    database: uniref100
+    database: uniprot
 
     # compute the redundancy-reduced number of effective sequences (M_eff) already in the alignment stage.
     # To save compute time, this computation is normally carried out in the couplings stage
@@ -251,6 +252,10 @@ concatenate:
     # Maximum sequence identity allowed for hits to be designated
     # as paralogs. Required for best_hit in best reciprocal mode only
     paralog_identity_threshold: 0.95
+    
+    # forbid overlapping regions of the same seqeunce ID from being concatenated
+    # for typical heteromultimeric complexes, this should be true
+    forbid_overlapping_concatenation: true
     
     # Parameters for filtering of concatenated alignment
     
@@ -349,18 +354,20 @@ compare:
     # Leave this parameter empty to use all PDB structures for given sequence_id, otherwise
     # will be limited to the given IDs (single value or list). Important: note that this acts only as a filter on the
     # structures found by alignment or in the SIFTS table (!)
-    pdb_ids:
+    inter_pdb_ids:
     first_pdb_ids:
     second_pdb_ids:
 
     # Limit number of structures and chains for comparison
-    # Note - the intersection of the monomer structural hits is taken to find the
-    # Inter-protein structures. If you limit the number of monomer structures found in this step, 
-    # you may miss some inter-protein structures
-    first_max_num_structures: 100
-    first_max_num_hits: 100
-    second_max_num_structures: 100
-    second_max_num_hits: 100
+    inter_max_num_structures: 10
+    inter_max_num_hits: 10
+
+    # Limit number chains and structures to use for each monomer comparison, IN ADDITION to those found from the
+    # inter protein compariso
+    first_max_num_structures: 10
+    first_max_num_hits: 10
+    second_max_num_structures: 10
+    second_max_num_hits: 10
 
     # compare to multimer contacts (if multiple chains of the same sequence or its homologs are present in a structure)
     first_compare_multimer: True
@@ -368,7 +375,7 @@ compare:
 
     # settings for sequence alignment against PDB sequences using jackhmmer
     # (additional settings like iterations possible, compare to align stage)
-    sequence_file:
+    first_sequence_file:
     first_first_index:
     first_region:
     first_alignment_min_overlap: 20
@@ -433,6 +440,24 @@ mutate:
     # Inputs set by global stage and output of previous stages
     # prefix:
     # model_file:
+
+# Settings for generating restraints for docking (using Haddock)
+fold:
+    protocol: complex_dock
+
+    # Inputs set by global stage and output of previous stages
+    prefix:
+
+    # generate restraint files with inter-protein ECs above the following score cutoffs
+    dock_probability_cutoffs:
+      - 0.9
+      - 0.99
+
+    # generate restraint files fixed numbers of ECS. Integers will be interpreted as absolute numbers,
+    # floats as fractions of L (model length)
+    dock_lowest_count: 5
+    dock_highest_count: 10
+    dock_increase: 5
 
 
 # These settings allow job status tracking using a database, and result collection in an archive

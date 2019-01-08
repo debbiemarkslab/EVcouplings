@@ -22,6 +22,7 @@ from evcouplings.utils.config import (
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources, valid_file
 )
+from evcouplings.couplings import Segment
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
     intra_dists, multimer_dists, remap_chains,
@@ -32,9 +33,6 @@ from evcouplings.compare.ecs import (
     coupling_scores_compared, add_precision
 )
 from evcouplings.visualize import pairs, misc
-
-# chain names to be used for complex PDB remapping
-COMPLEX_CHAIN_NAMES = ("A", "B")
 
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
@@ -87,6 +85,60 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     return ecs
 
 
+def _filter_structures(**kwargs):
+
+    """
+    Filters input SIFTSResult for specific pdb ids and/or number of hits
+
+    Parameters
+    ----------
+    sifts_map: SIFTSResult
+        Identified structures and residue index mappings
+    pdb_ids: list of str, optional (default: None)
+        List of PDB ids to be used for comparison
+    max_num_hits: int, optional (default: None)
+        Number of PDB hits to be used for comparison.
+        Different chains from the same PDB count as multiple hits.
+    max_num_structures: int, optional (default: None)
+        Number of unique PDB ids to be used for comparison.
+        Different chains from the same PDB count as one hit.
+
+    Returns
+    -------
+    SIFTSResult
+        Filtered identified structures and residue index mappings
+    """
+    def _filter_by_id(x, id_list):
+        x = deepcopy(x)
+        x.hits = x.hits.loc[
+            x.hits.pdb_id.isin(id_list)
+        ]
+        return x
+
+
+    # filter ID list down to manually selected PDB entries
+    if pdb_ids is not None:
+        pdb_ids = pdb_ids
+
+        # make sure we have a list of PDB IDs
+        if not isinstance(pdb_ids, list):
+            pdb_ids = [pdb_ids]
+
+        pdb_ids = [x.lower() for x in pdb_ids]
+
+        sifts_map = _filter_by_id(sifts_map, pdb_ids)
+
+    # limit number of hits and structures
+    if max_num_hits is not None:
+        sifts_map.hits = sifts_map.hits.iloc[:max_num_hits]
+
+    if max_num_structures is not None:
+        keep_ids = sifts_map.hits.pdb_id.unique()
+        keep_ids = keep_ids[:max_num_structures]
+        sifts_map = _filter_by_id(sifts_map, keep_ids)
+
+    return sifts_map
+
 def _identify_structures(**kwargs):
     """
     Identify set of 3D structures for comparison
@@ -101,13 +153,6 @@ def _identify_structures(**kwargs):
     SIFTSResult
         Identified structures and residue index mappings
     """
-
-    def _filter_by_id(x, id_list):
-        x = deepcopy(x)
-        x.hits = x.hits.loc[
-            x.hits.pdb_id.isin(id_list)
-        ]
-        return x
 
     check_required(
         kwargs,
@@ -157,29 +202,13 @@ def _identify_structures(**kwargs):
         sifts_map = s.by_uniprot_id(
             kwargs["sequence_id"], reduce_chains=reduce_chains
         )
-
+    # Save the pre-filtered SIFTs map
     sifts_map_full = deepcopy(sifts_map)
 
-    # filter ID list down to manually selected PDB entries
-    if kwargs["pdb_ids"] is not None:
-        pdb_ids = kwargs["pdb_ids"]
-
-        # make sure we have a list of PDB IDs
-        if not isinstance(pdb_ids, list):
-            pdb_ids = [pdb_ids]
-
-        pdb_ids = [x.lower() for x in pdb_ids]
-
-        sifts_map = _filter_by_id(sifts_map, pdb_ids)
-
-    # limit number of hits and structures
-    if kwargs["max_num_hits"] is not None:
-        sifts_map.hits = sifts_map.hits.iloc[:kwargs["max_num_hits"]]
-
-    if kwargs["max_num_structures"] is not None:
-        keep_ids = sifts_map.hits.pdb_id.unique()
-        keep_ids = keep_ids[:kwargs["max_num_structures"]]
-        sifts_map = _filter_by_id(sifts_map, keep_ids)
+    # Filter the SIFTS map
+    sifts_map = _filter_structures(
+        sifts_map_full, kwargs["pdb_ids"], kwargs["max_num_hits"], kwargs["max_num_structures"]
+    )
 
     return sifts_map, sifts_map_full
 
@@ -717,10 +746,9 @@ def complex(**kwargs):
             "prefix", "ec_file", "min_sequence_distance",
             "pdb_mmtf_dir", "atom_filter",
             "first_compare_multimer", "second_compare_multimer",
-            "distance_cutoff",
+            "distance_cutoff", "segments",
             "first_sequence_id", "second_sequence_id",
             "first_sequence_file", "second_sequence_file",
-            "first_segments", "second_segments",
             "first_target_sequence_file", "second_target_sequence_file",
             "scale_sizes"
         ]
@@ -736,7 +764,7 @@ def complex(**kwargs):
 
         # initialize output inter distancemap files
         "distmap_inter": prefix + "_distmap_inter",
-        "inter_contacts_file": prefix + "_inter_contacts_file"
+        "inter_contacts_file": prefix + "_inter_contacts.csv"
     }
 
     # Add PDB comparison files for first and second monomer
@@ -777,16 +805,19 @@ def complex(**kwargs):
     # Step 1: Identify 3D structures for comparison
     def _identify_monomer_structures(name_prefix, outcfg, aux_prefix):
         # create a dictionary with kwargs for just the current monomer
-        # remove the "prefix" kwargs so that we can replace with the 
-        # aux prefix when calling _identify_structures
-        # only replace first occurrence of name_prefix
-        monomer_kwargs = {
-            k.replace(name_prefix + "_", "", 1): v for k, v in kwargs.items() if "prefix" not in k
-        }
+        # any prefix that starts with a name_prefix will overwrite prefixes that do not start
+        # eg, "first_sequence_file" will overwrite "sequence_file"
+        monomer_kwargs = deepcopy(kwargs)
+        for k,v in kwargs.items():
+            if name_prefix + "_" in k:
+                # only replace first occurrence of name_prefix
+                monomer_kwargs[k.replace(name_prefix + "_", "", 1)] = v
 
-        # this field needs to be set explicitly else it gets overwritten by concatenated file
-        monomer_kwargs["alignment_file"] = kwargs[name_prefix + "_alignment_file"]
-        monomer_kwargs["raw_focus_alignment_file"] = kwargs[name_prefix + "_raw_focus_alignment_file"]
+        # remove the "prefix" kwargs so that we can replace with the
+        # aux prefix when calling _identify_structures
+        monomer_kwargs = {
+            k: v for k, v in monomer_kwargs.items() if "prefix" not in k
+        }
 
         # identify structures for that monomer
         sifts_map, sifts_map_full = _identify_structures(
@@ -794,19 +825,52 @@ def complex(**kwargs):
             prefix=aux_prefix
         )
 
+        # save full list of hits
+        sifts_map_full.hits.to_csv(
+            outcfg[name_prefix + "_pdb_structure_hits_unfiltered_file"], index=False
+        )
+
+        return outcfg, sifts_map, sifts_map_full
+
+    outcfg, first_sifts_map, first_sifts_map_full = _identify_monomer_structures("first", outcfg, first_aux_prefix)
+    outcfg, second_sifts_map, second_sifts_map_full = _identify_monomer_structures("second", outcfg, second_aux_prefix)
+
+    # Determine the inter-protein PDB hits based on the full sifts map for each monomer
+    inter_protein_hits_full = first_sifts_map_full.hits.merge(
+        second_sifts_map_full.hits, on="pdb_id", how="inner", suffixes=["_1", "_2"]
+    )
+    outcfg["structure_hits_unfiltered_file"] = prefix + "_inter_structure_hits_unfiltered.csv"
+    inter_protein_hits_full.to_csv(outcfg["structure_hits_unfiltered_file"])
+
+    # Filter for the number of PDB ids to use
+    inter_protein_sifts = SIFTSResult(hits=inter_protein_hits_full, mapping=None)
+    inter_protein_sifts = _filter_structures(
+        inter_protein_sifts,
+        kwargs["inter_pdb_ids"],
+        kwargs["inter_max_num_hits"],
+        kwargs["inter_max_num_structures"]
+    )
+    outcfg["structure_hits_file"] = prefix + "_inter_structure_hits.csv"
+    inter_protein_sifts.hits.to_csv(outcfg["structure_hits_file"])
+    
+    def _add_inter_pdbs(inter_protein_sifts, sifts_map, sifts_map_full, name_prefix):
+        """
+        ensures that all pdbs used for inter comparison end up in the monomer SIFTS hits
+        """
+
+        lines_to_keep = sifts_map_full.hits.query("pdb_id in @inter_protein_sifts.hits.pdb_id").index
+        sifts_map.hits = pd.concat([
+            sifts_map.hits, sifts_map_full.hits.loc[lines_to_keep, :]
+        ]).drop_duplicates()
+
         # save selected PDB hits
         sifts_map.hits.to_csv(
             outcfg[name_prefix + "_pdb_structure_hits_file"], index=False
         )
+        return sifts_map
 
-        # also save full list of hits
-        sifts_map_full.hits.to_csv(
-            outcfg[name_prefix + "_pdb_structure_hits_unfiltered_file"], index=False
-        )
-        return outcfg, sifts_map
-
-    outcfg, first_sifts_map = _identify_monomer_structures("first", outcfg, first_aux_prefix)
-    outcfg, second_sifts_map = _identify_monomer_structures("second", outcfg, second_aux_prefix)
+    first_sifts_map = _add_inter_pdbs(inter_protein_sifts, first_sifts_map, first_sifts_map_full, "first")
+    second_sifts_map = _add_inter_pdbs(inter_protein_sifts, second_sifts_map, second_sifts_map_full, "second")
 
     # get the segment names from the kwargs
     segment_list = kwargs["segments"]
@@ -817,8 +881,22 @@ def complex(**kwargs):
             "Compare stage for protein complexes requires exactly two segments"
         )
 
-    first_segment_name = kwargs["segments"][0][0]
-    second_segment_name = kwargs["segments"][1][0]
+    first_segment_name = Segment.from_list(kwargs["segments"][0]).segment_id
+    second_segment_name = Segment.from_list(kwargs["segments"][1]).segment_id
+
+    first_chain_name = Segment.from_list(kwargs["segments"][0]).default_chain_name()
+    second_chain_name = Segment.from_list(kwargs["segments"][1]).default_chain_name()
+
+    # load all structures at once
+    all_ids = set(first_sifts_map.hits.pdb_id).union(
+    	set(second_sifts_map.hits.pdb_id)
+    )
+
+    structures = load_structures(
+        all_ids,
+        kwargs["pdb_mmtf_dir"],
+        raise_missing=False
+    )
 
     # Step 2: Compute distance maps
     def _compute_monomer_distance_maps(sifts_map, name_prefix, chain_name):
@@ -868,7 +946,7 @@ def complex(**kwargs):
             # if we have a multimer contact map, save it
             if d_multimer is not None:
                 d_multimer.to_file(outcfg[name_prefix + "_distmap_multimer"])
-                outcfg[name_prefix + "_multimer_contacts_file"] = prefix + name_prefix + "_contacts_multimer.csv"
+                outcfg[name_prefix + "_multimer_contacts_file"] = prefix + "_" + name_prefix + "_contacts_multimer.csv"
 
                 # save contacts to separate file
                 d_multimer.contacts(
@@ -901,21 +979,11 @@ def complex(**kwargs):
 
         return d_intra, d_multimer, seqmap
 
-    # load all structures for both monomers
-    all_structures = set(first_sifts_map.hits.pdb_id).union(
-        set(second_sifts_map.hits.pdb_id)
-    )
-    structures = load_structures(
-        all_structures,
-        kwargs["pdb_mmtf_dir"],
-        raise_missing=False
-    )
-
     d_intra_i, d_multimer_i, seqmap_i = _compute_monomer_distance_maps(
-        first_sifts_map, "first", COMPLEX_CHAIN_NAMES[0]
+        first_sifts_map, "first", first_chain_name
     )
     d_intra_j, d_multimer_j, seqmap_j = _compute_monomer_distance_maps(
-        second_sifts_map, "second", COMPLEX_CHAIN_NAMES[1]
+        second_sifts_map, "second", second_chain_name
     )
 
     # compute inter distance map if sifts map for each monomer exists
@@ -1063,8 +1131,8 @@ def complex(**kwargs):
             outcfg["ec_lines_compared_pml_file"],
             distance_cutoff=kwargs["distance_cutoff"],
             chain={
-                first_segment_name: COMPLEX_CHAIN_NAMES[0],
-                second_segment_name: COMPLEX_CHAIN_NAMES[1]
+                first_segment_name: first_chain_name,
+                second_segment_name: second_chain_name
             }
         )
 

@@ -14,40 +14,36 @@ Authors:
 """
 
 from os import path
-import json
 from collections import OrderedDict
 from copy import deepcopy
 
 import pandas as pd
 import requests
-import numpy as np
 
 from evcouplings.align.alignment import (
     Alignment, read_fasta, parse_header
 )
-
 from evcouplings.align.protocol import (
-	jackhmmer_search, hmmbuild_and_search, _make_hmmsearch_raw_fasta
+    jackhmmer_search, hmmbuild_and_search
 )
-
 from evcouplings.align.tools import read_hmmer_domtbl
-from evcouplings.compare.mapping import alignment_index_mapping, map_indices
+from evcouplings.compare.mapping import map_indices
 from evcouplings.utils.system import (
-    get_urllib, ResourceError, valid_file, tempdir
+    get_urllib, ResourceError, valid_file, tempdir, temp
 )
 from evcouplings.utils.config import (
-    parse_config, check_required
+    parse_config, check_required, InvalidParameterError
 )
 from evcouplings.utils.helpers import range_overlap
 
-UNIPROT_MAPPING_URL = "http://www.uniprot.org/mapping/"
-SIFTS_URL = "ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz"
+UNIPROT_MAPPING_URL = "https://www.uniprot.org/mapping/"
+SIFTS_URL = "ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/uniprot_segments_observed.csv.gz"
 SIFTS_REST_API = "http://www.ebi.ac.uk/pdbe/api/mappings/uniprot_segments/{}"
 
 # TODO: make this default parametrization more explicit (e.g. a config file in repository)
 # these parameters are fed as a default into SIFTS.by_alignment so that the method can be
 # easily used without a configuration file/any further setup
-JACKHMMER_CONFIG = """
+HMMER_CONFIG = """
 prefix:
 sequence_id:
 sequence_file:
@@ -115,12 +111,15 @@ def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
     return r.text
 
 
-def find_homologs(**kwargs):
+def find_homologs(pdb_alignment_method="jackhmmer", **kwargs):
     """
     Identify homologs using jackhmmer or hmmbuild/hmmsearch
 
     Parameters
     ----------
+    pdb_alignment_method : {"jackhmmer", "hmmsearch"}, 
+             optional (default: "jackhmmer")
+        Sequence alignment method used for searching the PDB
     **kwargs
         Passed into jackhmmer / hmmbuild_and_search protocol
         (see documentation for available options)
@@ -135,7 +134,7 @@ def find_homologs(**kwargs):
     """
 
     # load default configuration
-    config = parse_config(JACKHMMER_CONFIG)
+    config = parse_config(HMMER_CONFIG)
 
     # update with overrides from kwargs
     config = {
@@ -152,10 +151,10 @@ def find_homologs(**kwargs):
     )
 
     # run hmmsearch (possibly preceded by hmmbuild)
-    if kwargs["pdb_alignment_method"] == "hmmsearch":
+    if pdb_alignment_method == "hmmsearch":
         # set up config to run hmmbuild_and_search on the unfiltered alignment file
         updated_config = deepcopy(config)
-        updated_config["alignment_file"] = config["raw_focus_alignment_file"]
+        updated_config["alignment_file"] = config.get("raw_focus_alignment_file")
         ar = hmmbuild_and_search(**updated_config)
 
         # For hmmbuild and search, we have to read the raw focus alignment file
@@ -166,7 +165,7 @@ def find_homologs(**kwargs):
     # run jackhmmer against sequence database
     # at this point we have already checked to ensure
     # that the input is either jackhmmer or hmmsearch
-    else:
+    elif pdb_alignment_method == "jackhmmer":
         ar = jackhmmer_search(**config)
 
         with open(ar["raw_alignment_file"]) as a:
@@ -176,6 +175,11 @@ def find_homologs(**kwargs):
         # if necessary
         with open(config["prefix"] + "_raw.fasta", "w") as f:
             ali.write(f)
+    else:
+        raise InvalidParameterError(
+            "Invalid pdb_alignment_method selected. Valid options are: " +
+            ", ".join(["jackhmmer", "hmmsearch"])
+        )
 
     # read hmmer hittable and simplify
     hits = read_hmmer_domtbl(ar["hittable_file"])
@@ -268,7 +272,7 @@ class SIFTS:
         )
 
         # final table has still some entries where lengths do not match,
-        # remove thlse
+        # remove these
         self.table = self.table.query(
             "(resseq_end - resseq_start) == (uniprot_end - uniprot_start)"
         )
@@ -288,7 +292,7 @@ class SIFTS:
         """
         Create modified SIFTS mapping table (based on
         file at SIFTS_URL). For some of the entries,
-        the Uniprot sequence ranges do not map to a.
+        the Uniprot sequence ranges do not map to a
         SEQRES sequence range of the same length. These
         PDB IDs will be entirely replaced by a segment-
         based mapping extracted from the SIFTS REST API.
@@ -325,12 +329,14 @@ class SIFTS:
 
             return res
 
-        get_urllib(SIFTS_URL, sifts_table_file)
+        # download SIFTS table (gzip-compressed csv) to temp file
+        temp_download_file = temp()
+        get_urllib(SIFTS_URL, temp_download_file)
 
         # load table and rename columns for internal use, if SIFTS
         # ever decided to rename theirs
         table = pd.read_csv(
-            sifts_table_file, comment="#",
+            temp_download_file, comment="#",
             compression="gzip"
         ).rename(
             columns={
@@ -346,11 +352,17 @@ class SIFTS:
             }
         )
 
+        # TODO: remove the following if new segment-based table proves as robust solution
+        """
+        # this block disabled for now due to use of new table
+        # based on observed UniProt segments
+        # - can probably be removed eventually
+
         # identify problematic PDB IDs
         problematic_ids = table.query(
             "(resseq_end - resseq_start) != (uniprot_end - uniprot_start)"
         ).pdb_id.unique()
-
+        
         # collect new mappings from segment based REST API
         res = []
         for i, pdb_id in enumerate(problematic_ids):
@@ -363,12 +375,17 @@ class SIFTS:
 
         # remove bad PDB IDs from table and add new mapping
         new_table = table.loc[~table.pdb_id.isin(problematic_ids)]
+
+        # also disabled due to use of new table based on observed
+        # UniProt segments - can probably be removed eventually 
+        
         new_table = new_table.append(
             pd.DataFrame(res).loc[:, table.columns]
         )
+        """
 
         # save for later reuse
-        new_table.to_csv(sifts_table_file, index=False)
+        table.to_csv(sifts_table_file, index=False)
 
     def _add_uniprot_ids(self):
         """
@@ -386,7 +403,7 @@ class SIFTS:
         # add column to dataframe
         self.table.loc[:, "uniprot_id"] = self.table.loc[:, "uniprot_ac"].map(ac_to_id)
 
-    def create_sequence_file(self, output_file):
+    def create_sequence_file(self, output_file, chunk_size=1000, max_retries=100):
         """
         Create FASTA sequence file containing all UniProt
         sequences of proteins in SIFTS. This file is required
@@ -399,21 +416,68 @@ class SIFTS:
         ----------
         output_file : str
             Path at which to store sequence file
+        chunk_size : int, optional (default: 1000)
+            Retrieve sequences from UniProt in chunks of this size
+            (too large chunks cause the mapping service to stall)
+        max_retries : int, optional (default: 100)
+            Allow this many retries when fetching sequences
+            from UniProt ID mapping service, which unfortunately
+            often suffers from connection failures.
         """
         ids = self.table.uniprot_ac.unique().tolist()
 
-        CHUNK_SIZE = 1000
-        chunks = [
-            ids[i:i + CHUNK_SIZE] for i in range(0, len(ids), CHUNK_SIZE)
+        # retrieve sequences in chunks since ID mapping service
+        # tends to fail on large requests
+        id_chunks = [
+            ids[i:i + chunk_size] for i in range(0, len(ids), chunk_size)
         ]
 
-        with open(output_file, "w") as f:
-            for ch in chunks:
-                # fetch sequence chunk
-                seqs = fetch_uniprot_mapping(ch)
+        # store individual retrieved chunks as list of strings
+        seq_chunks = []
 
-                # then store to FASTA file
-                f.write(seqs)
+        # keep track of how many retries were necessary and
+        # abort if number exceeds max_retries
+        num_retries = 0
+
+        for ch in id_chunks:
+            # fetch sequence chunk;
+            # if there is a problem retry as long as we stay within
+            # maximum number of retries
+            while True:
+                try:
+                    seqs = fetch_uniprot_mapping(ch)
+                    break
+                except requests.ConnectionError as e:
+                    # count as failed try
+                    num_retries += 1
+
+                    # if we retried too often, abort
+                    if num_retries > max_retries:
+                        raise ResourceError(
+                            "Could not fetch sequences for SIFTS mapping tables from UniProt since "
+                            "maximum number of retries after connection errors was exceeded. Retry "
+                            "at a later time, or call SIFTS.create_sequence_file() with a higher value "
+                            "for max_retries."
+                        ) from e
+
+            # rename identifiers in sequence file, so
+            # we can circumvent Uniprot sequence identifiers
+            # being prefixed by hmmer if a hit has exactly the
+            # same identifier as the query sequence
+            seqs = seqs.replace(
+                ">sp|", ">evsp|",
+            ).replace(
+                ">tr|", ">evtr|",
+            )
+
+            assert seqs.endswith("\n")
+
+            # store for writing
+            seq_chunks.append(seqs)
+
+        # store sequences to FASTA file in one go at the end
+        with open(output_file, "w") as f:
+            f.write("".join(seq_chunks))
 
         self.sequence_file = output_file
 
@@ -608,8 +672,6 @@ class SIFTS:
         Find structures by sequence alignment between
         query sequence and sequences in PDB.
 
-        # TODO: offer option to start from HMM profile for this
-
         Parameters
         ----------
         min_overlap : int, optional (default: 20)
@@ -621,11 +683,29 @@ class SIFTS:
             protein in PDB structures). Should be set to
             False to identify homomultimeric contacts.
         **kwargs
-            Passed into jackhmmer_search protocol
-            (see documentation for available options).
-            Additionally, if "prefix" is given, individual
-            mappings will be saved to files suffixed by
-            the respective key in mapping table.
+            Defines the behaviour of find_homologs() function
+            used to find homologs by sequence alignment:
+            - which alignment method is used 
+              (pdb_alignment_method: {"jackhmmer", "hmmsearch"}, 
+              default: "jackhmmer"),
+            - parameters passed into the protocol for the selected
+              alignment method (evcouplings.align.jackhmmer_search or
+              evcouplings.align.hmmbuild_and_search).
+              
+              Default parameters are set in the HMMER_CONFIG string in this
+              module, other parameters will need to be overriden; these
+              minimally are:
+              - for pdb_alignment_method == "jackhmmer":
+                - sequence_id : str, identifier of target sequence
+                - jackhmmer : str, path to jackhmmer binary if not on path                
+              - for pdb_alignment_method == "hmmsearch":
+                - sequence_id : str, identifier of target sequence
+                - raw_focus_alignment_file : str, path to input alignment file  
+                - hmmbuild : str, path to hmmbuild binary if not on path
+                - hmmsearch : str, path to search binary if not on path
+            - additionally, if "prefix" is given,
+              individual mappings will be saved to files suffixed
+              by the respective key in mapping table.
 
         Returns
         -------

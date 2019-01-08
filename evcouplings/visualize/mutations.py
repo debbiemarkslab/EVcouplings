@@ -763,11 +763,9 @@ def mutation_pymol_script(mutation_table, output_file,
         for segment_name, _t in t.groupby("segment"):
 
             if segment_to_chain_mapping is None:
-                print("no chain mapping")
                 chain = None
 
             elif type(segment_to_chain_mapping) is str:
-                print("found a string")
                 chain = segment_to_chain_mapping
 
             elif segment_name not in segment_to_chain_mapping:

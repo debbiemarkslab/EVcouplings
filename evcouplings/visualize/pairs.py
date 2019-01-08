@@ -1204,6 +1204,10 @@ def enrichment_pymol_script(enrichment_table, output_file,
 
         # medium
         t.loc[t.iloc[boundary1:boundary2].index, "color"] = "orange"
+
+       # set the boundary for number of residues to be rendered as spheres
+        sphere_boundary = boundary2
+
         
     else:
         t = deepcopy(enrichment_table)
@@ -1248,8 +1252,11 @@ def enrichment_pymol_script(enrichment_table, output_file,
             t.loc[t.iloc[prior_boundary:boundary].index, "color"] = 'color{}'.format(idx)
             prior_boundary = boundary
 
+        # set the boundary for number of residues to be rendered as spheres
+        sphere_boundary = boundary_list[1]
+
     if sphere_view:
-        t.loc[t.iloc[0:boundary].index, "show"] = "spheres"
+        t.loc[t.iloc[0:sphere_boundary].index, "show"] = "spheres"
 
     if chain is not None:
         chain_sel = ", chain '{}'".format(chain)

@@ -182,9 +182,3 @@ secstruct_distance_restraints:
             [CA, CA]: [20.5, 4.1]
             [CA, O]: [21.3, 4.2]
             [CB, CB]: [20.6, 4.1]
-
-# Docking restraints for Haddock. Online defaults used.
-docking_restraints:
-  dist: 2.0
-  upper: 2.0
-  lower: 0.0
