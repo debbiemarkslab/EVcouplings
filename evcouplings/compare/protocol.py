@@ -35,7 +35,7 @@ from evcouplings.compare.ecs import (
 from evcouplings.visualize import pairs, misc
 
 
-def complex_probability(ecs, scoring_model, use_all_ecs=False,
+def complex_probability(ecs, scoring_model, use_all_ecs=False, N_eff=None,
                         score="cn"):
     """
     Adds confidence measure for complex evolutionary couplings
@@ -62,18 +62,18 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
 
     if use_all_ecs:
         ecs = add_mixture_probability(
-            ecs, model=scoring_model
+            ecs, model=scoring_model, N_effL=N_eff
         )
     else:
         inter_ecs = ecs.query("segment_i != segment_j")
         intra_ecs = ecs.query("segment_i == segment_j")
 
         intra_ecs = add_mixture_probability(
-            intra_ecs, model=scoring_model, score=score
+            intra_ecs, model=scoring_model, score=score, N_effL=N_eff
         )
 
         inter_ecs = add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score
+            inter_ecs, model=scoring_model, score=score, N_effL=N_eff
         )
 
         ecs = pd.concat(
@@ -85,7 +85,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     return ecs
 
 
-def _filter_structures(**kwargs):
+def _filter_structures(sifts_map, pdb_ids=None, max_num_hits=None, max_num_structures=None):
 
     """
     Filters input SIFTSResult for specific pdb ids and/or number of hits
@@ -202,12 +202,13 @@ def _identify_structures(**kwargs):
         sifts_map = s.by_uniprot_id(
             kwargs["sequence_id"], reduce_chains=reduce_chains
         )
+
     # Save the pre-filtered SIFTs map
     sifts_map_full = deepcopy(sifts_map)
 
     # Filter the SIFTS map
     sifts_map = _filter_structures(
-        sifts_map_full, kwargs["pdb_ids"], kwargs["max_num_hits"], kwargs["max_num_structures"]
+        sifts_map, kwargs["pdb_ids"], kwargs["max_num_hits"], kwargs["max_num_structures"]
     )
 
     return sifts_map, sifts_map_full
@@ -1084,7 +1085,7 @@ def complex(**kwargs):
             ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
 
     # create an inter-ecs file with extra information for calibration purposes
-    def _calibration_file(prefix, ec_file):
+    def _calibration_file(prefix, ec_file, meffL):
 
         if not valid_file(ec_file):
             return None
@@ -1106,9 +1107,9 @@ def complex(**kwargs):
 
         #add the evcomplex score
         ecs = complex_probability(
-            ecs, "evcomplex", True
+            ecs, "evcomplex", True, meffL
         )
-        ecs.loc[:,"evcomplex"] = ecs.loc[:,"probability"]
+        ecs.loc[:,"evcomplex_normed"] = ecs.loc[:,"probability"]
 
         #write the file (top 100 only)
         inter_ecs = ecs.query("segment_i != segment_j")
@@ -1116,9 +1117,9 @@ def complex(**kwargs):
         inter_ecs.iloc[0:1000,:].to_csv(outcfg["calibration_file"])
 
     if valid_file(outcfg["ec_compared_longrange_file"]):
-    	_calibration_file(prefix, outcfg["ec_compared_longrange_file"])
+    	_calibration_file(prefix, outcfg["ec_compared_longrange_file"], kwargs["effective_sequences"])
     else:
-    	_calibration_file(prefix, kwargs["ec_file"])
+    	_calibration_file(prefix, kwargs["ec_file"], kwargs["effective_sequences"])
 
     # create the inter-ecs line drawing script
     if outcfg["ec_compared_inter_file"] is not None and kwargs["plot_highest_count"] is not None:
