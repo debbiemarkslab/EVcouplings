@@ -33,6 +33,9 @@ EStatus = (lambda **enums: type('Enum', (), enums))(
     TERM="terminated",  # job was terminated externally
 )
 
+FINAL_STATES = {EStatus.DONE, EStatus.TERM, EStatus.FAIL}
+FAILURE_STATES = {EStatus.TERM, EStatus.FAIL}
+
 
 def get_result_tracker(config):
     """
