@@ -279,14 +279,10 @@ class ComputeJob(Base):
     __tablename__ = JOB_TABLE_NAME
 
     # internal unique ID of this single compute job
-    id = Column(Integer, primary_key=True)
+    key = Column(Integer, primary_key=True)
 
     # human-readable job identifier (must be unique)
     job_id = Column(String(1024), unique=True)
-
-    # the job group this job is associated with
-    # (secondary key to job groups table)
-    group_id = Column(Integer)
 
     # job prefix
     prefix = Column(String(2048))
@@ -313,7 +309,7 @@ class ComputeJob(Base):
     # ("align", "couplings", ...)
     stage = Column(String(128))
 
-    # time the job started running
+    # time the job was created
     time_created = Column(DateTime())
 
     # time the job started running
