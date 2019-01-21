@@ -22,10 +22,11 @@ class ResultsTrackerInterface(object, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def write_file(self, file_path):
+    def write_file(self, file_path, aliases=None):
         """
         Writes a file to the new location.
         :param file_path: A path on fs for a file to be shallow-copied to the new location
+        :param aliases: File aliases (e.g. alignment_file) to be appended to metadata in databases.
         :return: A sting indicating the location of the file (could be fs or HTTP)
         """
         raise NotImplementedError

@@ -37,7 +37,7 @@ class ResultsTrackerLocal(ResultsTrackerInterface):
 
         self._tracked_files = self._management.get("tracked_files")
 
-    def write_file(self, file_path):
+    def write_file(self, file_path, **kwargs):
 
         if self._operating_in_place:
             return file_path

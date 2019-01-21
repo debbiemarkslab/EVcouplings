@@ -16,7 +16,7 @@ class ResultsTrackerNull(ResultsTrackerInterface):
     def __init__(self, config):
         super(ResultsTrackerNull, self).__init__(config)
 
-    def write_file(self, _):
+    def write_file(self, *args, **kwargs):
         return None
 
     def move_out_config_files(self, _):
