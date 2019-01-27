@@ -452,8 +452,10 @@ def standard(**kwargs):
         * ec_file_compared_all
         * ec_file_compared_all_longrange
         * pdb_structure_hits
-        * distmap_monomer
-        * distmap_multimer
+        * distmap_monomer (prefix of distance matrix and residue table filenames)
+        * distmap_monomer_files (explicit listing of distance matrix and residue table filenames=
+        * distmap_multimer (prefix of distance matrix and residue table filenames)
+        * distmap_multimer_files (explicit listing of distance matrix and residue table filenames=
         * contact_map_files
         * remapped_pdb_files
     """
@@ -526,7 +528,13 @@ def standard(**kwargs):
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
             output_prefix=aux_prefix + "_distmap_intra"
         )
-        d_intra.to_file(outcfg["distmap_monomer"])
+        residue_table_filename, dist_mat_filename = d_intra.to_file(outcfg["distmap_monomer"])
+        # TODO: for now, create additional entries rather than removing distmap_monomer for compatibility reasons,
+        # but eventually drop the one above
+        outcfg["distmap_monomer_files"] = {
+            residue_table_filename: "residue_table",
+            dist_mat_filename: "distance_matrix"
+        }
 
         # save contacts to separate file
         outcfg["monomer_contacts_file"] = prefix + "_contacts_monomer.csv"
@@ -549,7 +557,13 @@ def standard(**kwargs):
 
         # if we have a multimer contact mapin the end, save it
         if d_multimer is not None:
-            d_multimer.to_file(outcfg["distmap_multimer"])
+            residue_table_filename, dist_mat_filename = d_multimer.to_file(outcfg["distmap_multimer"])
+            # TODO: for now, create additional entries rather than removing distmap_multimer for compatibility reasons,
+            outcfg["distmap_multimer_files"] = {
+                residue_table_filename: "residue_table",
+                dist_mat_filename: "distance_matrix"
+            }
+
             outcfg["multimer_contacts_file"] = prefix + "_contacts_multimer.csv"
 
             # save contacts to separate file
