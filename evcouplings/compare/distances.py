@@ -260,13 +260,21 @@ class DistanceMap:
 
     def to_file(self, filename):
         """
-        Store distance map in file
+        Store distance map in files
 
         Parameters
         ----------
         filename : str
             Prefix of distance map files
             (will create .csv and .npy file)
+
+        Returns
+        -------
+        residue_table_filename : str
+            Path to residue table (will be filename + .csv)
+        dist_mat_filename : str
+            Path to distance matrix file in numpy format
+            (will be filename + .npy)
         """
         def _add_axis(df, axis):
             res = df.copy()
@@ -281,10 +289,14 @@ class DistanceMap:
             residues = res_i.append(res_j)
 
         # save residue table
-        residues.to_csv(filename + ".csv", index=True)
+        residue_table_filename = filename + ".csv"
+        residues.to_csv(residue_table_filename, index=True)
 
         # save distance matrix
-        np.save(filename + ".npy", self.dist_matrix)
+        dist_mat_filename = filename + ".npy"
+        np.save(dist_mat_filename, self.dist_matrix)
+
+        return residue_table_filename, dist_mat_filename
 
     def dist(self, i, j, raise_na=True):
         """
