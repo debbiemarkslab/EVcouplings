@@ -432,6 +432,50 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
     return cm_files
 
 
+def _individual_distance_map_config_result(individual_distance_map_table):
+    """
+    Create output items for individual distance maps computed by
+    intra_dists, multimer_dists and inter_dists
+
+    Parameters
+    ----------
+    individual_distance_map_table : pd.DataFrame
+        Table as returned by intra_dists, multimer_idsts and inter_dists
+
+    Returns
+    -------
+    individual_maps_result : dict
+        Mapping from filename to distance map file type (residue table,
+        or distance matrix) and additional annotation (mapping index,
+        SIFTS table index)
+    """
+    individual_maps_result = {}
+    file_keys = ["residue_table", "distance_matrix"]
+
+    # create on individual entry per file type (distance matrix or residue table)
+    for file_key in file_keys:
+        # entry is a mapping form file name to dictionary containing file type and all
+        # other remaining entries in the input table
+        current_key_results = {
+            r[file_key]: {
+                **{"file_type": file_key},
+                # keep any non-file key attributes from the table
+                **{
+                    k: v for k, v in r.items() if k not in file_keys
+                }
+            }
+            for _, r in individual_distance_map_table.iterrows()
+        }
+
+        # update full table
+        individual_maps_result = {
+            **individual_maps_result,
+            **current_key_results
+        }
+
+    return individual_maps_result
+
+
 def standard(**kwargs):
     """
     Protocol:
@@ -504,12 +548,12 @@ def standard(**kwargs):
 
     # save selected PDB hits
     sifts_map.hits.to_csv(
-        outcfg["pdb_structure_hits_file"], index=False
+        outcfg["pdb_structure_hits_file"], index=True
     )
 
     # also save full list of hits
     sifts_map_full.hits.to_csv(
-        outcfg["pdb_structure_hits_unfiltered_file"], index=False
+        outcfg["pdb_structure_hits_unfiltered_file"], index=True
     )
 
     # Step 2: Compute distance maps
@@ -524,17 +568,25 @@ def standard(**kwargs):
     # compute distance maps and save
     # (but only if we found some structure)
     if len(sifts_map.hits) > 0:
-        d_intra = intra_dists(
+        d_intra, d_intra_individual_maps = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
             output_prefix=aux_prefix + "_distmap_intra"
         )
+
         residue_table_filename, dist_mat_filename = d_intra.to_file(outcfg["distmap_monomer"])
+
         # TODO: for now, create additional entries rather than removing distmap_monomer for compatibility reasons,
         # but eventually drop the one above
         outcfg["distmap_monomer_files"] = {
-            residue_table_filename: "residue_table",
-            dist_mat_filename: "distance_matrix"
+            residue_table_filename: {"type": "residue_table"},
+            dist_mat_filename: {"type": "distance_matrix"}
         }
+
+        # also store individual intra distance matrices (should always be present)
+        if d_intra_individual_maps is not None:
+            outcfg["distmap_monomer_individual_files"] = _individual_distance_map_config_result(
+                d_intra_individual_maps
+            )
 
         # save contacts to separate file
         outcfg["monomer_contacts_file"] = prefix + "_contacts_monomer.csv"
@@ -548,14 +600,14 @@ def standard(**kwargs):
         # note that d_multimer can be None if there
         # are no structures with multiple chains
         if kwargs["compare_multimer"]:
-            d_multimer = multimer_dists(
+            d_multimer, d_multimer_individual_maps = multimer_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
                 output_prefix=aux_prefix + "_distmap_multimer"
             )
         else:
             d_multimer = None
 
-        # if we have a multimer contact mapin the end, save it
+        # if we have a multimer contact map in the end, save it
         if d_multimer is not None:
             residue_table_filename, dist_mat_filename = d_multimer.to_file(outcfg["distmap_multimer"])
             # TODO: for now, create additional entries rather than removing distmap_multimer for compatibility reasons,
@@ -563,6 +615,12 @@ def standard(**kwargs):
                 residue_table_filename: "residue_table",
                 dist_mat_filename: "distance_matrix"
             }
+
+            # also store individual multimer distance matrices
+            if d_multimer_individual_maps is not None:
+                outcfg["distmap_multimer_individual_files"] = _individual_distance_map_config_result(
+                    d_multimer_individual_maps
+                )
 
             outcfg["multimer_contacts_file"] = prefix + "_contacts_multimer.csv"
 
@@ -804,7 +862,7 @@ def complex(**kwargs):
         # compute distance maps and save
         # (but only if we found some structure)
         if len(sifts_map.hits) > 0:
-            d_intra = intra_dists(
+            d_intra, _ = intra_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
                 output_prefix=aux_prefix + "_" + name_prefix + "_distmap_intra"
             )
@@ -822,7 +880,7 @@ def complex(**kwargs):
             # note that d_multimer can be None if there
             # are no structures with multiple chains
             if kwargs[name_prefix + "_compare_multimer"]:
-                d_multimer = multimer_dists(
+                d_multimer, _ = multimer_dists(
                     sifts_map, structures, atom_filter=kwargs["atom_filter"],
                     output_prefix=aux_prefix + "_" + name_prefix + "_distmap_multimer"
                 )
@@ -884,7 +942,7 @@ def complex(**kwargs):
 
     # compute inter distance map if sifts map for each monomer exists
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
-        d_inter = inter_dists(
+        d_inter, _ = inter_dists(
             first_sifts_map, second_sifts_map,
             raise_missing=kwargs["raise_missing"]
         )

@@ -744,9 +744,18 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
 
     Returns
     -------
-    DistanceMap
+    agg_distmap : DistanceMap
         Computed aggregated distance map
         across all input structures
+    individual_distance_map_table : pd.DataFrame
+        Table with all individual distance maps that
+        went into the aggregated distance map, with
+        columns "sifts_table_index" (linking to SIFTS hit table) and
+        "residue_table" and "distance_matrix"
+        (file names of .csv and .npy files constituting
+        the respective distance map).
+
+        Will be None if output_prefix is None.
 
     Raises
     ------
@@ -772,6 +781,9 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
     if output_prefix is not None:
         create_prefix_folders(output_prefix)
 
+    # collect information about individual distance maps here (only if output_prefix is defined)
+    individual_distance_maps = []
+
     # compute individual distance maps and aggregate
     for i, r in sifts_result.hits.iterrows():
         # skip missing structures
@@ -794,7 +806,15 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
 
         # save individual distance map
         if output_prefix is not None:
-            distmap.to_file("{}_{}".format(output_prefix, i))
+            residue_table_filename, dist_mat_filename = distmap.to_file(
+                "{}_{}".format(output_prefix, i)
+            )
+
+            individual_distance_maps.append({
+                "sifts_table_index": i,
+                "residue_table": residue_table_filename,
+                "distance_matrix": dist_mat_filename
+            })
 
         # aggregate
         if agg_distmap is None:
@@ -804,7 +824,12 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
                 agg_distmap, distmap, intersect=intersect
             )
 
-    return agg_distmap
+    if len(individual_distance_maps) > 0:
+        individual_distance_map_table = pd.DataFrame(individual_distance_maps)
+    else:
+        individual_distance_map_table = None
+
+    return agg_distmap, individual_distance_map_table
 
 
 def multimer_dists(sifts_result, structures=None, atom_filter=None,
@@ -852,9 +877,19 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
     Returns
     -------
-    DistanceMap
+    agg_distmap : DistanceMap
         Computed aggregated distance map
         across all input structures
+    individual_distance_map_table : pd.DataFrame
+        Table with all individual distance maps that
+        went into the aggregated distance map, with
+        columns "sifts_table_index_i", "sifts_table_index_j"
+        (linking to SIFTS hit table) and
+        "residue_table" and "distance_matrix"
+        (file names of .csv and .npy files constituting
+        the respective distance map).
+
+        Will be None if output_prefix is None.
 
     Raises
     ------
@@ -879,6 +914,9 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
     # create output folder if necessary
     if output_prefix is not None:
         create_prefix_folders(output_prefix)
+
+    # collect information about individual distance maps here (only if output_prefix is defined)
+    individual_distance_maps = []
 
     # go through each structure
     for pdb_id, grp in sifts_result.hits.reset_index().groupby("pdb_id"):
@@ -916,9 +954,16 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
             # save individual distance map
             if output_prefix is not None:
-                distmap_sym.to_file("{}_{}_{}".format(
+                residue_table_filename, dist_mat_filename = distmap_sym.to_file("{}_{}_{}".format(
                     output_prefix, index_i, index_j)
                 )
+
+                individual_distance_maps.append({
+                    "sifts_table_index_i": index_i,
+                    "sifts_table_index_j": index_j,
+                    "residue_table": residue_table_filename,
+                    "distance_matrix": dist_mat_filename
+                })
 
             # aggregate with other chain combinations
             if agg_distmap is None:
@@ -928,7 +973,12 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
                     agg_distmap, distmap_sym, intersect=intersect
                 )
 
-    return agg_distmap
+    if len(individual_distance_maps) > 0:
+        individual_distance_map_table = pd.DataFrame(individual_distance_maps)
+    else:
+        individual_distance_map_table = None
+
+    return agg_distmap, individual_distance_map_table
 
 
 def inter_dists(sifts_result_i, sifts_result_j, structures=None,
@@ -982,9 +1032,19 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
 
     Returns
     -------
-    DistanceMap
+    agg_distmap : DistanceMap
         Computed aggregated distance map
         across all input structures
+    individual_distance_map_table : pd.DataFrame
+        Table with all individual distance maps that
+        went into the aggregated distance map, with
+        columns "sifts_table_index_i", "sifts_table_index_j"
+        (linking to SIFTS hit table) and
+        "residue_table" and "distance_matrix"
+        (file names of .csv and .npy files constituting
+        the respective distance map).
+
+        Will be None if output_prefix is None.
 
     Raises
     ------
@@ -1027,6 +1087,9 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
     if output_prefix is not None:
         create_prefix_folders(output_prefix)
 
+    # collect information about individual distance maps here (only if output_prefix is defined)
+    individual_distance_maps = []
+
     # determine which combinations of chains to look at
     # (anything that has same PDB identifier)
     combis = sifts_result_i.hits.reset_index().merge(
@@ -1060,9 +1123,16 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
 
         # save individual distance map
         if output_prefix is not None:
-            distmap.to_file("{}_{}_{}".format(
+            residue_table_filename, dist_mat_filename = distmap.to_file("{}_{}_{}".format(
                 output_prefix, index_i, index_j)
             )
+
+            individual_distance_maps.append({
+                "sifts_table_index_i": index_i,
+                "sifts_table_index_j": index_j,
+                "residue_table": residue_table_filename,
+                "distance_matrix": dist_mat_filename
+            })
 
         # aggregate with other chain combinations
         if agg_distmap is None:
@@ -1072,7 +1142,12 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
                 agg_distmap, distmap, intersect=intersect
             )
 
-    return agg_distmap
+    if len(individual_distance_maps) > 0:
+        individual_distance_map_table = pd.DataFrame(individual_distance_maps)
+    else:
+        individual_distance_map_table = None
+
+    return agg_distmap, individual_distance_map_table
 
 
 def _remap_sequence(chain, sequence):
