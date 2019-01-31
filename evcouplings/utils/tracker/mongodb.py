@@ -146,8 +146,8 @@ class MongoDBTracker(ResultTracker):
         -------
         dict
             Dictionary with keys "filename" (original file
-             path) and "fs_id" (ObjectId of inserted file
-             in GridFS)
+            path) and "fs_id" (ObjectId of inserted file
+            in GridFS)
         """
         def _insert():
             with open(filename, "rb") as f:
