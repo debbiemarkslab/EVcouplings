@@ -221,12 +221,40 @@ class DistanceMap:
     @classmethod
     def from_file(cls, filename):
         """
-        Load existing distance map from file
+        Load existing distance map using filename prefix
+        (each distance map consist of .csv and .npy file)
 
         Parameters
         ----------
         filename : str
-            Path to distance map file
+            Prefix of path to distance map files
+            (excluding .csv/.npy)
+
+        Returns
+        -------
+        DistanceMap
+            Loaded distance map
+        """
+        return cls.from_files(
+            filename + ".csv", filename + ".npy"
+        )
+
+    @classmethod
+    def from_files(cls, residue_table_file, distance_matrix_file):
+        """
+        Load existing distance map with explicit
+        paths to residue table (.csv) and distance
+        matrix (.npy). Use DistanceMap.from_file
+        to load using joint prefix of both files.
+
+        Parameters
+        ----------
+        residue_table_file : str or file-like object
+            Path to residue table file
+            (prefix + .csv)
+        distance_matrix_file : str or file-like object
+            Path to distance matrix file
+            (prefix + .npy)
 
         Returns
         -------
@@ -234,7 +262,8 @@ class DistanceMap:
             Loaded distance map
         """
         residues = pd.read_csv(
-            filename + ".csv", index_col=0,
+            residue_table_file,
+            index_col=0,
             dtype={
                 "id": str,
                 "seqres_id": str,
@@ -243,7 +272,7 @@ class DistanceMap:
             }
         )
 
-        dist_matrix = np.load(filename + ".npy")
+        dist_matrix = np.load(distance_matrix_file)
 
         if "axis" in residues.columns:
             symmetric = False
