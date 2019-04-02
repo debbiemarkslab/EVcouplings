@@ -376,6 +376,8 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
     # check that boundaries is supplied
     boundaries = kwargs["boundaries"]
 
+    print("plotting complex contact map", kwargs)
+
     # Find the appropriate boundaries for each subset
     intra1_boundaries = list(
         find_boundaries(

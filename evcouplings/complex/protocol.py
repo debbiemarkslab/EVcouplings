@@ -156,8 +156,10 @@ def _run_describe_concatenation(outcfg, **kwargs):
     describe_concatenation(
         kwargs["first_annotation_file"],
         kwargs["second_annotation_file"],
-        kwargs["first_genome_location_file"],
-        kwargs["second_genome_location_file"],
+        #kwargs["first_genome_location_file"],
+        None,
+        #kwargs["second_genome_location_file"],
+        None,
         outcfg["concatentation_statistics_file"]
     )
     return outcfg
