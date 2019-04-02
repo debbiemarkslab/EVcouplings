@@ -142,7 +142,7 @@ align:
 couplings:
     # current options: 
     # - standard (model inference using plmc)
-    # - mean_field (mean field direct coupling analysis, see below for required parameters)
+    # - mean_field (mean field direct coupling analysis, see below)
     protocol: standard
 
     # number of plmc iterations
@@ -173,9 +173,14 @@ couplings:
     # ECs from table, only pairs with abs(i-j)>=min_sequence_distance will be kept.
     min_sequence_distance: 6
     
-    # The following parameters are specific to the mean field protocol
-    # For now, mean field DCA can only be run with ignore_gaps: False and focus_mode: True
+# Alternative protocol: compute couplings with mean field direct coupling analysis
+# Uncomment, and comment all values in align section above to enable the mean_field protocol
+    # protocol: mean_field
     # pseudo_count: 0.5
+    # alphabet:
+    # ignore_gaps: False
+    # reuse_ecs: True
+    # min_sequence_distance: 6
 
     # Following input parameters will usually be overriden by "global" and outputs of "align" stage
     # prefix:
@@ -220,8 +225,8 @@ compare:
     region:
     alignment_min_overlap: 20
     use_bitscores: True
-    domain_threshold: 0.5
-    sequence_threshold: 0.5
+    domain_threshold: 0.1
+    sequence_threshold: 0.1
 
     # Comparison and plotting settings
     
