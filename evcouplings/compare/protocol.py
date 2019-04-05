@@ -454,7 +454,7 @@ def _individual_distance_map_config_result(individual_distance_map_table):
 
     # create on individual entry per file type (distance matrix or residue table)
     for file_key in file_keys:
-        # entry is a mapping form file name to dictionary containing file type and all
+        # entry is a mapping from file name to dictionary containing file type and all
         # other remaining entries in the input table
         current_key_results = {
             r[file_key]: {
@@ -578,8 +578,8 @@ def standard(**kwargs):
         # TODO: for now, create additional entries rather than removing distmap_monomer for compatibility reasons,
         # but eventually drop the one above
         outcfg["distmap_monomer_files"] = {
-            residue_table_filename: {"type": "residue_table"},
-            dist_mat_filename: {"type": "distance_matrix"}
+            residue_table_filename: {"file_type": "residue_table"},
+            dist_mat_filename: {"file_type": "distance_matrix"}
         }
 
         # also store individual intra distance matrices (should always be present)
@@ -612,8 +612,8 @@ def standard(**kwargs):
             residue_table_filename, dist_mat_filename = d_multimer.to_file(outcfg["distmap_multimer"])
             # TODO: for now, create additional entries rather than removing distmap_multimer for compatibility reasons,
             outcfg["distmap_multimer_files"] = {
-                residue_table_filename: "residue_table",
-                dist_mat_filename: "distance_matrix"
+                residue_table_filename: {"file_type": "residue_table"},
+                dist_mat_filename: {"file_type": "distance_matrix"}
             }
 
             # also store individual multimer distance matrices
