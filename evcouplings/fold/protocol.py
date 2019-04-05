@@ -298,7 +298,9 @@ def maxcluster_clustering_table(structures, binary):
         if clust_all is None:
             clust_all = clust
         else:
-            clust_all = clust_all.merge(clust, on="filename")
+            clust_all = clust_all.merge(
+                clust, on="filename", how="outer"
+            )
 
     return clust_all
 
