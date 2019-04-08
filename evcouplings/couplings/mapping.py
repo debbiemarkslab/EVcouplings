@@ -307,6 +307,41 @@ class SegmentIndexMapper:
         return self.__map(x, self.target_to_model)
 
 
+def map_positions(dataframe, mapper, column):
+    """
+    Map positions in a dataframe in model numbering
+    into segment numbering
+
+    Parameters
+    ----------
+    dataframe : pd.DataFrame
+        dataframe with column to be mapped
+    mapper : SegmentIndexMapper
+        mapper for renumbering the segments
+    column : str
+        name of column in dataframe to be mapped\
+
+    Returns
+    -------
+    dataframe : pd.DataFrame
+        dataframe with remapped column and new column
+        "segment_<column>" indicating the segment
+    """
+
+    seg_col = "segment_" + column
+    # create new dataframe with two columns
+    # 1) mapped segment, 2) mapped position
+    col_m = pd.DataFrame(
+        mapper.to_target(dataframe.loc[:, column]),
+        columns=[seg_col, column]
+    )
+    # assign values instead of Series, because otherwise
+    # wrong values end up in column
+    dataframe.loc[:, column] = col_m.loc[:, column].values
+    dataframe.loc[:, seg_col] = col_m.loc[:, seg_col].values
+
+    return dataframe
+
 def segment_map_ecs(ecs, mapper):
     """
     Map EC dataframe in model numbering into
@@ -316,6 +351,8 @@ def segment_map_ecs(ecs, mapper):
     ----------
     ecs : pandas.DataFrame
         EC table (with columns i and j)
+    mapper : SegmentIndexMapper
+        mapper for renumbering the segments
 
     Returns
     -------
@@ -326,22 +363,9 @@ def segment_map_ecs(ecs, mapper):
     """
     ecs = deepcopy(ecs)
 
-    def _map_column(col):
-        seg_col = "segment_" + col
-        # create new dataframe with two columns
-        # 1) mapped segment, 2) mapped position
-        col_m = pd.DataFrame(
-            mapper.to_target(ecs.loc[:, col]),
-            columns=[seg_col, col]
-        )
-        # assign values instead of Series, because otherwise
-        # wrong values end up in column
-        ecs.loc[:, col] = col_m.loc[:, col].values
-        ecs.loc[:, seg_col] = col_m.loc[:, seg_col].values
-
     # map both position columns (and add segment id)
-    _map_column("i")
-    _map_column("j")
+    ecs = map_positions(ecs, mapper, "i")
+    ecs = map_positions(ecs, mapper, "j")
 
     return ecs
 
@@ -374,7 +398,9 @@ class MultiSegmentCouplingsModel(CouplingsModel):
 
         # initialize the segment index mapper to update model numbering
         if len(segments) == 0:
-            raise(ValueError, "Must provide at least one segment for MultiSegmentCouplingsModel")
+            raise ValueError(
+                "Must provide at least one segment for MultiSegmentCouplingsModel"
+            )
 
         first_segment = segments[0]
         index_start = first_segment.region_start

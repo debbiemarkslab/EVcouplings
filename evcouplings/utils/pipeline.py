@@ -203,7 +203,8 @@ def execute(**config):
             # verify all the output files are there
             outfiles = [
                 filepath for f, filepath in outcfg.items()
-                if f.endswith("_file") and filepath is not None
+                if f.endswith("_file") and filepath is not None and f!="model_file" \
+                and not filepath.endswith(".fasta")
             ]
 
             verify_resources(

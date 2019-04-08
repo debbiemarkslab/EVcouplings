@@ -1584,27 +1584,27 @@ def complex(**kwargs):
             annotation_data = pd.read_csv(kwargs["override_annotation_file"])
             annotation_data.to_csv(outcfg["annotation_file"])
 
-    # extract cds identifiers for alignment uniprot IDs
+    # # extract cds identifiers for alignment uniprot IDs
     cds_ids = extract_cds_ids(
         outcfg["alignment_file"],
         kwargs["uniprot_to_embl_table"]
     )
 
-    # extract genome location information from ENA
-    genome_location_filename = prefix + "_genome_location.csv"
+    # ##extract genome location information from ENA
+    # genome_location_filename = prefix + "_genome_location.csv"
 
-    genome_location_table = extract_embl_annotation(
-        cds_ids,
-        kwargs["ena_genome_location_table"],
-        genome_location_filename
-    )
+    # genome_location_table = extract_embl_annotation(
+    #     cds_ids,
+    #     kwargs["ena_genome_location_table"],
+    #     genome_location_filename
+    # )
 
-    genome_location_table = add_full_header(
-        genome_location_table, outcfg["alignment_file"]
-    )
+    # genome_location_table = add_full_header(
+    #     genome_location_table, outcfg["alignment_file"]
+    # )
 
-    genome_location_table.to_csv(genome_location_filename)
-    outcfg["genome_location_file"] = genome_location_filename
+    # genome_location_table.to_csv(genome_location_filename)
+    # outcfg["genome_location_file"] = genome_location_filename
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".align_complex.outcfg", outcfg)

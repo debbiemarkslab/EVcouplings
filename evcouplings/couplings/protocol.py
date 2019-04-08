@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 from evcouplings.couplings import tools as ct
-from evcouplings.couplings import pairs, mapping
+from evcouplings.couplings import pairs, mapping, enrichment
 from evcouplings.couplings.mean_field import MeanFieldDCA
 from evcouplings.couplings.model import CouplingsModel
 from evcouplings.visualize.parameters import evzoom_json
@@ -318,7 +318,7 @@ def standard(**kwargs):
 
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
-                        score="cn"):
+                        N_eff=None, num_sites=None, score="cn"):
     """
     Adds confidence measure for complex evolutionary couplings
 
@@ -331,6 +331,11 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     use_all_ecs : bool, optional (default: False)
         If true, fits the scoring model to all ECs;
         if false, fits the model to only the inter ECs.
+    N_eff : float, optional (default: None)
+        Effective number of sequences in alignment.
+        Used for EVcomplex score calculation
+    num_sites : int, optional (default: None)
+        Number of positions in alignment
     score : str, optional (default: "cn")
         Use this score column for confidence assignment
         
@@ -340,29 +345,75 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         EC table with additional column "probability"
         containing confidence measure
     """
+
+    # if user provided both parameters, calculate Neff/L
+    if N_eff and num_sites:
+        Neff_L = N_eff/num_sites
+    else:
+        Neff_L = None
+
     if use_all_ecs:
+        # TODO: user proof so that no one runs evcomplex on all ECs?
         ecs = pairs.add_mixture_proability(
             ecs, model=scoring_model
         )
+
     else:
         inter_ecs = ecs.query("segment_i != segment_j")
-        intra_ecs = ecs.query("segment_i == segment_j")
+        intra1_ecs = ecs.query("segment_i == segment_j == 'A_1'")
+        intra2_ecs = ecs.query("segment_i == segment_j == 'B_1'")
 
-        intra_ecs = pairs.add_mixture_probability(
-            intra_ecs, model=scoring_model, score=score
+        intra1_ecs = pairs.add_mixture_probability(
+            intra1_ecs, model=scoring_model, score=score, N_effL=Neff_L
+        )
+
+        intra2_ecs = pairs.add_mixture_probability(
+            intra2_ecs, model=scoring_model, score=score, N_effL=Neff_L
         )
 
         inter_ecs = pairs.add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score
+            inter_ecs, model=scoring_model, score=score, N_effL=Neff_L
         )
 
         ecs = pd.concat(
-            [intra_ecs, inter_ecs]
+            [intra1_ecs, intra2_ecs, inter_ecs]
         ).sort_values(
             score, ascending=False
         )
 
     return ecs
+
+def _inter_ec_enrichment(ecs, outcfg, **kwargs):
+    """
+    calculates EC enrichment for inter-protein ECs
+    
+    calculates intra enrichment (using intra-protein ECs) and inter enrichment 
+    (using inter-protein ECs)
+    
+    """# calculate enrichment for complexes
+    intra1_ecs = ecs.query("segment_i == segment_j == 'A_1'")
+    intra2_ecs = ecs.query("segment_i == segment_j == 'B_1'")
+    inter_ecs = ecs.query("segment_i != segment_j")
+
+    intra1_enrichment = enrichment(intra1_ecs, min_seqdist=kwargs["min_sequence_distance"])
+    intra1_enrichment["segment_i"] = "A_1"
+
+    intra2_enrichment = enrichment(intra2_ecs, min_seqdist=kwargs["min_sequence_distance"])
+    intra2_enrichment["segment_i"] = "B_1"
+
+    # for inter ECs, sequence distance is 0
+    inter_enrichment = enrichment(inter_ecs, min_seqdist=0)
+
+    intra_enrichment = pd.concat([
+        intra1_enrichment, intra2_enrichment
+    ]).sort_values(by="enrichment", ascending=False)
+
+    outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(kwargs["prefix"])
+    outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(kwargs["prefix"])
+    intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
+    inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
+
+    return outcfg
 
 
 def complex(**kwargs):
@@ -419,7 +470,7 @@ def complex(**kwargs):
             use_all_ecs = False
 
         ecs = complex_probability(
-            ecs, kwargs["scoring_model"], use_all_ecs
+            ecs, kwargs["scoring_model"], use_all_ecs, outcfg["effective_sequences"], outcfg["num_sites"]
         )
 
     else:
@@ -462,13 +513,9 @@ def complex(**kwargs):
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
 
+    outcfg = _inter_ec_enrichment(ecs, outcfg, **kwargs)
     # TODO: make the following complex-ready
-    # EC enrichment:
-    #
-    # 1) think about making EC enrichment complex-ready and add
-    # it back here - so far it only makes sense if all ECs are
-    # on one segment
-    #
+
     # EVzoom:
     #
     # 1) at the moment, EVzoom will use numbering before remapping
