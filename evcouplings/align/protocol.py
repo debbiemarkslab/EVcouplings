@@ -955,6 +955,19 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
 
         # patch into coverage statistics (N_eff column)
         coverage_stats.loc[:, "N_eff"] = n_eff
+
+        # create table with number of cluster members (inverse sequence
+        # weights) for each sequence
+        inv_seq_weights = pd.DataFrame({
+            "id": cut_ali.ids,
+            "num_cluster_members": cut_ali.num_cluster_members
+        })
+
+        # save sequence weights to file and add to output config
+        outcfg["sequence_weights_file"] = prefix + "_inverse_sequence_weights.csv"
+        inv_seq_weights.to_csv(
+            outcfg["sequence_weights_file"], index=False
+        )
     else:
         n_eff = None
 
