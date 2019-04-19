@@ -722,7 +722,7 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
     else:
         raise ValueError(
             "Invalid model selection, valid options are: "
-            "skewnormal, normal"
+            "skewnormal, normal, evcomplex"
         )
 
     # assign probability

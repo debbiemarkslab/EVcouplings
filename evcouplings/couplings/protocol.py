@@ -284,10 +284,11 @@ def standard(**kwargs):
         segments (passed through)
     """
     # for additional required parameters, see infer_plmc()
+    # TODO: make scoring_model mandatory eventually
     check_required(
         kwargs,
         [
-            "prefix", "min_sequence_distance",
+            "prefix", "min_sequence_distance", "theta", "frequencies_file",
         ]
     )
 
@@ -297,8 +298,67 @@ def standard(**kwargs):
     outcfg, ecs, segments = infer_plmc(**kwargs)
     model = CouplingsModel(outcfg["model_file"])
 
-    # add mixture model probability
-    ecs = pairs.add_mixture_probability(ecs)
+    # TODO: make this a mandatory parameter eventually
+    # None will trigger default behaviour of add_mixture_probability
+    # (which currently is "skewnormal")
+    scoring_model = kwargs.get("scoring_model")
+
+    # currently we need to distinguish between full rescoring (score and
+    # probability) like with logistic regression model, or just putting
+    # probabilities on top of default CN score using add_mixture_probability
+    if scoring_model == "logistic_regression":
+        scorer = pairs.LogisticRegressionScorer()
+
+        # load amino acid/gap frequencies and conservation info
+        freqs = pd.read_csv(kwargs["frequencies_file"])
+
+        num_sites = outcfg["num_sites"]
+        min_seq_dist = kwargs["min_sequence_distance"]
+
+        # rescore EC table
+        ecs = scorer.score(
+            ecs,
+            freqs,
+            kwargs["theta"],
+            outcfg["effective_sequences"],
+            num_sites,
+            score="cn"
+        )
+
+        # currently only perform quality scoring for single segments
+        if segments is None or len(segments) == 1:
+            is_longrange = ((ecs.i - ecs.j).abs() >= min_seq_dist).astype(int)
+            ecs_lr = ecs.assign(
+                longrange_count=is_longrange.cumsum()
+            )
+
+            # compute expectation for true positives on all contacts
+            expected_positives_all = ecs_lr.query(
+                "longrange_count <= @num_sites"
+            ).probability.sum()
+
+            expected_positives_longrange = ecs_lr.query(
+                "longrange_count <= @num_sites and abs(i - j) >= @min_seq_dist"
+            ).probability.sum()
+
+            # store in config
+            outcfg = {
+                **outcfg,
+                "expected_true_ecs_all": float(expected_positives_all),
+                "expected_true_ecs_longrange": float(expected_positives_longrange)
+            }
+
+    else:
+        # add mixture model probability
+        ecs = pairs.add_mixture_probability(
+            ecs, model=scoring_model
+        )
+
+        # put CN score into default score column for more generic
+        # downstream score handling
+        ecs = ecs.assign(
+            score=ecs.cn
+        )
 
     # following computations are mostly specific to monomer pipeline
     is_single_segment = segments is None or len(segments) == 1

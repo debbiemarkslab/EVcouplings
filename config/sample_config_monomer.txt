@@ -172,6 +172,10 @@ couplings:
     # Sequence separation filter for generation of CouplingScores_longrange.csv table (i.e. to take out short-range
     # ECs from table, only pairs with abs(i-j)>=min_sequence_distance will be kept.
     min_sequence_distance: 6
+
+    # Post-inference scoring of ECs to derive probabilities
+    # Options are: skewnormal, normal, logistic_regression
+    scoring_model: skewnormal
     
 # Alternative protocol: compute couplings with mean field direct coupling analysis
 # Uncomment, and comment all values in align section above to enable the mean_field protocol
