@@ -64,6 +64,7 @@ setup(
     include_package_data=True,
     package_data={
         'evcouplings.fold.cns_templates': ['*.*'],
+        'evcouplings.couplings.scoring_models': ['*.*'],
     },
 
     #package_data is a lie:
@@ -96,7 +97,7 @@ setup(
     install_requires=['setuptools>=18.2', 'numpy',
         'pandas', 'scipy', 'numba', 'ruamel.yaml', 'matplotlib', 'requests',
         'mmtf-python', 'click', 'filelock', 'psutil', 'bokeh', 'jinja2',
-        'biopython', 'seaborn', 'billiard'
+        'biopython', 'seaborn', 'billiard', 'sklearn',
     ],
 
 )
