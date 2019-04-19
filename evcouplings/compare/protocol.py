@@ -164,7 +164,9 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
             fig = plt.figure(figsize=(8, 8))
             if kwargs["scale_sizes"]:
                 ecs = ecs.copy()
-                ecs.loc[:, "size"] = ecs.cn.values / ecs.cn.max()
+                ecs.loc[:, "size"] = ecs.score.values / ecs.score.max()
+                # avoid negative sizes
+                ecs.loc[ecs["size"] < 0, "size"] = 0
 
             pairs.plot_contact_map(
                 ecs, d_intra, d_multimer,
@@ -680,7 +682,8 @@ def standard(**kwargs):
                 ec_table, d_intra, d_multimer,
                 dist_cutoff=kwargs["distance_cutoff"],
                 output_file=outcfg[out_file],
-                min_sequence_dist=min_seq_dist
+                min_sequence_dist=min_seq_dist,
+                score="score"
             )
         else:
             outcfg[out_file] = None
@@ -693,7 +696,8 @@ def standard(**kwargs):
         pairs.ec_lines_pymol_script(
             ecs_longrange.iloc[:num_sites, :],
             outcfg["ec_lines_compared_pml_file"],
-            distance_cutoff=kwargs["distance_cutoff"]
+            distance_cutoff=kwargs["distance_cutoff"],
+            score_column="score"
         )
 
     # Step 4: Make contact map plots

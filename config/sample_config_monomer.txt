@@ -180,6 +180,14 @@ couplings:
 # Alternative protocol: compute couplings with mean field direct coupling analysis
 # Uncomment, and comment all values in align section above to enable the mean_field protocol
     # protocol: mean_field
+
+    # Options: cn, di, mi_apc, mi
+    # ec_score_type: cn
+
+    # Post-inference scoring of ECs to derive probabilities - only available if used_score == "cn"!
+    # Options are: skewnormal, normal, logistic_regression
+    # scoring_model: skewnormal
+
     # pseudo_count: 0.5
     # alphabet:
     # ignore_gaps: False

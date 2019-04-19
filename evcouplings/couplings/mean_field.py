@@ -474,7 +474,7 @@ class MeanFieldCouplingsModel(CouplingsModel):
                 di.append(self._di_scores[i, j])
 
         self._ecs.sort_values(by=["i", "j"], inplace=True)
-        self._ecs["di"] = di
+        self._ecs.loc[:, "di"] = di
 
         return self._ecs.sort_values(
             by="di", ascending=False
@@ -590,7 +590,9 @@ class MeanFieldCouplingsModel(CouplingsModel):
                         self.index_list[i], self.target_seq[i],
                         self.index_list[j], self.target_seq[j],
                         "{0:.6f}".format(self.mi_scores_raw[i, j]),
-                        "{0:.6f}".format(self.di_scores[i, j])
+                        "{0:.6f}".format(self.mi_scores_apc[i, j]),
+                        "{0:.6f}".format(self.di_scores[i, j]),
+                        "{0:.6f}".format(self.cn_scores[i, j])
                     ])) + "\n")
 
     def transform_from_plmc_model(self):

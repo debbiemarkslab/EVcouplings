@@ -1141,6 +1141,8 @@ def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
     if score_column is not None:
         scaling_factor = 0.5 / ec_table.loc[:, score_column].max()
         t.loc[:, "dash_radius"] = ec_table.loc[:, score_column] * scaling_factor
+        # avoid negative values
+        t.loc[t.dash_radius < 0, "dash_radius"] = 0
 
     if "dist" in ec_table and distance_cutoff is not None:
         t.loc[t.dist <= distance_cutoff, "color"] = "green"
