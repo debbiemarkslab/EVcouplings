@@ -1,5 +1,5 @@
 """
-Test cases for couplings stage of EVCouplingspipeline
+Test cases for couplings stage of EVCouplings pipeline
 
 Author:
     Anna G. Green
