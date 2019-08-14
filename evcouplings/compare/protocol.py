@@ -5,7 +5,7 @@ Authors:
   Thomas A. Hopf
   Anna G. Green (complex and _make_complex_contact_maps)
 """
-
+import joblib
 from copy import deepcopy
 from math import ceil
 import pandas as pd
@@ -33,7 +33,7 @@ from evcouplings.compare.ecs import (
     coupling_scores_compared, add_precision
 )
 from evcouplings.visualize import pairs, misc
-from evcouplings.compare.enrichment import create_enrichment_table, add_enrichment
+from evcouplings.compare.enrichment import create_enrichment_table, add_enrichment, double_window_enrichment
 from evcouplings.compare.asa import combine_asa, add_asa
 
 from evcouplings.align import ALPHABET_PROTEIN
@@ -62,113 +62,85 @@ HYDROPHOBIC_WEIGHTS = {
     "-": 0
 }
 
+X_STRUCFREE = [
+    "Z_score",
+    "conservation_max",
+    "enrichment_5",
+    "enrichment_10",
+    "f_hydrophilicity",
+    "intra_enrich_max",
+    "inter_relative_rank_longrange"
 
-def double_window_enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=0, window_size=5):
+]
+X_STRUCAWARE = [
+    "Z_score",
+    "asa_min",
+    "precision",
+    "conservation_max",
+    "enrichment_5",
+    "enrichment_10",
+    "intra_enrich_max",
+    "inter_relative_rank_longrange"
+
+]
+
+def fit_model(calibration_ecs, model_file, X, column_name):
     """
-    Calculate a modified version of EC "enrichment" as first described in
-    Hopf et al., Cell, 2012. Here, enrichment is calculated for each EC i,j
-    including all other ECs in the range of (i-window_size, i+window_size), 
-    (j-window_size, j+window size), effectively drawing a square around
-    each point i,j and looking for other ECs within that point. 
+    Fits a model topredict p(residue interaction)
 
-
-    Parameters
-    ----------
-    ecs : pd.DataFrame
-        Dataframe containing couplings
-    num_pairs : int or float, optional (default: 1.0)
-        Number of ECs to use for enrichment calculation.
-        - If float, will be interpreted as fraction of the
-        length of the sequence (e.g. 1.0*L)
-        - If int, will be interpreted as
-        absolute number of pairs
-    score : str , optional (default: cn)
-        Pair coupling score used for calculation
-    min_seqdist : int, optional (default: 6)
-        Minimum sequence distance of couplings that will
-        be included in the calculation
+    calibration_ecs: pd.DataFrame
+        has columns X used as features in model
+    model_file: str
+        path to file containing joblib dumped model (here, an sklearn logistic regression)
+    X: list of str
+        the columns to be input as features to the model. N.B., MUST be in the same order
+        as when the model was originally fit
+    column_name: str
+        name of column to create
 
     Returns
-    -------
-    enrichment_table : pd.DataFrame
-        Sorted table with enrichment values for each
-        position in the sequence
+        pd.DataFrame of ECs with new column column_name containing the fit model, 
+        or np.nan if the model could not be fit due to missing data
+
     """
 
-    # check if the provided table has segments...
-    if "segment_i" in ecs.columns and "segment_j" in ecs.columns:
-        has_segments = True
-    # ... and if not, create them
-    else:
-        has_segments = False
-        ecs["segment_i"] = "A_1"
-        ecs["segment_j"] = "A_1"
+    logreg = joblib.load(model_file)
+    data = calibration_ecs
+    data[column_name] = np.nan
 
-    # stack dataframe so it contains each
-    # EC twice as forward and backward pairs
-    # (i, j) and (j, i)
-    flipped = ecs.rename(
-        columns={
-            "i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i",
-            "segment_i": "segment_j", "segment_j": "segment_i"
-        }
-    )
+    subset_data = data.dropna(subset=X)
 
-    stacked_ecs = ecs.append(flipped)
+    if len(subset_data) == 0:
+        return data
 
-    # determine how many positions ECs are over using the combined dataframe
-    num_pos = len(stacked_ecs.groupby(["i", "A_i", "segment_i"]))
+    X_var = subset_data[X]
+    predicted = logreg.predict_proba(X_var)[:,1]
 
-    # calculate absolute number of pairs if
-    # fraction of length is given
-    if isinstance(num_pairs, float):
-        num_pairs = int(math.ceil(num_pairs * num_pos))
+    data.loc[subset_data.index, column_name] = predicted
 
-    # sort the ECs
-    ecs = ecs.query(
-        "abs(i-j) >= {}".format(min_seqdist)
-    ).sort_values(
-        by=score, ascending=False
-    )
+    return data
 
-    # take the top num 
-    top_ecs = ecs[0:num_pairs]
+def fit_complex_model(calibration_ecs, model_file, scaler_file, column_name):
+    """
+    """
 
-    sliding_window_data = []
+    logreg = joblib.load(model_file)
+    scaler = joblib.load(scaler_file)
+    data = calibration_ecs
+    logreg_sort = data.sort_values(column_name, ascending=False)
 
-    # calculate sum of EC scores for each position
-    def _window_enrich(i, A_i, segment_i):
-        segment_ecs = top_ecs.query("segment_i == @segment_i")
-        nearby = segment_ecs.query("abs(i - @i)<@window_size")
-        summed = sum(nearby.loc[:, score])
-        sliding_window_data.append([i, A_i, segment_i, summed])
-        return sliding_window_data
-        
-    for idx, row in top_ecs.iterrows():
-        # enrichment on position i
-        i, A_i, segment_i = row.i, row.A_i, row.segment_i
-        j, A_j, segment_j = row.j, row.A_j, row.segment_j
-        
-        segment_ecs = top_ecs.query("segment_i == @segment_i and segment_j==@segment_j")
-        nearby = segment_ecs.query("abs(i - @i)<@window_size and abs(j-@j)<@window_size")
-        summed = sum(nearby.loc[:, score]) 
-        sliding_window_data.append([i, A_i, segment_i, j, A_j, segment_j, summed])
+    to_predict =[list(logreg_sort[column_name])[0],list(logreg_sort[column_name])[5],list(logreg_sort[column_name])[8]] + \
+    [sum(logreg_sort[column_name]>.8)] + [sum(logreg_sort[column_name]>.5)] + [sum(logreg_sort[column_name]>.3)] + \
+    [data.inter_relative_rank_longrange.max()]
 
+    to_predict = scaler.transform(np.array(to_predict).reshape(1, -1))
 
-    ec_sums = pd.DataFrame(
-        sliding_window_data,
-        columns = ["i", "A_i", "segment_i", "j", "A_j", "segment_j", "enrichment"]
-    )
-    #print(ec_sums)
+    prediction = logreg.predict_proba(
+        np.array(to_predict).reshape(1, -1))[:,1][0]
 
-    # average EC strength for top ECs
-    avg_degree = top_ecs.loc[:, score].sum() / len(top_ecs)
+    data["complex_pred"] = prediction
 
-    # "enrichment" is ratio how much EC strength on
-    # an individual position exceeds average strength in top
-    ec_sums.loc[:, "enrichment"] = ec_sums.loc[:, "enrichment"] / avg_degree
-
-    return ec_sums.sort_values(by="enrichment", ascending=False)
+    return data
 
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
@@ -463,7 +435,7 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
 def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                                d_intra_j, d_multimer_j,
                                d_inter, first_segment_name,
-                               second_segment_name, **kwargs):
+                               second_segment_name, inter_ecs_model_prediction_file, **kwargs):
     """
     Plot contact maps with all ECs above a certain probability threshold,
     or a given count of ECs
@@ -495,7 +467,8 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
 
     def plot_complex_cm(ecs_i, ecs_j, ecs_inter, 
                         first_segment_name,
-                        second_segment_name, output_file=None):
+                        second_segment_name,
+                         output_file=None):
         """
         Simple wrapper for contact map plotting
         """
@@ -556,6 +529,22 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
 
             return True
 
+    # transform fraction of number of sites into discrete number of ECs
+    def _discrete_count(x):
+        if isinstance(x, float):
+            num_sites = 0
+            for seg_name in [first_segment_name, second_segment_name]:
+                num_sites += len(
+                    set.union(
+                        set(ec_table.query("segment_i == @seg_name").i.unique()),
+                        set(ec_table.query("segment_j == @seg_name").j.unique())
+                    )
+                )
+
+            x = ceil(x * num_sites)
+
+        return int(x)
+
     check_required(
         kwargs,
         [
@@ -564,7 +553,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             "boundaries",
             "draw_secondary_structure", "plot_lowest_count",
             "plot_highest_count", "plot_increase",
-            "scale_sizes"
+            "scale_sizes", "plot_model_cutoffs"
         ]
     )
 
@@ -600,21 +589,48 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 if plot_completed:
                     cm_files.append(output_file)
 
-    # transform fraction of number of sites into discrete number of ECs
-    def _discrete_count(x):
-        if isinstance(x, float):
-            num_sites = 0
-            for seg_name in [first_segment_name, second_segment_name]:
-                num_sites += len(
-                    set.union(
-                        set(ec_table.query("segment_i == @seg_name").i.unique()),
-                        set(ec_table.query("segment_j == @seg_name").j.unique())
-                    )
-                )
 
-            x = ceil(x * num_sites)
+    # create plots based on significance cutoff
+    if kwargs["plot_model_cutoffs"]:
+        cutoffs = kwargs["plot_model_cutoffs"]
+        if not isinstance(cutoffs, list):
+            cutoffs = [cutoffs]
 
-        return int(x)
+        # make sure that file with the ec information we need exists
+        verify_resources("EC model fit file does not exist",
+         inter_ecs_model_prediction_file)
+
+        ec_modeled = pd.read_csv(inter_ecs_model_prediction_file)
+
+        L2 = _discrete_count(0.5)
+        ecs_top_L = ecs_longrange.iloc[0:L2,:]
+        ec_set_i = ecs_top_L.query("segment_i == segment_j == @first_segment_name")
+        ec_set_j = ecs_top_L.query("segment_i == segment_j == @second_segment_name")
+
+        for c in cutoffs:
+
+            # only can plot if we have any significant ECs above threshold
+            ec_set_inter = ec_modeled.query("residue_prediction_strucaware > @c")
+
+            output_file = prefix + "_structure_aware_ECs_{}.png".format(c)
+            plot_completed = plot_complex_cm(
+                ec_set_i, ec_set_j, ec_set_inter,
+                first_segment_name, second_segment_name,
+                output_file=output_file
+            )
+            if plot_completed:
+                cm_files.append(output_file)
+
+            ec_set_inter = ec_modeled.query("residue_prediction_strucfree > @c")
+
+            output_file = prefix + "_structure_free_ECs_{}.png".format(c)
+            plot_completed = plot_complex_cm(
+                ec_set_i, ec_set_j, ec_set_inter,
+                first_segment_name, second_segment_name,
+                output_file=output_file
+            )
+            if plot_completed:
+                cm_files.append(output_file)
 
     # range of plots to make
     lowest = _discrete_count(kwargs["plot_lowest_count"])
@@ -890,7 +906,7 @@ def complex(**kwargs):
             "first_sequence_id", "second_sequence_id",
             "first_sequence_file", "second_sequence_file",
             "first_target_sequence_file", "second_target_sequence_file",
-            "scale_sizes"
+            "scale_sizes", "structurefree_model_file", "structureaware_model_file"
         ]
     )
 
@@ -1241,7 +1257,7 @@ def complex(**kwargs):
         enrichment_table = create_enrichment_table(
            ecs, d_intra_i, d_intra_j
         )
-        enrichment_table.to_csv(prefix + "_enrichment_complete.csv")
+
         ecs = add_enrichment(enrichment_table, ecs)
 
         # get only the top 100 inter ECs
@@ -1249,12 +1265,11 @@ def complex(**kwargs):
         ecs = ecs.query("segment_i != segment_j")
         mean_ec = ecs.cn.mean()
         std_ec = ecs.cn.std()
+        ecs["Z_score"] = (ecs.cn - mean_ec) / std_ec
+
         L = len(ecs.i.unique()) + len(ecs.j.unique())
         ecs = ecs[0:100]
         
-        # calculate the z-score
-        ecs["Z_score"] = (ecs.cn - mean_ec) / std_ec
-
         # add rank
         ecs["inter_relative_rank_longrange"] = ecs.index / L
 
@@ -1324,7 +1339,7 @@ def complex(**kwargs):
         #enrichment
         inter_ecs = ecs.query("segment_i != segment_j")
 
-        enrich_range_to_calculate = [1, 5, 10]
+        enrich_range_to_calculate = [5, 10]
         for size in enrich_range_to_calculate:
             enrich = double_window_enrichment(ecs=inter_ecs, min_seqdist=0, num_pairs=20, window_size=size, score="Z_score")
             enrich = enrich.rename({"enrichment": f"enrichment_{size}"}, axis=1)
@@ -1333,12 +1348,29 @@ def complex(**kwargs):
         #write the file (top 50 only)
         
         outcfg["calibration_file"] = prefix + "_CouplingScores_inter_calibration.csv"
-        inter_ecs.iloc[0:50, :].to_csv(outcfg["calibration_file"])
+        inter_ecs.to_csv(outcfg["calibration_file"])
 
-    # if valid_file(outcfg["ec_compared_longrange_file"]):
-    #     _calibration_file(prefix, outcfg["ec_compared_longrange_file"])
-    # else:
-    #     _calibration_file(prefix, kwargs["ec_longrange_file"])
+    if valid_file(outcfg["ec_compared_longrange_file"]):
+        _calibration_file(prefix, outcfg["ec_compared_longrange_file"])
+    else:
+        _calibration_file(prefix, kwargs["ec_longrange_file"])
+
+    if valid_file(outcfg["calibration_file"]):
+        calibration_ecs = pd.read_csv(outcfg["calibration_file"],index_col=0)
+        calibration_ecs = fit_model(calibration_ecs, kwargs["structurefree_model_file"], X_STRUCFREE, "residue_prediction_strucfree")
+        calibration_ecs = fit_model(calibration_ecs, kwargs["structureaware_model_file"], X_STRUCAWARE, "residue_prediction_strucaware")
+        calibration_ecs = fit_complex_model(
+            calibration_ecs, kwargs["complex_model_file"], kwargs["complex_scaler_file"], "residue_prediction_strucfree"
+        )
+        
+        outcfg["inter_ecs_model_prediction_file"] = prefix +"_CouplingScores_inter_prediction.csv"
+        calibration_ecs[[
+            "inter_relative_rank_longrange", "i", "A_i", "j", "A_j", 
+            "segment_i", "segment_j", "cn", "dist", "precision",  "residue_prediction_strucaware", "residue_prediction_strucfree",
+            "complex_pred","evcomplex_raw", "asa_i", "asa_j", "asa_min", "conservation_max", 
+            "enrichment_5", "enrichment_10", "f_hydrophilicity"
+        ]].to_csv(outcfg["inter_ecs_model_prediction_file"])
+
 
     # create the inter-ecs line drawing script
     if outcfg["ec_compared_inter_file"] is not None and kwargs["plot_highest_count"] is not None:
@@ -1373,118 +1405,165 @@ def complex(**kwargs):
         ec_table, d_intra_i, d_multimer_i,
         d_intra_j, d_multimer_j,
         d_inter, first_segment_name,
-        second_segment_name, **kwargs
+        second_segment_name, outcfg["inter_ecs_model_prediction_file"], **kwargs
     )
 
     return outcfg
 
 
-def double_window_enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=0, window_size=5):
+def fast_complex(**kwargs):
     """
-    Calculate a modified version of EC "enrichment" as first described in
-    Hopf et al., Cell, 2012. Here, enrichment is calculated for each EC i,j
-    including all other ECs in the range of (i-window_size, i+window_size), 
-    (j-window_size, j+window size), effectively drawing a square around
-    each point i,j and looking for other ECs within that point. 
-
+    Protocol:
+    Compare ECs for a complex to
+    3D structure
 
     Parameters
     ----------
-    ecs : pd.DataFrame
-        Dataframe containing couplings
-    num_pairs : int or float, optional (default: 1.0)
-        Number of ECs to use for enrichment calculation.
-        - If float, will be interpreted as fraction of the
-        length of the sequence (e.g. 1.0*L)
-        - If int, will be interpreted as
-        absolute number of pairs
-    score : str , optional (default: cn)
-        Pair coupling score used for calculation
-    min_seqdist : int, optional (default: 6)
-        Minimum sequence distance of couplings that will
-        be included in the calculation
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
 
     Returns
     -------
-    enrichment_table : pd.DataFrame
-        Sorted table with enrichment values for each
-        position in the sequence
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+
     """
-
-    # check if the provided table has segments...
-    if "segment_i" in ecs.columns and "segment_j" in ecs.columns:
-        has_segments = True
-    # ... and if not, create them
-    else:
-        has_segments = False
-        ecs["segment_i"] = "A_1"
-        ecs["segment_j"] = "A_1"
-
-    # stack dataframe so it contains each
-    # EC twice as forward and backward pairs
-    # (i, j) and (j, i)
-    flipped = ecs.rename(
-        columns={
-            "i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i",
-            "segment_i": "segment_j", "segment_j": "segment_i"
-        }
+    check_required(
+        kwargs,
+        [
+            "prefix", "ec_file", "segments",
+            "structurefree_model_file", "structureaware_model_file"
+        ]
     )
 
-    stacked_ecs = ecs.append(flipped)
+    prefix = kwargs["prefix"]
 
-    # determine how many positions ECs are over using the combined dataframe
-    num_pos = len(stacked_ecs.groupby(["i", "A_i", "segment_i"]))
+    outcfg = {}
 
-    # calculate absolute number of pairs if
-    # fraction of length is given
-    if isinstance(num_pairs, float):
-        num_pairs = int(math.ceil(num_pairs * num_pos))
-
-    # sort the ECs
-    ecs = ecs.query(
-        "abs(i-j) >= {}".format(min_seqdist)
-    ).sort_values(
-        by=score, ascending=False
+    # make sure EC file exists
+    verify_resources(
+        "EC file does not exist",
+        kwargs["ec_file"]
     )
 
-    # take the top num 
-    top_ecs = ecs[0:num_pairs]
+    # create an inter-ecs file with extra information for calibration purposes
+    def _calibration_file(prefix, ec_file):
 
-    sliding_window_data = []
+        if not valid_file(ec_file):
+            return None
 
-    # calculate sum of EC scores for each position
-    def _window_enrich(i, A_i, segment_i):
-        segment_ecs = top_ecs.query("segment_i == @segment_i")
-        nearby = segment_ecs.query("abs(i - @i)<@window_size")
-        summed = sum(nearby.loc[:, score])
-        sliding_window_data.append([i, A_i, segment_i, summed])
-        return sliding_window_data
-        
-    for idx, row in top_ecs.iterrows():
-        # enrichment on position i
-        i, A_i, segment_i = row.i, row.A_i, row.segment_i
-        j, A_j, segment_j = row.j, row.A_j, row.segment_j
-        
-        segment_ecs = top_ecs.query("segment_i == @segment_i and segment_j==@segment_j")
-        nearby = segment_ecs.query("abs(i - @i)<@window_size and abs(j-@j)<@window_size")
-        summed = sum(nearby.loc[:, score]) 
-        sliding_window_data.append([i, A_i, segment_i, j, A_j, segment_j, summed])
+        ecs = pd.read_csv(ec_file)
+
+        ecs= ecs.query(
+            "segment_i != segment_j or abs(i - j) >= {}".format(kwargs["min_sequence_distance"])
+        )
+
+        # add the evcomplex score
+        ecs = complex_probability(
+            ecs, "evcomplex_uncorrected", False
+        )
+        ecs.loc[:, "evcomplex_raw"] = ecs.loc[:, "probability"]
+
+        enrichment_table = create_enrichment_table(
+            ecs, None, None
+        )
+
+        ecs = add_enrichment(enrichment_table, ecs)
+
+        # get only the top 100 inter ECs
+
+        ecs = ecs.query("segment_i != segment_j")
+        mean_ec = ecs.cn.mean()
+        std_ec = ecs.cn.std()
+        ecs["Z_score"] = (ecs.cn - mean_ec) / std_ec
+
+        L = len(ecs.i.unique()) + len(ecs.j.unique())
+        ecs = ecs[0:100]
+
+        # add rank
+        ecs["inter_relative_rank_longrange"] = ecs.index / L
+
+        # conservation
+        frequency_file = prefix.replace("compare", "concatenate") + "_frequencies.csv"
+        print(frequency_file)
+        d = pd.read_csv(frequency_file)
+        d["j"] = d["i"]
+        d["segment_j"] = d["segment_i"]
+        conservation = {(x, y): z for x, y, z in zip(d.segment_i, d.i, d.conservation)}
+
+        ecs["conservation_i"] = [conservation[(x, y)] if (x, y) in conservation else np.nan for x, y in
+                                 zip(ecs.segment_i, ecs.i)]
+        ecs["conservation_j"] = [conservation[(x, y)] if (x, y) in conservation else np.nan for x, y in
+                                 zip(ecs.segment_j, ecs.j)]
+
+        ecs["conservation_max"] = [
+            max([x, y]) for x, y in zip(ecs.conservation_i, ecs.conservation_j)
+        ]
+        ecs["conservation_min"] = [
+            min([x, y]) for x, y in zip(ecs.conservation_i, ecs.conservation_j)
+        ]
+
+        # amino acid frequencies
+        for char in list(ALPHABET_PROTEIN):
+            ecs = ecs.merge(d[["i", "segment_i", char]], on=["i", "segment_i"], how="left")
+            ecs = ecs.rename({char: f"f{char}_i"}, axis=1)
+
+            ecs = ecs.merge(d[["j", "segment_j", char]], on=["j", "segment_j"], how="left")
+            ecs = ecs.rename({char: f"f{char}_j"}, axis=1)
+
+        for i in list(ALPHABET_PROTEIN):
+            ecs[f'f{i}'] = ecs[f'f{i}_i'] + ecs[f'f{i}_j']
+
+        hydrophilicity = []
+        for idx, row in ecs.iterrows():
+            hydro = sum([
+                HYDROPHOBIC_WEIGHTS[i] * float(row[[f'f{i}']]) for i in list(ALPHABET_PROTEIN)
+            ])
+            hydrophilicity.append(hydro)
+
+        ecs["f_hydrophilicity"] = hydrophilicity
+
+        # enrichment
+        inter_ecs = ecs.query("segment_i != segment_j")
+
+        enrich_range_to_calculate = [5, 10]
+        for size in enrich_range_to_calculate:
+            enrich = double_window_enrichment(ecs=inter_ecs, min_seqdist=0, num_pairs=20, window_size=size,
+                                              score="Z_score")
+            enrich = enrich.rename({"enrichment": f"enrichment_{size}"}, axis=1)
+            inter_ecs = inter_ecs.merge(enrich, on=["i", "A_i", "segment_i", "j", "A_j", "segment_j"])
 
 
-    ec_sums = pd.DataFrame(
-        sliding_window_data,
-        columns = ["i", "A_i", "segment_i", "j", "A_j", "segment_j", "enrichment"]
-    )
-    #print(ec_sums)
+        outcfg["calibration_file"] = prefix + "_CouplingScores_inter_calibration.csv"
+        inter_ecs.to_csv(outcfg["calibration_file"])
 
-    # average EC strength for top ECs
-    avg_degree = top_ecs.loc[:, score].sum() / len(top_ecs)
+        return outcfg
 
-    # "enrichment" is ratio how much EC strength on
-    # an individual position exceeds average strength in top
-    ec_sums.loc[:, "enrichment"] = ec_sums.loc[:, "enrichment"] / avg_degree
+    _calibration_file(prefix, kwargs["ec_file"])
 
-    return ec_sums.sort_values(by="enrichment", ascending=False)
+    if valid_file(outcfg["calibration_file"]):
+        calibration_ecs = pd.read_csv(outcfg["calibration_file"], index_col=0)
+
+        calibration_ecs = fit_model(calibration_ecs, kwargs["structurefree_model_file"], X_STRUCFREE,
+                                    "residue_prediction_strucfree")
+
+        calibration_ecs = fit_complex_model(
+            calibration_ecs, kwargs["complex_model_file"], kwargs["complex_scaler_file"], "residue_prediction_strucfree"
+        )
+
+        outcfg["inter_ecs_model_prediction_file"] = prefix + "_CouplingScores_inter_prediction.csv"
+        calibration_ecs[[
+            "inter_relative_rank_longrange", "i", "A_i", "j", "A_j",
+            "segment_i", "segment_j", "cn",
+            "residue_prediction_strucfree",
+            "complex_pred", "evcomplex_raw", "conservation_max",
+            "enrichment_5", "enrichment_10", "f_hydrophilicity"
+        ]].to_csv(outcfg["inter_ecs_model_prediction_file"])
+
+
+    return outcfg
 
 
 # list of available EC comparison protocols
@@ -1493,8 +1572,12 @@ PROTOCOLS = {
     "standard": standard,
 
     # comparison for protein complexes
-    "complex": complex
+    "complex": complex,
+
+    "fast_complex": fast_complex
 }
+
+ 
 
 
 def run(**kwargs):

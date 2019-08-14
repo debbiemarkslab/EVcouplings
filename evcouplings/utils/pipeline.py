@@ -62,6 +62,11 @@ PIPELINES = {
         ("compare", cm.run, None),
         ("mutate", mt.run, None),
         ("fold", fd.run, None)
+    ],
+    "fast_complex": [
+        ("concatenate", pp.run, None),
+        ("couplings", cp.run, None),
+        ("compare", cm.run, None),
     ]
 }
 
@@ -188,6 +193,12 @@ def execute(**config):
 
             # one less stage to put through after we ran this...
             num_stages_to_run -= 1
+
+            # If running fast complex and we did not get the requisite number of seqs,
+            # end the pipeline here
+            if config["pipeline"] == "fast_complex" and stage == "concatenate":
+                if outcfg["num_sequences"] / outcfg["num_sites"] < config["global"]["sequences_threshold"]:
+                    num_stages_to_run = 0
         else:
             # skip state by injecting state from previous run
             verify_resources(
@@ -204,7 +215,9 @@ def execute(**config):
             outfiles = [
                 filepath for f, filepath in outcfg.items()
                 if f.endswith("_file") and filepath is not None and f!="model_file" \
-                and not filepath.endswith(".fasta")
+                and not filepath.endswith(".fasta") and not filepath.endswith("longrange.csv") \
+                and not filepath.endswith(".pml") and not filepath.endswith(".json") \
+                and not filepath.endswith("ECs.txt")
             ]
 
             verify_resources(
@@ -242,8 +255,8 @@ def create_archive(config, outcfg, output_file):
     Parameters
     ----------
     config : dict-like
-        Input configuration of job. Uses 
-        config["management"]["archive"] (list of key 
+        Input configuration of job. Uses
+        config["management"]["archive"] (list of key
         used to index outcfg) to determine
         which files should be added to archive
     outcfg : dict-like
@@ -285,13 +298,13 @@ def delete_outputs(config, outcfg):
     Parameters
     ----------
     config : dict-like
-        Input configuration of job. Uses 
-        config["management"]["delete"] (list of key 
+        Input configuration of job. Uses
+        config["management"]["delete"] (list of key
         used to index outcfg) to determine
         which files should be added to archive
     outcfg : dict-like
         Output configuration of job
-    
+
     Returns
     -------
     outcfg_cleaned : dict-like
@@ -337,7 +350,7 @@ def verify_prefix(verify_subdir=True, **config):
     Check if configuration contains a prefix,
     and that prefix is a valid directory we
     can write to on the filesystem
-    
+
     Parameters
     ----------
     verify_subdir : bool, optional (default: True)
@@ -346,7 +359,7 @@ def verify_prefix(verify_subdir=True, **config):
         app loop.
     **config
         Input configuration for pipeline
-        
+
     Returns
     -------
     prefix : str
@@ -480,7 +493,7 @@ def run(**kwargs):
     EVcouplings pipeline execution from a
     configuration file (single thread, no
     batch or environment configuration)
-    
+
     Parameters
     ----------
     kwargs

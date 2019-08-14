@@ -8,222 +8,113 @@ import sys
 from evcouplings.compare import DistanceMap
 import os
 
-import pandas as pd
-import glob
-import ruamel.yaml as yaml
-from evcouplings.couplings import enrichment
-from evcouplings.couplings import add_mixture_probability
-import math
-import sys
-from evcouplings.compare import DistanceMap
-import os
 
-def radius_distance_enrichment(ecs, distances1, distances2, num_pairs=1.0, score="cn", min_seqdist=6, distance_threshold=5,
-							  ):
-	"""
-	Calculate EC "enrichment" as first described in
-	Hopf et al., Cell, 2012.
+def double_window_enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=0, window_size=5):
+    """
+    Calculate a modified version of EC "enrichment" as first described in
+    Hopf et al., Cell, 2012. Here, enrichment is calculated for each EC i,j
+    including all other ECs in the range of (i-window_size, i+window_size), 
+    (j-window_size, j+window size), effectively drawing a square around
+    each point i,j and looking for other ECs within that point. 
 
 
-	Parameters
-	----------
-	ecs : pd.DataFrame
-		Dataframe containing couplings
-	num_pairs : int or float, optional (default: 1.0)
-		Number of ECs to use for enrichment calculation.
-		- If float, will be interpreted as fraction of the
-		length of the sequence (e.g. 1.0*L)
-		- If int, will be interpreted as
-		absolute number of pairs
-	score : str, optional (default: cn)
-		Pair coupling score used for calculation
-	min_seqdist : int, optional (default: 6)
-		Minimum sequence distance of couplings that will
-		be included in the calculation
+    Parameters
+    ----------
+    ecs : pd.DataFrame
+        Dataframe containing couplings
+    num_pairs : int or float, optional (default: 1.0)
+        Number of ECs to use for enrichment calculation.
+        - If float, will be interpreted as fraction of the
+        length of the sequence (e.g. 1.0*L)
+        - If int, will be interpreted as
+        absolute number of pairs
+    score : str , optional (default: cn)
+        Pair coupling score used for calculation
+    min_seqdist : int, optional (default: 6)
+        Minimum sequence distance of couplings that will
+        be included in the calculation
 
-	Returns
-	-------
-	enrichment_table : pd.DataFrame
-		Sorted table with enrichment values for each
-		position in the sequence
-	"""
+    Returns
+    -------
+    enrichment_table : pd.DataFrame
+        Sorted table with enrichment values for each
+        position in the sequence
+    """
 
-	# check if the provided table has segments...
-	if "segment_i" in ecs.columns and "segment_j" in ecs.columns:
-		has_segments = True
-	# ... and if not, create them
-	else:
-		has_segments = False
-		ecs["segment_i"] = "A_1"
-		ecs["segment_j"] = "A_1"
+    # check if the provided table has segments...
+    if "segment_i" in ecs.columns and "segment_j" in ecs.columns:
+        has_segments = True
+    # ... and if not, create them
+    else:
+        has_segments = False
+        ecs["segment_i"] = "A_1"
+        ecs["segment_j"] = "A_1"
 
-	# stack dataframe so it contains each
-	# EC twice as forward and backward pairs
-	# (i, j) and (j, i)
-	flipped = ecs.rename(
-		columns={
-			"i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i",
-			"segment_i": "segment_j", "segment_j": "segment_i"
-		}
-	)
+    # stack dataframe so it contains each
+    # EC twice as forward and backward pairs
+    # (i, j) and (j, i)
+    flipped = ecs.rename(
+        columns={
+            "i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i",
+            "segment_i": "segment_j", "segment_j": "segment_i"
+        }
+    )
 
-	stacked_ecs = ecs.append(flipped)
+    stacked_ecs = ecs.append(flipped)
 
-	# determine how many positions ECs are over using the combined dataframe
-	num_pos = len(stacked_ecs.groupby(["i", "A_i", "segment_i"]))
+    # determine how many positions ECs are over using the combined dataframe
+    num_pos = len(stacked_ecs.groupby(["i", "A_i", "segment_i"]))
 
-	# calculate absolute number of pairs if
-	# fraction of length is given
-	if isinstance(num_pairs, float):
-		num_pairs = int(math.ceil(num_pairs * num_pos))
+    # calculate absolute number of pairs if
+    # fraction of length is given
+    if isinstance(num_pairs, float):
+        num_pairs = int(math.ceil(num_pairs * num_pos))
 
-	# sort the stacked ECs
-	stacked_sorted_ecs = stacked_ecs.query(
-		"abs(i-j) >= {}".format(min_seqdist)
-	).sort_values(
-		by=score, ascending=False
-	)
+    # sort the ECs
+    ecs = ecs.query(
+        "abs(i-j) >= {}".format(min_seqdist)
+    ).sort_values(
+        by=score, ascending=False
+    )
 
-	# take the top num *2 (because each EC represented twice)
-	top_ecs = stacked_sorted_ecs[0:num_pairs * 2]
+    # take the top num 
+    top_ecs = ecs[0:num_pairs]
 
-	sliding_window_data = []
-	# calculate sum of EC scores for each position
-	for name, _ in top_ecs.groupby(["i", "A_i", "segment_i"]):
-		i, A_i, segment_i = name
-		i_str = str(i)
-		segment_ecs = top_ecs.query("segment_i == @segment_i")
-		
-		if segment_i == "A_1":
-			nearby_residues = list(distances1.query("i == @i_str").j) + [i]
-		else:
-			nearby_residues = list(distances2.query("i == @i_str").j) + [i]
+    sliding_window_data = []
 
-		nearby = segment_ecs.query("i in @nearby_residues")
-		#print(nearby.loc[:, score])
-		summed = sum(nearby.loc[:, score])
-		sliding_window_data.append([i, A_i, segment_i, summed])
-
-	ec_sums = pd.DataFrame(
-		sliding_window_data,
-		columns = ["i", "A_i", "segment_i", "cn"]
-	)
-   # print(ec_sums)
-	
-	# average EC strength for top ECs
-	avg_degree = top_ecs.loc[:, score].sum() / len(top_ecs)
-
-	# "enrichment" is ratio how much EC strength on
-	# an individual position exceeds average strength in top
-	ec_sums.loc[:, "enrichment"] = ec_sums.loc[:, score] / avg_degree
-
-	# if the ecs had segment information, return a segment column
-	if has_segments:
-		e = ec_sums.reset_index().loc[:, ["i", "A_i", "segment_i", "enrichment"]]
-	else:
-		e = ec_sums.reset_index().loc[:, ["i", "A_i", "enrichment"]]
-
-	return e.sort_values(by="enrichment", ascending=False)
+    # calculate sum of EC scores for each position
+    def _window_enrich(i, A_i, segment_i):
+        segment_ecs = top_ecs.query("segment_i == @segment_i")
+        nearby = segment_ecs.query("abs(i - @i)<@window_size")
+        summed = sum(nearby.loc[:, score])
+        sliding_window_data.append([i, A_i, segment_i, summed])
+        return sliding_window_data
+        
+    for idx, row in top_ecs.iterrows():
+        # enrichment on position i
+        i, A_i, segment_i = row.i, row.A_i, row.segment_i
+        j, A_j, segment_j = row.j, row.A_j, row.segment_j
+        
+        segment_ecs = top_ecs.query("segment_i == @segment_i and segment_j==@segment_j")
+        nearby = segment_ecs.query("abs(i - @i)<@window_size and abs(j-@j)<@window_size")
+        summed = sum(nearby.loc[:, score]) 
+        sliding_window_data.append([i, A_i, segment_i, j, A_j, segment_j, summed])
 
 
-def sliding_window_enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=0, window_size=5):
-	"""
-	Calculate EC "enrichment" as first described in
-	Hopf et al., Cell, 2012.
+    ec_sums = pd.DataFrame(
+        sliding_window_data,
+        columns = ["i", "A_i", "segment_i", "j", "A_j", "segment_j", "enrichment"]
+    )
+    #print(ec_sums)
 
+    # average EC strength for top ECs
+    avg_degree = top_ecs.loc[:, score].sum() / len(top_ecs)
 
-	Parameters
-	----------
-	ecs : pd.DataFrame
-		Dataframe containing couplings
-	num_pairs : int or float, optional (default: 1.0)
-		Number of ECs to use for enrichment calculation.
-		- If float, will be interpreted as fraction of the
-		length of the sequence (e.g. 1.0*L)
-		- If int, will be interpreted as
-		absolute number of pairs
-	score : str, optional (default: cn)
-		Pair coupling score used for calculation
-	min_seqdist : int, optional (default: 6)
-		Minimum sequence distance of couplings that will
-		be included in the calculation
+    # "enrichment" is ratio how much EC strength on
+    # an individual position exceeds average strength in top
+    ec_sums.loc[:, "enrichment"] = ec_sums.loc[:, "enrichment"] / avg_degree
 
-	Returns
-	-------
-	enrichment_table : pd.DataFrame
-		Sorted table with enrichment values for each
-		position in the sequence
-	"""
-
-	# check if the provided table has segments...
-	if "segment_i" in ecs.columns and "segment_j" in ecs.columns:
-		has_segments = True
-	# ... and if not, create them
-	else:
-		has_segments = False
-		ecs["segment_i"] = "A_1"
-		ecs["segment_j"] = "A_1"
-
-	# stack dataframe so it contains each
-	# EC twice as forward and backward pairs
-	# (i, j) and (j, i)
-	flipped = ecs.rename(
-		columns={
-			"i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i",
-			"segment_i": "segment_j", "segment_j": "segment_i"
-		}
-	)
-
-	stacked_ecs = ecs.append(flipped)
-
-	# determine how many positions ECs are over using the combined dataframe
-	num_pos = len(stacked_ecs.groupby(["i", "A_i", "segment_i"]))
-
-	# calculate absolute number of pairs if
-	# fraction of length is given
-	if isinstance(num_pairs, float):
-		num_pairs = int(math.ceil(num_pairs * num_pos))
-
-	# sort the stacked ECs
-	stacked_sorted_ecs = stacked_ecs.query(
-		"abs(i-j) >= {}".format(min_seqdist)
-	).sort_values(
-		by=score, ascending=False
-	)
-
-	# take the top num *2 (because each EC represented twice)
-	top_ecs = stacked_sorted_ecs[0:num_pairs * 2]
-
-	sliding_window_data = []
-	# calculate sum of EC scores for each position
-	for name, _ in top_ecs.groupby(["i", "A_i", "segment_i"]):
-		i, A_i, segment_i = name
-		segment_ecs = top_ecs.query("segment_i == @segment_i")
-		nearby = segment_ecs.query("abs(i - @i)<@window_size")
-		#print(nearby.loc[:, score])
-		summed = sum(nearby.loc[:, score])
-		sliding_window_data.append([i, A_i, segment_i, summed])
-
-	ec_sums = pd.DataFrame(
-		sliding_window_data,
-		columns = ["i", "A_i", "segment_i", "cn"]
-	)
-   # print(ec_sums)
-	
-	# average EC strength for top ECs
-	avg_degree = top_ecs.loc[:, score].sum() / len(top_ecs)
-
-	# "enrichment" is ratio how much EC strength on
-	# an individual position exceeds average strength in top
-	ec_sums.loc[:, "enrichment"] = ec_sums.loc[:, score] / avg_degree
-
-	# if the ecs had segment information, return a segment column
-	if has_segments:
-		e = ec_sums.reset_index().loc[:, ["i", "A_i", "segment_i", "enrichment"]]
-	else:
-		e = ec_sums.reset_index().loc[:, ["i", "A_i", "enrichment"]]
-
-	return e.sort_values(by="enrichment", ascending=False)
+    return ec_sums.sort_values(by="enrichment", ascending=False)
 
 def combine_enrichment_scores(ecs, distancemap1, distancemap2):
 
@@ -239,32 +130,6 @@ def combine_enrichment_scores(ecs, distancemap1, distancemap2):
 	intra2_enrichment["segment_i"] = "B_1"
 
 	enrichment_table = pd.concat([intra1_enrichment, intra2_enrichment])
-
-	# calculate inter-protein enrichment
-	# for inter ECs, sequence distance is 0
-	inter_enrichment = enrichment(inter_ecs, min_seqdist=0, num_pairs=50)
-	inter_enrichment = inter_enrichment.rename({"enrichment": "inter_enrichment"}, axis=1)
-	enrichment_table = enrichment_table.merge(inter_enrichment, on=["i", "A_i", "segment_i"])
-
-	# calculate inter-protein sliding window enrichment
-	inter_enrichment = sliding_window_enrichment(inter_ecs, min_seqdist=0, num_pairs=50, window_size=5)
-	inter_enrichment = inter_enrichment.rename({"enrichment": "inter_window5_enrichment"}, axis=1)
-
-	enrichment_table = enrichment_table.merge(inter_enrichment, on=["i", "A_i", "segment_i"])
-
-	# calculate inter-protein sliding window enrichment
-	inter_enrichment = sliding_window_enrichment(inter_ecs, min_seqdist=0, num_pairs=50, window_size=2)
-	inter_enrichment = inter_enrichment.rename({"enrichment": "inter_window2_enrichment"}, axis=1)
-
-	enrichment_table = enrichment_table.merge(inter_enrichment, on=["i", "A_i", "segment_i"])
-
-	# calculate inter-protein radius enrichment
-	inter_enrichment = radius_distance_enrichment(
-		inter_ecs, distancemap1, distancemap2, min_seqdist=0, num_pairs=50
-	)
-	inter_enrichment = inter_enrichment.rename({"enrichment": "inter_radius_enrichment"}, axis=1)
-
-	enrichment_table = enrichment_table.merge(inter_enrichment, on=["i", "A_i", "segment_i"])
 
 	return enrichment_table
 
@@ -306,25 +171,6 @@ def add_enrichment(enrichment, df):
     df = _seg_to_enrich(enrichment, df, "enrichment")
     df["intra_enrich_max"] = df[["_e_i", "_e_j"]].max(axis=1)
     df["intra_enrich_min"] = df[["_e_i", "_e_j"]].min(axis=1)
-    
-    ### inter single enrichment
-    df = _seg_to_enrich(enrichment, df, "inter_enrichment")
-    df["inter_enrich_single_max"] = df[["_e_i", "_e_j"]].max(axis=1)
-    df["inter_enrich_single_min"] = df[["_e_i", "_e_j"]].min(axis=1)
-    
-    ### inter window enrichment
-    df = _seg_to_enrich(enrichment, df, "inter_window5_enrichment")
-    df["inter_enrich5_window_max"] = df[["_e_i", "_e_j"]].max(axis=1)
-    df["inter_enrich5_window_min"] = df[["_e_i", "_e_j"]].min(axis=1)
-    
-    df = _seg_to_enrich(enrichment, df, "inter_window2_enrichment")
-    df["inter_enrich2_window_max"] = df[["_e_i", "_e_j"]].max(axis=1)
-    df["inter_enrich2_window_min"] = df[["_e_i", "_e_j"]].min(axis=1)
-    
-    ### inter window enrichment
-    df = _seg_to_enrich(enrichment, df, "inter_radius_enrichment")
-    df["inter_enrich_radius_max"] = df[["_e_i", "_e_j"]].max(axis=1)
-    df["inter_enrich_radius_min"] = df[["_e_i", "_e_j"]].min(axis=1)
     
     return df
 

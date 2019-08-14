@@ -22,6 +22,8 @@ from evcouplings.utils.system import (
 )
 from evcouplings.align.protocol import modify_alignment
 
+from evcouplings.align.alignment import Alignment
+
 from evcouplings.complex.alignment import (
     write_concatenated_alignment
 )
@@ -624,13 +626,199 @@ def best_hit(**kwargs):
     return outcfg
 
 
+def fast_best_hit(**kwargs):
+    """
+    Protocol:
+
+    Concatenate alignments based on the best hit
+    to the focus sequence in each species
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        alignment_file
+        raw_alignment_file
+        focus_mode
+        focus_sequence
+        segments
+        frequencies_file
+        identities_file
+        num_sequences
+        num_sites
+        raw_focus_alignment_file
+        statistics_file
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix",
+            "first_alignment_file", "second_alignment_file",
+#            "first_focus_sequence", "second_focus_sequence",
+            "first_focus_mode", "second_focus_mode",
+#            "first_segments", "second_segments",
+            "first_identities_file", "second_identities_file",
+            "first_annotation_file", "second_annotation_file",
+            "use_best_reciprocal", "paralog_identity_threshold",
+            "forbid_overlapping_concatenation"
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    # make sure input alignments
+    verify_resources(
+        "Input alignment does not exist",
+        kwargs["first_alignment_file"], kwargs["second_alignment_file"]
+    )
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    def _prepare_monomer_segments(alignment_file, region_start, focus_sequence, config, sub_prefix):
+        with open(alignment_file) as f:
+            ali = Alignment.from_file(f, "a3m")
+
+        # keep list of uppercase sequence positions in alignment
+        pos_list = np.arange(region_start, region_start + ali.L, dtype="int32")
+
+        # create segment in outcfg
+        config[sub_prefix + "_segments"] = [
+            Segment(
+                "aa", focus_sequence, region_start, region_start + ali.L - 1, pos_list
+            ).to_list()
+        ]
+        return config
+
+    def _load_monomer_info(annotations_file, identities_file,
+                           target_sequence, alignment_file,
+                           use_best_reciprocal, identity_threshold):
+
+        # read in annotation to a file and rename the appropriate column
+        annotation_table = read_species_annotation_table(annotations_file)
+
+        # read identity file
+        similarities = pd.read_csv(identities_file)
+
+        # create a pd.DataFrame containing the best hit in each organism
+        most_similar_in_species = most_similar_by_organism(similarities, annotation_table)
+
+        if use_best_reciprocal:
+            paralogs = find_paralogs(
+                target_sequence, annotation_table, similarities,
+                identity_threshold
+            )
+
+            most_similar_in_species = filter_best_reciprocal(
+                alignment_file, paralogs, most_similar_in_species
+            )
+
+        return most_similar_in_species
+
+    # prepare the segments from each alignment
+    kwargs = _prepare_monomer_segments(
+        kwargs["first_alignment_file"],
+        kwargs["first_region_start"],
+        kwargs["first_focus_sequence"],
+        kwargs, "first"
+    )
+
+    kwargs = _prepare_monomer_segments(
+        kwargs["second_alignment_file"],
+        kwargs["second_region_start"],
+        kwargs["second_focus_sequence"],
+        kwargs, "second"
+    )
+
+
+    # load the information about each monomer alignment
+    most_similar_in_species_1 = _load_monomer_info(
+        kwargs["first_annotation_file"],
+        kwargs["first_identities_file"],
+        kwargs["first_focus_sequence"],
+        kwargs["first_alignment_file"],
+        kwargs["use_best_reciprocal"],
+        kwargs["paralog_identity_threshold"]
+    )
+
+    most_similar_in_species_2 = _load_monomer_info(
+        kwargs["second_annotation_file"],
+        kwargs["second_identities_file"],
+        kwargs["second_focus_sequence"],
+        kwargs["second_alignment_file"],
+        kwargs["use_best_reciprocal"],
+        kwargs["paralog_identity_threshold"]
+    )
+
+    # merge the two dataframes to get all species found in
+    # both alignments
+    species_intersection = most_similar_in_species_1.merge(
+        most_similar_in_species_2,
+        how="inner",  # takes the intersection
+        on="species",  # merges on species identifiers
+        suffixes=("_1", "_2")
+    )
+
+    # filter for overlapping concatenation of same id
+    if kwargs["forbid_overlapping_concatenation"]:
+        species_intersection = remove_overlapping_ids(species_intersection)
+
+    # write concatenated alignment with distance filtering
+    target_seq_id, target_seq_index, raw_ali, mon_ali_1, mon_ali_2 = \
+        write_concatenated_alignment(
+            species_intersection,
+            kwargs["first_alignment_file"],
+            kwargs["second_alignment_file"],
+            kwargs["first_focus_sequence"],
+            kwargs["second_focus_sequence"]
+        )
+
+    aln_outcfg, _ = modify_alignment(
+        raw_ali,
+        target_seq_index,
+        target_seq_id,
+        kwargs["first_region_start"],
+        **kwargs
+    )
+
+    # remap the
+
+    # make sure we return all the necessary information:
+    # * alignment_file: final concatenated alignment that will go into plmc
+    # * focus_sequence: this is the identifier of the concatenated target
+    #   sequence which will be passed into plmc with -f
+    outcfg = aln_outcfg
+    outcfg["focus_sequence"] = target_seq_id
+
+    # Update the segments
+    outcfg = modify_complex_segments(outcfg, **kwargs)
+
+    # Describe the statistics of the concatenation
+    outcfg = _run_describe_concatenation(outcfg, **kwargs)
+
+    # Correct the nubering in the frequencies file
+    map_frequencies_file(outcfg["frequencies_file"], outcfg, **kwargs).to_csv(outcfg["frequencies_file"])
+
+    return outcfg
+
+
 # list of available EC inference protocols
 PROTOCOLS = {
     # concatenate based on genomic distance ("operon-based")
     "genome_distance": genome_distance,
 
     # concatenate based on best hit per genome ("species")
-    "best_hit": best_hit
+    "best_hit": best_hit,
+
+    # Concatenate based on best hit per genome, with no align stage
+    "fast_best_hit": fast_best_hit,
 }
 
 
