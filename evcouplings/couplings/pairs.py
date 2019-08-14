@@ -4,15 +4,15 @@ Functions for handling evolutionary couplings data.
 .. todo::
 
     1. clean up
-    3. add mapping tools (multidomain, complexes)
-    4. ECs to matrix
-    5. APC on subsets of positions (e.g. for complexes)
+    2. add mapping tools (multidomain, complexes)
+    3. ECs to matrix
+    4. APC on subsets of positions (e.g. for complexes)
 
 Authors:
   Thomas A. Hopf
   Agnes Toth-Petroczy (original mixture model code)
   John Ingraham (skew normal mixture model)
-  Anna G. Green (EVComplex Score code, segment-aware enrichment calculation )
+  Anna G. Green (EVComplex Score code, segment-aware enrichment calculation)
 """
 
 import math
@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import scipy.optimize as op
 from scipy import stats
 
+from couplings.mapping import FIRST_SEGMENT_NAME, SECOND_SEGMENT_NAME
 
 def read_raw_ec_file(filename, sort=True, score="cn"):
     """
@@ -89,13 +90,12 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     """
 
     # check if the provided table has segments...
-    if "segment_i" in ecs.columns and "segment_j" in ecs.columns:
-        has_segments = True
-    # ... and if not, create them
-    else:
-        has_segments = False
-        ecs["segment_i"] = "A_1"
-        ecs["segment_j"] = "A_1"
+    has_segments = "segment_i" in ecs.columns and "segment_j" in ecs.columns
+
+    # ...and if not, create them
+    if not has_segments:
+        ecs.loc[:,"segment_i"] = FIRST_SEGMENT_NAME
+        ecs.loc[:,"segment_j"] = FIRST_SEGMENT_NAME
 
     # stack dataframe so it contains each
     # EC twice as forward and backward pairs
@@ -656,7 +656,7 @@ class EVComplexScoreModel:
     score normalization for the number of sequences and length of
     the model
     """
-    def __init__(self, x, N_effL=None):
+    def __init__(self, x, Neff_over_L=None):
         """
         Initialize EVcomplex score model
         
@@ -664,11 +664,12 @@ class EVComplexScoreModel:
         ----------
         x : np.array (or list-like)
             EC scores from which to infer the mixture model
-        N_effL : float (optional, efault None)
-            Effective number of sequences divided by L
+        Neff_over_L : float (optional, default None)
+            Effective number of sequences divided by L (number
+            of sites in model)
         """
         self.x = np.array(x)
-        self.N_effL = N_effL
+        self.Neff_over_L = Neff_over_L
 
     def probability(self, x, plot=False):
         """
@@ -692,16 +693,16 @@ class EVComplexScoreModel:
 
         raw_evcomplex = x / min_score
 
-        # if we have N_effL, use it to calculate the corrected score
-        if self.N_effL:
-            return raw_evcomplex / (1+math.sqrt(self.N_effL))
+        # if we have Neff_over_L, use it to calculate the corrected score
+        if self.Neff_over_L:
+            return raw_evcomplex / (1 + math.sqrt(self.Neff_over_L))
 
         # else return the raw score
         return raw_evcomplex
 
 
 def add_mixture_probability(ecs, model="skewnormal", score="cn",
-                            clamp_mu=False, plot=False, N_effL=None):
+                            clamp_mu=False, plot=False, Neff_over_L=None):
     """
     Add lognormal mixture model probability to EC table.
 
@@ -720,7 +721,7 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
         fitting it based on data
     plot : bool, optional (default: False)
         Plot score distribution and probabilities
-    N_eff : float, optional (default: None)
+    Neff_over_L : float, optional (default: None)
         Effective number of sequences divided by model length, needed for corrected EVcomplex
         score calculation (Hopf et al., 2014 Elife)
 
@@ -742,12 +743,12 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
     elif model == "evcomplex_uncorrected":
         mm = EVComplexScoreModel(ecs.loc[:, score].values)
     elif model == "evcomplex":
-        if N_effL is None:
+        if Neff_over_L is None:
             raise ValueError(
-                "must provide N_eff for EVcomplex score calculation, "
+                "must provide Neff over L for EVcomplex score calculation, "
                 "or select model evcomplex_uncorrected"
             )
-        mm = EVComplexScoreModel(ecs.loc[:, score].values, N_effL)
+        mm = EVComplexScoreModel(ecs.loc[:, score].values, Neff_over_L)
 
     else:
         raise ValueError(
