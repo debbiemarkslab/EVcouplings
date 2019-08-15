@@ -35,10 +35,6 @@ from evcouplings.utils.system import (
     verify_resources,
 )
 
-from evcouplings.couplings.mapping import (
-    FIRST_SEGMENT_NAME, SECOND_SEGMENT_NAME
-)
-
 # symbols for common sequence alphabets
 ALPHABET_MAP = {
     "aa": ALPHABET_PROTEIN,
@@ -53,6 +49,9 @@ SCORING_MODELS = (
     "evcomplex",
 )
 
+# Define default segment names for complexes
+FIRST_SEGMENT_NAME = "A_1"
+SECOND_SEGMENT_NAME = "B_1"
 
 def infer_plmc(**kwargs):
     """
@@ -437,11 +436,14 @@ def segment_aware_ec_enrichment(ecs, outcfg, **kwargs):
             all_inter_enrichment = pd.concat([
                 all_inter_enrichment, inter_enrichment
             ])
+
     # Save to a file
     outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(kwargs["prefix"])
-    outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(kwargs["prefix"])
-    intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
-    inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
+    all_intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
+    
+    if len(all_inter_enrichment) > 0:
+        outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(kwargs["prefix"])
+        inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
 
     return outcfg
 

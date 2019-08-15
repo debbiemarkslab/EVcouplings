@@ -24,8 +24,6 @@ import matplotlib.pyplot as plt
 import scipy.optimize as op
 from scipy import stats
 
-from couplings.mapping import FIRST_SEGMENT_NAME, SECOND_SEGMENT_NAME
-
 def read_raw_ec_file(filename, sort=True, score="cn"):
     """
     Read a raw EC file (e.g. from plmc) and sort
@@ -60,7 +58,7 @@ def read_raw_ec_file(filename, sort=True, score="cn"):
     return ecs
 
 
-def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
+def enrichment(ecs, segment_name="A_1", num_pairs=1.0, score="cn", min_seqdist=6):
     """
     Calculate EC "enrichment" as first described in
     Hopf et al., Cell, 2012.
@@ -70,6 +68,9 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     ----------
     ecs : pd.DataFrame
         Dataframe containing couplings
+    segment_name: str, optional (default: "A_1")
+        Value to serve as placeholder name for segment, in the
+        case of no segments found in EC dataframe
     num_pairs : int or float, optional (default: 1.0)
         Number of ECs to use for enrichment calculation.
         - If float, will be interpreted as fraction of the
@@ -94,8 +95,8 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
 
     # ...and if not, create them
     if not has_segments:
-        ecs.loc[:,"segment_i"] = FIRST_SEGMENT_NAME
-        ecs.loc[:,"segment_j"] = FIRST_SEGMENT_NAME
+        ecs.loc[:,"segment_i"] = segment_name
+        ecs.loc[:,"segment_j"] = segment_name
 
     # stack dataframe so it contains each
     # EC twice as forward and backward pairs
