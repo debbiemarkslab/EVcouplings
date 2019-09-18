@@ -348,6 +348,7 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
                 utils.EResource.time: env["time"],
                 utils.EResource.mem: env["memory"],
                 utils.EResource.nodes: env["cores"],
+                utils.EResource.qos: env["qos"],
                 utils.EResource.out: job_prefix + "_stdout.log",
                 utils.EResource.error: job_prefix + "_stderr.log",
             }
@@ -369,11 +370,11 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
 def run(**kwargs):
     """
     Exposes command line interface as a Python function.
-    
+
     Parameters
     ----------
     kwargs
-        See click.option decorators for app() function 
+        See click.option decorators for app() function
     """
     # substitute commmand line options in config file
     config = substitute_config(**kwargs)

@@ -48,7 +48,7 @@ HYDROPHOBIC_WEIGHTS = {
     "M": 1.9,
     "F": 2.8,
     "Y": -1.3,
-    "W": -0.9, 
+    "W": -0.9,
     "S": -0.8,
     "T": -0.7,
     "C": 2.5,
@@ -65,8 +65,6 @@ HYDROPHOBIC_WEIGHTS = {
 X_STRUCFREE = [
     "Z_score",
     "conservation_max",
-    "enrichment_5",
-    "enrichment_10",
     "f_hydrophilicity",
     "intra_enrich_max",
     "inter_relative_rank_longrange"
@@ -77,8 +75,6 @@ X_STRUCAWARE = [
     "asa_min",
     "precision",
     "conservation_max",
-    "enrichment_5",
-    "enrichment_10",
     "intra_enrich_max",
     "inter_relative_rank_longrange"
 
@@ -99,7 +95,7 @@ def fit_model(calibration_ecs, model_file, X, column_name):
         name of column to create
 
     Returns
-        pd.DataFrame of ECs with new column column_name containing the fit model, 
+        pd.DataFrame of ECs with new column column_name containing the fit model,
         or np.nan if the model could not be fit due to missing data
 
     """
@@ -107,6 +103,10 @@ def fit_model(calibration_ecs, model_file, X, column_name):
     logreg = joblib.load(model_file)
     data = calibration_ecs
     data[column_name] = np.nan
+
+    for col in X:
+        if not col in data.columns:
+            return data
 
     subset_data = data.dropna(subset=X)
 
@@ -159,7 +159,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         if false, fits the model to only the inter ECs.
     score : str, optional (default: "cn")
         Use this score column for confidence assignment
-        
+
     Returns
     -------
     ecs : pandas.DataFrame
@@ -465,7 +465,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
         Paths of generated contact map files
     """
 
-    def plot_complex_cm(ecs_i, ecs_j, ecs_inter, 
+    def plot_complex_cm(ecs_i, ecs_j, ecs_inter,
                         first_segment_name,
                         second_segment_name,
                          output_file=None):
@@ -491,7 +491,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 if len(ecs_inter) == 0:
                     ecs_inter = None
 
-            # Currently, we require at least one of the monomer 
+            # Currently, we require at least one of the monomer
             # to have either ECs or distances in order to make a plot
             if ((ecs_i is None or ecs_i.empty) and d_intra_i is None and d_multimer_i is None) \
                     or ((ecs_j is None or ecs_j.empty) and d_intra_j is None and d_multimer_i is None):
@@ -518,7 +518,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             else:
                 ec_len = len(ecs_inter)
             plt.suptitle(
-                "{} inter-molecule evolutionary couplings".format(ec_len), 
+                "{} inter-molecule evolutionary couplings".format(ec_len),
                 fontsize=14
             )
 
@@ -1009,7 +1009,7 @@ def complex(**kwargs):
 
     outcfg["structure_hits_file"] = prefix + "_inter_structure_hits.csv"
     inter_protein_sifts.hits.to_csv(outcfg["structure_hits_file"])
-    
+
     def _add_inter_pdbs(inter_protein_sifts, sifts_map, sifts_map_full, name_prefix,):
         """
         ensures that all pdbs used for inter comparison end up in the monomer SIFTS hits
@@ -1269,7 +1269,7 @@ def complex(**kwargs):
 
         L = len(ecs.i.unique()) + len(ecs.j.unique())
         ecs = ecs[0:100]
-        
+
         # add rank
         ecs["inter_relative_rank_longrange"] = ecs.index / L
 
@@ -1315,7 +1315,7 @@ def complex(**kwargs):
         ecs["conservation_min"] = [
             min([x,y]) for x,y in zip(ecs.conservation_i, ecs.conservation_j)
         ]
-        
+
         # amino acid frequencies
         for char in list(ALPHABET_PROTEIN):
             ecs = ecs.merge(d[["i", "segment_i", char]], on=["i","segment_i"], how="left")
@@ -1343,10 +1343,10 @@ def complex(**kwargs):
         for size in enrich_range_to_calculate:
             enrich = double_window_enrichment(ecs=inter_ecs, min_seqdist=0, num_pairs=20, window_size=size, score="Z_score")
             enrich = enrich.rename({"enrichment": f"enrichment_{size}"}, axis=1)
-            inter_ecs = inter_ecs.merge(enrich, on=["i", "A_i", "segment_i", "j", "A_j", "segment_j"])   
+            inter_ecs = inter_ecs.merge(enrich, on=["i", "A_i", "segment_i", "j", "A_j", "segment_j"])
 
         #write the file (top 50 only)
-        
+
         outcfg["calibration_file"] = prefix + "_CouplingScores_inter_calibration.csv"
         inter_ecs.to_csv(outcfg["calibration_file"])
 
@@ -1362,12 +1362,12 @@ def complex(**kwargs):
         calibration_ecs = fit_complex_model(
             calibration_ecs, kwargs["complex_model_file"], kwargs["complex_scaler_file"], "residue_prediction_strucfree"
         )
-        
+
         outcfg["inter_ecs_model_prediction_file"] = prefix +"_CouplingScores_inter_prediction.csv"
         calibration_ecs[[
-            "inter_relative_rank_longrange", "i", "A_i", "j", "A_j", 
+            "inter_relative_rank_longrange", "i", "A_i", "j", "A_j",
             "segment_i", "segment_j", "cn", "dist", "precision",  "residue_prediction_strucaware", "residue_prediction_strucfree",
-            "complex_pred","evcomplex_raw", "asa_i", "asa_j", "asa_min", "conservation_max", 
+            "complex_pred","evcomplex_raw", "asa_i", "asa_j", "asa_min", "conservation_max",
             "enrichment_5", "enrichment_10", "f_hydrophilicity"
         ]].to_csv(outcfg["inter_ecs_model_prediction_file"])
 
@@ -1477,7 +1477,7 @@ def fast_complex(**kwargs):
         ecs = ecs.query("segment_i != segment_j")
         mean_ec = ecs.cn.mean()
         std_ec = ecs.cn.std()
-        ecs["Z_score"] = (ecs.cn - mean_ec) / std_ec
+        ecs.loc[:,"Z_score"] = (ecs.cn - mean_ec) / std_ec
 
         L = len(ecs.i.unique()) + len(ecs.j.unique())
         ecs = ecs[0:100]
@@ -1577,7 +1577,7 @@ PROTOCOLS = {
     "fast_complex": fast_complex
 }
 
- 
+
 
 
 def run(**kwargs):

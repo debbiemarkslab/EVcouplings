@@ -39,6 +39,7 @@ EResource = (lambda **enums: type('Enum', (), enums))(
     mem="mem",
     nodes="nodes",
     queue="queue",
+    qos="qos",
     error="error",
     out="done"
 )
@@ -590,6 +591,7 @@ class SlurmSubmitter(AClusterSubmitter):
                         EResource.time: "-t",
                         EResource.mem: "--mem-per-cpu",
                         EResource.nodes: "-c",
+                        EResource.qos: "--qos",
                         EResource.error: "-e",
                         EResource.out: "-o"}
     __job_id_pattern = re.compile(r"Submitted batch job ([0-9]*)")
@@ -624,7 +626,7 @@ class SlurmSubmitter(AClusterSubmitter):
                 os.remove(self.__db_path)
         except AttributeError:
             pass
-          
+
     @property
     def isBlocking(self):
         return self.__blocking
