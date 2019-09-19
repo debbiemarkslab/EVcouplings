@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import scipy.optimize as op
 from scipy import stats
 
-from couplings.mapping import FIRST_SEGMENT_NAME, SECOND_SEGMENT_NAME
+from evcouplings.couplings.mapping import FIRST_SEGMENT_NAME, SECOND_SEGMENT_NAME
 
 def read_raw_ec_file(filename, sort=True, score="cn"):
     """
