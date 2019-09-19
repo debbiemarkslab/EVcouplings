@@ -344,7 +344,8 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 d_inter,
                 margin=5,
                 boundaries=kwargs["boundaries"],
-                scale_sizes=kwargs["scale_sizes"]
+                scale_sizes=kwargs["scale_sizes"],
+                show_secstruct=kwargs["draw_secondary_structure"]
             )
 
             # Add title to the plot

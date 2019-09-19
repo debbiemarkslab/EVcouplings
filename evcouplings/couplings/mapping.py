@@ -13,10 +13,6 @@ from evcouplings.couplings.model import CouplingsModel
 import pandas as pd
 import numpy as np
 
-# Define default segment names for complexes
-FIRST_SEGMENT_NAME = "A_1"
-SECOND_SEGMENT_NAME = "B_1"
-
 class Segment:
     """
     Represents a continuous stretch of sequence in a sequence

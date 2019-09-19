@@ -35,10 +35,6 @@ from evcouplings.utils.system import (
     verify_resources,
 )
 
-from evcouplings.couplings.mapping import (
-    FIRST_SEGMENT_NAME, SECOND_SEGMENT_NAME
-)
-
 # symbols for common sequence alphabets
 ALPHABET_MAP = {
     "aa": ALPHABET_PROTEIN,
@@ -53,18 +49,21 @@ SCORING_MODELS = (
     "evcomplex",
 )
 
+# Define default segment names for complexes
+FIRST_SEGMENT_NAME = "A_1"
+SECOND_SEGMENT_NAME = "B_1"
 
 def infer_plmc(**kwargs):
     """
     Run EC computation on alignment. This function contains
     the functionality shared between monomer and complex EC
     inference.
-    
+
     Parameters
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-    
+
     Returns
     -------
     outcfg : dict
@@ -342,7 +341,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         Number of positions in alignment
     score : str, optional (default: "cn")
         Use this score column for confidence assignment
-        
+
     Returns
     -------
     ecs : pandas.DataFrame
@@ -368,15 +367,15 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         intra2_ecs = ecs.query("segment_i == segment_j == @SECOND_SEGMENT_NAME")
 
         intra1_ecs = pairs.add_mixture_probability(
-            intra1_ecs, model=scoring_model, score=score, N_effL=Neff_L
+            intra1_ecs, model=scoring_model, score=score, Neff_over_L=Neff_L
         )
 
         intra2_ecs = pairs.add_mixture_probability(
-            intra2_ecs, model=scoring_model, score=score, N_effL=Neff_L
+            intra2_ecs, model=scoring_model, score=score, Neff_over_L=Neff_L
         )
 
         inter_ecs = pairs.add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score, N_effL=Neff_L
+            inter_ecs, model=scoring_model, score=score, Neff_over_L=Neff_L
         )
 
         ecs = pd.concat(
@@ -391,11 +390,11 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
 def segment_aware_ec_enrichment(ecs, outcfg, **kwargs):
     """
     calculates EC enrichment in a segment-aware way
-    Calculates enrichment within all segments and between all segments. 
-    
-    calculates intra enrichment (using intra-protein ECs) and inter enrichment 
+    Calculates enrichment within all segments and between all segments.
+
+    calculates intra enrichment (using intra-protein ECs) and inter enrichment
     (using inter-protein ECs)
-    
+
     """
 
     # determine the number of segments in the ECs
@@ -431,17 +430,20 @@ def segment_aware_ec_enrichment(ecs, outcfg, **kwargs):
             inter_ecs1 = ecs.query("segment_i == @segment1 and segment_j == @segment2")
             inter_ecs2 = ecs.query("segment_i == @segment2 and segment_j == @segment1")
             inter_ecs = pd.concat([inter_ecs1, inter_ecs2])
-            
+
             # for inter ECs, sequence distance is 0
             inter_enrichment = pairs.enrichment(inter_ecs, min_seqdist=0)
             all_inter_enrichment = pd.concat([
                 all_inter_enrichment, inter_enrichment
             ])
+
     # Save to a file
     outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(kwargs["prefix"])
-    outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(kwargs["prefix"])
-    intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
-    inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
+    all_intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
+
+    if len(all_inter_enrichment) > 0:
+        outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(kwargs["prefix"])
+        inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
 
     return outcfg
 
@@ -531,7 +533,7 @@ def complex(**kwargs):
             chain=chain_mapping
         )
     }
-    
+
     # save just the inter protein ECs
     ## TODO: eventually have this accomplished by _postprocess_inference
     ## right now avoiding a second call with a different ec_filter
