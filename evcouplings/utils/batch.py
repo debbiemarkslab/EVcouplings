@@ -39,7 +39,6 @@ EResource = (lambda **enums: type('Enum', (), enums))(
     mem="mem",
     nodes="nodes",
     queue="queue",
-    qos="qos",
     error="error",
     out="done"
 )
@@ -580,7 +579,7 @@ class LSFSubmitter(AClusterSubmitter):
 
 class SlurmSubmitter(AClusterSubmitter):
     """
-    Implements an LSF submitter
+    Implements a Slurm submitter
     """
     __name = "slurm"
     __submit = "sbatch --job-name={name} {dependent} {resources} --wrap 'srun {cmd}'"
