@@ -348,7 +348,6 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
                 utils.EResource.time: env["time"],
                 utils.EResource.mem: env["memory"],
                 utils.EResource.nodes: env["cores"],
-                utils.EResource.qos: env["qos"],
                 utils.EResource.out: job_prefix + "_stdout.log",
                 utils.EResource.error: job_prefix + "_stderr.log",
             }
