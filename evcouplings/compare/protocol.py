@@ -1241,7 +1241,7 @@ def complex(**kwargs):
             ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
 
     # create an inter-ecs file with extra information for calibration purposes
-    def _calibration_file(prefix, ec_file):
+    def _calibration_file(prefix, ec_file, outcfg):
 
         if not valid_file(ec_file):
             return None
@@ -1280,14 +1280,16 @@ def complex(**kwargs):
         if not "second_remapped_pdb_files" in outcfg:
             outcfg["second_remapped_pdb_files"] = []
 
-        first_asa = combine_asa(outcfg["first_remapped_pdb_files"], kwargs["prefix"])
+        first_asa, outcfg = combine_asa(outcfg["first_remapped_pdb_files"], kwargs["tools"]["dssp"]], outcfg)
         first_asa["segment_i"] = "A_1"
 
-        second_asa = combine_asa(outcfg["second_remapped_pdb_files"], kwargs["prefix"])
+        second_asa, outcfg = combine_asa(outcfg["second_remapped_pdb_files"], kwargs["tools"]["dssp"], outcfg)
         second_asa["segment_i"] = "B_1"
 
         asa = pd.concat([first_asa, second_asa])
-        asa.to_csv(prefix + "_surface_area.csv")
+
+        outcfg["asa_file"] = prefix + "_surface_area.csv"
+        asa.to_csv(outcfg["asa_file"])
 
         ecs = add_asa(ecs, asa, asa_column="mean")
 
@@ -1325,7 +1327,7 @@ def complex(**kwargs):
             ecs = ecs.rename({char: f"f{char}_j"}, axis=1)
 
         for i in list(ALPHABET_PROTEIN):
-            ecs[f'f{i}'] = ecs[f'f{i}_i'] + ecs[f'f{i}_j']
+            ecs[f"f{i}"] = ecs[f"f{i}_i"] + ecs[f"f{i}_j"]
 
         hydrophilicity = []
         for idx,row in ecs.iterrows():
@@ -1527,14 +1529,6 @@ def fast_complex(**kwargs):
 
         # enrichment
         inter_ecs = ecs.query("segment_i != segment_j")
-
-        enrich_range_to_calculate = [5, 10]
-        for size in enrich_range_to_calculate:
-            enrich = double_window_enrichment(ecs=inter_ecs, min_seqdist=0, num_pairs=20, window_size=size,
-                                              score="Z_score")
-            enrich = enrich.rename({"enrichment": f"enrichment_{size}"}, axis=1)
-            inter_ecs = inter_ecs.merge(enrich, on=["i", "A_i", "segment_i", "j", "A_j", "segment_j"])
-
 
         outcfg["calibration_file"] = prefix + "_CouplingScores_inter_calibration.csv"
         inter_ecs.to_csv(outcfg["calibration_file"])
