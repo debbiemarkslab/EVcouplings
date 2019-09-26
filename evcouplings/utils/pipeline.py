@@ -62,11 +62,6 @@ PIPELINES = {
         ("compare", cm.run, None),
         ("mutate", mt.run, None),
         ("fold", fd.run, None)
-    ],
-    "fast_complex": [
-        ("concatenate", pp.run, None),
-        ("couplings", cp.run, None),
-        ("compare", cm.run, None),
     ]
 }
 
@@ -194,11 +189,6 @@ def execute(**config):
             # one less stage to put through after we ran this...
             num_stages_to_run -= 1
 
-            # If running fast complex and we did not get the requisite number of seqs,
-            # end the pipeline here
-            if config["pipeline"] == "fast_complex" and stage == "concatenate":
-                if outcfg["num_sequences"] / outcfg["num_sites"] < config["global"]["sequences_threshold"]:
-                    num_stages_to_run = 0
         else:
             # skip state by injecting state from previous run
             verify_resources(
@@ -214,11 +204,7 @@ def execute(**config):
             # verify all the output files are there
             outfiles = [
                 filepath for f, filepath in outcfg.items()
-                if f.endswith("_file") and filepath is not None and f!="model_file" \
-                and not filepath.endswith(".fasta") and not filepath.endswith("longrange.csv") \
-                and not filepath.endswith(".pml") and not filepath.endswith(".json") \
-                and not filepath.endswith("ECs.txt")
-            ]
+                if f.endswith("_file") and filepath is not None and f!="model_file"
 
             verify_resources(
                 "Output files from stage '{}' "

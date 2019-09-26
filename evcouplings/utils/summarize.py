@@ -352,7 +352,6 @@ def protein_complex(prefix, configs):
 PIPELINE_TO_SUMMARIZER = {
     "protein_monomer": protein_monomer,
     "protein_complex": protein_complex,
-    "fast_complex": protein_complex,
 }
 
 
