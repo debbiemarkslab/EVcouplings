@@ -7,7 +7,7 @@
 # Minimal settings required before this configuration can be executed:
 # - set your environment, paths to tools and databases (at the end of this file)
 # - under "global", set prefix
-# - under "align_1" and "align_2", set the monomer sequence_id 
+# - under "align_1" and "align_2", set the monomer sequence_id
 # - run it! :)
 
 # Configuration rules:
@@ -29,12 +29,12 @@ stages:
     - compare
     - mutate
     - fold
-    
+
 # Global job settings. These will override settings of the same name in each of the stages.
 # These are typically the settings you want to modify for each of your jobs, together with some settings in the align stage.
 global:
     # mandatory output prefix of the job (e.g. output/HRAS will store outputs in folder "output", using files prefixed with "HRAS")
-    prefix: 
+    prefix:
 
     # Clustering threshold for downweighting redudant sequences (Meff computation). E.g. 0.8 will cluster sequences
     # at a 80% sequence identity cutoff
@@ -47,20 +47,20 @@ global:
 align_1:
     # use complex protocol to properly prepare inputs for concatenation
     protocol: complex
-    
+
     # monomer alignment creation protocol to nest within the complex alignment protocol
     # choose either existing (below) to use a previously created alignment
-    # or standard to construct an alignment 
+    # or standard to construct an alignment
     alignment_protocol: standard
 
 
     # Mandatory: specify the sequence identifier
     # Region can be left blank
     # Sequence file can be left blank
-    sequence_id: 
-    region: 
+    sequence_id:
+    region:
     sequence_file:
-    
+
     # The following typically do not need to be set because 'global' overrides them
     # prefix:
     # theta:
@@ -134,10 +134,10 @@ align_1:
 #    minimum_column_coverage: 70
 #    extract_annotation: True
 
-#    # if using existing alignment protocol, provide a path to the annotations.csv file 
+#    # if using existing alignment protocol, provide a path to the annotations.csv file
 #    # from the monomer run that generated the input alignment
 #    # Needed to correctly find the species identifiers for best hit concatenation
-#    override_annotation_file: 
+#    override_annotation_file:
 
 # Sequence alignment generation/processing for the second monomer.
 align_2:
@@ -148,10 +148,10 @@ align_2:
     alignment_protocol: standard
     # Mandatory: specify the sequence identifier and region
     # Sequence file can be left blank
-    sequence_id: 
+    sequence_id:
     region:
     sequence_file:
-    
+
     # The following typically do not need to be set because 'global' overrides them
     # prefix:
     # theta:
@@ -224,10 +224,10 @@ align_2:
 #    minimum_sequence_coverage: 50
 #    minimum_column_coverage: 70
 #    extract_annotation: True
-#    # if using existing alignment protocol, provide a path to the annotations.csv file 
+#    # if using existing alignment protocol, provide a path to the annotations.csv file
 #    # from the monomer run that generated the input alignment
 #    # Needed to correctly find the species identifiers for best hit concatenation
-#    override_annotation_file: 
+#    override_annotation_file:
 
 #Generation of concatenated sequence alignment for evolutionary couplings calculation
 concatenate:
@@ -238,35 +238,35 @@ concatenate:
     second_alignment_file:
 
     # Select protocol for concatenation of sequence alignments
-    # Available protocols: 
+    # Available protocols:
     # genome_distance: pair sequences that are closest neighbors on the genome
     # best_hit: for each genome, pair the sequences that have the highest % identity to the target sequence
     # for best hit protocol, user can set use_best_reciprocal to take the best reciprocal hits only (recommended)
     protocol: best_hit
     use_best_reciprocal: true
-    
+
     # Maximum genome distance in bases allowed between pairs
     # Required for genome_distance protocol only
     genome_distance_threshold: 10000
-    
+
     # Maximum sequence identity allowed for hits to be designated
     # as paralogs. Required for best_hit in best reciprocal mode only
     paralog_identity_threshold: 0.95
-    
+
     # forbid overlapping regions of the same seqeunce ID from being concatenated
     # for typical heteromultimeric complexes, this should be true
     forbid_overlapping_concatenation: true
-    
+
     # Parameters for filtering of concatenated alignment
-    
+
     # Filter sequence alignment at this % sequence identity cutoff. Can be used to cut computation time in
     # the couplings stage (e.g. set to 95 to remove any sequence that is more than 95% identical to a sequence
     # already present in the alignment). If blank, no filtering. If filtering, HHfilter must be installed.
     seqid_filter:
-    
+
     # Only keep sequences that align to at least x% of the target sequence (i.e. remove fragments)
     minimum_sequence_coverage: 50
-    
+
     # Only include alignment columns with at least x% residues (rather than gaps) during model inference
     minimum_column_coverage: 50
 
@@ -309,12 +309,12 @@ couplings:
     # Sequence separation filter for generation of CouplingScores_longrange.csv table (i.e. to take out short-range
     # ECs from table, only pairs with abs(i-j)>=min_sequence_distance will be kept.
     min_sequence_distance: 6
-    
+
     # Parameters specific to complex pipeline scoring
     # Scoring model to assess confidence in computed ECs
     # available options: skewnormal, normal, evcomplex
     scoring_model: skewnormal
-    
+
     # Specify whether to use all ECs or only inter-molecular ECs for scoring
     use_all_ecs_for_scoring: False
 
@@ -331,7 +331,7 @@ couplings:
 compare:
     # Current options: standard, complex
     protocol: complex
-    
+
     # Following parameters will be usually overriden by global settings / output of previous stage
     prefix:
     ec_file:
@@ -345,12 +345,12 @@ compare:
     first_by_alignment: True
     second_by_alignment: True
     # Alignment method to use to search the PDB Seqres database. Options: jackhmmer, hmmsearch
-    # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
-    # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent). 
-    # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
+    # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent).
+    # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent).
+    # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences.
     first_pdb_alignment_method: jackhmmer
     second_pdb_alignment_method: jackhmmer
-    
+
     # Leave this parameter empty to use all PDB structures for given sequence_id, otherwise
     # will be limited to the given IDs (single value or list). Important: note that this acts only as a filter on the
     # structures found by alignment or in the SIFTS table (!)
@@ -382,7 +382,7 @@ compare:
     first_use_bitscores: True
     first_domain_threshold: 0.5
     first_sequence_threshold: 0.5
-    
+
     second_sequence_file:
     second_first_index:
     second_region:
@@ -392,10 +392,10 @@ compare:
     second_sequence_threshold: 0.5
 
     # Comparison and plotting settings
-    
+
     # Return an error if we fail to automatically retrieve information about a given pdb id
     raise_missing: False
-    
+
     # Filter that defines which atoms will be used for distance calculations. If empty/None, no filter will be
     # applied (resulting in the computation of minimum atom distances between all pairs of atoms). If setting to any
     # particular PDB atom type, only these atoms will be used for the computation (e.g. CA will give C_alpha distances,
@@ -412,7 +412,7 @@ compare:
     plot_probability_cutoffs: [0.90, 0.99]
 
     # Plot fixed numbers of inter-protein ECS, and all intra ECs scoring at least as high
-    # As those inter-protein ECs. 
+    # As those inter-protein ECs.
     # Use integers only
     plot_lowest_count: 5
     plot_highest_count: 10
@@ -427,7 +427,7 @@ compare:
 
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
-    
+
 # Settings for Mutation effect predictions
 mutate:
     # Options: standard, complex
@@ -495,7 +495,7 @@ environment:
 
     # command that will be executed before running actual computation (can be used to set up environment)
     configuration:
-        
+
 
 # Paths to databases used by evcouplings.
 databases:
@@ -516,12 +516,12 @@ databases:
     # Periodically delete these files to more recent versions of SIFTS are used.
     sifts_mapping_table: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.csv
     sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.fasta
-    
+
     # the following two databases are exclusive to EVcomplex and need to be manually downloaded and saved locally
     # then add the paths to your local copies of the database
-    # Download urls: 
+    # Download urls:
     # ena_genome_location_table: https://marks.hms.harvard.edu/evcomplex_databases/cds_pro_2017_02.txt
-    # uniprot_to_embl_table: https://marks.hms.harvard.edu/evcomplex_databases/idmapping_uniprot_embl_2017_02.txt 
+    # uniprot_to_embl_table: https://marks.hms.harvard.edu/evcomplex_databases/idmapping_uniprot_embl_2017_02.txt
     uniprot_to_embl_table: /n/groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
     ena_genome_location_table: /n/groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
 
@@ -535,4 +535,4 @@ tools:
     psipred: /n/groups/marks/software/runpsipred
     cns: /n/groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
     maxcluster: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
-    
+    dssp: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
