@@ -524,6 +524,14 @@ databases:
     # uniprot_to_embl_table: https://marks.hms.harvard.edu/evcomplex_databases/idmapping_uniprot_embl_2017_02.txt
     uniprot_to_embl_table: /n/groups/marks/databases/complexes/idmapping/idmapping_uniprot_embl_2017_02.txt
     ena_genome_location_table: /n/groups/marks/databases/complexes/ena/2017_02/cds_pro.txt
+    structurefree_model_file: /n/groups/marks/users/agreen/dev/EVcouplings/evcouplings/compare/aux/residue_strucfree.saved
+    structureaware_model_file: /n/groups/marks/users/agreen/dev/EVcouplings/evcouplings/compare/aux/residue_strucaware.saved
+  
+    complex_strucfree_model_file: /n/home/ag300/EVcouplings/compare/aux/complex_strucfree.saved
+    complex_strucfree_scaler_file: /n/home/ag300/EVcouplings/compare/aux/complex_strucfree.scaler
+    complex_strucaware_model_file: /n/home/ag300/EVcouplings/compare/aux/complex_strucaware.saved
+    complex_strucaware_scaler_file: /n/home/ag300/EVcouplings/compare/aux/complex_strucaware.saved
+
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:
