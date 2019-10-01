@@ -22,7 +22,7 @@ from evcouplings.utils.config import (
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources, valid_file
 )
-from evcouplings.couplings import Segment, add_mixture_probability
+from evcouplings.couplings import Segment, add_mixture_probability, enrichment
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
     intra_dists, multimer_dists, remap_chains,
@@ -38,7 +38,8 @@ from evcouplings.compare.asa import combine_asa, add_asa
 
 from evcouplings.align import ALPHABET_PROTEIN
 
-HYDROPHOBIC_WEIGHTS = {
+#Hydropathy index from Lehninger Principles of Biochemistry, 5th Edition, table 3-1
+HYDROPATHY_INDEX = {
     "G": -.4,
     "A": 1.8,
     "P": -1.6,
@@ -77,14 +78,17 @@ X_STRUCAWARE = [
     "conservation_max",
     "intra_enrich_max",
     "inter_relative_rank_longrange"
-
 ]
 
-def fit_model(calibration_ecs, model_file, X, column_name):
+X_COMPLEX_STRUCFREE = [0, 2]
+
+X_COMPLEX_STRUCAWARE = [0, 1, 4, 6]
+
+def fit_model(data, model_file, X, column_name):
     """
     Fits a model topredict p(residue interaction)
 
-    calibration_ecs: pd.DataFrame
+    data: pd.DataFrame
         has columns X used as features in model
     model_file: str
         path to file containing joblib dumped model (here, an sklearn logistic regression)
@@ -101,47 +105,69 @@ def fit_model(calibration_ecs, model_file, X, column_name):
     """
 
     logreg = joblib.load(model_file)
-    data = calibration_ecs
+
+    # the default score is np.nan 
     data[column_name] = np.nan
 
+    # if any of the needed columns are missing, return data
     for col in X:
         if not col in data.columns:
             return data
 
+    # drop rows with missing info
     subset_data = data.dropna(subset=X)
-
     if len(subset_data) == 0:
         return data
 
     X_var = subset_data[X]
     predicted = logreg.predict_proba(X_var)[:,1]
 
+    # make prediction and save to correct row
     data.loc[subset_data.index, column_name] = predicted
 
     return data
 
-def fit_complex_model(calibration_ecs, model_file, scaler_file, column_name):
+def fit_complex_model(ecs, model_file, scaler_file, residue_score_column, output_column, scores_to_use):
     """
-    """
+    Fits a model to predict p(protein interaction)
 
+    data: pd.DataFrame
+        has columns X used as features in model
+    model_file: str
+        path to file containing joblib dumped model (here, an sklearn logistic regression)
+    scaler_file: str
+        path to file containing joblib dumped Scaler object
+    residue_score_column: str
+        a column name in data to be used as input to model
+    output_column: str
+        name of column to create
+    scores_to_use: list of int
+        name of column to create
+
+    Returns
+        pd.DataFrame of ECs with new column column_name containing the fit model,
+        or np.nan if the model could not be fit due to missing data
+    """
+    #load the model and scaler
     logreg = joblib.load(model_file)
     scaler = joblib.load(scaler_file)
-    data = calibration_ecs
-    logreg_sort = data.sort_values(column_name, ascending=False)
+    
+    # sort by the residue score column, and take the instances input
+    ecs = ecs.sort_values(residue_score_column, ascending=False)
+    X = list(ecs[residue_score_column].iloc[scores_to_use]) + \
+            [ecs.inter_relative_rank_longrange.min()]
 
-    to_predict =[list(logreg_sort[column_name])[0],list(logreg_sort[column_name])[5],list(logreg_sort[column_name])[8]] + \
-    [sum(logreg_sort[column_name]>.8)] + [sum(logreg_sort[column_name]>.5)] + [sum(logreg_sort[column_name]>.3)] + \
-    [data.inter_relative_rank_longrange.max()]
+    # reshape and clean the data 
+    X = np.array(X).astype(float)
+    X = X.transpose()
+    X = np.array(X).reshape(1, -1)
+    X = np.nan_to_num(X)
 
-    to_predict = scaler.transform(np.array(to_predict).reshape(1, -1))
+    # transform with the scaler
+    X = scaler.transform(X)
 
-    prediction = logreg.predict_proba(
-        np.array(to_predict).reshape(1, -1))[:,1][0]
-
-    data["complex_pred"] = prediction
-
-    return data
-
+    ecs[output_column]=model.predict_proba(X)[:,1]
+    return ecs
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
                         score="cn", N_effL=None):
@@ -553,7 +579,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             "boundaries",
             "draw_secondary_structure", "plot_lowest_count",
             "plot_highest_count", "plot_increase",
-            "scale_sizes", "plot_model_cutoffs"
+            "scale_sizes"
         ]
     )
 
@@ -588,49 +614,6 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 )
                 if plot_completed:
                     cm_files.append(output_file)
-
-
-    # create plots based on significance cutoff
-    if kwargs["plot_model_cutoffs"]:
-        cutoffs = kwargs["plot_model_cutoffs"]
-        if not isinstance(cutoffs, list):
-            cutoffs = [cutoffs]
-
-        # make sure that file with the ec information we need exists
-        verify_resources("EC model fit file does not exist",
-         inter_ecs_model_prediction_file)
-
-        ec_modeled = pd.read_csv(inter_ecs_model_prediction_file)
-
-        L2 = _discrete_count(0.5)
-        ecs_top_L = ecs_longrange.iloc[0:L2,:]
-        ec_set_i = ecs_top_L.query("segment_i == segment_j == @first_segment_name")
-        ec_set_j = ecs_top_L.query("segment_i == segment_j == @second_segment_name")
-
-        for c in cutoffs:
-
-            # only can plot if we have any significant ECs above threshold
-            ec_set_inter = ec_modeled.query("residue_prediction_strucaware > @c")
-
-            output_file = prefix + "_structure_aware_ECs_{}.png".format(c)
-            plot_completed = plot_complex_cm(
-                ec_set_i, ec_set_j, ec_set_inter,
-                first_segment_name, second_segment_name,
-                output_file=output_file
-            )
-            if plot_completed:
-                cm_files.append(output_file)
-
-            ec_set_inter = ec_modeled.query("residue_prediction_strucfree > @c")
-
-            output_file = prefix + "_structure_free_ECs_{}.png".format(c)
-            plot_completed = plot_complex_cm(
-                ec_set_i, ec_set_j, ec_set_inter,
-                first_segment_name, second_segment_name,
-                output_file=output_file
-            )
-            if plot_completed:
-                cm_files.append(output_file)
 
     # range of plots to make
     lowest = _discrete_count(kwargs["plot_lowest_count"])
@@ -1243,34 +1226,68 @@ def complex(**kwargs):
     # create an inter-ecs file with extra information for calibration purposes
     def _calibration_file(prefix, ec_file, outcfg):
 
+        """
+        Adds values to the dataframe of ECs that will later be used
+        for score fitting
+        """
+
+        # If there's no EC file, don't bother
         if not valid_file(ec_file):
             return None
 
         ecs = pd.read_csv(ec_file)
 
-        #add the evcomplex score
-        ecs = complex_probability(
-            ecs, "evcomplex_uncorrected", False
-        )
-        ecs.loc[:,"evcomplex_raw"] = ecs.loc[:,"probability"]
+        # calculate intra-protein enrichment
+        def _add_enrichment(ecs):
 
-        enrichment_table = create_enrichment_table(
-           ecs, d_intra_i, d_intra_j
-        )
+            # Calculate the intra-protein enrichment
+            intra1_ecs = ecs.query("segment_i == segment_j == 'A_1'")
+            intra2_ecs = ecs.query("segment_i == segment_j == 'B_1'")
 
-        ecs = add_enrichment(enrichment_table, ecs)
+            intra1_enrichment = enrichment(intra1_ecs, min_seqdist=6)
+            intra1_enrichment["segment_i"] = "A_1"
 
-        # get only the top 100 inter ECs
+            intra2_enrichment = enrichment(intra2_ecs, min_seqdist=6)
+            intra2_enrichment["segment_i"] = "B_1"
 
+            enrichment_table = pd.concat([intra1_enrichment, intra2_enrichment])
+
+            def _seg_to_enrich(enrich_df, ec_df, enrichment_column):
+                """
+                combines the enrichment table with the EC table
+                """
+                s_to_e = {(x,y):z for x,y,z in zip(enrich_df.i, enrich_df.segment_i, enrich_df[enrichment_column])}
+
+                # enrichment for residues in column i
+                ec_df["enrichment_i"] =[s_to_e[(x,y)] if (x,y) in s_to_e else 0 for x,y in zip(ec_df.i, ec_df.segment_i)]
+
+                # enrichment for residues in column j
+                ec_df["enrichment_j"] =[s_to_e[(x,y)] if (x,y) in s_to_e else 0 for x,y in zip(ec_df.j, ec_df.segment_j)]
+
+                return ec_df
+
+            #add the intra-protein enrichment to the EC table
+            ecs = _seg_to_enrich(enrichment_table, ecs, "enrichment")
+            # larger of two enrichment values
+            ecs["intra_enrich_max"] = ecs[["enrichment_i", "enrichment_j"]].max(axis=1)
+            # smaller of two enrichment values
+            ecs["intra_enrich_min"] = ecs[["enrichment_i", "enrichment_j"]].min(axis=1)
+
+            return ecs
+
+        ecs = _add_enrichment(ecs)
+
+        # get just the inter ECs and calculate Z-score
         ecs = ecs.query("segment_i != segment_j")
         mean_ec = ecs.cn.mean()
         std_ec = ecs.cn.std()
         ecs["Z_score"] = (ecs.cn - mean_ec) / std_ec
 
-        L = len(ecs.i.unique()) + len(ecs.j.unique())
+        # get only the top 100 inter ECs
         ecs = ecs[0:100]
 
         # add rank
+        L = len(ecs.i.unique()) + len(ecs.j.unique())
         ecs["inter_relative_rank_longrange"] = ecs.index / L
 
         # accessible surface area
@@ -1280,97 +1297,117 @@ def complex(**kwargs):
         if not "second_remapped_pdb_files" in outcfg:
             outcfg["second_remapped_pdb_files"] = []
 
-        first_asa, outcfg = combine_asa(outcfg["first_remapped_pdb_files"], kwargs["tools"]["dssp"]], outcfg)
+        # calculate the ASA for the first and second segments by combining asa from all remapped pdb files
+        first_asa, outcfg = combine_asa(outcfg["first_remapped_pdb_files"], kwargs["dssp"], outcfg)
         first_asa["segment_i"] = "A_1"
 
-        second_asa, outcfg = combine_asa(outcfg["second_remapped_pdb_files"], kwargs["tools"]["dssp"], outcfg)
+        second_asa, outcfg = combine_asa(outcfg["second_remapped_pdb_files"], kwargs["dssp"], outcfg)
         second_asa["segment_i"] = "B_1"
 
+        # save the ASA to a file
         asa = pd.concat([first_asa, second_asa])
-
         outcfg["asa_file"] = prefix + "_surface_area.csv"
         asa.to_csv(outcfg["asa_file"])
 
+        # Add the ASA to the ECs and compute the max and min for each position pair
         ecs = add_asa(ecs, asa, asa_column="mean")
+        ecs["asa_max"] = ecs[["asa_i", "asa_j"]].max(axis=1)
+        ecs["asa_min"] = ecs[["asa_i", "asa_j"]].min(axis=1)
 
-        ecs["asa_max"] = [
-            max([x,y]) for x,y in zip(ecs.asa_i, ecs.asa_j)
-        ]
-        ecs["asa_min"] = [
-            min([x,y]) for x,y in zip(ecs.asa_i, ecs.asa_j)
-        ]
-
-        #conservation
-        frequency_file = prefix.replace("compare", "concatenate") + "_frequencies.csv"
-        print(frequency_file)
+        # Add min and max conservation to EC file
+        #frequency_file = prefix.replace("compare", "concatenate") + "_frequencies.csv"
+        frequency_file = kwargs["concatenate"]["frequency_file"]
         d = pd.read_csv(frequency_file)
-        d["j"] = d["i"]
-        d["segment_j"] = d["segment_i"]
         conservation = {(x,y):z for x,y,z in zip(d.segment_i, d.i, d.conservation)}
 
         ecs["conservation_i"] = [conservation[(x,y)] if (x,y) in conservation else np.nan for x,y in zip(ecs.segment_i, ecs.i)]
         ecs["conservation_j"] = [conservation[(x,y)] if (x,y) in conservation else np.nan for x,y in zip(ecs.segment_j, ecs.j)]
-
-        ecs["conservation_max"] = [
-            max([x,y]) for x,y in zip(ecs.conservation_i, ecs.conservation_j)
-        ]
-        ecs["conservation_min"] = [
-            min([x,y]) for x,y in zip(ecs.conservation_i, ecs.conservation_j)
-        ]
+        ecs["conservation_max"] = ecs[["conservation_i", "conservation_j"]].max(axis=1)
+        ecs["conservation_min"] = ecs[["conservation_i", "conservation_j"]].min(axis=1)
 
         # amino acid frequencies
         for char in list(ALPHABET_PROTEIN):
+            # Frequency of amino acid 'char' in position i 
             ecs = ecs.merge(d[["i", "segment_i", char]], on=["i","segment_i"], how="left")
             ecs = ecs.rename({char: f"f{char}_i"}, axis=1)
-
+            
+            # Frequency of amino acid 'char' in position j 
             ecs = ecs.merge(d[["j", "segment_j", char]], on=["j", "segment_j"], how="left")
             ecs = ecs.rename({char: f"f{char}_j"}, axis=1)
 
-        for i in list(ALPHABET_PROTEIN):
-            ecs[f"f{i}"] = ecs[f"f{i}_i"] + ecs[f"f{i}_j"]
+        # summed frequency of amino acid char in both positions i and j
+        # ie, each pair i,j now gets one combined frequency
+        for char in list(ALPHABET_PROTEIN):
+            ecs[f"f{char}"] = ecs[f"f{char}_i"] + ecs[f"f{char}_j"]
 
+        # Compute the weighted sum of hydropathy for pair i, j
         hydrophilicity = []
-        for idx,row in ecs.iterrows():
+
+        # For each EC
+        for _, row in ecs.iterrows():
+            # frequncy of amino acid char * hydopathy index of that AA
             hydro = sum([
-                HYDROPHOBIC_WEIGHTS[i] * float(row[[f'f{i}']]) for i in list(ALPHABET_PROTEIN)
+                HYDROPATHY_INDEX[char] * float(row[[f'f{char}']]) for char in list(ALPHABET_PROTEIN)
             ])
             hydrophilicity.append(hydro)
-
         ecs["f_hydrophilicity"] = hydrophilicity
 
-        #enrichment
-        inter_ecs = ecs.query("segment_i != segment_j")
-
-        enrich_range_to_calculate = [5, 10]
-        for size in enrich_range_to_calculate:
-            enrich = double_window_enrichment(ecs=inter_ecs, min_seqdist=0, num_pairs=20, window_size=size, score="Z_score")
-            enrich = enrich.rename({"enrichment": f"enrichment_{size}"}, axis=1)
-            inter_ecs = inter_ecs.merge(enrich, on=["i", "A_i", "segment_i", "j", "A_j", "segment_j"])
-
-        #write the file (top 50 only)
-
+        #save the calibration file
         outcfg["calibration_file"] = prefix + "_CouplingScores_inter_calibration.csv"
-        inter_ecs.to_csv(outcfg["calibration_file"])
+        ecs.to_csv(outcfg["calibration_file"])
 
+    # Compute the calibration file
     if valid_file(outcfg["ec_compared_longrange_file"]):
         _calibration_file(prefix, outcfg["ec_compared_longrange_file"])
     else:
         _calibration_file(prefix, kwargs["ec_longrange_file"])
 
+    # If calibration file was correctly computed
     if valid_file(outcfg["calibration_file"]):
         calibration_ecs = pd.read_csv(outcfg["calibration_file"],index_col=0)
-        calibration_ecs = fit_model(calibration_ecs, kwargs["structurefree_model_file"], X_STRUCFREE, "residue_prediction_strucfree")
-        calibration_ecs = fit_model(calibration_ecs, kwargs["structureaware_model_file"], X_STRUCAWARE, "residue_prediction_strucaware")
+
+        # Fit the structure free model file
+        calibration_ecs = fit_model(
+            calibration_ecs, 
+            kwargs["structurefree_model_file"], 
+            X_STRUCFREE,
+            "residue_prediction_strucfree"
+        )
+        
+        # Fit the structure aware model prediction file
+        calibration_ecs = fit_model(
+            calibration_ecs, 
+            kwargs["structureaware_model_file"], 
+            X_STRUCAWARE, 
+            "residue_prediction_strucaware"
+        )
+        
+        # Fit the structure free complex model
         calibration_ecs = fit_complex_model(
-            calibration_ecs, kwargs["complex_model_file"], kwargs["complex_scaler_file"], "residue_prediction_strucfree"
+            calibration_ecs, 
+            kwargs["complex_strucfree_model_file"], 
+            kwargs["complex_strucfree_scaler_file"], 
+            "residue_prediction_strucfree",
+            "complex_prediction_strucfree",
+            X_COMPLEX_STRUCFREE
+        )
+
+        # Fit the structure aware complex model
+        calibration_ecs = fit_complex_model(
+            calibration_ecs, 
+            kwargs["complex_strucaware_model_file"], 
+            kwargs["complex_strucaware_scaler_file"], 
+            "residue_prediction_strucaware",
+            "residue_prediction_strucaware",
+            X_COMPLEX_STRUCAWARE
         )
 
         outcfg["inter_ecs_model_prediction_file"] = prefix +"_CouplingScores_inter_prediction.csv"
         calibration_ecs[[
             "inter_relative_rank_longrange", "i", "A_i", "j", "A_j",
             "segment_i", "segment_j", "cn", "dist", "precision",  "residue_prediction_strucaware", "residue_prediction_strucfree",
-            "complex_pred","evcomplex_raw", "asa_i", "asa_j", "asa_min", "conservation_max",
-            "enrichment_5", "enrichment_10", "f_hydrophilicity"
+            "complex_prediction_strucaware", "complex_prediction_strucfree", "Z_score", "asa_min", "conservation_max",
+            "f_hydrophilicity"
         ]].to_csv(outcfg["inter_ecs_model_prediction_file"])
 
 
