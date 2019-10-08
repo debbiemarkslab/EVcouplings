@@ -76,7 +76,8 @@ X_STRUCAWARE = [
     "precision",
     "conservation_max",
     "intra_enrich_max",
-    "inter_relative_rank_longrange"
+    "inter_relative_rank_longrange",
+    "f_hydrophilicity"
 ]
 
 X_COMPLEX_STRUCFREE = [0, 2]
@@ -103,9 +104,9 @@ def fit_model(data, model_file, X, column_name):
 
     """
 
-    logreg = joblib.load(model_file)
+    model = joblib.load(model_file)
 
-    # the default score is np.nan 
+    # the default score is np.nan
     data[column_name] = np.nan
 
     # if any of the needed columns are missing, return data
@@ -119,7 +120,7 @@ def fit_model(data, model_file, X, column_name):
         return data
 
     X_var = subset_data[X]
-    predicted = logreg.predict_proba(X_var)[:,1]
+    predicted = model.predict_proba(X_var)[:,1]
 
     # make prediction and save to correct row
     data.loc[subset_data.index, column_name] = predicted
@@ -148,15 +149,15 @@ def fit_complex_model(ecs, model_file, scaler_file, residue_score_column, output
         or np.nan if the model could not be fit due to missing data
     """
     #load the model and scaler
-    logreg = joblib.load(model_file)
+    model = joblib.load(model_file)
     scaler = joblib.load(scaler_file)
-    
+
     # sort by the residue score column, and take the instances input
     ecs = ecs.sort_values(residue_score_column, ascending=False)
     X = list(ecs[residue_score_column].iloc[scores_to_use]) + \
             [ecs.inter_relative_rank_longrange.min()]
 
-    # reshape and clean the data 
+    # reshape and clean the data
     X = np.array(X).astype(float)
     X = X.transpose()
     X = np.array(X).reshape(1, -1)
@@ -165,7 +166,7 @@ def fit_complex_model(ecs, model_file, scaler_file, residue_score_column, output
     # transform with the scaler
     X = scaler.transform(X)
 
-    ecs[output_column]=model.predict_proba(X)[:,1]
+    ecs.loc[:,output_column]=model.predict_proba(X)[:,1]
     return ecs
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
@@ -1315,7 +1316,7 @@ def complex(**kwargs):
 
         # Add min and max conservation to EC file
         #frequency_file = prefix.replace("compare", "concatenate") + "_frequencies.csv"
-        frequency_file = kwargs["concatenate"]["frequency_file"]
+        frequency_file = kwargs["frequencies_file"]
         d = pd.read_csv(frequency_file)
         conservation = {(x,y):z for x,y,z in zip(d.segment_i, d.i, d.conservation)}
 
@@ -1326,13 +1327,20 @@ def complex(**kwargs):
 
         # amino acid frequencies
         for char in list(ALPHABET_PROTEIN):
-            # Frequency of amino acid 'char' in position i 
-            ecs = ecs.merge(d[["i", "segment_i", char]], on=["i","segment_i"], how="left")
+            # Frequency of amino acid 'char' in position i
+            ecs = ecs.merge(d[["i", "segment_i", char]], on=["i","segment_i"], how="left", suffixes=["", "_1"])
             ecs = ecs.rename({char: f"f{char}_i"}, axis=1)
-            
-            # Frequency of amino acid 'char' in position j 
-            ecs = ecs.merge(d[["j", "segment_j", char]], on=["j", "segment_j"], how="left")
+            if "i_1" in ecs.columns:
+                ecs = ecs.drop(columns=["i_1", "segment_i_1"])
+
+            # Frequency of amino acid 'char' in position j
+            ecs = ecs.merge(
+                d[["i", "segment_i", char]], left_on=["j", "segment_j"],
+                right_on=["i", "segment_i"], how="left", suffixes=["", "_1"]
+            )
             ecs = ecs.rename({char: f"f{char}_j"}, axis=1)
+            if "j_1" in ecs.columns:
+                ecs = ecs.drop(columns=["j_1", "segment_j_1"])
 
         # summed frequency of amino acid char in both positions i and j
         # ie, each pair i,j now gets one combined frequency
@@ -1357,9 +1365,9 @@ def complex(**kwargs):
 
     # Compute the calibration file
     if valid_file(outcfg["ec_compared_longrange_file"]):
-        _calibration_file(prefix, outcfg["ec_compared_longrange_file"])
+        _calibration_file(prefix, outcfg["ec_compared_longrange_file"], outcfg)
     else:
-        _calibration_file(prefix, kwargs["ec_longrange_file"])
+        _calibration_file(prefix, kwargs["ec_longrange_file"], outcfg)
 
     # If calibration file was correctly computed
     if valid_file(outcfg["calibration_file"]):
@@ -1367,25 +1375,25 @@ def complex(**kwargs):
 
         # Fit the structure free model file
         calibration_ecs = fit_model(
-            calibration_ecs, 
-            kwargs["structurefree_model_file"], 
+            calibration_ecs,
+            kwargs["structurefree_model_file"],
             X_STRUCFREE,
             "residue_prediction_strucfree"
         )
-        
+
         # Fit the structure aware model prediction file
         calibration_ecs = fit_model(
-            calibration_ecs, 
-            kwargs["structureaware_model_file"], 
-            X_STRUCAWARE, 
+            calibration_ecs,
+            kwargs["structureaware_model_file"],
+            X_STRUCAWARE,
             "residue_prediction_strucaware"
         )
-        
+
         # Fit the structure free complex model
         calibration_ecs = fit_complex_model(
-            calibration_ecs, 
-            kwargs["complex_strucfree_model_file"], 
-            kwargs["complex_strucfree_scaler_file"], 
+            calibration_ecs,
+            kwargs["complex_strucfree_model_file"],
+            kwargs["complex_strucfree_scaler_file"],
             "residue_prediction_strucfree",
             "complex_prediction_strucfree",
             X_COMPLEX_STRUCFREE
@@ -1393,11 +1401,11 @@ def complex(**kwargs):
 
         # Fit the structure aware complex model
         calibration_ecs = fit_complex_model(
-            calibration_ecs, 
-            kwargs["complex_strucaware_model_file"], 
-            kwargs["complex_strucaware_scaler_file"], 
+            calibration_ecs,
+            kwargs["complex_strucaware_model_file"],
+            kwargs["complex_strucaware_scaler_file"],
             "residue_prediction_strucaware",
-            "residue_prediction_strucaware",
+            "complex_prediction_strucaware",
             X_COMPLEX_STRUCAWARE
         )
 

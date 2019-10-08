@@ -1,5 +1,5 @@
 import pandas as pd
-from evcouplings.utils.system import run, verify_resources
+from evcouplings.utils.system import run, verify_resources, valid_file
 from Bio.PDB import make_dssp_dict
 import ruamel.yaml as yaml
 import numpy as np
