@@ -590,7 +590,6 @@ class SlurmSubmitter(AClusterSubmitter):
                         EResource.time: "-t",
                         EResource.mem: "--mem-per-cpu",
                         EResource.nodes: "-c",
-                        EResource.qos: "--qos",
                         EResource.error: "-e",
                         EResource.out: "-o"}
     __job_id_pattern = re.compile(r"Submitted batch job ([0-9]*)")

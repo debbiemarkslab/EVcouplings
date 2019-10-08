@@ -33,7 +33,6 @@ from evcouplings.compare.ecs import (
     coupling_scores_compared, add_precision
 )
 from evcouplings.visualize import pairs, misc
-from evcouplings.compare.enrichment import create_enrichment_table, add_enrichment, double_window_enrichment
 from evcouplings.compare.asa import combine_asa, add_asa
 
 from evcouplings.align import ALPHABET_PROTEIN

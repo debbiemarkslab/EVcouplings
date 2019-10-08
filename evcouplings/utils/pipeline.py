@@ -205,7 +205,8 @@ def execute(**config):
             outfiles = [
                 filepath for f, filepath in outcfg.items()
                 if f.endswith("_file") and filepath is not None and f!="model_file"
-
+            ]
+            
             verify_resources(
                 "Output files from stage '{}' "
                 "missing".format(stage),
