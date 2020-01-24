@@ -26,6 +26,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import DBAPIError
 
 from evcouplings.utils.helpers import retry
+from evcouplings.utils.config import InvalidParameterError
 from evcouplings.utils.tracker import EStatus
 from evcouplings.utils.tracker.base import ResultTracker
 
@@ -72,6 +73,12 @@ class SQLTracker(ResultTracker):
             Time in seconds between retries to connect to database
         """
         super().__init__(**kwargs)
+
+        # for SQL tracker, job ID may not be longer than 255 chars to not interfere with older SQL DBs
+        if len(self.job_id) > 255:
+            raise InvalidParameterError(
+                "Length of job_id for SQL tracker may not exceed 255 characters for database compatibility reasons"
+            )
 
         # create SQLAlchemy engine and session maker to
         # instantiate later sessions
@@ -282,7 +289,7 @@ class ComputeJob(Base):
     key = Column(Integer, primary_key=True)
 
     # human-readable job identifier (must be unique)
-    job_id = Column(String(1024), unique=True)
+    job_id = Column(String(255), unique=True)
 
     # job prefix
     prefix = Column(String(2048))
