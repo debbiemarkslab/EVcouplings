@@ -13,7 +13,7 @@ Authors:
 
 import re
 from copy import deepcopy
-from os import path
+from os import path, environ
 from collections import Mapping
 
 import click
@@ -286,8 +286,8 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
         If error encountered during submission and abort_on_error
         is True
     """
-    cmd_base = "evcouplings_runcfg"
-    summ_base = "evcouplings_summarize"
+    cmd_base = environ.get("EVCOUPLINGS_RUNCFG_APP") or "evcouplings_runcfg"
+    summ_base = environ.get("EVCOUPLINGS_SUMMARIZE_APP") or "evcouplings_summarize"
 
     # determine output directory for config files
     prefix = global_config["global"]["prefix"]
