@@ -140,8 +140,12 @@ def iterate_files(outcfg, subset=None):
         (i.e. ending with _file rather than _files).
     """
     for k, v in outcfg.items():
-        # continue items if there is a subset filter
+        # skip items if there is a subset filter and it matches
         if subset is not None and k not in subset:
+            continue
+
+        # also skip in case file has a null value
+        if v is None:
             continue
 
         # only look at file entries, so skip everything else
