@@ -24,6 +24,8 @@ from evcouplings.align.alignment import (
 
 from evcouplings.couplings.mapping import Segment
 
+from evcouplings.utils import BailoutException
+
 from evcouplings.utils.config import (
     check_required, InvalidParameterError, MissingParameterError,
     read_config_file, write_config_file
@@ -1516,6 +1518,9 @@ def standard(**kwargs):
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".align_standard.outcfg", outcfg)
+
+    if len(ali) <= 1:
+        raise BailoutException("align: No sequences found")
 
     # return results of protocol
     return outcfg

@@ -25,6 +25,8 @@ from evcouplings.align.alignment import (
     ALPHABET_RNA, Alignment
 )
 
+from evcouplings.utils import BailoutException
+
 from evcouplings.utils.config import (
     check_required, InvalidParameterError,
     read_config_file, write_config_file
@@ -824,6 +826,8 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
         String determining the ec distance filter (default: "abs(i - j) >= {}")
     chain : dict
         Dictionary to map different segments to their chains
+    score : str, optional (default: "cn")
+        Score column to use for postprocessing
 
     Returns
     -------
@@ -837,10 +841,13 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
         * enrichment_pml_files
         * evzoom_file
     """
-
     ext_outcfg = {}
     # write the sorted ECs table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
+
+    # if maximum coupling score is 0, bail out... will crash downstream calculations
+    if ecs[score].max() <= 0:
+        raise BailoutException("couplings: No couplings identified")
 
     # also store longrange ECs as convenience output
     if kwargs["min_sequence_distance"] is not None:

@@ -37,3 +37,8 @@ class SubmitterFactory(object, metaclass=ASubmitterFactory):
         """
         return [ASubmitter.registry.keys()]
 
+
+class BailoutException(Exception):
+    """
+    Exception for pipeline stopping itself (e.g. if no sequences found)
+    """

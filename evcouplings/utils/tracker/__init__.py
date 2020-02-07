@@ -31,10 +31,11 @@ EStatus = (lambda **enums: type('Enum', (), enums))(
     DONE="done",
     FAIL="failed",  # job failed due to bug
     TERM="terminated",  # job was terminated externally
+    BAILOUT="bailout",  # pipeline stopped execution, e.g. due to completely hopeless results
 )
 
-FINAL_STATES = {EStatus.DONE, EStatus.TERM, EStatus.FAIL}
-FAILURE_STATES = {EStatus.TERM, EStatus.FAIL}
+FINAL_STATES = {EStatus.DONE, EStatus.TERM, EStatus.FAIL, EStatus.BAILOUT}
+FAILURE_STATES = {EStatus.TERM, EStatus.FAIL, EStatus.BAILOUT}
 
 
 def get_result_tracker(config):

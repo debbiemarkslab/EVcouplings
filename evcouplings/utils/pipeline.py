@@ -32,6 +32,7 @@ from evcouplings.utils.system import (
 from evcouplings.utils.tracker import (
     get_result_tracker, EStatus
 )
+from evcouplings.utils import BailoutException
 
 import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp
@@ -78,6 +79,10 @@ EXTENSION_TERMINATED = ".terminated"
 # suffix of file that will be generated if execution
 # fails internally (i.e. exception is raised)
 EXTENSION_FAILED = ".failed"
+
+# suffix of file that will be generated if execution
+# fails internally (i.e. exception is raised)
+EXTENSION_BAILOUT = ".bailout"
 
 # suffix of file that will be generated if execution
 # runs through sucessfully
@@ -469,7 +474,7 @@ def execute_wrapped(**config):
     # delete terminated/failed flags from previous
     # executions of pipeline
     for ext in [
-        EXTENSION_FAILED, EXTENSION_TERMINATED, EXTENSION_DONE,
+        EXTENSION_FAILED, EXTENSION_TERMINATED, EXTENSION_DONE, EXTENSION_BAILOUT
     ]:
         try:
             os.remove(prefix + ext)
@@ -512,16 +517,28 @@ def execute_wrapped(**config):
     except Exception as e:
         formatted_exception = traceback.format_exc()
 
+        # determine if regular crash or pipeline stopping itself
+        if isinstance(e, BailoutException):
+            extension = EXTENSION_BAILOUT
+            status = EStatus.BAILOUT
+            message = "Pipeline bailed out of execution: {}".format(
+                formatted_exception
+            )
+        else:
+            extension = EXTENSION_FAILED
+            status = EStatus.FAIL
+            message = "Crashed during job execution: {}".format(
+                formatted_exception
+            )
+
         # create failed file flag
-        with open(prefix + EXTENSION_FAILED, "w") as f:
+        with open(prefix + extension, "w") as f:
             f.write(formatted_exception)
 
         # set status in database to failed
         tracker.update(
-            status=EStatus.FAIL,
-            message="Crashed during job execution: {}".format(
-                formatted_exception
-            )
+            status=status,
+            message=message
         )
 
         # raise exception again after we updated status
