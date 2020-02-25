@@ -527,6 +527,9 @@ def standard(**kwargs):
         # checking if those files exist
         "distmap_monomer": prefix + "_distance_map_monomer",
         "distmap_multimer": prefix + "_distance_map_multimer",
+
+        # residue map for all individual distance maps before aggregation
+        "distmap_monomer_residues_file": prefix + "_distance_map_monomer_residues.csv",
     }
 
     # make sure EC file exists
@@ -570,12 +573,17 @@ def standard(**kwargs):
     # compute distance maps and save
     # (but only if we found some structure)
     if len(sifts_map.hits) > 0:
-        d_intra, d_intra_individual_maps = intra_dists(
+        d_intra, d_intra_individual_maps, d_intra_residue_map = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
             output_prefix=aux_prefix + "_distmap_intra"
         )
 
         residue_table_filename, dist_mat_filename = d_intra.to_file(outcfg["distmap_monomer"])
+
+        # store residue map (monomer)
+        d_intra_residue_map.to_csv(
+            outcfg["distmap_monomer_residues_file"], index=False
+        )
 
         # TODO: for now, create additional entries rather than removing distmap_monomer for compatibility reasons,
         # but eventually drop the one above
@@ -662,6 +670,7 @@ def standard(**kwargs):
         outcfg["distmap_monomer"] = None
         outcfg["distmap_multimer"] = None
         outcfg["remapped_pdb_files"] = None
+        outcfg["distmap_monomer_residues_file"] = None
 
     # Step 3: Compare ECs to distance maps
 
@@ -866,7 +875,7 @@ def complex(**kwargs):
         # compute distance maps and save
         # (but only if we found some structure)
         if len(sifts_map.hits) > 0:
-            d_intra, _ = intra_dists(
+            d_intra, _, _ = intra_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
                 output_prefix=aux_prefix + "_" + name_prefix + "_distmap_intra"
             )

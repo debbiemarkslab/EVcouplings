@@ -762,7 +762,7 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         distance maps. Otherwise, union of indices
         will be used.
     output_prefix : str, optional (default: None)
-        If given, save individual and final contact maps
+        If given, save individual contact maps
         to files prefixed with this string. The appended
         file suffixes map to row index in sifts_results.hits
     model : int, optional (default: 0)
@@ -783,8 +783,10 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         "residue_table" and "distance_matrix"
         (file names of .csv and .npy files constituting
         the respective distance map).
-
         Will be None if output_prefix is None.
+    aggregated_residue_map : pd.DataFrame
+        Table with residue maps of all individual
+        contact maps (concatenated "residue_i" attribute)
 
     Raises
     ------
@@ -803,15 +805,18 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         structures, sifts_result.hits.pdb_id, raise_missing
     )
 
-    # aggegrated distance map
-    agg_distmap = None
-
     # create output folder if necessary
     if output_prefix is not None:
         create_prefix_folders(output_prefix)
 
-    # collect information about individual distance maps here (only if output_prefix is defined)
+    # for storing individual distance maps
     individual_distance_maps = []
+
+    # collect information about individual distance maps here (only if output_prefix is defined)
+    individual_distance_map_info = []
+
+    # collect information about residue map from target sequence to structure
+    individual_residue_maps = []
 
     # compute individual distance maps and aggregate
     for i, r in sifts_result.hits.iterrows():
@@ -833,32 +838,48 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         # compute distance map
         distmap = DistanceMap.from_coords(chain)
 
+        # store for later aggregation
+        individual_distance_maps.append(distmap)
+
+        # store information about residues for each individual aggregated distance map
+        # (only for axis i since distmap is symmetric)
+        individual_residue_maps.append(
+            distmap.residues_i.assign(
+                sifts_table_index=i
+            )
+        )
+
         # save individual distance map
         if output_prefix is not None:
             residue_table_filename, dist_mat_filename = distmap.to_file(
                 "{}_{}".format(output_prefix, i)
             )
 
-            individual_distance_maps.append({
+            individual_distance_map_info.append({
                 "sifts_table_index": i,
                 "residue_table": residue_table_filename,
                 "distance_matrix": dist_mat_filename
             })
 
-        # aggregate
-        if agg_distmap is None:
-            agg_distmap = distmap
-        else:
-            agg_distmap = DistanceMap.aggregate(
-                agg_distmap, distmap, intersect=intersect
-            )
-
+    # aggregate distance maps
     if len(individual_distance_maps) > 0:
-        individual_distance_map_table = pd.DataFrame(individual_distance_maps)
+        agg_distmap = DistanceMap.aggregate(
+            *individual_distance_maps, intersect=intersect
+        )
+    else:
+        agg_distmap = None
+
+    if len(individual_distance_map_info) > 0:
+        individual_distance_map_table = pd.DataFrame(individual_distance_map_info)
     else:
         individual_distance_map_table = None
 
-    return agg_distmap, individual_distance_map_table
+    # aggregate residue maps into joint dataframe
+    aggregated_residue_map = pd.concat(
+        individual_residue_maps
+    ).reset_index(drop=True)
+
+    return agg_distmap, individual_distance_map_table, aggregated_residue_map
 
 
 def multimer_dists(sifts_result, structures=None, atom_filter=None,
@@ -895,7 +916,7 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
         distance maps. Otherwise, union of indices
         will be used.
     output_prefix : str, optional (default: None)
-        If given, save individual and final contact maps
+        If given, save individual contact maps
         to files prefixed with this string. The appended
         file suffixes map to row index in sifts_results.hits
     model : int, optional (default: 0)
@@ -1050,7 +1071,7 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         distance maps. Otherwise, union of indices
         will be used.
     output_prefix : str, optional (default: None)
-        If given, save individual and final contact maps
+        If given, save individual contact maps
         to files prefixed with this string. The appended
         file suffixes map to row index in sifts_results.hits
     model : int, optional (default: 0)
