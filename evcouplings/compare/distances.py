@@ -306,9 +306,9 @@ class DistanceMap:
             (will be filename + .npy)
         """
         def _add_axis(df, axis):
-            res = df.copy()
-            res.loc[:, "axis"] = axis
-            return res
+            return df.assign(
+                axis=axis
+            )
 
         if self.symmetric:
             residues = self.residues_i
