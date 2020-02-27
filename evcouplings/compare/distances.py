@@ -92,6 +92,9 @@ class DistanceMap:
     Compute, store and accesss pairwise residue
     distances in PDB 3D structures
     """
+    # separator between distance map id and field name in aggregated dataframes
+    _id_separator = "::"
+
     def __init__(self, residues_i, residues_j, dist_matrix, symmetric):
         """
         Create new distance map object
@@ -123,6 +126,10 @@ class DistanceMap:
         self.id_map_j = {
             id_: j for (j, id_) in enumerate(self.residues_j.id.values)
         }
+
+        # attribute that allows to set a unique identifier for this distance map,
+        # used during aggregation
+        self.id = None
 
     @classmethod
     def _extract_coords(cls, coords):
@@ -522,38 +529,6 @@ class DistanceMap:
             else:
                 return sorted_sse[-1][0]
 
-        def _merge_sse(new_axis, distance_maps):
-            new_axis = new_axis.copy()
-            # merge secondary structure assignments over
-            # axis tables in multiple distance maps
-            merger_df = new_axis
-
-            # first join all into big table for easier counting
-            for i, m in enumerate(distance_maps):
-                if "sec_struct_3state" in m.columns:
-                    merger_df = merger_df.merge(
-                        m.loc[:, ["id", "sec_struct_3state"]],
-                        on="id", how="left", suffixes=("", str(i))
-                    )
-
-            # then identify all the columns we ended up with
-            sse_cols = [
-                c for c in merger_df.columns
-                if c.startswith("sec_struct_3state")
-            ]
-
-            # if we have any columns, identify most frequent
-            # secondary structure character
-            if len(sse_cols) > 0:
-                new_sse = merger_df.loc[
-                    :, sse_cols
-                ].apply(_sse_count, axis=1)
-
-                # assign to dataframe
-                new_axis.loc[:, "sec_struct_3state"] = new_sse
-
-            return new_axis
-
         def _merge_axis(axis):
             # extract residue dataframes along axis
             # for all given distance maps
@@ -565,10 +540,15 @@ class DistanceMap:
             # for each distance map. Note that identifiers
             # have to be numeric for easy sorting, so
             # cast to int first
-            ids = [
-                pd.to_numeric(m.id).astype(int)
-                for m in dm
-            ]
+            try:
+                ids = [
+                    pd.to_numeric(m.id).astype(int)
+                    for m in dm
+                ]
+            except ValueError as e:
+                raise ValueError(
+                    "Residue indices must be all numeric for aggregate function (no insertion codes allowed)"
+                ) from e
 
             # turn series into sets
             id_sets = [set(id_list) for id_list in ids]
@@ -604,10 +584,72 @@ class DistanceMap:
             # turn residue ids back into strings
             new_axis_df.loc[:, "id"] = new_axis_df.loc[:, "id"].astype(str)
 
+            # aggregate all residue dataframes into one joint table;
+            # first, add prefix to all column names based on index or id
+            # of respective distance map
+
+            # try to use identifier if defined, otherwise just use index in list;
+            # make sure the separator string is not contained in the identifier, otherwise replace it
+            dm_ids = [
+                (str(m.id).replace(cls._id_separator,  "") if m.id is not None else i)
+                for i, m in enumerate(matrices)
+            ]
+
+            # move residue identifier to index, and prefix all other column names.
+            # Note we could use a pd.MultiIndex here instead of the separator approach, but that would mean
+            # changing a lot of other code...
+            # Note: do not rename columns that already have the separator in case this is because of iterative merging
+
+            # get rid of previous aggregated secondary structure or it will get re-merged in iterative merging setups
+            dm_dropped = [
+                m.drop(
+                    ["sec_struct_3state"], axis=1
+                ) if len(m.filter( regex=cls._id_separator + "sec_struct_3state").columns) >= 1 else m
+                for m in dm
+            ]
+
+            dm_prefixed = [
+                m.set_index("id").rename(
+                    columns={
+                        c: "{}{}{}".format(id_, cls._id_separator, c)
+                        for c in m.columns
+                        if cls._id_separator not in c
+                    }
+                ) for id_, m in zip(dm_ids, dm_dropped)
+            ]
+
+            # second: join together
+            individual_dm_merged = pd.concat(
+                dm_prefixed, axis=1, join="inner" if intersect else "outer", sort=True
+            )
+            # loses index name for some reason due to pd.concat
+            individual_dm_merged.index.name = "id"
+
             # merge secondary structure assignments by identifying
             # most frequent assignment. If there are equal counts,
             # prefer H over E over C.
-            new_axis_df = _merge_sse(new_axis_df, dm)
+            # By starting from individual_dm_merged here, will always
+            # merge over all individual distance maps, even if performing iterative aggregation
+            secstruct_columns = individual_dm_merged.filter(
+                regex=cls._id_separator + "sec_struct_3state"
+            )
+
+            if len(secstruct_columns.columns) >= 1:
+                # identify most frequent state per position
+                merged_sse_assignment = secstruct_columns.apply(
+                    _sse_count, axis=1
+                ).to_frame(
+                    "sec_struct_3state"
+                )
+
+                # merge to new axis table
+                new_axis_df = new_axis_df.merge(
+                    merged_sse_assignment.reset_index(), on="id", how="left"
+                )
+
+            new_axis_df = new_axis_df.merge(
+                individual_dm_merged.reset_index(), on="id", how="left"
+            )
 
             return new_axis_df, mappings
 
@@ -805,12 +847,12 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         structures, sifts_result.hits.pdb_id, raise_missing
     )
 
+    # aggegrated distance map
+    agg_distmap = None
+
     # create output folder if necessary
     if output_prefix is not None:
         create_prefix_folders(output_prefix)
-
-    # for storing individual distance maps
-    individual_distance_maps = []
 
     # collect information about individual distance maps here (only if output_prefix is defined)
     individual_distance_map_info = []
@@ -835,11 +877,9 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         if len(chain.residues) == 0:
             continue
 
-        # compute distance map
+        # compute distance map and set id
         distmap = DistanceMap.from_coords(chain)
-
-        # store for later aggregation
-        individual_distance_maps.append(distmap)
+        distmap.id = i
 
         # store information about residues for each individual aggregated distance map
         # (only for axis i since distmap is symmetric)
@@ -861,13 +901,13 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
                 "distance_matrix": dist_mat_filename
             })
 
-    # aggregate distance maps
-    if len(individual_distance_maps) > 0:
-        agg_distmap = DistanceMap.aggregate(
-            *individual_distance_maps, intersect=intersect
-        )
-    else:
-        agg_distmap = None
+        # aggregate
+        if agg_distmap is None:
+            agg_distmap = distmap
+        else:
+            agg_distmap = DistanceMap.aggregate(
+                agg_distmap, distmap, intersect=intersect
+            )
 
     if len(individual_distance_map_info) > 0:
         individual_distance_map_table = pd.DataFrame(individual_distance_map_info)
