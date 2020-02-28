@@ -1249,8 +1249,8 @@ def hmmbuild_and_search(**kwargs):
         # try to extract region from sequence header
         id_, region_start, region_end = parse_header(focus_id)
 
-        # override with first_index if given
-        if kwargs["first_index"] is not None:
+        # override with first_index if given (but respect region from alignment if defined)
+        if kwargs["first_index"] is not None and (region_start is None or region_end is None):
             region_start = kwargs["first_index"]
             region_end = region_start + len(focus_seq_nogap) - 1
 
