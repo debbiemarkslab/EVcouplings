@@ -16,6 +16,7 @@ import matplotlib.gridspec as gridspec
 from evcouplings.visualize.pymol import (
     pymol_pair_lines, pymol_mapping
 )
+from evcouplings.utils.helpers import find_segments
 
 # default plotting styles
 STYLE_EC = {
@@ -57,6 +58,12 @@ STYLE_SECSTRUCT = {
 STYLE_STRUCTURE_COVERAGE = {
     "missing_coverage_color": "#efefef",
     "available_coverage_color": "#ffffff",
+}
+
+STYLE_EC_COVERAGE = {
+    "color": "#525F69",
+    "width": 5,
+    "margin": 2,
 }
 
 
@@ -187,11 +194,12 @@ def find_boundaries(boundaries, ecs, monomer, multimer, symmetric):
 
 def plot_contact_map(ecs=None, monomer=None, multimer=None,
                      distance_cutoff=5, secondary_structure=None,
-                     show_secstruct=True, scale_sizes=True,
-                     show_structure_coverage=False,
+                     show_secstruct=True, ec_coverage=None,
+                     show_structure_coverage=False, scale_sizes=True,
                      ec_style=STYLE_EC, monomer_style=STYLE_CONTACT,
                      multimer_style=STYLE_CONTACT_MULTIMER,
                      secstruct_style=STYLE_SECSTRUCT,
+                     ec_coverage_style=STYLE_EC_COVERAGE,
                      structure_coverage_style=STYLE_STRUCTURE_COVERAGE,
                      margin=5, invert_y=True, boundaries="union",
                      symmetric=True, ax=None):
@@ -230,6 +238,10 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         Draw secondary structure on both axes (either
         passed in explicitly using secondary_structure,
         or extracted from monomer distancemap)
+    ec_coverage : pandas.DataFrame, optional (default: None)
+        Draws consecutive regions with EC coverage. Supply
+        full EC table before any filtering (i.e., containing
+        all positions) for determination of covered regions
     show_structure_coverage : bool, optional (default: False)
         If true, show areas in contact map that have structure
         coverage as opposed to those that do not
@@ -245,7 +257,9 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
         Style for multimer contact plotting (kwargs to plt.scatter)
     secstruct_style : dict, optional (default: STYLE_SECSTRUCT)
         Style for secondary structure plotting
-        (kwargs to secondary_structure_cartoon())
+        (kwargs to secondary_structure_cartoon()
+    ec_coverage_style : dict, optional (default: STYLE_EC_COVERAGE)
+        Style for drawing alignment/EC coverage information
     structure_coverage_style : dict, optional (default: STYLE_STRUCTURE_COVERAGE)
         Style for drawing structure coverage
     margin : int, optional (default: 5)
@@ -303,7 +317,7 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
             structure_coverage = multimer.structure_coverage()
 
         plot_structure_coverage(
-            structure_coverage, structure_coverage_style
+            structure_coverage, structure_coverage_style, ax=ax
         )
 
     # plot monomer contacts
@@ -331,6 +345,12 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     if ecs is not None:
         plot_pairs(
             ecs, symmetric=symmetric, style=scale_func(ec_style), ax=ax
+        )
+
+    # plot EC coverage on axis
+    if ec_coverage is not None:
+        plot_ec_coverage(
+            ec_coverage, symmetric=symmetric, style=ec_coverage_style, ax=ax
         )
 
     # plot secondary structure
@@ -761,7 +781,86 @@ def scale(style, ax=None):
     return style
 
 
-def plot_structure_coverage(structure_coverage, structure_coverage_style=STYLE_STRUCTURE_COVERAGE,
+def plot_ec_coverage(all_ecs, symmetric, style=STYLE_EC_COVERAGE, ax=None):
+    """
+    Plot EC coverage as bar alongside contact map
+
+    Parameters
+    ----------
+    all_ecs : pd.DataFrame
+        Full EC table with all pairs (used to determine coverage)
+    symmetric : bool
+        Set to True if all_ecs are symmetric (e.g. monomer ECs)
+    style : dict, optional (default: STYLE_EC_COVERAGE)
+        Style for drawing EC coverage
+    ax : matplotlib Axes object
+        Axes for which plot range will be changed
+    """
+    if style is None:
+        style = {}
+
+    # determine covered positions on each axis,
+    # if symmetric, merge positions
+    if symmetric:
+        all_pos = sorted(
+            set(
+                all_ecs.i.values
+            ).union(
+                set(all_ecs.j.values)
+            )
+        )
+        pos_i = all_pos
+        pos_j = all_pos
+    else:
+        pos_i = sorted(set(all_ecs.i.values))
+        pos_j = sorted(set(all_ecs.j.values))
+
+    # determine covered consecutive ranges
+    segments_i = find_segments(pos_i)
+    segments_j = find_segments(pos_j)
+
+    # get position for plotting
+    x_range = ax.get_xlim()
+    y_range = ax.get_ylim()
+
+    # margin between axis and patches for region
+    margin = style.get("margin", 0)
+
+    x_offset = max(x_range) + margin
+    y_offset = max(y_range) + margin
+
+    def _plot_segments(segments, offset, is_x):
+        for segment_start, segment_end in segments:
+            segment_length = segment_end - segment_start + 1
+            width = style.get("width", 1)
+
+            if is_x:
+                start = (segment_start, offset)
+                size_x = segment_length
+                size_y = width
+            else:
+                start = (offset, segment_start)
+                size_x = width
+                size_y = segment_length
+
+            rect = patches.Rectangle(
+                start, size_x, size_y,
+                linewidth=0,
+                edgecolor="none",
+                facecolor=style.get("color"),
+                zorder=-10,
+                clip_on=False
+            )
+
+            # add patch to axes
+            ax.add_patch(rect)
+
+    # plot segments for both axes
+    _plot_segments(segments_i, y_offset, True)
+    _plot_segments(segments_j, x_offset, False)
+
+
+def plot_structure_coverage(structure_coverage, style=STYLE_STRUCTURE_COVERAGE,
                             ax=None):
     """
     Draw available/missing structure coverage on a contact map plot
@@ -771,18 +870,23 @@ def plot_structure_coverage(structure_coverage, structure_coverage_style=STYLE_S
     structure_coverage : list of tuples
         Structure coverage as returned by DistanceMap.structure_coverage()
         (see documentation of DistanceMap for details)
-    structure_coverage_style : dict, optional (default: STYLE_STRUCTURE_COVERAGE)
+    style : dict, optional (default: STYLE_STRUCTURE_COVERAGE)
         Style (colors) for drawing structure coverage
+    ax : matplotlib Axes object
+        Axes for which plot range will be changed
     """
-    # get axis
+    if style is None:
+        style = {}
+
+    # get axis if not supplied
     ax = ax or plt.gca()
 
-    if "missing_coverage_color" in structure_coverage_style:
+    if "missing_coverage_color" in style:
         ax.set_facecolor(
-            structure_coverage_style["missing_coverage_color"]
+            style["missing_coverage_color"]
         )
 
-    available_cov_color = structure_coverage_style.get("available_coverage_color")
+    available_cov_color = style.get("available_coverage_color")
 
     # for each individual structure, draw rectangles for all covered areas
     for coverage_i, coverage_j, coverage_id in structure_coverage:

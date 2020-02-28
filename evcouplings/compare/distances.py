@@ -7,7 +7,7 @@ Authors:
 """
 
 from collections import Counter
-from itertools import combinations, groupby
+from itertools import combinations
 from operator import itemgetter
 from copy import deepcopy
 
@@ -18,6 +18,7 @@ from numba import jit
 from evcouplings.compare.pdb import load_structures
 from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.system import create_prefix_folders
+from evcouplings.utils.helpers import find_segments
 
 
 @jit(nopython=True)
@@ -766,23 +767,9 @@ class DistanceMap:
                 else:
                     return col_name.split(self._id_separator)[0]
 
-            def _get_segments(data):
-                """
-                Find consecutive residue segments
-                """
-                segments = []
-                # based on Python 2.7 itertools recipe
-                for k, g in groupby(enumerate(data), lambda x: x[0] - x[1]):
-                    cur_segment = list(map(itemgetter(1), g))
-                    segments.append(
-                        (cur_segment[0], cur_segment[-1])
-                    )
-
-                return segments
-
             # extract coverage segments for all individual structures
             segments = {
-                _get_col_name(col_name): _get_segments(series.dropna().sort_index().index)
+                _get_col_name(col_name): find_segments(series.dropna().sort_index().index)
                 for col_name, series in coverage_cols.iteritems()
             }
 

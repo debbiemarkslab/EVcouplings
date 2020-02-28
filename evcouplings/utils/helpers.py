@@ -6,6 +6,8 @@ Authors:
 """
 
 from collections import OrderedDict
+from itertools import groupby
+from operator import itemgetter
 import pickle, json, csv, os, shutil
 from os import path
 import time
@@ -168,6 +170,25 @@ def range_overlap(a, b):
     if b[0] >= b[1]:
         raise InvalidParameterError("Start has to be smaller than end b[0] < b[1]")
     return max(0, min(a[1], b[1]) - max(a[0], b[0]))
+
+
+def find_segments(data):
+    """
+    Find consecutive number segments, based on Python 2.7 itertools recipe
+
+    Parameters
+    ----------
+    data : iterable
+        Iterable in which to look for consecutive number segments (has to be in order)
+    """
+    segments = []
+    for k, g in groupby(enumerate(data), lambda x: x[0] - x[1]):
+        cur_segment = list(map(itemgetter(1), g))
+        segments.append(
+            (cur_segment[0], cur_segment[-1])
+        )
+
+    return segments
 
 
 def render_template(template_file, mapping):
