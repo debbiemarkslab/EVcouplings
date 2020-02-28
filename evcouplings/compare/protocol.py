@@ -573,7 +573,7 @@ def standard(**kwargs):
     # compute distance maps and save
     # (but only if we found some structure)
     if len(sifts_map.hits) > 0:
-        d_intra, d_intra_individual_maps, d_intra_residue_map = intra_dists(
+        d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
             output_prefix=aux_prefix + "_distmap_intra"
         )
@@ -581,7 +581,7 @@ def standard(**kwargs):
         residue_table_filename, dist_mat_filename = d_intra.to_file(outcfg["distmap_monomer"])
 
         # store residue map (monomer)
-        d_intra_residue_map.to_csv(
+        d_intra.aggregated_residue_maps.to_csv(
             outcfg["distmap_monomer_residues_file"], index=False
         )
 
@@ -592,6 +592,7 @@ def standard(**kwargs):
             dist_mat_filename: {"file_type": "distance_matrix"}
         }
 
+        d_intra_individual_maps = d_intra.individual_distance_map_table
         # also store individual intra distance matrices (should always be present)
         if d_intra_individual_maps is not None:
             outcfg["distmap_monomer_individual_files"] = _individual_distance_map_config_result(
@@ -610,14 +611,16 @@ def standard(**kwargs):
         # note that d_multimer can be None if there
         # are no structures with multiple chains
         if kwargs["compare_multimer"]:
-            d_multimer, d_multimer_individual_maps = multimer_dists(
+            d_multimer = multimer_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
                 output_prefix=aux_prefix + "_distmap_multimer"
             )
+            d_multimer_individual_maps = d_multimer.individual_distance_map_table
         else:
             d_multimer = None
+            d_multimer_individual_maps = None
 
-        # if we have a multimer contact map in the end, save it
+            # if we have a multimer contact map in the end, save it
         if d_multimer is not None:
             residue_table_filename, dist_mat_filename = d_multimer.to_file(outcfg["distmap_multimer"])
             # TODO: for now, create additional entries rather than removing distmap_multimer for compatibility reasons,
@@ -875,7 +878,7 @@ def complex(**kwargs):
         # compute distance maps and save
         # (but only if we found some structure)
         if len(sifts_map.hits) > 0:
-            d_intra, _, _ = intra_dists(
+            d_intra = intra_dists(
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
                 output_prefix=aux_prefix + "_" + name_prefix + "_distmap_intra"
             )
@@ -893,7 +896,7 @@ def complex(**kwargs):
             # note that d_multimer can be None if there
             # are no structures with multiple chains
             if kwargs[name_prefix + "_compare_multimer"]:
-                d_multimer, _ = multimer_dists(
+                d_multimer = multimer_dists(
                     sifts_map, structures, atom_filter=kwargs["atom_filter"],
                     output_prefix=aux_prefix + "_" + name_prefix + "_distmap_multimer"
                 )
@@ -955,7 +958,7 @@ def complex(**kwargs):
 
     # compute inter distance map if sifts map for each monomer exists
     if len(first_sifts_map.hits) > 0 and len(second_sifts_map.hits) > 0:
-        d_inter, _ = inter_dists(
+        d_inter = inter_dists(
             first_sifts_map, second_sifts_map,
             raise_missing=kwargs["raise_missing"]
         )
