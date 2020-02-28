@@ -7,7 +7,7 @@ Authors:
 """
 
 from collections import Counter
-from itertools import combinations
+from itertools import combinations, groupby
 from operator import itemgetter
 from copy import deepcopy
 
@@ -702,6 +702,106 @@ class DistanceMap:
         return DistanceMap(
             new_res_i, new_res_j, agg_mat, symmetries[0]
         )
+
+    def structure_coverage(self):
+        """
+        Find covered residue segments for individual structures
+        that this distance map was computed from (either
+        directly from structure or through aggregation of
+        multiple structures). Only works if all residue identifiers
+        of DistanceMap are numeric (i.e., do not have insertion codes)
+
+        Returns
+        -------
+        coverage : list of tuple
+            Returns tuples of the form
+            (coverage_i, coverage_j, coverage_id),
+            where
+            * coverage_i and coverage_j are lists of tuples
+              (segment_start, segment_end) of residue coverage
+              along axis i and j, with segment_end
+              being included in the range
+            * coverage_id is the identifier of the individual
+              substructure the coverage segments belong to
+              (only set if an aggregated structure, None otherwise)
+        """
+        def _get_coverage_for_axis(axis):
+            """
+            Determine structural coverage by individual structure for an axis i/j
+            """
+            # proxy column for determining structure coverage
+            coverage_col_name = "coord_id"
+
+            residue_map = getattr(
+                self, "residues_" + axis
+            )
+
+            # create numeric index from residue IDs,
+            # fail if insertion codes are present
+            try:
+                residue_map = residue_map.assign(
+                    id=pd.to_numeric(residue_map.id)
+                )
+            except ValueError as e:
+                raise ValueError(
+                    "Residue indices must be all numeric for aggregate function (no insertion codes allowed)"
+                ) from e
+
+            residue_map = residue_map.set_index("id")
+
+            if coverage_col_name in residue_map:
+                coverage_cols = residue_map[[coverage_col_name]]
+            else:
+                coverage_cols = residue_map.filter(
+                    regex=self._id_separator + coverage_col_name
+                )
+
+            def _get_col_name(col_name):
+                """
+                Get clean identifier name from dataframe columns
+                """
+                # extract structure identifier (None if not an aggregated structure)
+                if col_name == coverage_col_name:
+                    return None
+                else:
+                    return col_name.split(self._id_separator)[0]
+
+            def _get_segments(data):
+                """
+                Find consecutive residue segments
+                """
+                segments = []
+                # based on Python 2.7 itertools recipe
+                for k, g in groupby(enumerate(data), lambda x: x[0] - x[1]):
+                    cur_segment = list(map(itemgetter(1), g))
+                    segments.append(
+                        (cur_segment[0], cur_segment[-1])
+                    )
+
+                return segments
+
+            # extract coverage segments for all individual structures
+            segments = {
+                _get_col_name(col_name): _get_segments(series.dropna().sort_index().index)
+                for col_name, series in coverage_cols.iteritems()
+            }
+
+            return segments
+
+        coverage_i = _get_coverage_for_axis("i")
+        coverage_j = _get_coverage_for_axis("j")
+
+        # should be the same in both cases, but to be on safe side if
+        # users tinker with dataframes
+        joint_keys = {
+            k for k in coverage_i if k in coverage_j
+        }
+
+        coverage = [
+            (coverage_i[k], coverage_j[k], k) for k in joint_keys
+        ]
+
+        return coverage
 
 
 def _prepare_structures(structures, pdb_id_list, raise_missing=True):
