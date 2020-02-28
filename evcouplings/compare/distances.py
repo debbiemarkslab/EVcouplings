@@ -914,17 +914,18 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
                 agg_distmap, distmap, intersect=intersect
             )
 
-    if len(individual_distance_map_info) > 0:
-        agg_distmap.individual_distance_map_table = pd.DataFrame(
-            individual_distance_map_info
-        )
-    else:
-        agg_distmap.individual_distance_map_table = None
+    if agg_distmap is not None:
+        if len(individual_distance_map_info) > 0:
+            agg_distmap.individual_distance_map_table = pd.DataFrame(
+                individual_distance_map_info
+            )
+        else:
+            agg_distmap.individual_distance_map_table = None
 
-    # aggregate residue maps into joint dataframe and attach to distance map
-    agg_distmap.aggregated_residue_maps = pd.concat(
-        individual_residue_maps
-    ).reset_index(drop=True)
+        # aggregate residue maps into joint dataframe and attach to distance map
+        agg_distmap.aggregated_residue_maps = pd.concat(
+            individual_residue_maps
+        ).reset_index(drop=True)
 
     return agg_distmap
 
@@ -1078,12 +1079,13 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
                     agg_distmap, distmap_sym, intersect=intersect
                 )
 
-    if len(individual_distance_maps) > 0:
-        agg_distmap.individual_distance_map_table = pd.DataFrame(
-            individual_distance_maps
-        )
-    else:
-        agg_distmap.individual_distance_map_table = None
+    if agg_distmap is not None:
+        if len(individual_distance_maps) > 0:
+            agg_distmap.individual_distance_map_table = pd.DataFrame(
+                individual_distance_maps
+            )
+        else:
+            agg_distmap.individual_distance_map_table = None
 
     return agg_distmap
 
@@ -1254,12 +1256,13 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
                 agg_distmap, distmap, intersect=intersect
             )
 
-    if len(individual_distance_maps) > 0:
-        agg_distmap.individual_distance_map_table = pd.DataFrame(
-            individual_distance_maps
-        )
-    else:
-        agg_distmap.individual_distance_map_table = None
+    if agg_distmap is not None:
+        if len(individual_distance_maps) > 0:
+            agg_distmap.individual_distance_map_table = pd.DataFrame(
+                individual_distance_maps
+            )
+        else:
+            agg_distmap.individual_distance_map_table = None
 
     return agg_distmap
 

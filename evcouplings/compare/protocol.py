@@ -615,10 +615,8 @@ def standard(**kwargs):
                 sifts_map, structures, atom_filter=kwargs["atom_filter"],
                 output_prefix=aux_prefix + "_distmap_multimer"
             )
-            d_multimer_individual_maps = d_multimer.individual_distance_map_table
         else:
             d_multimer = None
-            d_multimer_individual_maps = None
 
             # if we have a multimer contact map in the end, save it
         if d_multimer is not None:
@@ -629,6 +627,7 @@ def standard(**kwargs):
                 dist_mat_filename: {"file_type": "distance_matrix"}
             }
 
+            d_multimer_individual_maps = d_multimer.individual_distance_map_table
             # also store individual multimer distance matrices
             if d_multimer_individual_maps is not None:
                 outcfg["distmap_multimer_individual_files"] = _individual_distance_map_config_result(
@@ -662,10 +661,24 @@ def standard(**kwargs):
 
         # remap structures, swap mapping index and filename in
         # dictionary so we have a list of files in the dict keys
-        outcfg["remapped_pdb_files"] = {
-            filename: mapping_index for mapping_index, filename in
-            remap_chains(sifts_map, aux_prefix, seqmap).items()
-        }
+        #
+        # remapped structures have side chains taken off and changed
+        # residue types, since e.g. maxcluster cannot handle mismatches
+        # well. Also create structures that are just renumbered (but have
+        # original side chains and residue names) for visualization asf.
+        for name, sequence_map, atom_filter in [
+            ("remapped", seqmap, ("N", "CA", "C", "O")),
+            ("renumbered", None, None)
+        ]:
+            outcfg[name + "_pdb_files"] = {
+                filename: mapping_index for mapping_index, filename in
+                remap_chains(
+                    sifts_map,
+                    "{}_{}".format(aux_prefix, name),
+                    sequence=sequence_map,
+                    atom_filter=atom_filter
+                ).items()
+            }
     else:
         # if no structures, can not compute distance maps
         d_intra = None
@@ -673,6 +686,7 @@ def standard(**kwargs):
         outcfg["distmap_monomer"] = None
         outcfg["distmap_multimer"] = None
         outcfg["remapped_pdb_files"] = None
+        outcfg["renumbered_pdb_files"] = None
         outcfg["distmap_monomer_residues_file"] = None
 
     # Step 3: Compare ECs to distance maps
