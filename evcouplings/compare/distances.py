@@ -1035,10 +1035,16 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
             distmap = DistanceMap.from_coords(ch_i, ch_j)
 
+            # set distance map id
+            distmap.id = "{}_{}".format(index_i, index_j)
+
             # symmetrize matrix (for ECs we are only interested if a pair
             # is close in some combination)
+            distmap_transposed = distmap.transpose()
+            distmap_transposed.id = distmap.id + "_T"
+
             distmap_sym = DistanceMap.aggregate(
-                distmap, distmap.transpose(), intersect=intersect
+                distmap, distmap_transposed, intersect=intersect
             )
             distmap_sym.symmetric = True
 
@@ -1210,6 +1216,8 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
             chains_i[index_i],
             chains_j[index_j],
         )
+        # set distance map id
+        distmap.id = "{}_{}".format(index_i, index_j)
 
         # save individual distance map
         if output_prefix is not None:
