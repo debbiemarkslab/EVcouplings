@@ -34,6 +34,83 @@ from evcouplings.compare.ecs import (
 )
 from evcouplings.visualize import pairs, misc
 
+SIFTS_TABLE_FORMAT_STR = "{pdb_id}:{pdb_chain} ({coord_start}-{coord_end})"
+
+
+def print_pdb_structure_info(sifts_result, format_string=SIFTS_TABLE_FORMAT_STR,
+                             header_text=None, hits_per_row=4, separator=", ",
+                             location=(0.5, -0.08), text_kwargs=None, ax=None):
+    """
+    Add PDB structure information text to plot (e.g. contact map)
+
+    Parameters
+    ----------
+    sifts_result : SIFTSResult
+        Structure table that will be basis of information in plot
+    format_string : str (optional, default: SIFTS_TABLE_FORMAT_STR)
+        Python format string to create text for each PDB hit.
+        Can use any column name from SIFTSResult.hits as key in format string
+        (see default value for example).
+    header_text : str, optional (default: None)
+        Additional header line to show before structure information
+    hits_per_row : int, optional (default: 4)
+        Number of PDB chains to print per row of text
+    separator : str, optional (default: ", "
+        Separator text that will be printed between different PDB chain
+        strings
+    location : tuple(int, int), optional (default: (0.5, -0.08)
+        x- and y-location where text will be printed (in matplotlib
+        axes coordinates)
+    text_kwargs : dict, optional (default: None)
+        Keyword arguments that will be passed to matplotlib ax.text()
+        for printing the text on the plot. If None, will use
+        {"ha": "center", "va": "top"} as default setting.
+    ax : Matplotlib Axes object, optional (default: None)
+        Axes to print text on. If None, will use current matplotlib
+        axies (plt.gca())
+    """
+    # get axis to annotate
+    ax = ax or plt.gca()
+
+    # set text plotting kwargs unless override value is supplied
+    if text_kwargs is None:
+        text_kwargs = {
+            "ha": "center",
+            "va": "top"
+        }
+
+    # if no hits, do not print anything
+    if len(sifts_result.hits) == 0:
+        return
+
+    # format individual hits
+    pdb_texts = [
+        format_string.format(**r) for idx, r in sifts_result.hits.iterrows()
+    ]
+
+    # add hits into one list per line
+    pdb_lines = [
+        separator.join(
+            pdb_texts[i:i + hits_per_row]
+        ) for i in range(
+            0, len(pdb_texts), hits_per_row
+        )
+    ]
+
+    # add header text if supplied
+    if header_text is not None:
+        pdb_lines = [header_text] + pdb_lines
+
+    # join into multi-line text
+    joined_pdb_text = "\n".join(pdb_lines)
+
+    # print text to plot
+    ax.text(
+        *location, joined_pdb_text,
+        transform=ax.transAxes,
+        **text_kwargs
+    )
+
 
 def _identify_structures(**kwargs):
     """
@@ -132,7 +209,7 @@ def _identify_structures(**kwargs):
     return sifts_map, sifts_map_full
 
 
-def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
+def _make_contact_maps(ec_table, d_intra, d_multimer, sifts_map, **kwargs):
     """
     Plot contact maps with all ECs above a certain probability threshold,
     or a given count of ECs
@@ -161,20 +238,44 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
         Simple wrapper for contact map plotting
         """
         with misc.plot_context("Arial"):
-            fig = plt.figure(figsize=(8, 8))
+            fig = plt.figure(figsize=(10, 10))
             if kwargs["scale_sizes"]:
                 ecs = ecs.copy()
                 ecs.loc[:, "size"] = ecs.score.values / ecs.score.max()
                 # avoid negative sizes
                 ecs.loc[ecs["size"] < 0, "size"] = 0
 
+            # draw PDB structure and alignment/EC coverage information on contact map if selected
+            # (for now, not a required parameter, default to True)
+            if kwargs.get("draw_coverage", True):
+                additional_plot_kwargs = {
+                    "show_structure_coverage": True,
+                    "margin": 0,
+                    "ec_coverage": ec_table,
+                }
+            else:
+                additional_plot_kwargs = {
+                    "show_structure_coverage": False,
+                    "margin": 5,
+                    "ec_coverage": None,
+                }
+
             pairs.plot_contact_map(
                 ecs, d_intra, d_multimer,
                 distance_cutoff=kwargs["distance_cutoff"],
                 show_secstruct=kwargs["draw_secondary_structure"],
-                margin=5,
-                boundaries=kwargs["boundaries"]
+                boundaries=kwargs["boundaries"],
+                **additional_plot_kwargs
             )
+
+            # print PDB information if selected as parameter
+            # (for now, not a required parameter, default to True)
+            if kwargs.get("print_pdb_information", True) and sifts_map is not None and len(sifts_map.hits) > 0:
+                print_pdb_structure_info(
+                    sifts_map,
+                    ax=plt.gca(),
+                    header_text="PDB structures:",
+                )
 
             plt.suptitle("{} evolutionary couplings".format(len(ecs)), fontsize=14)
 
@@ -182,6 +283,8 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, **kwargs):
                 plt.savefig(output_file, bbox_inches="tight")
                 plt.close(fig)
 
+    # TODO: eventually add draw_coverage and print_pdb_information as required parameters
+    # (used above in plot_cm())
     check_required(
         kwargs,
         [
@@ -730,7 +833,7 @@ def standard(**kwargs):
     # if no structures available, defaults to EC-only plot
 
     outcfg["contact_map_files"] = _make_contact_maps(
-        ec_table, d_intra, d_multimer, **kwargs
+        ec_table, d_intra, d_multimer, sifts_map, **kwargs
     )
 
     return outcfg

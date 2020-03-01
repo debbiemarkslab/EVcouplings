@@ -62,8 +62,8 @@ STYLE_STRUCTURE_COVERAGE = {
 
 STYLE_EC_COVERAGE = {
     "color": "#525F69",
-    "width": 5,
-    "margin": 2,
+    "width": 0.8,
+    "margin": 0.5,
 }
 
 
@@ -350,7 +350,10 @@ def plot_contact_map(ecs=None, monomer=None, multimer=None,
     # plot EC coverage on axis
     if ec_coverage is not None:
         plot_ec_coverage(
-            ec_coverage, symmetric=symmetric, style=ec_coverage_style, ax=ax
+            ec_coverage,
+            symmetric=symmetric,
+            style=scale_func(ec_coverage_style),
+            ax=ax
         )
 
     # plot secondary structure
