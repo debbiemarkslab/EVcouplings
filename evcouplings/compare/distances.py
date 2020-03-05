@@ -763,7 +763,7 @@ class DistanceMap:
                 """
                 # extract structure identifier (None if not an aggregated structure)
                 if col_name == coverage_col_name:
-                    return None
+                    return self.id
                 else:
                     return col_name.split(self._id_separator)[0]
 
