@@ -464,7 +464,10 @@ def extract_header_annotation(alignment, from_annotation=True):
             res.append({"id": seq_id})
 
     df = pd.DataFrame(res)
-    return df.loc[:, ["id", "name"] + list(col_to_descr.keys())]
+    return df.reindex(
+        ["id", "name"] + list(col_to_descr.keys()),
+        axis=1
+    )
 
 
 def describe_seq_identities(alignment, target_seq_index=0):
