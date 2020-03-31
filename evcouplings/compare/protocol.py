@@ -302,7 +302,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
             # Currently, we require at least one of the monomer 
             # to have either ECs or distances in order to make a plot
             if ((ecs_i is None or ecs_i.empty) and d_intra_i is None and d_multimer_i is None) \
-                    or ((ecs_j is None or ecs_j.empty) and d_intra_j is None and d_multimer_i is None):
+                    or ((ecs_j is None or ecs_j.empty) and d_intra_j is None and d_multimer_j is None):
                 return False
 
             fig = plt.figure(figsize=(8, 8))
