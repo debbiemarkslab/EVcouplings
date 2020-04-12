@@ -14,16 +14,17 @@ Authors:
 import re
 from copy import deepcopy
 from os import path
-
+import collections
 import click
-
 from evcouplings import utils
-from evcouplings.utils import pipeline, database
-
+from evcouplings.utils import pipeline
 from evcouplings.utils.system import (
     create_prefix_folders, ResourceError, valid_file
 )
 
+from evcouplings.utils.management import (
+    EStatus, get_metadata_tracker
+)
 from evcouplings.utils.config import (
     check_required, InvalidParameterError,
     read_config_file, write_config_file
@@ -31,6 +32,27 @@ from evcouplings.utils.config import (
 
 # store individual config files in files with this name
 CONFIG_NAME = "{}_config.txt"
+
+
+def _update_dictionary_recursively(original, overwrite, max_depth=1, depth=0):
+    """
+    Function to recursively overwrite a dictionary with new values (doesn't extend! (aka.: lists are overwritten!)
+    :param original: original dictionary, that gets overwritten
+    :param overwrite: updates to apply on original dictionary
+    :param max_depth: Maximum depth of object indentation [Default: 2]
+    :param depth: Current depth of indentation [Default: 0, DON'T CHANGE]
+    :return: recursively updated object
+    """
+
+    result = deepcopy(original)
+
+    for k, v in overwrite.items():
+        if depth < max_depth and isinstance(v, collections.Mapping) and result.get(k) is not None:
+            result[k] = _update_dictionary_recursively(result.get(k, {}), v, max_depth=max_depth, depth=depth+1)
+        else:
+            result[k] = v
+
+    return result
 
 
 def substitute_config(**kwargs):
@@ -48,6 +70,17 @@ def substitute_config(**kwargs):
     dict
         Updated configuration
     """
+
+    # try to read in overwrite
+    overwrite_file = kwargs.get("overwrite")
+    if overwrite_file:
+        if not valid_file(overwrite_file):
+            raise ResourceError(
+                "Overwrite file does not exist or is empty: {}".format(
+                    overwrite_file
+                )
+            )
+
     # mapping of command line parameters to config file entries
     CONFIG_MAP = {
         "prefix": ("global", "prefix"),
@@ -76,6 +109,12 @@ def substitute_config(**kwargs):
         )
 
     config = read_config_file(config_file, preserve_order=True)
+
+    if overwrite_file:
+        overwrite_config = read_config_file(overwrite_file, preserve_order=True)
+
+        # apply overwrites from overwrite file
+        config = _update_dictionary_recursively(config, overwrite_config)
 
     # substitute command-line parameters into configuration
     # (if straightforward substitution)
@@ -225,10 +264,7 @@ def unroll_config(config):
             sub_config["global"]["prefix"] = sub_prefix
 
             # apply subconfig delta
-            # (assuming parameters are nested in two layers)
-            for section in delta_config:
-                for param, value in delta_config[section].items():
-                    sub_config[section][param] = value
+            sub_config = _update_dictionary_recursively(sub_config, delta_config)
 
             configs[sub_prefix] = sub_config
 
@@ -331,7 +367,8 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         job_cfg_file = CONFIG_NAME.format(job)
 
         # set job status in database to pending
-        pipeline.update_job_status(job_cfg, status=database.EStatus.PEND)
+        job_tracker = get_metadata_tracker(job_cfg)
+        job_tracker.update_job_status(status=EStatus.PEND)
 
         # create submission command
         env = job_cfg["environment"]
@@ -375,7 +412,7 @@ def run(**kwargs):
     kwargs
         See click.option decorators for app() function 
     """
-    # substitute commmand line options in config file
+    # substitute commmand line options in config file, also takes care of overwriting
     config = substitute_config(**kwargs)
 
     # check minimal set of parameters is present in config
@@ -448,6 +485,11 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.option(
     "--plmiter", default=None, help="Maximum number of iterations during inference",
     type=int
+)
+@click.option(
+    "-o", "--overwrite", default=None, help="Overwrites to apply to config "
+                                            "e.g. can be job parameters to apply to template: "
+                                            "evcouplings -o job.txt template.txt"
 )
 # environment configuration
 @click.option("-Q", "--queue", default=None, help="Grid queue to run job(s)")

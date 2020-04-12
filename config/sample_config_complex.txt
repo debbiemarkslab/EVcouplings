@@ -456,9 +456,6 @@ fold:
 
 # These settings allow job status tracking using a database, and result collection in an archive
 management:
-    # URI of database
-    database_uri:
-
     # unique job identifier
     job_name:
 
@@ -482,10 +479,10 @@ environment:
     # implementing it and submitting a pull request!
     # Note that "cores" will override the "cpu" parameter for "global"
     engine: slurm
-    queue: medium
+    queue: short
     cores: 2
     memory: 15000
-    time: 2-0:0:0
+    time: 0-11:59:0
 
     # command that will be executed before running actual computation (can be used to set up environment)
     configuration:

@@ -35,4 +35,3 @@ class SubmitterFactory(object, metaclass=ASubmitterFactory):
             dictionary of supported submitter
         """
         return [ASubmitter.registry.keys()]
-
