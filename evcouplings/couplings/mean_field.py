@@ -38,7 +38,7 @@ def _flatten_index(i, alpha, num_symbols):
     return i * (num_symbols - 1) + alpha
 
 
-class MeanFieldDCA(object):
+class MeanFieldDCA:
     """
     Class that provides the functionality
     to infer evolutionary couplings from a given
@@ -200,7 +200,7 @@ class MeanFieldDCA(object):
 
         # coupling parameters are inferred
         # by inverting the covariance matrix
-        self.covariance_matrix_inv = np.linalg.inv(
+        self.covariance_matrix_inv = -np.linalg.inv(
             self.covariance_matrix
         )
 
@@ -866,7 +866,7 @@ def direct_information(J_ij, f_i):
         for j in range(i + 1, L):
             # extract couplings relevant to
             # position pair (i, j)
-            J = np.exp(-J_ij[i, j])
+            J = np.exp(J_ij[i, j])
 
             # compute two-site model
             h_tilde_i, h_tilde_j = tilde_fields(J, f_i[i], f_i[j])
@@ -1002,12 +1002,13 @@ def fields(J_ij, f_i):
         for j in range(L):
             if i != j:
                 # extract couplings relevant to position pair (i, j)
-                J = -J_ij[i, j]
+                J = J_ij[i, j]
 
                 # some eij values over all j
                 J_ij_sum += np.dot(
                     J, f_i[j].reshape((1, num_symbols)).T
                 ).T
+
         hi[i] = log_fi - J_ij_sum
 
     return hi
