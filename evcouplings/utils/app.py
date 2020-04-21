@@ -13,12 +13,16 @@ Authors:
 
 import re
 from copy import deepcopy
-from os import path
+from os import path, environ
+from collections import Mapping
 
 import click
 
 from evcouplings import utils
-from evcouplings.utils import pipeline, database
+from evcouplings.utils import pipeline
+from evcouplings.utils.tracker import (
+    get_result_tracker, EStatus
+)
 
 from evcouplings.utils.system import (
     create_prefix_folders, ResourceError, valid_file
@@ -227,15 +231,20 @@ def unroll_config(config):
             # apply subconfig delta
             # (assuming parameters are nested in two layers)
             for section in delta_config:
-                for param, value in delta_config[section].items():
-                    sub_config[section][param] = value
+                # if dictionary, substitute all items on second level
+                if isinstance(delta_config[section], Mapping):
+                    for param, value in delta_config[section].items():
+                        sub_config[section][param] = value
+                else:
+                    # substitute entire section (this only affects pipeline stages)
+                    sub_config[section] = delta_config[section]
 
             configs[sub_prefix] = sub_config
 
     return configs
 
 
-def run_jobs(configs, global_config, overwrite=False, workdir=None):
+def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_error=True, environment=None):
     """
     Submit config to pipeline
 
@@ -247,9 +256,38 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         Master configuration (if only one job,
         the contents of this dictionary will be
         equal to the single element of config_files)
+    overwrite : bool, optional (default: False)
+        If True, allows overwriting previous run of the same
+        config, otherwise will fail if results from previous
+        execution are present
+    workdir : str, optional (default: None)
+        Workdir in which to run job (will combine
+        workdir and prefix in joint path)
+    abort_on_error : bool, optional (default: True)
+        Abort entire job submission if error occurs for
+        one of the jobs by propagating RuntimeError
+    environment : str, optional (default: None)
+        Allow to pass value for environment parameter
+        of submitter, will override environment.configuration
+        from global_config (e.g., for setting environment
+        variables like passwords)
+
+    Returns
+    -------
+    job_ids : dict
+        Mapping from subjob prefix (keys in configs parameter)
+        to identifier returned by submitter for each of the jobs
+        that was *successfully* submitted (i.e. missing keys from
+        configs param indicate these jobs could not be submitted).
+
+    Raises
+    ------
+    RuntimeError
+        If error encountered during submission and abort_on_error
+        is True
     """
-    cmd_base = "evcouplings_runcfg"
-    summ_base = "evcouplings_summarize"
+    cmd_base = environ.get("EVCOUPLINGS_RUNCFG_APP") or "evcouplings_runcfg"
+    summ_base = environ.get("EVCOUPLINGS_SUMMARIZE_APP") or "evcouplings_summarize"
 
     # determine output directory for config files
     prefix = global_config["global"]["prefix"]
@@ -325,13 +363,13 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
     # collect individual submitted jobs here
     commands = []
 
+    # record subjob IDs returned by submitter for each job
+    job_ids = {}
+
     # prepare individual jobs for submission
     for job, job_cfg in configs.items():
         job_prefix = job_cfg["global"]["prefix"]
         job_cfg_file = CONFIG_NAME.format(job)
-
-        # set job status in database to pending
-        pipeline.update_job_status(job_cfg, status=database.EStatus.PEND)
 
         # create submission command
         env = job_cfg["environment"]
@@ -341,7 +379,7 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
                 summ_cmd
             ],
             name=job_prefix,
-            environment=env["configuration"],
+            environment=environment or env["configuration"],
             workdir=workdir,
             resources={
                 utils.EResource.queue: env["queue"],
@@ -356,14 +394,35 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None):
         # store job for later dependency creation
         commands.append(cmd)
 
-        # finally, submit job
-        submitter.submit(cmd)
+        tracker = get_result_tracker(job_cfg)
+
+        try:
+            # finally, submit job
+            current_job_id = submitter.submit(cmd)
+
+            # store run identifier returned by submitter
+            # TODO: consider storing current_job_id using tracker right away
+            job_ids[job] = current_job_id
+
+            # set job status in database to pending
+            tracker.update(status=EStatus.PEND)
+
+        except RuntimeError as e:
+            # set job as failed in database
+            tracker.update(status=EStatus.FAIL, message=str(e))
+
+            # fail entire job submission if requested
+            if abort_on_error:
+                raise
 
     # submit final summarizer
     # (hold for now - summarizer is run after each subjob finishes)
 
     # wait for all runs to finish (but only if blocking)
     submitter.join()
+
+    # return job identifiers
+    return job_ids
 
 
 def run(**kwargs):

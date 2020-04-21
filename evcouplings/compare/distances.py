@@ -18,6 +18,7 @@ from numba import jit
 from evcouplings.compare.pdb import load_structures
 from evcouplings.utils.constants import AA1_to_AA3
 from evcouplings.utils.system import create_prefix_folders
+from evcouplings.utils.helpers import find_segments
 
 
 @jit(nopython=True)
@@ -92,6 +93,9 @@ class DistanceMap:
     Compute, store and accesss pairwise residue
     distances in PDB 3D structures
     """
+    # separator between distance map id and field name in aggregated dataframes
+    _id_separator = "::"
+
     def __init__(self, residues_i, residues_j, dist_matrix, symmetric):
         """
         Create new distance map object
@@ -123,6 +127,10 @@ class DistanceMap:
         self.id_map_j = {
             id_: j for (j, id_) in enumerate(self.residues_j.id.values)
         }
+
+        # attribute that allows to set a unique identifier for this distance map,
+        # used during aggregation
+        self.id = None
 
     @classmethod
     def _extract_coords(cls, coords):
@@ -221,12 +229,40 @@ class DistanceMap:
     @classmethod
     def from_file(cls, filename):
         """
-        Load existing distance map from file
+        Load existing distance map using filename prefix
+        (each distance map consist of .csv and .npy file)
 
         Parameters
         ----------
         filename : str
-            Path to distance map file
+            Prefix of path to distance map files
+            (excluding .csv/.npy)
+
+        Returns
+        -------
+        DistanceMap
+            Loaded distance map
+        """
+        return cls.from_files(
+            filename + ".csv", filename + ".npy"
+        )
+
+    @classmethod
+    def from_files(cls, residue_table_file, distance_matrix_file):
+        """
+        Load existing distance map with explicit
+        paths to residue table (.csv) and distance
+        matrix (.npy). Use DistanceMap.from_file
+        to load using joint prefix of both files.
+
+        Parameters
+        ----------
+        residue_table_file : str or file-like object
+            Path to residue table file
+            (prefix + .csv)
+        distance_matrix_file : str or file-like object
+            Path to distance matrix file
+            (prefix + .npy)
 
         Returns
         -------
@@ -234,7 +270,8 @@ class DistanceMap:
             Loaded distance map
         """
         residues = pd.read_csv(
-            filename + ".csv", index_col=0,
+            residue_table_file,
+            index_col=0,
             dtype={
                 "id": str,
                 "seqres_id": str,
@@ -243,7 +280,7 @@ class DistanceMap:
             }
         )
 
-        dist_matrix = np.load(filename + ".npy")
+        dist_matrix = np.load(distance_matrix_file)
 
         if "axis" in residues.columns:
             symmetric = False
@@ -260,18 +297,26 @@ class DistanceMap:
 
     def to_file(self, filename):
         """
-        Store distance map in file
+        Store distance map in files
 
         Parameters
         ----------
         filename : str
             Prefix of distance map files
             (will create .csv and .npy file)
+
+        Returns
+        -------
+        residue_table_filename : str
+            Path to residue table (will be filename + .csv)
+        dist_mat_filename : str
+            Path to distance matrix file in numpy format
+            (will be filename + .npy)
         """
         def _add_axis(df, axis):
-            res = df.copy()
-            res.loc[:, "axis"] = axis
-            return res
+            return df.assign(
+                axis=axis
+            )
 
         if self.symmetric:
             residues = self.residues_i
@@ -281,10 +326,14 @@ class DistanceMap:
             residues = res_i.append(res_j)
 
         # save residue table
-        residues.to_csv(filename + ".csv", index=True)
+        residue_table_filename = filename + ".csv"
+        residues.to_csv(residue_table_filename, index=True)
 
         # save distance matrix
-        np.save(filename + ".npy", self.dist_matrix)
+        dist_mat_filename = filename + ".npy"
+        np.save(dist_mat_filename, self.dist_matrix)
+
+        return residue_table_filename, dist_mat_filename
 
     def dist(self, i, j, raise_na=True):
         """
@@ -481,38 +530,6 @@ class DistanceMap:
             else:
                 return sorted_sse[-1][0]
 
-        def _merge_sse(new_axis, distance_maps):
-            new_axis = new_axis.copy()
-            # merge secondary structure assignments over
-            # axis tables in multiple distance maps
-            merger_df = new_axis
-
-            # first join all into big table for easier counting
-            for i, m in enumerate(distance_maps):
-                if "sec_struct_3state" in m.columns:
-                    merger_df = merger_df.merge(
-                        m.loc[:, ["id", "sec_struct_3state"]],
-                        on="id", how="left", suffixes=("", str(i))
-                    )
-
-            # then identify all the columns we ended up with
-            sse_cols = [
-                c for c in merger_df.columns
-                if c.startswith("sec_struct_3state")
-            ]
-
-            # if we have any columns, identify most frequent
-            # secondary structure character
-            if len(sse_cols) > 0:
-                new_sse = merger_df.loc[
-                    :, sse_cols
-                ].apply(_sse_count, axis=1)
-
-                # assign to dataframe
-                new_axis.loc[:, "sec_struct_3state"] = new_sse
-
-            return new_axis
-
         def _merge_axis(axis):
             # extract residue dataframes along axis
             # for all given distance maps
@@ -524,10 +541,15 @@ class DistanceMap:
             # for each distance map. Note that identifiers
             # have to be numeric for easy sorting, so
             # cast to int first
-            ids = [
-                pd.to_numeric(m.id).astype(int)
-                for m in dm
-            ]
+            try:
+                ids = [
+                    pd.to_numeric(m.id).astype(int)
+                    for m in dm
+                ]
+            except ValueError as e:
+                raise ValueError(
+                    "Residue indices must be all numeric for aggregate function (no insertion codes allowed)"
+                ) from e
 
             # turn series into sets
             id_sets = [set(id_list) for id_list in ids]
@@ -563,10 +585,72 @@ class DistanceMap:
             # turn residue ids back into strings
             new_axis_df.loc[:, "id"] = new_axis_df.loc[:, "id"].astype(str)
 
+            # aggregate all residue dataframes into one joint table;
+            # first, add prefix to all column names based on index or id
+            # of respective distance map
+
+            # try to use identifier if defined, otherwise just use index in list;
+            # make sure the separator string is not contained in the identifier, otherwise replace it
+            dm_ids = [
+                (str(m.id).replace(cls._id_separator,  "") if m.id is not None else i)
+                for i, m in enumerate(matrices)
+            ]
+
+            # move residue identifier to index, and prefix all other column names.
+            # Note we could use a pd.MultiIndex here instead of the separator approach, but that would mean
+            # changing a lot of other code...
+            # Note: do not rename columns that already have the separator in case this is because of iterative merging
+
+            # get rid of previous aggregated secondary structure or it will get re-merged in iterative merging setups
+            dm_dropped = [
+                m.drop(
+                    ["sec_struct_3state"], axis=1
+                ) if len(m.filter( regex=cls._id_separator + "sec_struct_3state").columns) >= 1 else m
+                for m in dm
+            ]
+
+            dm_prefixed = [
+                m.set_index("id").rename(
+                    columns={
+                        c: "{}{}{}".format(id_, cls._id_separator, c)
+                        for c in m.columns
+                        if cls._id_separator not in c
+                    }
+                ) for id_, m in zip(dm_ids, dm_dropped)
+            ]
+
+            # second: join together
+            individual_dm_merged = pd.concat(
+                dm_prefixed, axis=1, join="inner" if intersect else "outer", sort=True
+            )
+            # loses index name for some reason due to pd.concat
+            individual_dm_merged.index.name = "id"
+
             # merge secondary structure assignments by identifying
             # most frequent assignment. If there are equal counts,
             # prefer H over E over C.
-            new_axis_df = _merge_sse(new_axis_df, dm)
+            # By starting from individual_dm_merged here, will always
+            # merge over all individual distance maps, even if performing iterative aggregation
+            secstruct_columns = individual_dm_merged.filter(
+                regex=cls._id_separator + "sec_struct_3state"
+            )
+
+            if len(secstruct_columns.columns) >= 1:
+                # identify most frequent state per position
+                merged_sse_assignment = secstruct_columns.apply(
+                    _sse_count, axis=1
+                ).to_frame(
+                    "sec_struct_3state"
+                )
+
+                # merge to new axis table
+                new_axis_df = new_axis_df.merge(
+                    merged_sse_assignment.reset_index(), on="id", how="left"
+                )
+
+            new_axis_df = new_axis_df.merge(
+                individual_dm_merged.reset_index(), on="id", how="left"
+            )
 
             return new_axis_df, mappings
 
@@ -619,6 +703,92 @@ class DistanceMap:
         return DistanceMap(
             new_res_i, new_res_j, agg_mat, symmetries[0]
         )
+
+    def structure_coverage(self):
+        """
+        Find covered residue segments for individual structures
+        that this distance map was computed from (either
+        directly from structure or through aggregation of
+        multiple structures). Only works if all residue identifiers
+        of DistanceMap are numeric (i.e., do not have insertion codes)
+
+        Returns
+        -------
+        coverage : list of tuple
+            Returns tuples of the form
+            (coverage_i, coverage_j, coverage_id),
+            where
+            * coverage_i and coverage_j are lists of tuples
+              (segment_start, segment_end) of residue coverage
+              along axis i and j, with segment_end
+              being included in the range
+            * coverage_id is the identifier of the individual
+              substructure the coverage segments belong to
+              (only set if an aggregated structure, None otherwise)
+        """
+        def _get_coverage_for_axis(axis):
+            """
+            Determine structural coverage by individual structure for an axis i/j
+            """
+            # proxy column for determining structure coverage
+            coverage_col_name = "coord_id"
+
+            residue_map = getattr(
+                self, "residues_" + axis
+            )
+
+            # create numeric index from residue IDs,
+            # fail if insertion codes are present
+            try:
+                residue_map = residue_map.assign(
+                    id=pd.to_numeric(residue_map.id)
+                )
+            except ValueError as e:
+                raise ValueError(
+                    "Residue indices must be all numeric for aggregate function (no insertion codes allowed)"
+                ) from e
+
+            residue_map = residue_map.set_index("id")
+
+            if coverage_col_name in residue_map:
+                coverage_cols = residue_map[[coverage_col_name]]
+            else:
+                coverage_cols = residue_map.filter(
+                    regex=self._id_separator + coverage_col_name
+                )
+
+            def _get_col_name(col_name):
+                """
+                Get clean identifier name from dataframe columns
+                """
+                # extract structure identifier (None if not an aggregated structure)
+                if col_name == coverage_col_name:
+                    return self.id
+                else:
+                    return col_name.split(self._id_separator)[0]
+
+            # extract coverage segments for all individual structures
+            segments = {
+                _get_col_name(col_name): find_segments(series.dropna().sort_index().index)
+                for col_name, series in coverage_cols.iteritems()
+            }
+
+            return segments
+
+        coverage_i = _get_coverage_for_axis("i")
+        coverage_j = _get_coverage_for_axis("j")
+
+        # should be the same in both cases, but to be on safe side if
+        # users tinker with dataframes
+        joint_keys = {
+            k for k in coverage_i if k in coverage_j
+        }
+
+        coverage = [
+            (coverage_i[k], coverage_j[k], k) for k in joint_keys
+        ]
+
+        return coverage
 
 
 def _prepare_structures(structures, pdb_id_list, raise_missing=True):
@@ -721,7 +891,7 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         distance maps. Otherwise, union of indices
         will be used.
     output_prefix : str, optional (default: None)
-        If given, save individual and final contact maps
+        If given, save individual contact maps
         to files prefixed with this string. The appended
         file suffixes map to row index in sifts_results.hits
     model : int, optional (default: 0)
@@ -732,9 +902,25 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
 
     Returns
     -------
-    DistanceMap
+    agg_distmap : DistanceMap
         Computed aggregated distance map
         across all input structures
+
+        Contains an additional attribute aggregated_residue_maps,
+        a pd.DataFrame with the concatenated residue maps of all individual
+        chains used to compute this DistanceMap. Individual chains
+        are linked to the input sifts_results through the column
+        sifts_table_index.
+
+        If output_prefix is given, agg_distmap will have an
+        additional attribute individual_distance_map_table:
+        pd.DataFrame with all individual distance maps that
+        went into the aggregated distance map, with
+        columns "sifts_table_index" (linking to SIFTS hit table) and
+        "residue_table" and "distance_matrix"
+        (file names of .csv and .npy files constituting
+        the respective distance map).
+        Will be None if output_prefix is None.
 
     Raises
     ------
@@ -760,6 +946,12 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
     if output_prefix is not None:
         create_prefix_folders(output_prefix)
 
+    # collect information about individual distance maps here (only if output_prefix is defined)
+    individual_distance_map_info = []
+
+    # collect information about residue map from target sequence to structure
+    individual_residue_maps = []
+
     # compute individual distance maps and aggregate
     for i, r in sifts_result.hits.iterrows():
         # skip missing structures
@@ -777,12 +969,29 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
         if len(chain.residues) == 0:
             continue
 
-        # compute distance map
+        # compute distance map and set id
         distmap = DistanceMap.from_coords(chain)
+        distmap.id = i
+
+        # store information about residues for each individual aggregated distance map
+        # (only for axis i since distmap is symmetric)
+        individual_residue_maps.append(
+            distmap.residues_i.assign(
+                sifts_table_index=i
+            )
+        )
 
         # save individual distance map
         if output_prefix is not None:
-            distmap.to_file("{}_{}".format(output_prefix, i))
+            residue_table_filename, dist_mat_filename = distmap.to_file(
+                "{}_{}".format(output_prefix, i)
+            )
+
+            individual_distance_map_info.append({
+                "sifts_table_index": i,
+                "residue_table": residue_table_filename,
+                "distance_matrix": dist_mat_filename
+            })
 
         # aggregate
         if agg_distmap is None:
@@ -791,6 +1000,19 @@ def intra_dists(sifts_result, structures=None, atom_filter=None,
             agg_distmap = DistanceMap.aggregate(
                 agg_distmap, distmap, intersect=intersect
             )
+
+    if agg_distmap is not None:
+        if len(individual_distance_map_info) > 0:
+            agg_distmap.individual_distance_map_table = pd.DataFrame(
+                individual_distance_map_info
+            )
+        else:
+            agg_distmap.individual_distance_map_table = None
+
+        # aggregate residue maps into joint dataframe and attach to distance map
+        agg_distmap.aggregated_residue_maps = pd.concat(
+            individual_residue_maps
+        ).reset_index(drop=True)
 
     return agg_distmap
 
@@ -829,7 +1051,7 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
         distance maps. Otherwise, union of indices
         will be used.
     output_prefix : str, optional (default: None)
-        If given, save individual and final contact maps
+        If given, save individual contact maps
         to files prefixed with this string. The appended
         file suffixes map to row index in sifts_results.hits
     model : int, optional (default: 0)
@@ -840,9 +1062,21 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
     Returns
     -------
-    DistanceMap
+    agg_distmap : DistanceMap
         Computed aggregated distance map
         across all input structures
+
+        If output_prefix is given, agg_distmap will have an
+        additional attribute individual_distance_map_table:
+        pd.DataFrame with all individual distance maps that
+        went into the aggregated distance map, with
+        columns "sifts_table_index_i", "sifts_table_index_j"
+        (linking to SIFTS hit table) and
+        "residue_table" and "distance_matrix"
+        (file names of .csv and .npy files constituting
+        the respective distance map).
+
+        Will be None if output_prefix is None.
 
     Raises
     ------
@@ -867,6 +1101,9 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
     # create output folder if necessary
     if output_prefix is not None:
         create_prefix_folders(output_prefix)
+
+    # collect information about individual distance maps here (only if output_prefix is defined)
+    individual_distance_maps = []
 
     # go through each structure
     for pdb_id, grp in sifts_result.hits.reset_index().groupby("pdb_id"):
@@ -895,18 +1132,31 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
 
             distmap = DistanceMap.from_coords(ch_i, ch_j)
 
+            # set distance map id
+            distmap.id = "{}_{}".format(index_i, index_j)
+
             # symmetrize matrix (for ECs we are only interested if a pair
             # is close in some combination)
+            distmap_transposed = distmap.transpose()
+            distmap_transposed.id = distmap.id + "_T"
+
             distmap_sym = DistanceMap.aggregate(
-                distmap, distmap.transpose(), intersect=intersect
+                distmap, distmap_transposed, intersect=intersect
             )
             distmap_sym.symmetric = True
 
             # save individual distance map
             if output_prefix is not None:
-                distmap_sym.to_file("{}_{}_{}".format(
+                residue_table_filename, dist_mat_filename = distmap_sym.to_file("{}_{}_{}".format(
                     output_prefix, index_i, index_j)
                 )
+
+                individual_distance_maps.append({
+                    "sifts_table_index_i": index_i,
+                    "sifts_table_index_j": index_j,
+                    "residue_table": residue_table_filename,
+                    "distance_matrix": dist_mat_filename
+                })
 
             # aggregate with other chain combinations
             if agg_distmap is None:
@@ -915,6 +1165,14 @@ def multimer_dists(sifts_result, structures=None, atom_filter=None,
                 agg_distmap = DistanceMap.aggregate(
                     agg_distmap, distmap_sym, intersect=intersect
                 )
+
+    if agg_distmap is not None:
+        if len(individual_distance_maps) > 0:
+            agg_distmap.individual_distance_map_table = pd.DataFrame(
+                individual_distance_maps
+            )
+        else:
+            agg_distmap.individual_distance_map_table = None
 
     return agg_distmap
 
@@ -959,7 +1217,7 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
         distance maps. Otherwise, union of indices
         will be used.
     output_prefix : str, optional (default: None)
-        If given, save individual and final contact maps
+        If given, save individual contact maps
         to files prefixed with this string. The appended
         file suffixes map to row index in sifts_results.hits
     model : int, optional (default: 0)
@@ -970,9 +1228,22 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
 
     Returns
     -------
-    DistanceMap
+    agg_distmap : DistanceMap
         Computed aggregated distance map
         across all input structures
+
+        If output_prefix is given, agg_distmap will have an
+        additional attribute individual_distance_map_table:
+
+        pd.DataFrame with all individual distance maps that
+        went into the aggregated distance map, with
+        columns "sifts_table_index_i", "sifts_table_index_j"
+        (linking to SIFTS hit table) and
+        "residue_table" and "distance_matrix"
+        (file names of .csv and .npy files constituting
+        the respective distance map).
+
+        Will be None if output_prefix is None.
 
     Raises
     ------
@@ -1015,6 +1286,9 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
     if output_prefix is not None:
         create_prefix_folders(output_prefix)
 
+    # collect information about individual distance maps here (only if output_prefix is defined)
+    individual_distance_maps = []
+
     # determine which combinations of chains to look at
     # (anything that has same PDB identifier)
     combis = sifts_result_i.hits.reset_index().merge(
@@ -1045,12 +1319,21 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
             chains_i[index_i],
             chains_j[index_j],
         )
+        # set distance map id
+        distmap.id = "{}_{}".format(index_i, index_j)
 
         # save individual distance map
         if output_prefix is not None:
-            distmap.to_file("{}_{}_{}".format(
+            residue_table_filename, dist_mat_filename = distmap.to_file("{}_{}_{}".format(
                 output_prefix, index_i, index_j)
             )
+
+            individual_distance_maps.append({
+                "sifts_table_index_i": index_i,
+                "sifts_table_index_j": index_j,
+                "residue_table": residue_table_filename,
+                "distance_matrix": dist_mat_filename
+            })
 
         # aggregate with other chain combinations
         if agg_distmap is None:
@@ -1059,6 +1342,14 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
             agg_distmap = DistanceMap.aggregate(
                 agg_distmap, distmap, intersect=intersect
             )
+
+    if agg_distmap is not None:
+        if len(individual_distance_maps) > 0:
+            agg_distmap.individual_distance_map_table = pd.DataFrame(
+                individual_distance_maps
+            )
+        else:
+            agg_distmap.individual_distance_map_table = None
 
     return agg_distmap
 

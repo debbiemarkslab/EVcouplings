@@ -4,6 +4,7 @@ from evcouplings.utils.helpers import *
 from evcouplings.utils.system import *
 from evcouplings.utils.batch import *
 from evcouplings.utils.constants import *
+from evcouplings.utils.tracker import *
 
 
 class ASubmitterFactory(abc.ABCMeta):
@@ -36,3 +37,8 @@ class SubmitterFactory(object, metaclass=ASubmitterFactory):
         """
         return [ASubmitter.registry.keys()]
 
+
+class BailoutException(Exception):
+    """
+    Exception for pipeline stopping itself (e.g. if no sequences found)
+    """

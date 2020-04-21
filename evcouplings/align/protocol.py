@@ -24,6 +24,8 @@ from evcouplings.align.alignment import (
 
 from evcouplings.couplings.mapping import Segment
 
+from evcouplings.utils import BailoutException
+
 from evcouplings.utils.config import (
     check_required, InvalidParameterError, MissingParameterError,
     read_config_file, write_config_file
@@ -462,7 +464,10 @@ def extract_header_annotation(alignment, from_annotation=True):
             res.append({"id": seq_id})
 
     df = pd.DataFrame(res)
-    return df.loc[:, ["id", "name"] + list(col_to_descr.keys())]
+    return df.reindex(
+        ["id", "name"] + list(col_to_descr.keys()),
+        axis=1
+    )
 
 
 def describe_seq_identities(alignment, target_seq_index=0):
@@ -955,6 +960,19 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
 
         # patch into coverage statistics (N_eff column)
         coverage_stats.loc[:, "N_eff"] = n_eff
+
+        # create table with number of cluster members (inverse sequence
+        # weights) for each sequence
+        inv_seq_weights = pd.DataFrame({
+            "id": cut_ali.ids,
+            "num_cluster_members": cut_ali.num_cluster_members
+        })
+
+        # save sequence weights to file and add to output config
+        outcfg["sequence_weights_file"] = prefix + "_inverse_sequence_weights.csv"
+        inv_seq_weights.to_csv(
+            outcfg["sequence_weights_file"], index=False
+        )
     else:
         n_eff = None
 
@@ -1234,8 +1252,8 @@ def hmmbuild_and_search(**kwargs):
         # try to extract region from sequence header
         id_, region_start, region_end = parse_header(focus_id)
 
-        # override with first_index if given
-        if kwargs["first_index"] is not None:
+        # override with first_index if given (but respect region from alignment if defined)
+        if kwargs["first_index"] is not None and (region_start is None or region_end is None):
             region_start = kwargs["first_index"]
             region_end = region_start + len(focus_seq_nogap) - 1
 
@@ -1503,6 +1521,9 @@ def standard(**kwargs):
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".align_standard.outcfg", outcfg)
+
+    if len(ali) <= 1:
+        raise BailoutException("align: No sequences found")
 
     # return results of protocol
     return outcfg

@@ -172,10 +172,22 @@ couplings:
     # Sequence separation filter for generation of CouplingScores_longrange.csv table (i.e. to take out short-range
     # ECs from table, only pairs with abs(i-j)>=min_sequence_distance will be kept.
     min_sequence_distance: 6
+
+    # Post-inference scoring of ECs to derive probabilities
+    # Options are: skewnormal, normal, logistic_regression
+    scoring_model: logistic_regression
     
 # Alternative protocol: compute couplings with mean field direct coupling analysis
 # Uncomment, and comment all values in align section above to enable the mean_field protocol
     # protocol: mean_field
+
+    # Options: cn, di, mi_apc, mi
+    # ec_score_type: cn
+
+    # Post-inference scoring of ECs to derive probabilities - only available if used_score == "cn"!
+    # Options are: skewnormal, normal, logistic_regression
+    # scoring_model: logistic_regression
+
     # pseudo_count: 0.5
     # alphabet:
     # ignore_gaps: False
@@ -259,6 +271,12 @@ compare:
 
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
+
+    # draw structure and alignment/EC coverage information on contact map plots
+    draw_coverage: True
+
+    # print information about used PDB structures on contact map plots
+    print_pdb_information: True
 
     # Alignment method to use to search the PDB Seqres database. Options: jackhmmer, hmmsearch
     # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 

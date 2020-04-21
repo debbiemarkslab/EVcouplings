@@ -827,13 +827,31 @@ class SIFTS:
             ]
         )
 
-        # now group again, to aggregate full hit dataframe
+        # split residue name into residue number and (potential) insertion code
+        # for proper sorting
+        def _split_insertion_code(res):
+            # should not happen but just to be safe
+            assert len(res) >= 1
+
+            # check if we have an insertion code or not
+            if res[-1].isalpha():
+                return int(res[:-1]), res[-1]
+            else:
+                return int(res), ""
+
+        # now group again, to aggregate full hit dataframe;
+        # note that coord_start and coord_end are strings that may contain
+        # insertion codes so need to treat accordingly
         def _agg_type(x):
             if x == "overlap":
                 return "sum"
+            elif x == "coord_start":
+                return lambda l: sorted(l, key=_split_insertion_code)[0]
+            elif x == "coord_end":
+                return lambda l: sorted(l, key=_split_insertion_code)[-1]
             elif x.endswith("_start"):
                 return "min"
-            elif x.endswith("end"):
+            elif x.endswith("_end"):
                 return "max"
             else:
                 return "first"

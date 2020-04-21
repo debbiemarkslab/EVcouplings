@@ -160,7 +160,7 @@ def _protein_monomer_plot(ali_table, data):
             ids = pd.read_csv(subdata["identities"]).identity_to_query.dropna()
             ax_distr.hist(
                 ids, histtype="step", range=(0, 1.0),
-                bins=100, normed=True, cumulative=True, linewidth=3,
+                bins=100, density=True, cumulative=True, linewidth=3,
                 label=str(domain_threshold)
             )
 

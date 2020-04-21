@@ -126,7 +126,7 @@ def remove_clan_overlaps(pfam_table):
 def pfam_hits(query_file, hmm_database, prefix,
               clan_table_file, size_table_file,
               resolve_overlaps=True,
-              hmmscan_binary="hmmscan"):
+              **kwargs):
     """
     Identify hits of Pfam HMMs in a set of sequences.
 
@@ -152,9 +152,8 @@ def pfam_hits(query_file, hmm_database, prefix,
         Resolve overlapping hits by families from
         the same clan.
         Only possible if clan_table_file is given.
-    hmmscan_binary : str (default: "hmmscan")
-        Path to hmmscan binary (put in PATH for
-        default to work)
+    **kwargs : dict
+        kwargs passed on to evcouplings.align.tools.run_hmmscan
 
     Returns
     -------
@@ -164,7 +163,7 @@ def pfam_hits(query_file, hmm_database, prefix,
     # find HMM hits with hmmscan
     scan_res = run_hmmscan(
         query_file, hmm_database, prefix,
-        binary=hmmscan_binary
+        **kwargs
     )
 
     hits = read_hmmer_domtbl(scan_res.domtblout)

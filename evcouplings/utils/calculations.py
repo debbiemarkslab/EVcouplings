@@ -139,3 +139,25 @@ def dihedral_angle(p0, p1, p2, p3):
     y = np.dot(np.cross(b1, v), w)
 
     return np.arctan2(y, x)
+
+
+def median_absolute_deviation(x, scale=1.4826):
+    """
+    Compute median absolute deviation of a set of numbers
+    (median of deviations from median)
+
+    Parameters
+    ----------
+    x : list-like of float
+        Numbers for which median absolute deviation
+        will be computed
+    scale : float, optional (default: 1.4826)
+        Rescale median absolute deviation by this factor;
+        default value is such that median absolute
+        deviation will match regular standard deviation
+        of Gaussian distribution
+    """
+    med = np.median(x)
+    mad = np.median(np.abs(x - med))
+
+    return scale * mad
