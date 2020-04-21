@@ -237,8 +237,8 @@ compare:
     region:
     alignment_min_overlap: 20
     use_bitscores: True
-    domain_threshold: 0.5
-    sequence_threshold: 0.5
+    domain_threshold: 0.1
+    sequence_threshold: 0.1
 
     # Comparison and plotting settings
     
