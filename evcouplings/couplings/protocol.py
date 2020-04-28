@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 from evcouplings.couplings import tools as ct
-from evcouplings.couplings import pairs, mapping, enrichment
+from evcouplings.couplings import pairs, mapping
 from evcouplings.couplings.mean_field import MeanFieldDCA
 from evcouplings.couplings.model import CouplingsModel
 from evcouplings.visualize.parameters import evzoom_json
@@ -49,18 +49,21 @@ SCORING_MODELS = (
     "evcomplex",
 )
 
+# Define default segment names for complexes
+FIRST_SEGMENT_NAME = "A_1"
+SECOND_SEGMENT_NAME = "B_1"
 
 def infer_plmc(**kwargs):
     """
     Run EC computation on alignment. This function contains
     the functionality shared between monomer and complex EC
     inference.
-    
+
     Parameters
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-    
+
     Returns
     -------
     outcfg : dict
@@ -338,7 +341,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         Number of positions in alignment
     score : str, optional (default: "cn")
         Use this score column for confidence assignment
-        
+
     Returns
     -------
     ecs : pandas.DataFrame
@@ -348,7 +351,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
 
     # if user provided both parameters, calculate Neff/L
     if N_eff and num_sites:
-        Neff_L = N_eff/num_sites
+        Neff_L = N_eff / num_sites
     else:
         Neff_L = None
 
@@ -360,19 +363,19 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
 
     else:
         inter_ecs = ecs.query("segment_i != segment_j")
-        intra1_ecs = ecs.query("segment_i == segment_j == 'A_1'")
-        intra2_ecs = ecs.query("segment_i == segment_j == 'B_1'")
+        intra1_ecs = ecs.query("segment_i == segment_j == @FIRST_SEGMENT_NAME")
+        intra2_ecs = ecs.query("segment_i == segment_j == @SECOND_SEGMENT_NAME")
 
         intra1_ecs = pairs.add_mixture_probability(
-            intra1_ecs, model=scoring_model, score=score, N_effL=Neff_L
+            intra1_ecs, model=scoring_model, score=score, Neff_over_L=Neff_L
         )
 
         intra2_ecs = pairs.add_mixture_probability(
-            intra2_ecs, model=scoring_model, score=score, N_effL=Neff_L
+            intra2_ecs, model=scoring_model, score=score, Neff_over_L=Neff_L
         )
 
         inter_ecs = pairs.add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score, N_effL=Neff_L
+            inter_ecs, model=scoring_model, score=score, Neff_over_L=Neff_L
         )
 
         ecs = pd.concat(
@@ -383,35 +386,64 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
 
     return ecs
 
-def _inter_ec_enrichment(ecs, outcfg, **kwargs):
+
+def segment_aware_ec_enrichment(ecs, outcfg, **kwargs):
     """
-    calculates EC enrichment for inter-protein ECs
-    
-    calculates intra enrichment (using intra-protein ECs) and inter enrichment 
+    calculates EC enrichment in a segment-aware way
+    Calculates enrichment within all segments and between all segments.
+
+    calculates intra enrichment (using intra-protein ECs) and inter enrichment
     (using inter-protein ECs)
-    
-    """# calculate enrichment for complexes
-    intra1_ecs = ecs.query("segment_i == segment_j == 'A_1'")
-    intra2_ecs = ecs.query("segment_i == segment_j == 'B_1'")
-    inter_ecs = ecs.query("segment_i != segment_j")
 
-    intra1_enrichment = enrichment(intra1_ecs, min_seqdist=kwargs["min_sequence_distance"])
-    intra1_enrichment["segment_i"] = "A_1"
+    """
 
-    intra2_enrichment = enrichment(intra2_ecs, min_seqdist=kwargs["min_sequence_distance"])
-    intra2_enrichment["segment_i"] = "B_1"
+    # determine the number of segments in the ECs
+    has_segments = "segment_i" in ecs.columns and "segment_j" in ecs.columns
 
-    # for inter ECs, sequence distance is 0
-    inter_enrichment = enrichment(inter_ecs, min_seqdist=0)
+    if not has_segments:
+        ecs.loc[:,"segment_i"] = FIRST_SEGMENT_NAME
+        ecs.loc[:,"segment_j"] = FIRST_SEGMENT_NAME
 
-    intra_enrichment = pd.concat([
-        intra1_enrichment, intra2_enrichment
-    ]).sort_values(by="enrichment", ascending=False)
+    # get a list of unique segments
+    segments = list(set(
+        ecs.segment_i.unique()
+    ).union(set(ecs.segment_j.unique())))
 
+    # Calculate all the intra-segment enrichments
+    all_intra_enrichment = pd.DataFrame()
+    for segment in segments:
+        intra_ecs = ecs.query("segment_i == segment_j == @segment")
+        intra_enrichment = pairs.enrichment(intra_ecs, min_seqdist=kwargs["min_sequence_distance"])
+        intra_enrichment["segment_i"] = segment
+
+        all_intra_enrichment = pd.concat([
+            all_intra_enrichment, intra_enrichment
+        ])
+
+
+    # Calculate the inter-segment enrichments
+    all_inter_enrichment = pd.DataFrame()
+    for idx,segment1 in enumerate(segments):
+        for segment2 in segments[idx+1::]:
+
+            # Agnostic to ordering of segments
+            inter_ecs1 = ecs.query("segment_i == @segment1 and segment_j == @segment2")
+            inter_ecs2 = ecs.query("segment_i == @segment2 and segment_j == @segment1")
+            inter_ecs = pd.concat([inter_ecs1, inter_ecs2])
+
+            # for inter ECs, sequence distance is 0
+            inter_enrichment = pairs.enrichment(inter_ecs, min_seqdist=0)
+            all_inter_enrichment = pd.concat([
+                all_inter_enrichment, inter_enrichment
+            ])
+
+    # Save to a file
     outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(kwargs["prefix"])
-    outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(kwargs["prefix"])
-    intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
-    inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
+    all_intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
+
+    if len(all_inter_enrichment) > 0:
+        outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(kwargs["prefix"])
+        inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
 
     return outcfg
 
@@ -501,7 +533,7 @@ def complex(**kwargs):
             chain=chain_mapping
         )
     }
-    
+
     # save just the inter protein ECs
     ## TODO: eventually have this accomplished by _postprocess_inference
     ## right now avoiding a second call with a different ec_filter
@@ -513,7 +545,6 @@ def complex(**kwargs):
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
 
-    outcfg = _inter_ec_enrichment(ecs, outcfg, **kwargs)
     # TODO: make the following complex-ready
 
     # EVzoom:
@@ -996,17 +1027,17 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
     # only since enrichment code cannot handle multiple segments)
     if generate_enrichment:
         ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
-        ecs_enriched = pairs.enrichment(ecs, score="cn")  # "di"
-        ecs_enriched.to_csv(ext_outcfg["enrichment_file"], index=False)
+        outcfg, intra_ecs_enriched = segment_aware_ec_enrichment(ecs, outcfg, **kwargs)
 
-        # create corresponding enrichment pymol scripts
-        ext_outcfg["enrichment_pml_files"] = []
-        for sphere_view, pml_suffix in [
-            (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
-        ]:
-            pml_file = prefix + pml_suffix
-            enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
-            ext_outcfg["enrichment_pml_files"].append(pml_file)
+        for segment, ecs_enriched in intra_ecs_enriched.groupby("segment_i"):
+            # create corresponding enrichment pymol scripts
+            ext_outcfg["enrichment_pml_files"] = []
+            for sphere_view, pml_suffix in [
+                (True, f"{segment}_enrichment_spheres.pml"), (False, f"{segment}_enrichment_sausage.pml")
+            ]:
+                pml_file = prefix + pml_suffix
+                enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
+                ext_outcfg["enrichment_pml_files"].append(pml_file)
 
     # output EVzoom JSON file if we have stored model file
     if outcfg.get("model_file", None) is not None:

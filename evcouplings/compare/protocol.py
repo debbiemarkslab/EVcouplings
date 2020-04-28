@@ -259,7 +259,6 @@ def _filter_structures(sifts_map, pdb_ids=None, max_num_hits=None, max_num_struc
             pdb_ids = [pdb_ids]
 
         pdb_ids = [x.lower() for x in pdb_ids]
-
         sifts_map = _filter_by_id(sifts_map, pdb_ids)
 
     # limit number of hits and structures

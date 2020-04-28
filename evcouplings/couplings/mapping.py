@@ -13,7 +13,6 @@ from evcouplings.couplings.model import CouplingsModel
 import pandas as pd
 import numpy as np
 
-
 class Segment:
     """
     Represents a continuous stretch of sequence in a sequence
@@ -307,7 +306,7 @@ class SegmentIndexMapper:
         return self.__map(x, self.target_to_model)
 
 
-def map_positions(dataframe, mapper, column):
+def segment_map_positions_single_column(dataframe, mapper, column):
     """
     Map positions in a dataframe in model numbering
     into segment numbering
@@ -315,16 +314,16 @@ def map_positions(dataframe, mapper, column):
     Parameters
     ----------
     dataframe : pd.DataFrame
-        dataframe with column to be mapped
+        Dataframe with column to be mapped
     mapper : SegmentIndexMapper
-        mapper for renumbering the segments
+        Mapper for renumbering the segments
     column : str
-        name of column in dataframe to be mapped\
+        Name of column in dataframe to be mapped
 
     Returns
     -------
     dataframe : pd.DataFrame
-        dataframe with remapped column and new column
+        Dataframe with remapped column and new column
         "segment_<column>" indicating the segment
     """
 
@@ -352,7 +351,7 @@ def segment_map_ecs(ecs, mapper):
     ecs : pandas.DataFrame
         EC table (with columns i and j)
     mapper : SegmentIndexMapper
-        mapper for renumbering the segments
+        Mapper for renumbering the segments
 
     Returns
     -------
@@ -364,8 +363,8 @@ def segment_map_ecs(ecs, mapper):
     ecs = deepcopy(ecs)
 
     # map both position columns (and add segment id)
-    ecs = map_positions(ecs, mapper, "i")
-    ecs = map_positions(ecs, mapper, "j")
+    ecs = segment_map_positions_single_column(ecs, mapper, "i")
+    ecs = segment_map_positions_single_column(ecs, mapper, "j")
 
     return ecs
 

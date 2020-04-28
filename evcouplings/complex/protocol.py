@@ -38,7 +38,7 @@ from evcouplings.complex.similarity import (
     find_paralogs
 )
 from evcouplings.couplings.mapping import (
-    SegmentIndexMapper, Segment, map_positions
+    SegmentIndexMapper, Segment, segment_map_positions_single_column
 )
 
 
@@ -145,7 +145,7 @@ def map_frequencies_file(frequencies_file, outcfg, **kwargs):
     seg_mapper = SegmentIndexMapper(
         kwargs["first_focus_mode"], outcfg["region_start"], *segments
     )
-    frequencies = map_positions(frequencies, seg_mapper, "i")
+    frequencies = segment_map_positions_single_column(frequencies, seg_mapper, "i")
     return frequencies
 
 
