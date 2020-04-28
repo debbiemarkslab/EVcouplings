@@ -12,5 +12,6 @@ psutil
 bokeh
 jinja2
 biopython
-sqlalchemy
 seaborn
+billiard
+sklearn

@@ -385,7 +385,7 @@ def matrix_base_bokeh(matrix, positions, substitutions,
     p.grid.grid_line_color = None
     p.axis.axis_line_color = None
     p.axis.major_tick_line_color = None
-    p.axis.major_label_text_font_size = bokeh_value("{}pt".format(label_size))
+    p.axis.major_label_text_font_size = "{}pt".format(label_size)
     p.axis.major_label_standoff = 0
     p.xaxis.major_label_orientation = np.pi / 2
     p.toolbar_location = None

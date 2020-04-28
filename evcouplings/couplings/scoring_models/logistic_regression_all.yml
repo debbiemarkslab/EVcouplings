@@ -1,0 +1,41 @@
+classifier_settings:
+  C: 1
+  class_weight: null
+  dual: false
+  fit_intercept: true
+  intercept_scaling: 1
+  max_iter: 100
+  multi_class: warn
+  n_jobs: null
+  penalty: l2
+  random_state: null
+  solver: warn
+  tol: 0.0001
+  verbose: 0
+  warm_start: false
+feature_names:
+- mad_score
+- max_cons
+- min_cons
+- max_gap
+- min_gap
+- num_sites_log
+- meff_over_l_norm_log
+- meff_over_l2_norm_log
+model_settings:
+  classes_:
+  - 0
+  - 1
+  coef_:
+  - - 0.6824251211005615
+    - -0.4321736601793589
+    - 0.44564913079813717
+    - -6.630078691360905
+    - 11.078672527142352
+    - -1.1223283236364123
+    - -0.284477905658955
+    - 0.8378504181970917
+  intercept_:
+  - 2.159611167524291
+  n_iter_:
+  - 12

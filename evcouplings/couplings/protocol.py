@@ -25,6 +25,8 @@ from evcouplings.align.alignment import (
     ALPHABET_RNA, Alignment
 )
 
+from evcouplings.utils import BailoutException
+
 from evcouplings.utils.config import (
     check_required, InvalidParameterError,
     read_config_file, write_config_file
@@ -257,6 +259,109 @@ def infer_plmc(**kwargs):
     return outcfg, ecs, segments
 
 
+def rescore_cn_score_ecs(ecs, segments, outcfg, kwargs, score="cn"):
+    """
+    Probabilistic rescoring of CN-score based ECS
+
+    Parameters
+    ----------
+    ecs : pd.DataFrame
+        EC table
+    segments : list(evcouplings.couplings.mapping.Segment)
+        Input segment list
+    outcfg : dict
+        Current output configuration state of couplings protocol
+    kwargs : dict
+        Input parameters of couplings protocol
+    score : str, optional (default: "cn")
+        Target score column to use
+
+    Returns
+    -------
+    ecs : pd.DataFrame
+        Enhanced EC table with probabilities and new score (if applicable)
+    outcfg_update : dict
+        Additional outputs for stage output configuration, need to be
+        merged into outcfg in main protocol
+    """
+    check_required(
+        kwargs,
+        [
+            "scoring_model", "min_sequence_distance", "theta", "frequencies_file",
+        ]
+    )
+
+    # None will trigger default behaviour of add_mixture_probability
+    # (which currently is "skewnormal")
+    scoring_model = kwargs.get("scoring_model", "skewnormal")
+
+    # currently we need to distinguish between full rescoring (score and
+    # probability) like with logistic regression model, or just putting
+    # probabilities on top of default CN score using add_mixture_probability
+    if scoring_model == "logistic_regression":
+        scorer = pairs.LogisticRegressionScorer()
+
+        # load amino acid/gap frequencies and conservation info
+        freqs = pd.read_csv(kwargs["frequencies_file"])
+
+        num_sites = outcfg["num_sites"]
+        min_seq_dist = kwargs["min_sequence_distance"]
+
+        # rescore EC table
+        ecs = scorer.score(
+            ecs,
+            freqs,
+            kwargs["theta"],
+            outcfg["effective_sequences"],
+            num_sites,
+            score=score
+        )
+
+        # currently only perform quality scoring for single segments
+        if segments is None or len(segments) == 1:
+            is_longrange = ((ecs.i - ecs.j).abs() >= min_seq_dist).astype(int)
+            ecs_lr = ecs.assign(
+                longrange_count=is_longrange.cumsum()
+            )
+
+            # compute expectation for true positives on all contacts
+            expected_positives_all = ecs_lr.query(
+                "longrange_count <= @num_sites"
+            ).probability.sum()
+
+            expected_positives_longrange = ecs_lr.query(
+                "longrange_count <= @num_sites and abs(i - j) >= @min_seq_dist"
+            ).probability.sum()
+
+            # store in config
+            outcfg_update = {
+                "expected_true_ecs_all": float(expected_positives_all),
+                "expected_true_ecs_longrange": float(expected_positives_longrange)
+            }
+
+    else:
+        # add mixture model probability
+        ecs = pairs.add_mixture_probability(
+            ecs, model=scoring_model
+        )
+
+        # put CN score into default score column for more generic
+        # downstream score handling
+        ecs = ecs.assign(
+            score=ecs[score]
+        )
+
+        # no update to output config in this case
+        outcfg_update = {}
+
+    # sort ECs
+    ecs = ecs.sort_values(
+        by="score", ascending=False
+    )
+
+    return ecs, outcfg_update
+
+
 def standard(**kwargs):
     """
     Protocol:
@@ -287,10 +392,11 @@ def standard(**kwargs):
         segments (passed through)
     """
     # for additional required parameters, see infer_plmc()
+    # TODO: make scoring_model mandatory eventually
     check_required(
         kwargs,
         [
-            "prefix", "min_sequence_distance",
+            "prefix", "min_sequence_distance", "theta", "frequencies_file",
         ]
     )
 
@@ -300,17 +406,22 @@ def standard(**kwargs):
     outcfg, ecs, segments = infer_plmc(**kwargs)
     model = CouplingsModel(outcfg["model_file"])
 
-    # add mixture model probability
-    ecs = pairs.add_mixture_probability(ecs)
+    # perform EC rescoring starting from CN score output by plmc;
+    # outconfig update will be merged further down in final outcfg merge
+    ecs, rescorer_outcfg_update = rescore_cn_score_ecs(
+        ecs, segments, outcfg, kwargs, score="cn"
+    )
 
     # following computations are mostly specific to monomer pipeline
     is_single_segment = segments is None or len(segments) == 1
     outcfg = {
         **outcfg,
+        **rescorer_outcfg_update,
         **_postprocess_inference(
             ecs, kwargs, model, outcfg, prefix,
             generate_enrichment=is_single_segment,
-            generate_line_plot=is_single_segment
+            generate_line_plot=is_single_segment,
+            score="score"
         )
     }
 
@@ -558,14 +669,14 @@ def complex(**kwargs):
     # used for the EC table above
 
     return outcfg
-    
+
 def complex_mean_field(**kwargs):
     """
     Protocol:
 
     Infer ECs for protein complexes from alignment using mean field.
     Allows user to select scoring protocol.
-    
+
     For now, mean field DCA can only be run in focus mode, gaps
     included.
 
@@ -601,24 +712,24 @@ def complex_mean_field(**kwargs):
             "alphabet"
         ]
     )
-    
+
     if not kwargs["focus_mode"]:
         raise InvalidParameterError(
             "For now, mean field DCA can only be run in focus mode."
         )
-    
+
 
     prefix = kwargs["prefix"]
 
     # infer ECs and load them with plmc
     #outcfg, ecs, segments = infer_plmc(**kwargs)
     #model = CouplingsModel(outcfg["model_file"])
-    
+
     #infer ECs with mean field/DCA
-    
+
     # Below here is added material from mean_field protocol:
     model = prefix+".model"
-    
+
     outcfg = {
         "model_file": model,
         "raw_ec_file": prefix + "_ECs.txt",
@@ -627,14 +738,14 @@ def complex_mean_field(**kwargs):
         "focus_sequence": kwargs["focus_sequence"],
         "segments": kwargs["segments"]
     }
-    
+
     # make sure input alignment exists
     alignment_file = kwargs["alignment_file"]
     verify_resources(
         "Input alignment does not exist",
         kwargs["alignment_file"]
     )
-    
+
     # make sure output directory exists
     create_prefix_folders(prefix)
     segments = kwargs["segments"]
@@ -642,40 +753,40 @@ def complex_mean_field(**kwargs):
         segments = [
             mapping.Segment.from_list(s) for s in segments
         ]
-        
+
     # determine alphabet, default is protein
     if kwargs["alphabet"] is None:
         alphabet = ALPHABET_PROTEIN
     else:
         alphabet = kwargs["alphabet"]
-        
+
         # allow shortcuts for protein, DNA, RNA
         if alphabet in ALPHABET_MAP:
             alphabet = ALPHABET_MAP[alphabet]
-    
+
     # read in a2m alignment
     with open(alignment_file) as f:
         input_alignment = Alignment.from_file(
             f, alphabet=alphabet,
             format="fasta"
         )
-        
+
     # init mean field DCA
     mf_dca = MeanFieldDCA(input_alignment)
-    
+
     # run mean field approximation
     model = mf_dca.fit(
         theta=kwargs["theta"],
         pseudo_count=kwargs["pseudo_count"]
     )
-    
+
     # write ECs to file
     model.to_raw_ec_file(
         outcfg["raw_ec_file"]
     )
-    
-    
-    
+
+
+
     # store useful information about model in outcfg
     outcfg.update({
         "num_sites": model.L,
@@ -683,7 +794,7 @@ def complex_mean_field(**kwargs):
         "effective_sequences": float(round(model.N_eff, 1)),
         #"region_start": int(model.index_list[0]),
     })
-    
+
     ecs = pairs.read_raw_ec_file(outcfg["raw_ec_file"])
 
     if segments is not None:
@@ -695,9 +806,9 @@ def complex_mean_field(**kwargs):
 
         # apply to EC table
         ecs = mapping.segment_map_ecs(ecs,seg_mapper)
-    
-    
-    
+
+
+
     # Add dummy probability value for downstream code
     #ecs.loc[:,"probability"] = np.nan
 
@@ -707,11 +818,11 @@ def complex_mean_field(**kwargs):
     #       outcfg["model_file"],
     #        file_format="plmc_v2"
     #    )
-    
+
     ###### End added material
 
     ## Add in segment_i, segment_j, and write ec file
-    
+
     # following computations are mostly specific to complex pipeline
 
     # add mixture model probability
@@ -754,7 +865,7 @@ def complex_mean_field(**kwargs):
             chain=chain_mapping
         )
     }
-    
+
     # save just the inter protein ECs
     ## TODO: eventually have this accomplished by _postprocess_inference
     ## right now avoiding a second call with a different ec_filter
@@ -784,8 +895,8 @@ def complex_mean_field(**kwargs):
     # used for the EC table above
 
     return outcfg
-    
-    
+
+
 
 
 def mean_field(**kwargs):
@@ -825,6 +936,7 @@ def mean_field(**kwargs):
             "focus_mode", "focus_sequence", "theta",
             "pseudo_count", "alphabet",
             "min_sequence_distance", # "save_model",
+            "ec_score_type",
         ]
     )
 
@@ -919,28 +1031,60 @@ def mean_field(**kwargs):
     })
 
     # read and sort ECs
+    # Note: this now deviates from the original EC format
+    # file because it has 4 score columns to accomodate
+    # MI (raw), MI (APC-corrected), DI, CN;
     ecs = pd.read_csv(
         outcfg["raw_ec_file"], sep=" ",
-        # for now, call the last two columns
-        # "fn" and "cn" to prevent compare
-        # stage from crashing
-        names=["i", "A_i", "j", "A_j", "fn", "cn"]
-        # names=["i", "A_i", "j", "A_j", "mi", "di"]
-    ).sort_values(
-        by="cn",
-        ascending=False
+        names=["i", "A_i", "j", "A_j", "mi_raw", "mi_apc", "di", "cn"]
     )
 
-    # Add dummy probability value for compatibility with downstream code
-    ecs.loc[:, "probability"] = np.nan
+    # select target score;
+    # by default select CN score, since it allows to compute probabilities etc.
+    ec_score_type = kwargs.get("ec_score_type", "cn")
+    valid_ec_type_choices = ["cn", "di", "mi_raw", "mi_apc"]
+
+    if ec_score_type not in valid_ec_type_choices:
+        raise InvalidParameterError(
+            "Invalid choice for valid_ec_type: {}, valid options are: {}".format(
+                ec_score_type, ", ".join(valid_ec_type_choices)
+            )
+        )
+
+    # perform rescoring if CN score is selected, otherwise cannot rescore
+    # since all models are based on distribution shapes generated by CN score
+    if ec_score_type == "cn":
+        # perform EC rescoring starting from CN score output by plmc;
+        # outconfig update will be merged further down in final outcfg merge
+
+        # returned list is already sorted
+        ecs, rescorer_outcfg_update = rescore_cn_score_ecs(
+            ecs, segments, outcfg, kwargs, score="cn"
+        )
+    else:
+        # If MI or DI, cannot apply distribution-based rescoring approaches,
+        # so just set score column and add dummy probability value for compatibility
+        # with downstream code
+        ecs = ecs.assign(
+            score=ecs[ec_score_type],
+            probability=np.nan
+        ).sort_values(
+            by="score",
+            ascending=False
+        )
+
+        # no additional values to be updated in outcfg in this case
+        rescorer_outcfg_update = {}
 
     is_single_segment = segments is None or len(segments) == 1
     outcfg = {
         **outcfg,
+        **rescorer_outcfg_update,
         **_postprocess_inference(
             ecs, kwargs, model, outcfg, prefix,
             generate_enrichment=is_single_segment,
-            generate_line_plot=is_single_segment
+            generate_line_plot=is_single_segment,
+            score="score"
         )
     }
 
@@ -951,7 +1095,8 @@ def mean_field(**kwargs):
 
 
 def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plot=False,
-                           generate_enrichment=False, ec_filter="abs(i - j) >= {}", chain=None):
+                           generate_enrichment=False, ec_filter="abs(i - j) >= {}",
+                           chain=None, score="cn"):
     """
     Post-process inference result of all protocols
 
@@ -987,6 +1132,8 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
         String determining the ec distance filter (default: "abs(i - j) >= {}")
     chain : dict
         Dictionary to map different segments to their chains
+    score : str, optional (default: "cn")
+        Score column to use for postprocessing
 
     Returns
     -------
@@ -1000,10 +1147,13 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
         * enrichment_pml_files
         * evzoom_file
     """
-
     ext_outcfg = {}
     # write the sorted ECs table to csv file
     ecs.to_csv(outcfg["ec_file"], index=False)
+
+    # if maximum coupling score is 0, bail out... will crash downstream calculations
+    if ecs[score].max() <= 0:
+        raise BailoutException("couplings: No couplings identified")
 
     # also store longrange ECs as convenience output
     if kwargs["min_sequence_distance"] is not None:
@@ -1020,13 +1170,16 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
                 ecs_longrange.iloc[:L, :],
                 ext_outcfg["ec_lines_pml_file"],
                 chain=chain,
-                score_column="cn"  # "di
+                score_column=score
             )
 
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
     if generate_enrichment:
         ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
+
+        ## TODO: need to make segment_aware_ec_enrichment compatible with new
+        # enrichment refactoring
         outcfg, intra_ecs_enriched = segment_aware_ec_enrichment(ecs, outcfg, **kwargs)
 
         for segment, ecs_enriched in intra_ecs_enriched.groupby("segment_i"):
@@ -1044,6 +1197,9 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
         ext_outcfg["evzoom_file"] = prefix + "_evzoom.json"
         with open(ext_outcfg["evzoom_file"], "w") as f:
             # create JSON output and write to file
+            # TODO: note that this will by default use CN scores as generated
+            # TODO: by CouplingsModel; at the moment there is no easy way
+            # TODO: around this limitation so just use CN score for now
             f.write(
                 evzoom_json(model) + "\n"
             )
