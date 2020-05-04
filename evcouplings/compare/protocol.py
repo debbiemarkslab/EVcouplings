@@ -139,8 +139,6 @@ def print_pdb_structure_info(sifts_result, format_string=SIFTS_TABLE_FORMAT_STR,
         **text_kwargs
     )
 
-
-<<<<<<< HEAD
 X_STRUCFREE = [
     "Z_score",
     "conservation_max",
