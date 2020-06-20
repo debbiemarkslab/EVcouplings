@@ -871,7 +871,14 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
     # only since enrichment code cannot handle multiple segments)
     if generate_enrichment:
         ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
-        ecs_enriched = pairs.enrichment(ecs, score=score)
+
+        min_seqdist = kwargs["min_sequence_distance"]
+        if min_seqdist is None:
+            min_seqdist = 0
+
+        ecs_enriched = pairs.enrichment(
+            ecs, score=score, min_seqdist=min_seqdist
+        )
         ecs_enriched.to_csv(ext_outcfg["enrichment_file"], index=False)
 
         # create corresponding enrichment pymol scripts
