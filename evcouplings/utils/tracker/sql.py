@@ -24,6 +24,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.dialects import mysql
 
 from evcouplings.utils.helpers import retry
 from evcouplings.utils.config import InvalidParameterError
@@ -34,6 +35,11 @@ from evcouplings.utils.tracker.base import ResultTracker
 Base = declarative_base()
 
 JOB_TABLE_NAME = "evcouplings_jobs"
+
+# work around 65k limitation for mysql (without introducing max length, which would
+# cause issues with postgresql)
+# see here: https://github.com/sqlalchemy/sqlalchemy/issues/4443
+LongText = Text().with_variant(mysql.LONGTEXT(), "mysql")
 
 
 class SQLTracker(ResultTracker):
@@ -306,7 +312,7 @@ class ComputeJob(Base):
 
     # message upon job failure / termination
     # (e.g. exception, termination code, ...)
-    message = Column(Text)
+    message = Column(LongText)
 
     # job identifier e.g. on compute cluster
     # e.g. if job should be stopped
@@ -327,11 +333,11 @@ class ComputeJob(Base):
     time_updated = Column(DateTime())
 
     # configuration of job (stringified JSON)
-    config = Column(Text)
+    config = Column(LongText)
 
     # Optional MD5 hash of configuration to identify
     # unique job configurations
     fingerprint = Column(String(32))
 
     # results of job (stringified JSON)
-    results = Column(Text)
+    results = Column(LongText)

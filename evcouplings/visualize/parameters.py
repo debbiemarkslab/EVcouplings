@@ -12,7 +12,7 @@ from evcouplings.couplings.pairs import add_mixture_probability
 
 def evzoom_data(model, ec_threshold=0.9, freq_threshold=0.01,
                 Jij_threshold=10, score="cn",
-                reorder="KRHEDNQTSCGAVLIMPYFW"):
+                reorder=None):
     """
     Generate data for EVzoom visualization. Use evzoom_json()
     to get final JSON string to use with EVzoom.

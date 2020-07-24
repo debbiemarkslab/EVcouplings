@@ -21,8 +21,9 @@ from evcouplings.visualize.pairs import (
 )
 
 from evcouplings.align.alignment import (
-    read_fasta, ALPHABET_PROTEIN, ALPHABET_DNA,
-    ALPHABET_RNA, Alignment
+    read_fasta, ALPHABET_PROTEIN, ALPHABET_PROTEIN_NOGAP,
+    ALPHABET_PROTEIN_ORDERED, ALPHABET_PROTEIN_NOGAP_ORDERED,
+    ALPHABET_DNA, ALPHABET_RNA, Alignment
 )
 
 from evcouplings.utils import BailoutException
@@ -871,7 +872,14 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
     # only since enrichment code cannot handle multiple segments)
     if generate_enrichment:
         ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
-        ecs_enriched = pairs.enrichment(ecs, score=score)
+
+        min_seqdist = kwargs["min_sequence_distance"]
+        if min_seqdist is None:
+            min_seqdist = 0
+
+        ecs_enriched = pairs.enrichment(
+            ecs, score=score, min_seqdist=min_seqdist
+        )
         ecs_enriched.to_csv(ext_outcfg["enrichment_file"], index=False)
 
         # create corresponding enrichment pymol scripts
@@ -886,13 +894,25 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
     # output EVzoom JSON file if we have stored model file
     if outcfg.get("model_file", None) is not None:
         ext_outcfg["evzoom_file"] = prefix + "_evzoom.json"
+
+        # automatically determine reordering of alphabet for EVzoom output
+        # (proteins only)
+        alphabet = "".join(model.alphabet)
+
+        if alphabet == ALPHABET_PROTEIN_NOGAP:
+            reorder = ALPHABET_PROTEIN_NOGAP_ORDERED
+        elif alphabet == ALPHABET_PROTEIN:
+            reorder = ALPHABET_PROTEIN_ORDERED
+        else:
+            reorder = None
+
         with open(ext_outcfg["evzoom_file"], "w") as f:
             # create JSON output and write to file
             # TODO: note that this will by default use CN scores as generated
             # TODO: by CouplingsModel; at the moment there is no easy way
             # TODO: around this limitation so just use CN score for now
             f.write(
-                evzoom_json(model) + "\n"
+                evzoom_json(model, reorder=reorder) + "\n"
             )
 
     return ext_outcfg
