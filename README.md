@@ -15,9 +15,9 @@ EVcouplings requires a Python >= 3.5 installation. Since it depends on some pack
 
 #### Installation
 
-To install the latest official release of EVcouplings from PyPI, run
+To install the latest version of EVcouplings, *currently please do not use the outdated PyPI release (i.e. do not pip install evcouplings)*. Instead, run
 
-    pip install evcouplings
+    pip install https://github.com/debbiemarkslab/EVcouplings/archive/develop.zip
 
 To obtain the latest version of EVcouplings from the github repository, run
 
