@@ -140,7 +140,9 @@ align:
 
 # Inference of evolutionary couplings from sequence alignment
 couplings:
-    # current options: standard (model inference using plmc)
+    # current options: 
+    # - standard (model inference using plmc)
+    # - mean_field (mean field direct coupling analysis, see below)
     protocol: standard
 
     # number of plmc iterations
@@ -163,13 +165,34 @@ couplings:
     lambda_h: 0.01
     lambda_group:
     scale_clusters:
-
+    
     # reuse ECs and model parameters, if this stage has been run before
     reuse_ecs: True
 
     # Sequence separation filter for generation of CouplingScores_longrange.csv table (i.e. to take out short-range
     # ECs from table, only pairs with abs(i-j)>=min_sequence_distance will be kept.
     min_sequence_distance: 6
+
+    # Post-inference scoring of ECs to derive probabilities
+    # Options are: skewnormal, normal, logistic_regression
+    scoring_model: logistic_regression
+    
+# Alternative protocol: compute couplings with mean field direct coupling analysis
+# Uncomment, and comment all values in align section above to enable the mean_field protocol
+    # protocol: mean_field
+
+    # Options: cn, di, mi_apc, mi
+    # ec_score_type: cn
+
+    # Post-inference scoring of ECs to derive probabilities - only available if used_score == "cn"!
+    # Options are: skewnormal, normal, logistic_regression
+    # scoring_model: logistic_regression
+
+    # pseudo_count: 0.5
+    # alphabet:
+    # ignore_gaps: False
+    # reuse_ecs: True
+    # min_sequence_distance: 6
 
     # Following input parameters will usually be overriden by "global" and outputs of "align" stage
     # prefix:
@@ -214,8 +237,8 @@ compare:
     region:
     alignment_min_overlap: 20
     use_bitscores: True
-    domain_threshold: 0.5
-    sequence_threshold: 0.5
+    domain_threshold: 0.1
+    sequence_threshold: 0.1
 
     # Comparison and plotting settings
     
@@ -248,6 +271,12 @@ compare:
 
     # draw secondary structure on contact map plots
     draw_secondary_structure: True
+
+    # draw structure and alignment/EC coverage information on contact map plots
+    draw_coverage: True
+
+    # print information about used PDB structures on contact map plots
+    print_pdb_information: True
 
     # Alignment method to use to search the PDB Seqres database. Options: jackhmmer, hmmsearch
     # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 

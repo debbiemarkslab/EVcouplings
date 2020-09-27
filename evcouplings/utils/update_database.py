@@ -177,8 +177,8 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 # run settings
-@click.option("-s", "--sifts", default="/groups/marks/databases/SIFTS/", help="SIFTS output directory")
-@click.option("-d", "--db", default="/groups/marks/databases/jackhmmer/", help="Uniprot output directory")
+@click.option("-s", "--sifts", default="/n/groups/marks/databases/SIFTS/", help="SIFTS output directory")
+@click.option("-d", "--db", default="/n/groups/marks/databases/jackhmmer/", help="Uniprot output directory")
 @click.option("-l", "--symlink", default=False, is_flag=True,
               help="Creates symlink with ending '_current.' pointing to the newly created db files")
 @click.option("-v", "--verbose", default=False, is_flag=True, help="Enables verbose output")

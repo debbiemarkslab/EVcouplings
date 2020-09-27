@@ -15,9 +15,9 @@ EVcouplings requires a Python >= 3.5 installation. Since it depends on some pack
 
 #### Installation
 
-To install the latest official release of EVcouplings from PyPI, run
+To install the latest version of EVcouplings, *currently please do not use the outdated PyPI release (i.e. do not pip install evcouplings)*. Instead, run
 
-    pip install evcouplings
+    pip install https://github.com/debbiemarkslab/EVcouplings/archive/develop.zip
 
 To obtain the latest version of EVcouplings from the github repository, run
 
@@ -124,7 +124,11 @@ EVcouplings is available under the MIT license, with the exception of the includ
 
 ## References
 
-If you find EVcouplings useful for your research, please cite the following papers:
+Please cite the following reference for the EVcouplings Python package;
+
+Hopf T. A., Green A. G., Schubert B., et al. The EVcouplings Python framework for coevolutionary sequence analysis. *Bioinformatics* **35**, 1582–1584 (2019)
+
+Also consider citing the following references, which introduced the methods integrated by the EVcouplings Python package:
 
 Marks D. S., Colwell, L. J., Sheridan, R., Hopf, T.A., Pagnani, A., Zecchina, R., Sander, C. Protein 3D structure computed from evolutionary sequence variation. *PLOS ONE* **6**(12), e28766 (2011)
 
@@ -141,10 +145,11 @@ Hopf, T. A., Ingraham, J. B., Poelwijk, F.J., Schärfe, C.P.I., Springer, M., Sa
 EVcouplings is developed in the labs of [Debora Marks](http://marks.hms.harvard.edu) and [Chris Sander](http://sanderlab.org/) at Harvard Medical School.
 
 * [Thomas Hopf](mailto:thomas.hopf@gmail.com) (development lead)
-* Benjamin Schubert
 * Anna Green
+* Benjamin Schubert
 * Sophia Mersmann
 * Charlotta Schärfe
 * Agnes Toth-Petroczy
 * John Ingraham
 * Rob Sheridan
+* Christian Dallago

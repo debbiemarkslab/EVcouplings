@@ -18,7 +18,7 @@ setup(
     name='evcouplings',
 
     # Version:
-    version='0.0.5',
+    version='0.1.0',
 
     description='A Framework for evolutionary couplings analysis',
     long_description=readme,
@@ -64,6 +64,7 @@ setup(
     include_package_data=True,
     package_data={
         'evcouplings.fold.cns_templates': ['*.*'],
+        'evcouplings.couplings.scoring_models': ['*.*'],
     },
 
     #package_data is a lie:
@@ -96,7 +97,7 @@ setup(
     install_requires=['setuptools>=18.2', 'numpy',
         'pandas', 'scipy', 'numba', 'ruamel.yaml', 'matplotlib', 'requests',
         'mmtf-python', 'click', 'filelock', 'psutil', 'bokeh', 'jinja2',
-        'biopython', 'sqlalchemy', 'seaborn',
+        'biopython', 'seaborn', 'billiard', 'sklearn',
     ],
 
 )
