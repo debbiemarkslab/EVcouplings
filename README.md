@@ -27,6 +27,7 @@ and to update to the latest version after previously installing EVcouplings from
 
     pip install -U --no-deps git+https://github.com/debbiemarkslab/EVcouplings.git
 
+Installation will take seconds. 
 
 ### External software tools
 
@@ -140,12 +141,14 @@ Hopf, T. A., Schärfe, C. P. I., Rodrigues, J. P. G. L. M., Green, A. G., Kohlba
 
 Hopf, T. A., Ingraham, J. B., Poelwijk, F.J., Schärfe, C.P.I., Springer, M., Sander, C., & Marks, D. S. (2017). Mutation effects predicted from sequence co-variation. *Nature Biotechnology* **35**, 128–135 doi:10.1038/nbt.3769
 
+Green, A. G. and Elhabashy, H., Brock, K. P., Maddamsetti, R., Kohlbacher, O., Marks, D. S. (2019) Proteom-scale discovery of protein interactions with residue-level resolution using sequence coevolution. BioRxiv (in review). https://doi.org/10.1101/791293
+
 ## Contributors
 
 EVcouplings is developed in the labs of [Debora Marks](http://marks.hms.harvard.edu) and [Chris Sander](http://sanderlab.org/) at Harvard Medical School.
 
 * [Thomas Hopf](mailto:thomas.hopf@gmail.com) (development lead)
-* Anna Green
+* Anna G. Green
 * Benjamin Schubert
 * Sophia Mersmann
 * Charlotta Schärfe
