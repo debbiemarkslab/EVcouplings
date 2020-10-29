@@ -38,5 +38,5 @@ jobs:
         tar -xf evcouplings_test_cases.tar.gz -C $HOME/
     - name: Run tests in headless xvfb environment
       uses: GabrielBB/xvfb-action@v1
-      run: |
-        coverage run -m unittest discover -s test -p "Test*.py"
+      with:
+        run: coverage run -m unittest discover -s test -p "Test*.py"
