@@ -32,13 +32,11 @@ jobs:
         python setup.py sdist --formats=zip -k
         find ./dist -iname "*.zip" -print0 | xargs -0 pip install
         pip install codecov
-    - name: Test setup
+    - name: Get tests to run
       run: |
-        export DISPLAY=:99.0
-        sh -e /etc/init.d/xvfb start
-        sleep 3
         wget https://marks.hms.harvard.edu/evcouplings/models/data/evcouplings_test_cases.tar.gz
         tar -xf evcouplings_test_cases.tar.gz -C $HOME/
-    - name: Run tests
+    - name: Run tests in headless xvfb environment
+      uses: GabrielBB/xvfb-action@v1
       run: |
         coverage run -m unittest discover -s test -p "Test*.py"
