@@ -33,8 +33,8 @@ jobs:
         pip install codecov
     - name: Download test files
       run: |
-        "wget https://marks.hms.harvard.edu/evcouplings_test_cases/data/evcouplings_test_cases.tar.gz",
-        "tar -xf evcouplings_test_cases.tar.gz -C $HOME/"
+        wget https://marks.hms.harvard.edu/evcouplings_test_cases/data/evcouplings_test_cases.tar.gz
+        tar -xf evcouplings_test_cases.tar.gz -C $HOME/
     - name: Run tests in headless xvfb environment
       uses: GabrielBB/xvfb-action@v1
       with:
