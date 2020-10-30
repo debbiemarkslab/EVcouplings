@@ -4,7 +4,6 @@ on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -32,7 +31,16 @@ jobs:
         python setup.py sdist --formats=zip -k
         find ./dist -iname "*.zip" -print0 | xargs -0 pip install
         pip install codecov
+    - name: Download test files
+      run: |
+        "wget https://marks.hms.harvard.edu/evcouplings_test_cases/data/evcouplings_test_cases.tar.gz",
+        "tar -xf evcouplings_test_cases.tar.gz -C $HOME/"
     - name: Run tests in headless xvfb environment
       uses: GabrielBB/xvfb-action@v1
       with:
         run: coverage run -m unittest discover -s test -p "Test*.py"
+    # - name: Publish evcouplings to PyPI
+    #   if: startsWith(github.ref, 'refs/tags')
+    #   uses: pypa/gh-action-pypi-publish@master
+    #   with:
+    #     password: ${{ secrets.pypi_password }}

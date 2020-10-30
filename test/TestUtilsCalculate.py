@@ -4,6 +4,7 @@ from evcouplings.utils import *
 from evcouplings.couplings import CouplingsModel
 import numpy as np
 
+MONO_MODEL = os.getenv('HOME') + "/evcouplings_test_cases/monomer_test/couplings/RASH_HUMAN_b03.model"
 MONO_MODEL = "/home/travis/evcouplings_test_cases/monomer_test/couplings/RASH_HUMAN_b03.model"
 
 
