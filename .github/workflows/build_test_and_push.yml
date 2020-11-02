@@ -41,15 +41,13 @@ jobs:
       uses: GabrielBB/xvfb-action@v1
       with:
         run: coverage run -m unittest discover -s test -p "Test*.py"
-    - name: Publish evcouplings to Test PyPI
+    - name: Publish evcouplings to test PyPI
       uses: pypa/gh-action-pypi-publish@master
       with:
-        user: ${{ secrets.PYPI_USERNAME }}
-        password: ${{ secrets.PYPI_PASSWORD }}
+        password: ${{ secrets.PYPI_ACCESS_TOKEN_TEST }}
         repository_url: https://test.pypi.org/legacy/
     - name: Publish evcouplings to PyPI
       if: startsWith(github.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
       with:
-        user: ${{ secrets.PYPI_USERNAME }}
-        password: ${{ secrets.PYPI_PASSWORD }}
+        password: ${{ secrets.PYPI_ACCESS_TOKEN }}
