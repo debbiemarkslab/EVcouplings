@@ -1,5 +1,4 @@
-[![build_and_test Actions Status](https://github.com/debbiemarkslab/EVcouplings/workflows/build_and_test/badge.svg?branch=master)](https://github.com/debbiemarkslab/EVcouplings/actions)  
-[![PyPI version](https://badge.fury.io/py/evcouplings.svg)](https://badge.fury.io/py/evcouplings)
+[![build_and_test Actions Status](https://github.com/debbiemarkslab/EVcouplings/workflows/build_and_test/badge.svg?branch=master)](https://github.com/debbiemarkslab/EVcouplings/actions) [![PyPI version](https://badge.fury.io/py/evcouplings.svg)](https://badge.fury.io/py/evcouplings)
 # EVcouplings
 
 Predict protein structure, function and mutations using evolutionary sequence covariation.
