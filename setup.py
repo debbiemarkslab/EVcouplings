@@ -22,7 +22,7 @@ setup(
 
     description='A Framework for evolutionary couplings analysis',
     long_description=readme,
-    long_description_content_type='text/markdown'
+    long_description_content_type='text/markdown',
 
     # The project's main homepage.
     url='https://github.com/debbiemarkslab/EVcouplings',
