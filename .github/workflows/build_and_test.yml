@@ -38,7 +38,11 @@ jobs:
     - name: Run tests in headless xvfb environment
       uses: GabrielBB/xvfb-action@v1
       with:
-        run: coverage run -m unittest discover -s test -p "Test*.py"
+        run: |
+          coverage run -m unittest discover -s test -p "Test*.py"
+          pwd
+          ls
+          ls dist/
     - name: Publish evcouplings to Test PyPI
       uses: pypa/gh-action-pypi-publish@master
       with:
