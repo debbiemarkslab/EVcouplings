@@ -1,4 +1,4 @@
-name: Test and push release to PyPI
+name: build_test_and_push
 
 on:
   release:
