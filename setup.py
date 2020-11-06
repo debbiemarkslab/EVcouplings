@@ -18,7 +18,7 @@ setup(
     name='evcouplings',
 
     # Version:
-    version='0.1.0',
+    version='0.1.1',
 
     description='A Framework for evolutionary couplings analysis',
     long_description=readme,
