@@ -156,3 +156,4 @@ EVcouplings is developed in the labs of [Debora Marks](http://marks.hms.harvard.
 * John Ingraham
 * Rob Sheridan
 * Christian Dallago
+* Joe Min
