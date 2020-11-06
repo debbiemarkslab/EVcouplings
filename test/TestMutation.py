@@ -17,7 +17,8 @@ from evcouplings.mutate.calculations import *
 from evcouplings.mutate.protocol import *
 from evcouplings.couplings.model import CouplingsModel
 
-TRAVIS_PATH = "/home/travis/evcouplings_test_cases"
+TRAVIS_PATH = os.getenv('HOME') + "/evcouplings_test_cases"
+# TRAVIS_PATH = "/home/travis/evcouplings_test_cases"
 #TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B"
 MONOMER_PATH = "{}/monomer_test".format(TRAVIS_PATH)
 COMPLEX_PATH = "{}/complex_test".format(TRAVIS_PATH)
