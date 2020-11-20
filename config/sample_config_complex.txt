@@ -344,9 +344,9 @@ compare:
     # sequence_id and SIFTS database (sequence_id must be UniProt AC/ID in this case)
     first_by_alignment: True
     second_by_alignment: True
-    # Alignment method to use to search the PDB Seqres database. Options: jackhmmer, hmmsearch
-    # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent).
-    # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent).
+    # Alignment method to use to find sequences corresponding to PDB structures. Options: jackhmmer, hmmsearch
+    # Set to jackhmmer to search using jackhmmer from the target sequence only (more stringent).
+    # Set to hmmsearch to search using an HMM built from the output monomer alignment (less stringent).
     # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences.
     first_pdb_alignment_method: jackhmmer
     second_pdb_alignment_method: jackhmmer
@@ -543,4 +543,4 @@ tools:
     psipred: /n/groups/marks/software/runpsipred
     cns: /n/groups/marks/pipelines/evcouplings/software/cns_solve_1.21/intel-x86_64bit-linux/bin/cns
     maxcluster: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
-    dssp: /n/groups/marks/pipelines/evcouplings/software/maxcluster64bit
+    dssp: /n/groups/marks/software/dssp
