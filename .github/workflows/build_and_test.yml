@@ -1,0 +1,42 @@
+name: build_and_test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.6]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install and configure conda
+      run: |
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+        bash miniconda.sh -b -p $HOME/miniconda
+        export PATH="$HOME/miniconda/bin:$PATH"
+        hash -r
+        conda config --set always_yes yes --set changeps1 no
+        conda update -q conda
+        conda info -a
+        conda create -q -n test-environment python=${{ matrix.python-version }} numpy scipy numba pandas matplotlib
+        source activate test-environment
+    - name: Run setup.py
+      run: |
+        python setup.py sdist --formats=zip -k
+        find ./dist -iname "*.zip" -print0 | xargs -0 pip install
+        pip install codecov
+    - name: Download test files
+      run: |
+        wget https://marks.hms.harvard.edu/evcouplings_test_cases/data/evcouplings_test_cases.tar.gz
+        tar -xf evcouplings_test_cases.tar.gz -C $HOME/
+    - name: Run tests in headless xvfb environment
+      uses: GabrielBB/xvfb-action@v1
+      with:
+        run: coverage run -m unittest discover -s test -p "Test*.py"

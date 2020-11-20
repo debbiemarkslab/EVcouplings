@@ -18,8 +18,9 @@ from evcouplings.complex.similarity import *
 from evcouplings.complex.protocol import *
 from evcouplings.align import Alignment
 
-TRAVIS_PATH = "/home/travis/evcouplings_test_cases/complex_test"
-#TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/evcouplings_test_cases/complex_test"
+TRAVIS_PATH = os.getenv('HOME') + "/evcouplings_test_cases/complex_test"
+# TRAVIS_PATH = "/home/travis/evcouplings_test_cases/complex_test"
+# TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/complex_test"
 
 class TestComplex(TestCase):
 
