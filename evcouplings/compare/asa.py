@@ -52,12 +52,13 @@ def run_dssp(binary, infile, outfile):
     return_code, stdout, stderr = run(cmd)
 
     verify_resources(
-            "DSSP returned empty file: "
-            "stdout={} stderr={} file={}".format(
-                stdout, stderr, outfile
-            ),
-            outfile
-        )
+        "DSSP returned empty file: "
+        "stdout={} stderr={} file={}".format(
+            stdout, stderr, outfile
+        ),
+        outfile
+    )
+
 
 def read_dssp_output(filename):
     """
@@ -77,9 +78,8 @@ def read_dssp_output(filename):
     dssp_dict, _ = make_dssp_dict(filename)
     data = []
     for key, value in dssp_dict.items():
-
         # keys are formatted as (chain, ("", i, ""))
-        i = key[1][1]
+        chain, (_, i, inscode) = key
 
         res = value[0]
         asa = value[2]
@@ -92,7 +92,8 @@ def read_dssp_output(filename):
 
     return pd.DataFrame(data)
 
-def calculate_rsa(dataframe, AA_SURFACE_AREA, output_column="rsa"):
+
+def calculate_rsa(dataframe, aa_surface_area=None, output_column="rsa"):
     """
     Converts raw accessible surface area to relative accessible surface area,
     by dividing the raw accessible surface area by the max accessible surface area
@@ -110,9 +111,13 @@ def calculate_rsa(dataframe, AA_SURFACE_AREA, output_column="rsa"):
     -------
         pd.DataFrame
     """
+    if aa_surface_area is None:
+        aa_surface_area = AA_SURFACE_AREA
 
-    dataframe.loc[:, output_column] = [x.asa/AA_SURFACE_AREA[x.res] for _, x in dataframe.iterrows()]
-    return dataframe
+    modified_dataframe = dataframe.copy()
+    modified_dataframe.loc[:, output_column] = [x.asa/aa_surface_area[x.res] for _, x in modified_dataframe.iterrows()]
+    return modified_dataframe
+
 
 def asa_run(pdb_file, dssp_output_file, rsa_output_file, dssp_binary):
     """
@@ -132,12 +137,18 @@ def asa_run(pdb_file, dssp_output_file, rsa_output_file, dssp_binary):
     pd.DataFrame with relative accessible surface area for each position in PDB
     """
 
+    verify_resources(
+        "PDB file input to DSSP does not exist",
+        pdb_file
+    )
+
     run_dssp(dssp_binary, pdb_file, dssp_output_file)
 
     d = read_dssp_output(dssp_output_file)
     d = calculate_rsa(d, AA_SURFACE_AREA)
 
     return d
+
 
 def combine_asa(remapped_pdb_files, dssp_binary, outcfg):
     """
@@ -151,43 +162,38 @@ def combine_asa(remapped_pdb_files, dssp_binary, outcfg):
         output configuration
     """
 
-    # Initialize a dataframe to contain the asa information
-    data = pd.DataFrame({
-            "i": [],
-            "res": [],
-            "asa": [],
-            "rsa": []
-    })
-
     outcfg["dssp_output_files"] = []
     outcfg["rsa_output_files"] = []
 
     # If no remapped pdb files, return empty df
     if len(remapped_pdb_files) == 0:
         return pd.DataFrame({
-            "i": np.nan,
-            "mean": np.nan,
-            "max": np.nan,
-            "min": np.nan
+            "i": [],
+            "mean": [],
+            "max": [],
+            "min": []
         }, index=[0])
 
     # run dssp for each remapped_pdb_file
+    d_list = []
     for file in remapped_pdb_files:
         if valid_file(file):
 
             # the DSSP and RSA files will be saved as with same prefix as PDB
-            prefix = file.split(".pdb")[0]
+            prefix = file.rsplit(".pdb", maxsplit=1)[0]
             dssp_output_file = prefix + ".dssp"
             rsa_output_file = prefix + "_rsa.csv"
 
             d = asa_run(file, dssp_output_file, rsa_output_file, dssp_binary)
 
             # add information to combined dataframe
-            data = pd.concat([data, d])
+            d_list = d_list.append(d)
 
             # save the output files
             outcfg["dssp_output_files"].append(dssp_output_file)
             outcfg["rsa_output_files"].append(rsa_output_file)
+
+    data = pd.DataFrame(d_list, columns=["i", "res", "asa", "rsa"])
 
     # group the dataframe of RSA by residue
     means = data.groupby("i").rsa.mean()
@@ -200,6 +206,7 @@ def combine_asa(remapped_pdb_files, dssp_binary, outcfg):
         "max": list(maxes),
         "min": list(mins)
     }), outcfg
+
 
 def add_asa(ec_df, asa, asa_column):
     """
@@ -218,13 +225,25 @@ def add_asa(ec_df, asa, asa_column):
     -------
     pd.DataFrame
     """
-    # make a dictionary of residue and segment pointint to accesible surface area value
-    s_to_e = {(x,y):z for x,y,z in zip(asa.i, asa.segment_i, asa[asa_column])}
+    # make a dictionary of residue and segment pointing to accesible surface area value
+    s_to_e = {
+        (x, y): z for x, y, z in zip(
+            asa.i, asa.segment_i, asa[asa_column]
+        )
+    }
 
     # Add the accesible surface area for position i
-    ec_df["asa_i"] =[s_to_e[(x,y)] if (x,y) in s_to_e else np.nan for x,y in zip(ec_df.i, ec_df.segment_i)]
+    ec_df["asa_i"] =[
+        s_to_e[(x, y)] if (x, y) in s_to_e else np.nan for x, y in zip(
+            ec_df.i, ec_df.segment_i
+        )
+    ]
 
     # Add the accessible surface area for position j
-    ec_df["asa_j"] =[s_to_e[(x,y)] if (x,y) in s_to_e else np.nan for x,y in zip(ec_df.j, ec_df.segment_j)]
+    ec_df["asa_j"] =[
+        s_to_e[(x, y)] if (x, y) in s_to_e else np.nan for x, y in zip(
+            ec_df.j, ec_df.segment_j
+        )
+    ]
 
     return ec_df

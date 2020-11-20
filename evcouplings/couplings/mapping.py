@@ -360,7 +360,7 @@ def segment_map_ecs(ecs, mapper):
         mapped, and additional columns
         segment_i and segment_j)
     """
-    ecs = deepcopy(ecs)
+    ecs = ecs.copy()
 
     # map both position columns (and add segment id)
     ecs = segment_map_positions_single_column(ecs, mapper, "i")

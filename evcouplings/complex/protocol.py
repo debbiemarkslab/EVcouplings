@@ -126,7 +126,8 @@ def modify_complex_segments(outcfg, **kwargs):
 def map_frequencies_file(frequencies_file, outcfg, **kwargs):
     """
     Renumbers the frequencies file created in complex concatenation
-    to be correctly indexed by segment numbers
+    with correct monomer numbering based on segments - otherwise numbering
+    will be continuous for the concatenated sequence.
 
     Parameters
     ----------
