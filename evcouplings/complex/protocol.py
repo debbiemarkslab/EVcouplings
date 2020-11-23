@@ -146,7 +146,9 @@ def map_frequencies_file(frequencies_file, outcfg, **kwargs):
     seg_mapper = SegmentIndexMapper(
         kwargs["first_focus_mode"], outcfg["region_start"], *segments
     )
-    frequencies = segment_map_positions_single_column(frequencies, seg_mapper, "i")
+    frequencies = segment_map_positions_single_column(
+        frequencies, seg_mapper, "i"
+    )
     return frequencies
 
 
@@ -451,7 +453,9 @@ def genome_distance(**kwargs):
     plot_distance_distribution(id_pairing_unfiltered, outcfg["distance_plot_file"])
 
     # Correct the nubering in the frequencies file
-    map_frequencies_file(outcfg["frequencies_file"], outcfg, **kwargs).to_csv(outcfg["frequencies_file"])
+    map_frequencies_file(
+        outcfg["frequencies_file"], outcfg, **kwargs
+    ).to_csv(outcfg["frequencies_file"])
 
     return outcfg
 
@@ -523,7 +527,9 @@ def best_hit(**kwargs):
         similarities = pd.read_csv(identities_file)
 
         # create a pd.DataFrame containing the best hit in each organism
-        most_similar_in_species = most_similar_by_organism(similarities, annotation_table)
+        most_similar_in_species = most_similar_by_organism(
+            similarities, annotation_table
+        )
 
         if use_best_reciprocal:
             paralogs = find_paralogs(
@@ -619,8 +625,10 @@ def best_hit(**kwargs):
     # Describe the statistics of the concatenation
     outcfg = _run_describe_concatenation(outcfg, **kwargs)
 
-    # Correct the nubering in the frequencies file
-    map_frequencies_file(outcfg["frequencies_file"], outcfg, **kwargs).to_csv(outcfg["frequencies_file"])
+    # Correct the numbering in the frequencies file
+    map_frequencies_file(
+        outcfg["frequencies_file"], outcfg, **kwargs
+    ).to_csv(outcfg["frequencies_file"])
 
     return outcfg
 
