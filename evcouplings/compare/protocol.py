@@ -36,31 +36,7 @@ from evcouplings.visualize import pairs, misc
 from evcouplings.compare.asa import combine_asa, add_asa
 
 from evcouplings.align import ALPHABET_PROTEIN
-
-#Hydropathy index from Lehninger Principles of Biochemistry, 5th Edition, table 3-1
-HYDROPATHY_INDEX = {
-    "G": -.4,
-    "A": 1.8,
-    "P": -1.6,
-    "V": 4.2,
-    "L": 3.8,
-    "I": 4.5,
-    "M": 1.9,
-    "F": 2.8,
-    "Y": -1.3,
-    "W": -0.9,
-    "S": -0.8,
-    "T": -0.7,
-    "C": 2.5,
-    "N": -3.5,
-    "Q": -3.5,
-    "K": -3.9,
-    "H": -3.2,
-    "R": -4.5,
-    "D": -3.5,
-    "E": -3.5,
-    "-": 0
-}
+from evcouplings.utils.constants import HYDROPATHY_INDEX
 
 SIFTS_TABLE_FORMAT_STR = "{pdb_id}:{pdb_chain} ({coord_start}-{coord_end})"
 

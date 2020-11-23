@@ -2,32 +2,8 @@ import pandas as pd
 import numpy as np
 from evcouplings.utils.system import verify_resources, valid_file
 from evcouplings.compare.tools import run_dssp
+from evcouplings.utils.constants import AA_SURFACE_AREA
 from Bio.PDB import make_dssp_dict
-
-# Amino acid surface area values from Tien et al, 2013 (empirical values)
-AA_SURFACE_AREA = {
-    "A": 121,
-    "R": 265,
-    "D": 187,
-    "N": 187,
-    "C": 148,
-    "E": 214,
-    "Q": 214,
-    "G": 97,
-    "H": 216,
-    "I": 195,
-    "L": 191,
-    "K": 230,
-    "M": 103,
-    "F": 228,
-    "P": 154,
-    "S": 143,
-    "T": 163,
-    "W": 264,
-    "Y": 255,
-    "V": 165,
-    "X": np.nan
-}
 
 def read_dssp_output(filename):
     """
