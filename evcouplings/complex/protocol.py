@@ -21,8 +21,7 @@ from evcouplings.utils.system import (
     create_prefix_folders, verify_resources
 )
 from evcouplings.align.protocol import modify_alignment
-
-from evcouplings.align.alignment import Alignment
+from evcouplings.align.alignment import parse_header
 
 from evcouplings.complex.alignment import (
     write_concatenated_alignment
@@ -38,15 +37,8 @@ from evcouplings.complex.similarity import (
     find_paralogs
 )
 from evcouplings.couplings.mapping import (
-    SegmentIndexMapper, Segment, segment_map_positions_single_column
+    SegmentIndexMapper, Segment, segment_map_ecs
 )
-
-
-def _split_annotation_string(string):
-    id, annotation_str = string.split("/")
-    region_start, region_end = annotation_str.split("-")
-    return (id, int(region_start), int(region_end))
-
 
 def remove_overlapping_ids(id_dataframe):
     """
@@ -65,11 +57,11 @@ def remove_overlapping_ids(id_dataframe):
     """
     temp_dataframe = id_dataframe.copy()
 
-    id_strings = [_split_annotation_string(x) for x in temp_dataframe.id_1]
+    id_strings = [parse_header(x) for x in temp_dataframe.id_1]
     temp_dataframe["id_string_1"], temp_dataframe["r_s_1"], temp_dataframe["r_e_1"] = \
         zip(*id_strings)
 
-    id_strings = [_split_annotation_string(x) for x in temp_dataframe.id_2]
+    id_strings = [parse_header(x) for x in temp_dataframe.id_2]
     temp_dataframe["id_string_2"], temp_dataframe["r_s_2"], temp_dataframe["r_e_2"] = \
         zip(*id_strings)
 
@@ -146,8 +138,8 @@ def map_frequencies_file(frequencies_file, outcfg, **kwargs):
     seg_mapper = SegmentIndexMapper(
         kwargs["first_focus_mode"], outcfg["region_start"], *segments
     )
-    frequencies = segment_map_positions_single_column(
-        frequencies, seg_mapper, "i"
+    frequencies = segment_map_ecs(
+        frequencies, seg_mapper, map_i=True, map_j=False
     )
     return frequencies
 

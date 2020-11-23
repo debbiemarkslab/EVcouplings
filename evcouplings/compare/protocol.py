@@ -304,7 +304,6 @@ def _filter_structures(sifts_map, pdb_ids=None, max_num_hits=None, max_num_struc
 
     # filter ID list down to manually selected PDB entries
     if pdb_ids is not None:
-        pdb_ids = pdb_ids
 
         # make sure we have a list of PDB IDs
         if not isinstance(pdb_ids, list):

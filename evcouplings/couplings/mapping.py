@@ -305,46 +305,13 @@ class SegmentIndexMapper:
         """
         return self.__map(x, self.target_to_model)
 
-
-def segment_map_positions_single_column(dataframe, mapper, column):
-    """
-    Map positions in a dataframe in model numbering
-    into segment numbering
-
-    Parameters
-    ----------
-    dataframe : pd.DataFrame
-        Dataframe with column to be mapped
-    mapper : SegmentIndexMapper
-        Mapper for renumbering the segments
-    column : str
-        Name of column in dataframe to be mapped
-
-    Returns
-    -------
-    dataframe : pd.DataFrame
-        Dataframe with remapped column and new column
-        "segment_<column>" indicating the segment
-    """
-
-    seg_col = "segment_" + column
-    # create new dataframe with two columns
-    # 1) mapped segment, 2) mapped position
-    col_m = pd.DataFrame(
-        mapper.to_target(dataframe.loc[:, column]),
-        columns=[seg_col, column]
-    )
-    # assign values instead of Series, because otherwise
-    # wrong values end up in column
-    dataframe.loc[:, column] = col_m.loc[:, column].values
-    dataframe.loc[:, seg_col] = col_m.loc[:, seg_col].values
-
-    return dataframe
-
-def segment_map_ecs(ecs, mapper):
+def segment_map_ecs(ecs, mapper, map_i=True, map_j=True):
     """
     Map EC dataframe in model numbering into
-    segment numbering
+    segment numbering.
+
+    Can also be used to map dataframes with only a column i (no column j),
+    such as amino acid frequencies, by using map_i=True and map_j=False
 
     Parameters
     ----------
@@ -352,6 +319,10 @@ def segment_map_ecs(ecs, mapper):
         EC table (with columns i and j)
     mapper : SegmentIndexMapper
         Mapper for renumbering the segments
+    map_i : Boolean, optional (default=True)
+        Map ecs in column i
+    map_j : Boolean, optional (default=True)
+        Map ecs in column j
 
     Returns
     -------
@@ -362,9 +333,24 @@ def segment_map_ecs(ecs, mapper):
     """
     ecs = ecs.copy()
 
+    def _map_column(col):
+        seg_col = "segment_" + col
+        # create new dataframe with two columns
+        # 1) mapped segment, 2) mapped position
+        col_m = pd.DataFrame(
+            mapper.to_target(ecs.loc[:, col]),
+            columns=[seg_col, col]
+        )
+        # assign values instead of Series, because otherwise
+        # wrong values end up in column
+        ecs.loc[:, col] = col_m.loc[:, col].values
+        ecs.loc[:, seg_col] = col_m.loc[:, seg_col].values
+
     # map both position columns (and add segment id)
-    ecs = segment_map_positions_single_column(ecs, mapper, "i")
-    ecs = segment_map_positions_single_column(ecs, mapper, "j")
+    if map_i:
+        _map_column("i")
+    if map_j:
+        _map_column("j")
 
     return ecs
 
