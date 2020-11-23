@@ -12,24 +12,25 @@ Authors:
   Thomas A. Hopf
   Agnes Toth-Petroczy (original mixture model code)
   John Ingraham (skew normal mixture model)
-  Anna G. Green (EVComplex Score code, segment-aware enrichment calculation)
+  Anna G. Green (EVcomplex Score code, segment-aware enrichment calculation)
 """
-
-import math
-from copy import deepcopy
-from pkg_resources import resource_filename
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.optimize as op
+
+from math import ceil, sqrt
+from copy import deepcopy
+from pkg_resources import resource_filename
+
 from scipy import stats
 from sklearn.linear_model import LogisticRegression
 
 from evcouplings.utils.calculations import median_absolute_deviation
 from evcouplings.utils.config import read_config_file
 
-from evcouplings.couplings.mapping import FIRST_SEGMENT_NAME, SECOND_SEGMENT_NAME
+DEFAULT_SEGMENT_NAME = "A_1"
 
 def read_raw_ec_file(filename, sort=True, score="cn"):
     """
@@ -65,7 +66,7 @@ def read_raw_ec_file(filename, sort=True, score="cn"):
     return ecs
 
 
-def enrichment(ecs, segment_name="A_1", num_pairs=1.0, score="cn", min_seqdist=6):
+def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
     """
     Calculate EC "enrichment" as first described in
     Hopf et al., Cell, 2012.
@@ -100,18 +101,25 @@ def enrichment(ecs, segment_name="A_1", num_pairs=1.0, score="cn", min_seqdist=6
     # check if the provided table has segments...
     has_segments = "segment_i" in ecs.columns and "segment_j" in ecs.columns
 
-    # ...and if not, create them
+    # ...and if not, create them (will be deleted before return)
     if not has_segments:
-        ecs.loc[:,"segment_i"] = segment_name
-        ecs.loc[:,"segment_j"] = segment_name
+        ecs = ecs.assign({
+            "segment_i": DEFAULT_SEGMENT_NAME,
+            "segment_j": DEFAULT_SEGMENT_NAME
+        })
+
 
     # stack dataframe so it contains each
     # EC twice as forward and backward pairs
     # (i, j) and (j, i)
     flipped = ecs.rename(
         columns={
-            "i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i",
-            "segment_i": "segment_j", "segment_j": "segment_i"
+            "i": "j",
+            "j": "i",
+            "A_i": "A_j",
+            "A_j": "A_i",
+            "segment_i": "segment_j",
+            "segment_j": "segment_i"
         }
     )
 
@@ -123,7 +131,7 @@ def enrichment(ecs, segment_name="A_1", num_pairs=1.0, score="cn", min_seqdist=6
     # calculate absolute number of pairs if
     # fraction of length is given
     if isinstance(num_pairs, float):
-        num_pairs = int(math.ceil(num_pairs * num_pos))
+        num_pairs = int(ceil(num_pairs * num_pos))
 
     # sort the stacked ECs
     stacked_sorted_ecs = stacked_ecs.query(
@@ -132,7 +140,7 @@ def enrichment(ecs, segment_name="A_1", num_pairs=1.0, score="cn", min_seqdist=6
         by=score, ascending=False
     )
 
-    # take the top num *2 (because each EC represented twice)
+    # take the top num * 2 (because each EC represented twice)
     top_ecs = stacked_sorted_ecs[0:num_pairs * 2]
 
     # calculate sum of EC scores for each position
@@ -664,7 +672,7 @@ class EVComplexScoreModel:
     score normalization for the number of sequences and length of
     the model
     """
-    def __init__(self, x, Neff_over_L=None):
+    def __init__(self, x, neff_over_l=None):
         """
         Initialize EVcomplex score model
         
@@ -677,9 +685,9 @@ class EVComplexScoreModel:
             of sites in model)
         """
         self.x = np.array(x)
-        self.Neff_over_L = Neff_over_L
+        self.Neff_over_l = neff_over_l
 
-    def probability(self, x, plot=False):
+    def probability(self, x):
         """
         Calculates evcomplex score as cn_score / min_cn_score.
         TODO: plotting functionality not yet implemented
@@ -703,10 +711,11 @@ class EVComplexScoreModel:
 
         # if we have Neff_over_L, use it to calculate the corrected score
         if self.Neff_over_L:
-            return raw_evcomplex / (1 + math.sqrt(self.Neff_over_L))
+            return raw_evcomplex / (1 + np.power(self.Neff_over_L, -0.5))
 
         # else return the raw score
-        return raw_evcomplex
+        else:
+            return raw_evcomplex
 
 
 def add_mixture_probability(ecs, model="skewnormal", score="cn",

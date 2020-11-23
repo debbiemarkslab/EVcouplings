@@ -10,6 +10,7 @@ Authors:
 import string
 import pandas as pd
 import numpy as np
+from itertools import combinations
 
 from evcouplings.couplings import tools as ct
 from evcouplings.couplings import pairs, mapping
@@ -433,7 +434,7 @@ def standard(**kwargs):
 
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
-                        N_eff=None, num_sites=None, score="cn"):
+                        n_effective=None, num_sites=None, score="cn"):
     """
     Adds confidence measure for complex evolutionary couplings
 
@@ -446,7 +447,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     use_all_ecs : bool, optional (default: False)
         If true, fits the scoring model to all ECs;
         if false, fits the model to only the inter ECs.
-    N_eff : float, optional (default: None)
+    n_effective : float, optional (default: None)
         Effective number of sequences in alignment.
         Used for EVcomplex score calculation
     num_sites : int, optional (default: None)
@@ -461,11 +462,11 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         containing confidence measure
     """
 
-    # if user provided both parameters, calculate Neff/L
-    if N_eff and num_sites:
-        Neff_L = N_eff / num_sites
+    # if user provided both parameters, calculate n_effective / length
+    if n_effective and num_sites:
+        neff_over_l = n_effective / num_sites
     else:
-        Neff_L = None
+        neff_over_l = None
 
     if use_all_ecs:
         # TODO: user proof so that no one runs evcomplex on all ECs?
@@ -479,15 +480,15 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         intra2_ecs = ecs.query("segment_i == segment_j == @SECOND_SEGMENT_NAME")
 
         intra1_ecs = pairs.add_mixture_probability(
-            intra1_ecs, model=scoring_model, score=score, Neff_over_L=Neff_L
+            intra1_ecs, model=scoring_model, score=score, Neff_over_L=neff_over_l
         )
 
         intra2_ecs = pairs.add_mixture_probability(
-            intra2_ecs, model=scoring_model, score=score, Neff_over_L=Neff_L
+            intra2_ecs, model=scoring_model, score=score, Neff_over_L=neff_over_l
         )
 
         inter_ecs = pairs.add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score, Neff_over_L=Neff_L
+            inter_ecs, model=scoring_model, score=score, Neff_over_L=neff_over_l
         )
 
         ecs = pd.concat(
@@ -499,14 +500,33 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     return ecs
 
 
-def segment_aware_ec_enrichment(ecs, outcfg, **kwargs):
+def by_segment_ec_enrichment(ecs, outcfg, **kwargs):
     """
-    calculates EC enrichment in a segment-aware way
     Calculates enrichment within all segments and between all segments.
 
-    calculates intra enrichment (using intra-protein ECs) and inter enrichment
-    (using inter-protein ECs)
+    Calculates within-segment enrichment using intra-protein ECs only and
+    between segment enrichment using inter-protein ECs only.
 
+    Parameters
+    ----------
+    ecs: pd.DataFrame
+        EC table
+    outcfg: dict
+        Output configuration of the pipeline
+    mandatory kwargs arguments:
+        prefix
+
+    Returns
+    -------
+    dict
+        Output configuration of the pipeline, including
+        the following new fields:
+            enrichment_inter_file
+            enrichment_intra_file
+    pd.DataFrame
+        Intra-molecule EC enrichment (all molecules included, indexed by segment)
+    pd.DataFrame
+        Inter-molecule EC enrichment (all molecules included, indexed by segment)
     """
 
     # determine the number of segments in the ECs
@@ -517,47 +537,58 @@ def segment_aware_ec_enrichment(ecs, outcfg, **kwargs):
         ecs.loc[:,"segment_j"] = FIRST_SEGMENT_NAME
 
     # get a list of unique segments
-    segments = list(set(
-        ecs.segment_i.unique()
-    ).union(set(ecs.segment_j.unique())))
+    segments = list(
+        set(ecs.segment_i.unique()).union(
+        set(ecs.segment_j.unique()))
+    )
 
     # Calculate all the intra-segment enrichments
-    all_intra_enrichment = pd.DataFrame()
+    intra_enrichment_dfs = []
     for segment in segments:
-        intra_ecs = ecs.query("segment_i == segment_j == @segment")
-        intra_enrichment = pairs.enrichment(intra_ecs, min_seqdist=kwargs["min_sequence_distance"])
-        intra_enrichment["segment_i"] = segment
+        intra_ecs = ecs.query(
+            "segment_i == segment_j == @segment"
+        )
+        intra_enrichment = pairs.enrichment(
+            intra_ecs, min_seqdist=kwargs["min_sequence_distance"]
+        )
+        intra_enrichment.loc[:,"segment_i"] = segment
 
-        all_intra_enrichment = pd.concat([
-            all_intra_enrichment, intra_enrichment
-        ])
+        intra_enrichment_dfs.append(intra_enrichment)
 
+    all_intra_enrichment = pd.concat(intra_enrichment_dfs)
 
     # Calculate the inter-segment enrichments
-    all_inter_enrichment = pd.DataFrame()
-    for idx,segment1 in enumerate(segments):
-        for segment2 in segments[idx+1::]:
+    inter_enrichment_dfs = []
+    for (segment1, segment2) in combinations(segments, 2):
 
             # Agnostic to ordering of segments
-            inter_ecs1 = ecs.query("segment_i == @segment1 and segment_j == @segment2")
-            inter_ecs2 = ecs.query("segment_i == @segment2 and segment_j == @segment1")
+            inter_ecs1 = ecs.query(
+                "segment_i == @segment1 and segment_j == @segment2"
+            )
+            inter_ecs2 = ecs.query(
+                "segment_i == @segment2 and segment_j == @segment1"
+            )
             inter_ecs = pd.concat([inter_ecs1, inter_ecs2])
 
             # for inter ECs, sequence distance is 0
             inter_enrichment = pairs.enrichment(inter_ecs, min_seqdist=0)
-            all_inter_enrichment = pd.concat([
-                all_inter_enrichment, inter_enrichment
-            ])
+            inter_enrichment_dfs.append(inter_enrichment)
+
+        all_inter_enrichment = pd.concat([inter_enrichment_dfs])
 
     # Save to a file
-    outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(kwargs["prefix"])
+    outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(
+        kwargs["prefix"]
+    )
     all_intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
 
     if len(all_inter_enrichment) > 0:
-        outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(kwargs["prefix"])
+        outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(
+            kwargs["prefix"]
+        )
         inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
 
-    return outcfg
+    return outcfg, all_intra_enrichment, all_inter_enrichment
 
 
 def complex(**kwargs):
@@ -729,7 +760,7 @@ def complex_mean_field(**kwargs):
     #infer ECs with mean field/DCA
 
     # Below here is added material from mean_field protocol:
-    model = prefix+".model"
+    model = prefix + ".model"
 
     outcfg = {
         "model_file": model,
@@ -1183,10 +1214,10 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
     if min_seqdist is None:
         min_seqdist = 0
 
-    ## TODO: need to make segment_aware_ec_enrichment compatible with new enrichment refactoring
+    ## TODO: need to make by_segment_ec_enrichment compatible with new enrichment refactoring
     ## TODO: MAKE SURE this computes all needed output files - discrepancy with new release as of Oct 2020
     # enrichment refactoring
-    outcfg, intra_ecs_enriched = segment_aware_ec_enrichment(ecs, outcfg, **kwargs)
+    outcfg, intra_ecs_enriched, _ = by_segment_ec_enrichment(ecs, outcfg, **kwargs)
     intra_ecs_enriched.to_csv(ext_outcfg["enrichment_file"], index=False)
 
     for segment, ecs_enriched in intra_ecs_enriched.groupby("segment_i"):
