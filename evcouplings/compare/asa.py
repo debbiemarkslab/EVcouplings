@@ -1,8 +1,8 @@
 import pandas as pd
-from evcouplings.utils.system import run, verify_resources, valid_file
-from Bio.PDB import make_dssp_dict
-import ruamel.yaml as yaml
 import numpy as np
+from evcouplings.utils.system import verify_resources, valid_file
+from evcouplings.compare.tools import run_dssp
+from Bio.PDB import make_dssp_dict
 
 # Amino acid surface area values from Tien et al, 2013 (empirical values)
 AA_SURFACE_AREA = {
@@ -28,37 +28,6 @@ AA_SURFACE_AREA = {
     "V": 165,
     "X": np.nan
 }
-
-# run dssp
-
-def run_dssp(binary, infile, outfile):
-    """
-    Runs DSSP on an input pdb file
-
-    Parameters
-    ----------
-    binary: str
-        path to DSSP binary
-    infile: str
-        path to input file
-    outfile: str
-        path to output file
-    """
-    cmd = [
-        binary,
-        "-i", infile,
-        "-o", outfile
-    ]
-    return_code, stdout, stderr = run(cmd)
-
-    verify_resources(
-        "DSSP returned empty file: "
-        "stdout={} stderr={} file={}".format(
-            stdout, stderr, outfile
-        ),
-        outfile
-    )
-
 
 def read_dssp_output(filename):
     """
