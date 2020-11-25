@@ -574,7 +574,7 @@ def by_segment_ec_enrichment(ecs, outcfg, **kwargs):
             inter_enrichment = pairs.enrichment(inter_ecs, min_seqdist=0)
             inter_enrichment_dfs.append(inter_enrichment)
 
-        all_inter_enrichment = pd.concat([inter_enrichment_dfs])
+    all_inter_enrichment = pd.concat([inter_enrichment_dfs])
 
     # Save to a file
     outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(
