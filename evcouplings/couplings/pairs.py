@@ -672,7 +672,7 @@ class EVComplexScoreModel:
     score normalization for the number of sequences and length of
     the model
     """
-    def __init__(self, x, neff_over_l=None):
+    def __init__(self, x, Neff_over_L=None):
         """
         Initialize EVcomplex score model
         
@@ -685,7 +685,7 @@ class EVComplexScoreModel:
             of sites in model)
         """
         self.x = np.array(x)
-        self.Neff_over_l = neff_over_l
+        self.Neff_over_L = Neff_over_L
 
     def probability(self, x):
         """
@@ -776,7 +776,7 @@ def add_mixture_probability(ecs, model="skewnormal", score="cn",
 
     # assign probability
     ec_prob.loc[:, "probability"] = mm.probability(
-        ec_prob.loc[:, score].values, plot=plot
+        ec_prob.loc[:, score].values
     )
 
     return ec_prob
