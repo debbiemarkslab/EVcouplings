@@ -1367,7 +1367,7 @@ def complex(**kwargs):
                     ecs_inter, d_inter, dist_map_multimer=None,
                     dist_cutoff=kwargs["distance_cutoff"],
                     output_file=None,
-                    min_sequence_dist=None  # does not apply for inter-protein ECs
+                    min_sequence_dist=None # does not apply for inter-protein ECs
                 )
             else:
                 ecs_inter_compared = ecs_inter.assign(dist=np.nan)
@@ -1391,7 +1391,8 @@ def complex(**kwargs):
             # TODO: implement different cutoffs for intra vs inter contacts
             ec_table_compared = add_precision(
                 ec_table_compared,
-                dist_cutoff=kwargs["distance_cutoff"]
+                dist_cutoff=kwargs["distance_cutoff"],
+                min_sequence_dist=min_seq_dist
             )
 
             # save to file
@@ -1459,7 +1460,7 @@ def complex(**kwargs):
         ecs = ecs.query("segment_i != segment_j")
         mean_ec = ecs.cn.mean()
         std_ec = ecs.cn.std()
-        ecs["Z_score"] = (ecs.cn - mean_ec) / std_ec
+        ecs.assign(Z_score = (ecs.cn - mean_ec) / std_ec)
 
         # get only the top 100 inter ECs
         ecs = ecs[0:100]
@@ -1547,51 +1548,50 @@ def complex(**kwargs):
     else:
         _calibration_file(prefix, kwargs["ec_longrange_file"], outcfg)
 
-    # If calibration file was correctly computed
+    # # If calibration file was correctly computed
     if valid_file(outcfg["calibration_file"]):
         calibration_ecs = pd.read_csv(outcfg["calibration_file"],index_col=0)
 
-        # Fit the structure free model file
-        calibration_ecs = fit_model(
-            calibration_ecs,
-            kwargs["structurefree_model_file"],
-            X_STRUCFREE,
-            "residue_prediction_strucfree"
-        )
-
-        # Fit the structure aware model prediction file
-        calibration_ecs = fit_model(
-            calibration_ecs,
-            kwargs["structureaware_model_file"],
-            X_STRUCAWARE,
-            "residue_prediction_strucaware"
-        )
-
-        # Fit the structure free complex model
-        calibration_ecs = fit_complex_model(
-            calibration_ecs,
-            kwargs["complex_strucfree_model_file"],
-            kwargs["complex_strucfree_scaler_file"],
-            "residue_prediction_strucfree",
-            "complex_prediction_strucfree",
-            X_COMPLEX_STRUCFREE
-        )
-
-        # Fit the structure aware complex model
-        calibration_ecs = fit_complex_model(
-            calibration_ecs,
-            kwargs["complex_strucaware_model_file"],
-            kwargs["complex_strucaware_scaler_file"],
-            "residue_prediction_strucaware",
-            "complex_prediction_strucaware",
-            X_COMPLEX_STRUCAWARE
-        )
-
+    #     # Fit the structure free model file
+    #     calibration_ecs = fit_model(
+    #         calibration_ecs,
+    #         kwargs["structurefree_model_file"],
+    #         X_STRUCFREE,
+    #         "residue_prediction_strucfree"
+    #     )
+    #
+    #     # Fit the structure aware model prediction file
+    #     calibration_ecs = fit_model(
+    #         calibration_ecs,
+    #         kwargs["structureaware_model_file"],
+    #         X_STRUCAWARE,
+    #         "residue_prediction_strucaware"
+    #     )
+    #
+    #     # Fit the structure free complex model
+    #     calibration_ecs = fit_complex_model(
+    #         calibration_ecs,
+    #         kwargs["complex_strucfree_model_file"],
+    #         kwargs["complex_strucfree_scaler_file"],
+    #         "residue_prediction_strucfree",
+    #         "complex_prediction_strucfree",
+    #         X_COMPLEX_STRUCFREE
+    #     )
+    #
+    #     # Fit the structure aware complex model
+    #     calibration_ecs = fit_complex_model(
+    #         calibration_ecs,
+    #         kwargs["complex_strucaware_model_file"],
+    #         kwargs["complex_strucaware_scaler_file"],
+    #         "residue_prediction_strucaware",
+    #         "complex_prediction_strucaware",
+    #         X_COMPLEX_STRUCAWARE
+    #     )
+    #
         outcfg["inter_ecs_model_prediction_file"] = prefix +"_CouplingScores_inter_prediction.csv"
         calibration_ecs[[
             "inter_relative_rank_longrange", "i", "A_i", "j", "A_j",
-            "segment_i", "segment_j", "cn", "dist", "precision",  "residue_prediction_strucaware", "residue_prediction_strucfree",
-            "complex_prediction_strucaware", "complex_prediction_strucfree", "Z_score", "asa_min", "conservation_max",
+            "segment_i", "segment_j", "cn", "dist", "precision",  "Z_score", "asa_min", "conservation_max",
             "f_hydrophilicity"
         ]].to_csv(outcfg["inter_ecs_model_prediction_file"])
 
