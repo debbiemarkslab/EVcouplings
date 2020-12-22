@@ -702,64 +702,42 @@ def complex(**kwargs):
 
     return outcfg
 
-def complex_mean_field(**kwargs):
+
+def infer_mean_field(**kwargs):
     """
-    Protocol:
+   Run EC computation on alignment. This function contains
+   the functionality shared between monomer and complex EC
+   inference.
 
-    Infer ECs for protein complexes from alignment using mean field.
-    Allows user to select scoring protocol.
+   Parameters
+   ----------
+   Mandatory kwargs arguments:
+       See list below in code where calling check_required
 
-    For now, mean field DCA can only be run in focus mode, gaps
-    included.
+   Returns
+   -------
+   outcfg : dict
+       Output configuration of the pipeline, including
+       the following fields:
 
-    Parameters
-    ----------
-    Mandatory kwargs arguments:
-        See list below in code where calling check_required.
+       raw_ec_file
+       model_file
+       num_sites
+       num_valid_sequences
+       effective_sequences
 
-    Returns
-    -------
-    outcfg : dict
-        Output configuration of the pipeline, including
-        the following fields:
+       focus_mode (passed through)
+       focus_sequence (passed through)
+       segments (passed through)
 
-        raw_ec_file
-        model_file
-        num_sites
-        num_sequences
-        effective_sequences
-
-        focus_mode (passed through)
-        focus_sequence (passed through)
-        segments (passed through)
-    """
-    # for additional required parameters, see mean field info
-    check_required(
-        kwargs,
-        [
-            "prefix", "min_sequence_distance",
-            "scoring_model", "use_all_ecs_for_scoring",
-            "alignment_file","segments","focus_mode",
-            "focus_sequence","theta","pseudo_count",
-            "alphabet"
-        ]
-    )
-
+   """
     if not kwargs["focus_mode"]:
         raise InvalidParameterError(
             "For now, mean field DCA can only be run in focus mode."
         )
 
-
     prefix = kwargs["prefix"]
 
-    # infer ECs and load them with plmc
-    #outcfg, ecs, segments = infer_plmc(**kwargs)
-    #model = CouplingsModel(outcfg["model_file"])
-
-    #infer ECs with mean field/DCA
-
-    # Below here is added material from mean_field protocol:
     model = prefix + ".model"
 
     outcfg = {
@@ -780,240 +758,6 @@ def complex_mean_field(**kwargs):
 
     # make sure output directory exists
     create_prefix_folders(prefix)
-    segments = kwargs["segments"]
-    if segments is not None:
-        segments = [
-            mapping.Segment.from_list(s) for s in segments
-        ]
-
-    # determine alphabet, default is protein
-    if kwargs["alphabet"] is None:
-        alphabet = ALPHABET_PROTEIN
-    else:
-        alphabet = kwargs["alphabet"]
-
-        # allow shortcuts for protein, DNA, RNA
-        if alphabet in ALPHABET_MAP:
-            alphabet = ALPHABET_MAP[alphabet]
-
-    # read in a2m alignment
-    with open(alignment_file) as f:
-        input_alignment = Alignment.from_file(
-            f, alphabet=alphabet,
-            format="fasta"
-        )
-
-    # init mean field DCA
-    mf_dca = MeanFieldDCA(input_alignment)
-
-    # run mean field approximation
-    model = mf_dca.fit(
-        theta=kwargs["theta"],
-        pseudo_count=kwargs["pseudo_count"]
-    )
-
-    # write ECs to file
-    model.to_raw_ec_file(
-        outcfg["raw_ec_file"]
-    )
-
-
-
-    # store useful information about model in outcfg
-    outcfg.update({
-        "num_sites": model.L,
-        "num_valid_sequences": model.N_valid,
-        "effective_sequences": float(round(model.N_eff, 1)),
-        #"region_start": int(model.index_list[0]),
-    })
-
-    ecs = pairs.read_raw_ec_file(outcfg["raw_ec_file"])
-
-    if segments is not None:
-        # create index mapping
-        seg_mapper = mapping.SegmentIndexMapper(
-            # kwargs["focus_mode"], outcfg["region_start"], *segments
-            kwargs["focus_mode"], kwargs["region_start"], *segments
-        )
-
-        # apply to EC table
-        ecs = mapping.segment_map_ecs(ecs,seg_mapper)
-
-
-
-    # Add dummy probability value for downstream code
-    #ecs.loc[:,"probability"] = np.nan
-
-    # write model file
-    #if outcfg["model_file"] is not None:
-    #    model.to_file(
-    #       outcfg["model_file"],
-    #        file_format="plmc_v2"
-    #    )
-
-    ###### End added material
-
-    ## Add in segment_i, segment_j, and write ec file
-
-    # following computations are mostly specific to complex pipeline
-
-    # add mixture model probability
-    if kwargs["scoring_model"] in SCORING_MODELS:
-        if kwargs["use_all_ecs_for_scoring"] is not None:
-            use_all_ecs = kwargs["use_all_ecs_for_scoring"]
-        else:
-            use_all_ecs = False
-
-        ecs = complex_probability(
-            ecs, kwargs["scoring_model"], use_all_ecs
-        )
-
-    else:
-        raise InvalidParameterError(
-            "Invalid scoring_model parameter: " +
-            "{}. Valid options are: {}".format(
-                kwargs["protocol"], ", ".join(SCORING_MODELS)
-            )
-        )
-
-    # also create line-drawing script (for multiple chains)
-    # by convention, we map first segment to chain A,
-    # second to B, a.s.f.
-    chain_mapping = dict(
-        zip(
-            [s.segment_id for s in segments],
-            string.ascii_uppercase,
-        )
-    )
-
-    is_single_segment = segments is None or len(segments) == 1
-    outcfg = {
-        **outcfg,
-        **_postprocess_inference(
-            ecs, kwargs, model, outcfg, prefix,
-            generate_line_plot=is_single_segment,
-            generate_enrichment=is_single_segment,
-            ec_filter="segment_i != segment_j or abs(i - j) >= {}",
-            chain=chain_mapping
-        )
-    }
-
-    # save just the inter protein ECs
-    ## TODO: eventually have this accomplished by _postprocess_inference
-    ## right now avoiding a second call with a different ec_filter
-    ecs = pd.read_csv(outcfg["ec_file"])
-    outcfg["inter_ec_file"] = prefix + "_CouplingScores_inter.csv"
-    inter_ecs = ecs.query("segment_i != segment_j")
-    inter_ecs.to_csv(outcfg["inter_ec_file"], index=False)
-
-    # dump output config to YAML file for debugging/logging
-    write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
-
-    # TODO: make the following complex-ready
-    # EC enrichment:
-    #
-    # 1) think about making EC enrichment complex-ready and add
-    # it back here - so far it only makes sense if all ECs are
-    # on one segment
-    #
-    # EVzoom:
-    #
-    # 1) at the moment, EVzoom will use numbering before remapping
-    # we should eventually get this to a point where segments + residue
-    # index are displayed on EVzoom
-    #
-    # 2) note that this will currently use the default mixture model
-    # selection for determining the EC cutoff, rather than the selection
-    # used for the EC table above
-
-    return outcfg
-
-
-
-
-def mean_field(**kwargs):
-    """
-    Protocol:
-
-    Infer ECs from alignment using mean field direct coupling analysis.
-
-    For now, mean field DCA can only be run in focus mode, gaps
-    included.
-
-    Parameters
-    ----------
-    Mandatory kwargs arguments:
-        See list below in code where calling check_required.
-
-    Returns
-    -------
-    outcfg : dict
-        Output configuration of the pipeline, including
-        the following fields:
-
-        * raw_ec_file
-        * model_file
-        * num_sites
-        * num_sequences
-        * effective_sequences
-
-        * focus_mode (passed through)
-        * focus_sequence (passed through)
-        * segments (passed through)
-    """
-    check_required(
-        kwargs,
-        [
-            "prefix", "alignment_file", "segments",
-            "focus_mode", "focus_sequence", "theta",
-            "pseudo_count", "alphabet",
-            "min_sequence_distance", # "save_model",
-            "ec_score_type",
-        ]
-    )
-
-    if not kwargs["focus_mode"]:
-        raise InvalidParameterError(
-            "For now, mean field DCA can only be run in focus mode."
-        )
-
-    prefix = kwargs["prefix"]
-
-    # option to save model disabled
-    """
-    if kwargs["save_model"]:
-        model = prefix + ".model"
-    else:
-        model = None
-    """
-    model = prefix + ".model"
-
-    outcfg = {
-        "model_file": model,
-        "raw_ec_file": prefix + "_ECs.txt",
-        "ec_file": prefix + "_CouplingScores.csv",
-        # TODO: the following are passed through stage...
-        # keep this or unnecessary?
-        "focus_mode": kwargs["focus_mode"],
-        "focus_sequence": kwargs["focus_sequence"],
-        "segments": kwargs["segments"],
-    }
-
-    # make sure input alignment exists
-    alignment_file = kwargs["alignment_file"]
-    verify_resources(
-        "Input alignment does not exist",
-        kwargs["alignment_file"]
-    )
-
-    # make sure output directory exists
-    create_prefix_folders(prefix)
-
-    segments = kwargs["segments"]
-    if segments is not None:
-        segments = [
-            mapping.Segment.from_list(s) for s in segments
-        ]
 
     # determine alphabet
     # default is protein
@@ -1061,6 +805,192 @@ def mean_field(**kwargs):
         "effective_sequences": float(round(model.N_eff, 1)),
         "region_start": int(model.index_list[0]),
     })
+
+    return outcfg, segments
+
+
+def complex_mean_field(**kwargs):
+    """
+    Protocol:
+
+    Infer ECs for protein complexes from alignment using mean field.
+    Allows user to select scoring protocol.
+
+    For now, mean field DCA can only be run in focus mode, gaps
+    included.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required.
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        raw_ec_file
+        model_file
+        num_sites
+        num_sequences
+        effective_sequences
+
+        focus_mode (passed through)
+        focus_sequence (passed through)
+        segments (passed through)
+    """
+    # for additional required parameters, see mean field info
+    check_required(
+        kwargs,
+        [
+            "prefix", "min_sequence_distance",
+            "scoring_model", "use_all_ecs_for_scoring",
+            "alignment_file","segments","focus_mode",
+            "focus_sequence","theta","pseudo_count",
+            "alphabet"
+        ]
+    )
+
+    # Run the mean field inference
+    outcfg = infer_mean_field(**kwargs)
+
+    prefix = kwargs["prefix"]
+
+    # read and sort ECs
+    # Note: this now deviates from the original EC format
+    # file because it has 4 score columns to accomodate
+    # MI (raw), MI (APC-corrected), DI, CN;
+    ecs = pd.read_csv(
+        outcfg["raw_ec_file"], sep=" ",
+        names=["i", "A_i", "j", "A_j", "mi_raw", "mi_apc", "di", "cn"]
+    )
+
+    # If the ECs have segments, remap
+    segments = kwargs["segments"]
+    if segments is not None:
+        segments = [
+            mapping.Segment.from_list(s) for s in segments
+        ]
+
+        seg_mapper = mapping.SegmentIndexMapper(
+            kwargs["focus_mode"], kwargs["region_start"], *segments
+        )
+
+        # apply to EC table
+        ecs = mapping.segment_map_ecs(ecs,seg_mapper)
+
+    # add mixture model probability
+    if kwargs["scoring_model"] in SCORING_MODELS:
+        if kwargs["use_all_ecs_for_scoring"] is not None:
+            use_all_ecs = kwargs["use_all_ecs_for_scoring"]
+        else:
+            use_all_ecs = False
+
+        ecs = complex_probability(
+            ecs, kwargs["scoring_model"], use_all_ecs
+        )
+
+    else:
+        raise InvalidParameterError(
+            "Invalid scoring_model parameter: " +
+            "{}. Valid options are: {}".format(
+                kwargs["protocol"], ", ".join(SCORING_MODELS)
+            )
+        )
+
+    # create line-drawing script (for multiple chains)
+    # by convention, we map first segment to chain A,
+    # second to B, a.s.f.
+    chain_mapping = dict(
+        zip(
+            [s.segment_id for s in segments],
+            string.ascii_uppercase,
+        )
+    )
+
+    is_single_segment = segments is None or len(segments) == 1
+    outcfg = {
+        **outcfg,
+        **_postprocess_inference(
+            ecs, kwargs, model, outcfg, prefix,
+            generate_line_plot=is_single_segment,
+            generate_enrichment=is_single_segment,
+            ec_filter="segment_i != segment_j or abs(i - j) >= {}",
+            chain=chain_mapping
+        )
+    }
+
+    # save just the inter protein ECs
+    ## TODO: eventually have this accomplished by _postprocess_inference
+    ## right now avoiding a second call with a different ec_filter
+    ecs = pd.read_csv(outcfg["ec_file"])
+    outcfg["inter_ec_file"] = prefix + "_CouplingScores_inter.csv"
+    inter_ecs = ecs.query("segment_i != segment_j")
+    inter_ecs.to_csv(outcfg["inter_ec_file"], index=False)
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
+
+    # TODO: make the following complex-ready
+    #
+    # EVzoom:
+    #
+    # 1) at the moment, EVzoom will use numbering before remapping
+    # we should eventually get this to a point where segments + residue
+    # index are displayed on EVzoom
+    #
+    # 2) note that this will currently use the default mixture model
+    # selection for determining the EC cutoff, rather than the selection
+    # used for the EC table above
+
+    return outcfg
+
+
+def mean_field(**kwargs):
+    """
+    Protocol:
+
+    Infer ECs from alignment using mean field direct coupling analysis.
+
+    For now, mean field DCA can only be run in focus mode, gaps
+    included.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required.
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        * raw_ec_file
+        * model_file
+        * num_sites
+        * num_sequences
+        * effective_sequences
+
+        * focus_mode (passed through)
+        * focus_sequence (passed through)
+        * segments (passed through)
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "alignment_file", "segments",
+            "focus_mode", "focus_sequence", "theta",
+            "pseudo_count", "alphabet",
+            "min_sequence_distance", # "save_model",
+            "ec_score_type",
+        ]
+    )
+
+
+
+    outcfg = infer_mean_field(**kwargs)
 
     # read and sort ECs
     # Note: this now deviates from the original EC format
