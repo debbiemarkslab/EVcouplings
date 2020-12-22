@@ -20,6 +20,13 @@ def read_dssp_output(filename):
         Representing residue number, identity, and accesisble surface area
     """
 
+    if not valid_file(filename):
+        return pd.DataFrame({
+            "i": [],
+            "res": [],
+            "asa": []
+        })
+
     dssp_dict, _ = make_dssp_dict(filename)
     data = []
     for key, value in dssp_dict.items():
@@ -87,7 +94,7 @@ def asa_run(pdb_file, dssp_output_file, rsa_output_file, dssp_binary):
         pdb_file
     )
 
-    run_dssp(dssp_binary, pdb_file, dssp_output_file)
+    run_dssp(pdb_file, dssp_output_file, dssp_binary)
 
     d = read_dssp_output(dssp_output_file)
     d = calculate_rsa(d, AA_SURFACE_AREA)
@@ -117,7 +124,7 @@ def combine_asa(remapped_pdb_files, dssp_binary, outcfg):
             "mean": [],
             "max": [],
             "min": []
-        }, index=[0])
+        }), outcfg
 
     # run dssp for each remapped_pdb_file
     d_list = []
@@ -132,13 +139,14 @@ def combine_asa(remapped_pdb_files, dssp_binary, outcfg):
             d = asa_run(file, dssp_output_file, rsa_output_file, dssp_binary)
 
             # add information to combined dataframe
-            d_list = d_list.append(d)
+            d_list.append(d)
 
             # save the output files
             outcfg["dssp_output_files"].append(dssp_output_file)
             outcfg["rsa_output_files"].append(rsa_output_file)
 
-    data = pd.DataFrame(d_list, columns=["i", "res", "asa", "rsa"])
+    #print(d_list)
+    data = pd.concat(d_list)
 
     # group the dataframe of RSA by residue
     means = data.groupby("i").rsa.mean()

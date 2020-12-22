@@ -27,12 +27,12 @@ def run_dssp(infile, outfile, binary="dssp"):
         "-i", infile,
         "-o", outfile
     ]
-    return_code, stdout, stderr = run(cmd)
+    return_code, stdout, stderr = run(cmd, check_returncode=False)
 
-    verify_resources(
-        "DSSP returned empty file: "
-        "stdout={} stderr={} file={}".format(
-            stdout, stderr, outfile
-        ),
-        outfile
-    )
+    # verify_resources(
+    #     "DSSP returned empty file: "
+    #     "stdout={} stderr={} file={}".format(
+    #         stdout, stderr, outfile
+    #     ),
+    #     outfile
+    # )
