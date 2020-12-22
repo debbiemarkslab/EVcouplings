@@ -574,7 +574,7 @@ def by_segment_ec_enrichment(ecs, outcfg, **kwargs):
             inter_enrichment = pairs.enrichment(inter_ecs, min_seqdist=0)
             inter_enrichment_dfs.append(inter_enrichment)
 
-    all_inter_enrichment = pd.concat([inter_enrichment_dfs])
+    all_inter_enrichment = pd.concat(inter_enrichment_dfs)
 
     # Save to a file
     outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(
@@ -1207,8 +1207,6 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
 
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
-    if generate_enrichment:
-        ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
 
     min_seqdist = kwargs["min_sequence_distance"]
     if min_seqdist is None:
@@ -1218,6 +1216,7 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
     ## TODO: MAKE SURE this computes all needed output files - discrepancy with new release as of Oct 2020
     # enrichment refactoring
     outcfg, intra_ecs_enriched, _ = by_segment_ec_enrichment(ecs, outcfg, **kwargs)
+    ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
     intra_ecs_enriched.to_csv(ext_outcfg["enrichment_file"], index=False)
 
     for segment, ecs_enriched in intra_ecs_enriched.groupby("segment_i"):
