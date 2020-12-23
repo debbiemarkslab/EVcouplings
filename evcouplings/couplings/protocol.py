@@ -666,12 +666,13 @@ def complex(**kwargs):
         )
     )
 
+    is_single_segment = segments is None or len(segments) == 1
     outcfg = {
         **outcfg,
         **_postprocess_inference(
             ecs, kwargs, model, outcfg, prefix,
-            generate_line_plot=True,
-            generate_enrichment=False,
+            generate_line_plot=is_single_segment,
+            generate_enrichment=is_single_segment,
             ec_filter="segment_i != segment_j or abs(i - j) >= {}",
             chain=chain_mapping
         )
@@ -705,9 +706,9 @@ def complex(**kwargs):
 
 def infer_mean_field(**kwargs):
     """
-   Run EC computation on alignment. This function contains
-   the functionality shared between monomer and complex EC
-   inference.
+   Run mean field EC computation on alignment. This function
+   contains the functionality shared between monomer and complex
+   EC inference.
 
    Parameters
    ----------
@@ -806,7 +807,7 @@ def infer_mean_field(**kwargs):
         "region_start": int(model.index_list[0]),
     })
 
-    return outcfg, segments
+    return outcfg, model
 
 
 def complex_mean_field(**kwargs):
@@ -853,8 +854,7 @@ def complex_mean_field(**kwargs):
     )
 
     # Run the mean field inference
-    outcfg = infer_mean_field(**kwargs)
-
+    outcfg, model = infer_mean_field(**kwargs)
     prefix = kwargs["prefix"]
 
     # read and sort ECs
@@ -933,7 +933,6 @@ def complex_mean_field(**kwargs):
     write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
 
     # TODO: make the following complex-ready
-    #
     # EVzoom:
     #
     # 1) at the moment, EVzoom will use numbering before remapping
@@ -988,9 +987,14 @@ def mean_field(**kwargs):
         ]
     )
 
+    outcfg, model = infer_mean_field(**kwargs)
 
-
-    outcfg = infer_mean_field(**kwargs)
+    # establish segments for model
+    segments = kwargs["segments"]
+    if segments is not None:
+        segments = [
+            mapping.Segment.from_list(s) for s in segments
+        ]
 
     # read and sort ECs
     # Note: this now deviates from the original EC format
