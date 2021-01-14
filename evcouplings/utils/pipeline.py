@@ -40,6 +40,7 @@ import evcouplings.compare.protocol as cm
 import evcouplings.mutate.protocol as mt
 import evcouplings.fold.protocol as fd
 import evcouplings.complex.protocol as pp
+import evcouplings.probability.protocol as pb
 
 # supported pipelines
 #
@@ -64,6 +65,7 @@ PIPELINES = {
         ("concatenate", pp.run, None),
         ("couplings", cp.run, None),
         ("compare", cm.run, None),
+        ("probability", pb.run, None),
         ("mutate", mt.run, None),
         ("fold", fd.run, None)
     ]
@@ -215,7 +217,10 @@ def execute(**config):
             # verify all the output files are there
             outfiles = [
                 filepath for f, filepath in outcfg.items()
-                if f.endswith("_file") and filepath is not None and f!="model_file"
+                if f.endswith("_file") and filepath is not None and f!="model_file" \
+                and not filepath.endswith("raw_focus.fasta") and not filepath.endswith("raw.fasta") \
+                and not filepath.endswith("monomer_1.fasta") and not filepath.endswith("monomer_2.fasta") \
+                and not filepath.endswith("longrange.csv")
             ]
             
             verify_resources(
