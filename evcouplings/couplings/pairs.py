@@ -668,9 +668,6 @@ class EVComplexScoreModel:
     Assign to each EC score a (unnormalized) EVcomplex score as
     described in Hopf, Schärfe et al. (2014).
 
-    TODO: this implementation currently does not take into account
-    score normalization for the number of sequences and length of
-    the model
     """
     def __init__(self, x, Neff_over_L=None):
         """

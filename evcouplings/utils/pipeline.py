@@ -220,7 +220,8 @@ def execute(**config):
                 if f.endswith("_file") and filepath is not None and f!="model_file" \
                 and not filepath.endswith("raw_focus.fasta") and not filepath.endswith("raw.fasta") \
                 and not filepath.endswith("monomer_1.fasta") and not filepath.endswith("monomer_2.fasta") \
-                and not filepath.endswith("longrange.csv")
+                and not filepath.endswith("longrange.csv") and not filepath.endswith("_ECs.txt") \
+                and not filepath.endswith(".pml") and not filepath.endswith("json")
             ]
             
             verify_resources(

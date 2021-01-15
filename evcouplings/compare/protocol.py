@@ -22,7 +22,7 @@ from evcouplings.utils.config import (
 from evcouplings.utils.system import (
     create_prefix_folders, insert_dir, verify_resources, valid_file
 )
-from evcouplings.couplings import Segment, add_mixture_probability, enrichment
+from evcouplings.couplings import Segment
 from evcouplings.compare.pdb import load_structures
 from evcouplings.compare.distances import (
     intra_dists, multimer_dists, remap_chains,
@@ -33,10 +33,6 @@ from evcouplings.compare.ecs import (
     coupling_scores_compared, add_precision
 )
 from evcouplings.visualize import pairs, misc
-from evcouplings.compare.asa import combine_asa, add_asa
-
-from evcouplings.align import ALPHABET_PROTEIN
-from evcouplings.utils.constants import HYDROPATHY_INDEX
 
 SIFTS_TABLE_FORMAT_STR = "{pdb_id}:{pdb_chain} ({coord_start}-{coord_end})"
 
@@ -115,114 +111,9 @@ def print_pdb_structure_info(sifts_result, format_string=SIFTS_TABLE_FORMAT_STR,
         **text_kwargs
     )
 
-X_STRUCFREE = [
-    "Z_score",
-    "conservation_max",
-    "f_hydrophilicity",
-    "intra_enrich_max",
-    "inter_relative_rank_longrange"
-
-]
-X_STRUCAWARE = [
-    "Z_score",
-    "asa_min",
-    "precision",
-    "conservation_max",
-    "intra_enrich_max",
-    "inter_relative_rank_longrange",
-    "f_hydrophilicity"
-]
-
-X_COMPLEX_STRUCFREE = [0, 2]
-
-X_COMPLEX_STRUCAWARE = [0, 1, 4, 6]
-
-def fit_model(data, model_file, X, column_name):
-    """
-    Fits a model to predict p(residue interaction)
-
-    data: pd.DataFrame
-        has columns X used as features in model
-    model_file: str
-        path to file containing joblib dumped model (here, an sklearn logistic regression)
-    X: list of str
-        the columns to be input as features to the model. N.B., MUST be in the same order
-        as when the model was originally fit
-    column_name: str
-        name of column to create
-
-    Returns
-        pd.DataFrame of ECs with new column column_name containing the fit model,
-        or np.nan if the model could not be fit due to missing data
-    """
-
-    model = joblib.load(model_file)
-
-    # the default score is np.nan
-    data[column_name] = np.nan
-
-    # if any of the needed columns are missing, return data
-    for col in X:
-        if not col in data.columns:
-            return data
-
-    # drop rows with missing info
-    subset_data = data.dropna(subset=X)
-    if len(subset_data) == 0:
-        return data
-
-    X_var = subset_data[X]
-    predicted = model.predict_proba(X_var)[:,1]
-
-    # make prediction and save to correct row
-    data.loc[subset_data.index, column_name] = predicted
-
-    return data
-
-def fit_complex_model(ecs, model_file, scaler_file, residue_score_column, output_column, scores_to_use):
-    """
-    Fits a model to predict p(protein interaction)
-
-    data: pd.DataFrame
-        has columns X used as features in model
-    model_file: str
-        path to file containing joblib dumped model (here, an sklearn logistic regression)
-    scaler_file: str
-        path to file containing joblib dumped Scaler object
-    residue_score_column: str
-        a column name in data to be used as input to model
-    output_column: str
-        name of column to create
-    scores_to_use: list of int
-        name of column to create
-
-    Returns
-        pd.DataFrame of ECs with new column column_name containing the fit model,
-        or np.nan if the model could not be fit due to missing data
-    """
-    #load the model and scaler
-    model = joblib.load(model_file)
-    scaler = joblib.load(scaler_file)
-
-    # sort by the residue score column, and take the instances input
-    ecs = ecs.sort_values(residue_score_column, ascending=False)
-    X = list(ecs[residue_score_column].iloc[scores_to_use]) + \
-            [ecs.inter_relative_rank_longrange.min()]
-
-    # reshape and clean the data
-    X = np.array(X).astype(float)
-    X = X.transpose()
-    X = np.array(X).reshape(1, -1)
-    X = np.nan_to_num(X)
-
-    # transform with the scaler
-    X = scaler.transform(X)
-
-    ecs.loc[:,output_column]=model.predict_proba(X)[:,1]
-    return ecs
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
-                        score="cn", N_effL=None):
+                        score="cn", Neff_over_L=None):
     """
     Adds confidence measure for complex evolutionary couplings
 
@@ -254,12 +145,10 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         inter_ecs = ecs.query("segment_i != segment_j")
         intra_ecs = ecs.query("segment_i == segment_j")
 
-        intra_ecs = add_mixture_probability(
-            intra_ecs, model=scoring_model, score=score, N_effL=N_effL
-        )
+        intra_ecs.assign(scoring_model = np.nan)
 
         inter_ecs = add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score, N_effL=N_effL
+            inter_ecs, model=scoring_model, score=score, Neff_over_L=Neff_over_L
         )
 
         ecs = pd.concat(
@@ -535,44 +424,12 @@ def _make_contact_maps(ec_table, d_intra, d_multimer, sifts_map, **kwargs):
     # give back list of all contact map file names
     return cm_files
 
-
-def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
-                               d_intra_j, d_multimer_j,
-                               d_inter, first_segment_name,
-                               second_segment_name, inter_ecs_model_prediction_file, **kwargs):
-    """
-    Plot contact maps with all ECs above a certain probability threshold,
-    or a given count of ECs
-
-    Parameters
-    ----------
-    ec_table : pandas.DataFrame
-        Full set of evolutionary couplings (all pairs)
-    d_intra_i, d_intra_j: DistanceMap
-        Computed residue-residue distances within chains for
-        monomers i and j
-    d_multimer_i, d_multimer_j : DistanceMap
-        Computed residue-residue distances between homomultimeric
-        chains for monomers i and j
-    d_inter: DistanceMap
-        Computed residue-residue distances between heteromultimeric
-        chains i and j
-    first_segment_name, second_segment_name: str
-        Name of segment i and segment j in the ec_table
-    **kwargs
-        Further plotting parameters, see check_required in code
-        for necessary values.
-
-    Returns
-    -------
-    cm_files : list(str)
-        Paths of generated contact map files
-    """
-
-    def plot_complex_cm(ecs_i, ecs_j, ecs_inter,
-                        first_segment_name,
-                        second_segment_name,
-                         output_file=None):
+def plot_complex_cm(ecs_i, ecs_j, ecs_inter,
+                        d_intra_i, d_multimer_i,
+                        d_intra_j, d_multimer_j,
+                        d_inter, first_segment_name,
+                        second_segment_name, output_file,
+                        **kwargs):
         """
         Simple wrapper for contact map plotting
         """
@@ -595,7 +452,7 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 if len(ecs_inter) == 0:
                     ecs_inter = None
 
-            # Currently, we require at least one of the monomer
+                    # Currently, we require at least one of the monomer
             # to have either ECs or distances in order to make a plot
             if ((ecs_i is None or ecs_i.empty) and d_intra_i is None and d_multimer_i is None) \
                     or ((ecs_j is None or ecs_j.empty) and d_intra_j is None and d_multimer_j is None):
@@ -632,6 +489,40 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 plt.close(fig)
 
             return True
+
+
+def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
+                               d_intra_j, d_multimer_j,
+                               d_inter, first_segment_name,
+                               second_segment_name,  **kwargs):
+    """
+    Plot contact maps with all ECs above a certain probability threshold,
+    or a given count of ECs
+
+    Parameters
+    ----------
+    ec_table : pandas.DataFrame
+        Full set of evolutionary couplings (all pairs)
+    d_intra_i, d_intra_j: DistanceMap
+        Computed residue-residue distances within chains for
+        monomers i and j
+    d_multimer_i, d_multimer_j : DistanceMap
+        Computed residue-residue distances between homomultimeric
+        chains for monomers i and j
+    d_inter: DistanceMap
+        Computed residue-residue distances between heteromultimeric
+        chains i and j
+    first_segment_name, second_segment_name: str
+        Name of segment i and segment j in the ec_table
+    **kwargs
+        Further plotting parameters, see check_required in code
+        for necessary values.
+
+    Returns
+    -------
+    cm_files : list(str)
+        Paths of generated contact map files
+    """
 
     # transform fraction of number of sites into discrete number of ECs
     def _discrete_count(x):
@@ -687,6 +578,9 @@ def _make_complex_contact_maps(ec_table, d_intra_i, d_multimer_i,
                 output_file = prefix + "_significant_ECs_{}.pdf".format(c)
                 plot_completed = plot_complex_cm(
                     ec_set_i, ec_set_j, ec_set_inter,
+                    d_intra_i, d_multimer_i,
+                    d_intra_j, d_multimer_j,
+                    d_inter,
                     first_segment_name, second_segment_name,
                     output_file=output_file
                 )
@@ -1078,10 +972,7 @@ def complex(**kwargs):
         "ec_compared_all_file": prefix + "_CouplingScoresCompared_all.csv",
         "ec_compared_longrange_file": prefix + "_CouplingScoresCompared_longrange.csv",
         "ec_compared_inter_file": prefix + "_CouplingsScoresCompared_inter.csv",
-
-        # initialize output inter distancemap files
-        "distmap_inter": prefix + "_distmap_inter",
-        "inter_contacts_file": prefix + "_inter_contacts.csv"
+        "distmap_inter": prefix + "_distmap_inter"
     }
 
     # Add PDB comparison files for first and second monomer
@@ -1153,6 +1044,7 @@ def complex(**kwargs):
     outcfg, second_sifts_map, second_sifts_map_full = _identify_monomer_structures("second", outcfg, second_aux_prefix)
 
     # Determine the inter-protein PDB hits based on the full sifts map for each monomer
+    # initialize output inter distancemap files
     inter_protein_hits_full = first_sifts_map_full.hits.merge(
         second_sifts_map_full.hits, on="pdb_id", how="inner", suffixes=["_1", "_2"]
     )
@@ -1315,6 +1207,7 @@ def complex(**kwargs):
             d_inter.to_file(outcfg["distmap_inter"])
 
             # save contacts to separate file
+            outcfg["inter_contacts_file"] = prefix + "_inter_contacts.csv"
             d_inter.contacts(
                 kwargs["distance_cutoff"]
             ).to_csv(
@@ -1402,200 +1295,6 @@ def complex(**kwargs):
             # save the inter ECs to a file
             ecs_inter_compared.to_csv(outcfg["ec_compared_inter_file"])
 
-    # create an inter-ecs file with extra information for calibration purposes
-    def _calibration_file(prefix, ec_file, outcfg):
-
-        """
-        Adds values to the dataframe of ECs that will later be used
-        for score fitting
-        """
-
-        # If there's no EC file, don't bother
-        if not valid_file(ec_file):
-            return None
-
-        ecs = pd.read_csv(ec_file)
-
-        # calculate intra-protein enrichment
-        def _add_enrichment(ecs):
-
-            # Calculate the intra-protein enrichment
-            intra1_ecs = ecs.query("segment_i == segment_j == 'A_1'")
-            intra2_ecs = ecs.query("segment_i == segment_j == 'B_1'")
-
-            intra1_enrichment = enrichment(intra1_ecs, min_seqdist=6)
-            intra1_enrichment["segment_i"] = "A_1"
-
-            intra2_enrichment = enrichment(intra2_ecs, min_seqdist=6)
-            intra2_enrichment["segment_i"] = "B_1"
-
-            enrichment_table = pd.concat([intra1_enrichment, intra2_enrichment])
-
-            def _seg_to_enrich(enrich_df, ec_df, enrichment_column):
-                """
-                combines the enrichment table with the EC table
-                """
-                s_to_e = {(x,y):z for x,y,z in zip(enrich_df.i, enrich_df.segment_i, enrich_df[enrichment_column])}
-
-                # enrichment for residues in column i
-                ec_df["enrichment_i"] =[s_to_e[(x,y)] if (x,y) in s_to_e else 0 for x,y in zip(ec_df.i, ec_df.segment_i)]
-
-                # enrichment for residues in column j
-                ec_df["enrichment_j"] =[s_to_e[(x,y)] if (x,y) in s_to_e else 0 for x,y in zip(ec_df.j, ec_df.segment_j)]
-
-                return ec_df
-
-            #add the intra-protein enrichment to the EC table
-            ecs = _seg_to_enrich(enrichment_table, ecs, "enrichment")
-            # larger of two enrichment values
-            ecs["intra_enrich_max"] = ecs[["enrichment_i", "enrichment_j"]].max(axis=1)
-            # smaller of two enrichment values
-            ecs["intra_enrich_min"] = ecs[["enrichment_i", "enrichment_j"]].min(axis=1)
-
-            return ecs
-
-        ecs = _add_enrichment(ecs)
-
-        # get just the inter ECs and calculate Z-score
-        ecs = ecs.query("segment_i != segment_j")
-        mean_ec = ecs.cn.mean()
-        std_ec = ecs.cn.std()
-        ecs.assign(Z_score = (ecs.cn - mean_ec) / std_ec)
-
-        # get only the top 100 inter ECs
-        ecs = ecs[0:100]
-
-        # add rank
-        L = len(ecs.i.unique()) + len(ecs.j.unique())
-        ecs["inter_relative_rank_longrange"] = ecs.index / L
-
-        # accessible surface area
-        if not "first_remapped_pdb_files" in outcfg:
-            outcfg["first_remapped_pdb_files"] = []
-
-        if not "second_remapped_pdb_files" in outcfg:
-            outcfg["second_remapped_pdb_files"] = []
-
-        # calculate the ASA for the first and second segments by combining asa from all remapped pdb files
-        first_asa, outcfg = combine_asa(outcfg["first_remapped_pdb_files"], kwargs["dssp"], outcfg)
-        first_asa["segment_i"] = "A_1"
-
-        second_asa, outcfg = combine_asa(outcfg["second_remapped_pdb_files"], kwargs["dssp"], outcfg)
-        second_asa["segment_i"] = "B_1"
-
-        # save the ASA to a file
-        asa = pd.concat([first_asa, second_asa])
-        outcfg["asa_file"] = prefix + "_surface_area.csv"
-        asa.to_csv(outcfg["asa_file"])
-
-        # Add the ASA to the ECs and compute the max and min for each position pair
-        ecs = add_asa(ecs, asa, asa_column="mean")
-        ecs["asa_max"] = ecs[["asa_i", "asa_j"]].max(axis=1)
-        ecs["asa_min"] = ecs[["asa_i", "asa_j"]].min(axis=1)
-
-        # Add min and max conservation to EC file
-        #frequency_file = prefix.replace("compare", "concatenate") + "_frequencies.csv"
-        frequency_file = kwargs["frequencies_file"]
-        d = pd.read_csv(frequency_file)
-        conservation = {(x,y):z for x,y,z in zip(d.segment_i, d.i, d.conservation)}
-
-        ecs["conservation_i"] = [conservation[(x,y)] if (x,y) in conservation else np.nan for x,y in zip(ecs.segment_i, ecs.i)]
-        ecs["conservation_j"] = [conservation[(x,y)] if (x,y) in conservation else np.nan for x,y in zip(ecs.segment_j, ecs.j)]
-        ecs["conservation_max"] = ecs[["conservation_i", "conservation_j"]].max(axis=1)
-        ecs["conservation_min"] = ecs[["conservation_i", "conservation_j"]].min(axis=1)
-
-        # amino acid frequencies
-        for char in list(ALPHABET_PROTEIN):
-            # Frequency of amino acid 'char' in position i
-            ecs = ecs.merge(d[["i", "segment_i", char]], on=["i","segment_i"], how="left", suffixes=["", "_1"])
-            ecs = ecs.rename({char: f"f{char}_i"}, axis=1)
-            if "i_1" in ecs.columns:
-                ecs = ecs.drop(columns=["i_1", "segment_i_1"])
-
-            # Frequency of amino acid 'char' in position j
-            ecs = ecs.merge(
-                d[["i", "segment_i", char]], left_on=["j", "segment_j"],
-                right_on=["i", "segment_i"], how="left", suffixes=["", "_1"]
-            )
-            ecs = ecs.rename({char: f"f{char}_j"}, axis=1)
-            if "j_1" in ecs.columns:
-                ecs = ecs.drop(columns=["j_1", "segment_j_1"])
-
-        # summed frequency of amino acid char in both positions i and j
-        # ie, each pair i,j now gets one combined frequency
-        for char in list(ALPHABET_PROTEIN):
-            ecs[f"f{char}"] = ecs[f"f{char}_i"] + ecs[f"f{char}_j"]
-
-        # Compute the weighted sum of hydropathy for pair i, j
-        hydrophilicity = []
-
-        # For each EC
-        for _, row in ecs.iterrows():
-            # frequncy of amino acid char * hydopathy index of that AA
-            hydro = sum([
-                HYDROPATHY_INDEX[char] * float(row[[f'f{char}']]) for char in list(ALPHABET_PROTEIN)
-            ])
-            hydrophilicity.append(hydro)
-        ecs["f_hydrophilicity"] = hydrophilicity
-
-        #save the calibration file
-        outcfg["calibration_file"] = prefix + "_CouplingScores_inter_calibration.csv"
-        ecs.to_csv(outcfg["calibration_file"])
-
-    # Compute the calibration file
-    if valid_file(outcfg["ec_compared_longrange_file"]):
-        _calibration_file(prefix, outcfg["ec_compared_longrange_file"], outcfg)
-    else:
-        _calibration_file(prefix, kwargs["ec_longrange_file"], outcfg)
-
-    # # If calibration file was correctly computed
-    if valid_file(outcfg["calibration_file"]):
-        calibration_ecs = pd.read_csv(outcfg["calibration_file"],index_col=0)
-
-    #     # Fit the structure free model file
-    #     calibration_ecs = fit_model(
-    #         calibration_ecs,
-    #         kwargs["structurefree_model_file"],
-    #         X_STRUCFREE,
-    #         "residue_prediction_strucfree"
-    #     )
-    #
-    #     # Fit the structure aware model prediction file
-    #     calibration_ecs = fit_model(
-    #         calibration_ecs,
-    #         kwargs["structureaware_model_file"],
-    #         X_STRUCAWARE,
-    #         "residue_prediction_strucaware"
-    #     )
-    #
-    #     # Fit the structure free complex model
-    #     calibration_ecs = fit_complex_model(
-    #         calibration_ecs,
-    #         kwargs["complex_strucfree_model_file"],
-    #         kwargs["complex_strucfree_scaler_file"],
-    #         "residue_prediction_strucfree",
-    #         "complex_prediction_strucfree",
-    #         X_COMPLEX_STRUCFREE
-    #     )
-    #
-    #     # Fit the structure aware complex model
-    #     calibration_ecs = fit_complex_model(
-    #         calibration_ecs,
-    #         kwargs["complex_strucaware_model_file"],
-    #         kwargs["complex_strucaware_scaler_file"],
-    #         "residue_prediction_strucaware",
-    #         "complex_prediction_strucaware",
-    #         X_COMPLEX_STRUCAWARE
-    #     )
-    #
-        outcfg["inter_ecs_model_prediction_file"] = prefix +"_CouplingScores_inter_prediction.csv"
-        calibration_ecs[[
-            "inter_relative_rank_longrange", "i", "A_i", "j", "A_j",
-            "segment_i", "segment_j", "cn", "dist", "precision",  "Z_score", "asa_min", "conservation_max",
-            "f_hydrophilicity"
-        ]].to_csv(outcfg["inter_ecs_model_prediction_file"])
-
-
     # create the inter-ecs line drawing script
     if outcfg["ec_compared_inter_file"] is not None and kwargs["plot_highest_count"] is not None:
         inter_ecs = ec_table.query("segment_i != segment_j")
@@ -1629,7 +1328,7 @@ def complex(**kwargs):
         ec_table, d_intra_i, d_multimer_i,
         d_intra_j, d_multimer_j,
         d_inter, first_segment_name,
-        second_segment_name, outcfg["inter_ecs_model_prediction_file"], **kwargs
+        second_segment_name, **kwargs
     )
 
     return outcfg
