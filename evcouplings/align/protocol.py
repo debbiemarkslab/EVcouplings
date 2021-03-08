@@ -1511,6 +1511,8 @@ def standard(**kwargs):
         annotation_file = prefix + "_annotation.csv"
         annotation = extract_header_annotation(ali_raw)
         annotation.to_csv(annotation_file, index=False)
+    else:
+        annotation_file = None
 
     # center alignment around focus/search sequence
     focus_cols = np.array([c != "-" for c in ali_raw[0]])
@@ -1525,8 +1527,10 @@ def standard(**kwargs):
     outcfg = {
         **jackhmmer_outcfg,
         **mod_outcfg,
-        "annotation_file": annotation_file
     }
+
+    if annotation_file is not None:
+        outcfg["annotation_file"] = annotation_file
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".align_standard.outcfg", outcfg)
