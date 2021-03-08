@@ -699,7 +699,7 @@ class CouplingsModel:
                 if verify_mutants and subs_from != self.target_seq[pos[i]]:
                     raise ValueError(
                         "Inconsistency with target sequence: pos={} target={} subs={}".format(
-                            subs_pos, self.target_seq[i], subs_from
+                            subs_pos, self.target_seq[pos[i]], subs_from
                         )
                     )
         except KeyError:
