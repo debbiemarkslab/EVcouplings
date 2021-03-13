@@ -16,6 +16,7 @@ from copy import deepcopy
 from os import path, environ
 from collections import Mapping
 
+import billiard
 import click
 
 from evcouplings import utils
@@ -355,9 +356,33 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
     )
 
     # create submitter from global (pre-unrolling) configuration
+    submitter_cfg = global_config["environment"]
+    submitter_engine = submitter_cfg["engine"]
+    submitter_cores = submitter_cfg.get("cores")
+
+    # special treatment for local submitter - allow to choose
+    # how many jobs to run in parallel (normally defined by grid engine)
+    submitter_kws = {}
+
+    # requires that number of cores per job is defined or external tools might
+    # request all CPUs for each subjob
+    if submitter_engine == "local" and submitter_cores is not None:
+        # check which value was set in config for number of parallel workers, default to None
+        max_parallel_workers = submitter_cfg.get("parallel_workers")
+
+        # if not defined, calculate
+        if max_parallel_workers is None:
+            max_cores = billiard.cpu_count()
+            max_parallel_workers = int(max_cores / submitter_cores)
+
+        # do not request more workers than needed for number of subjobs
+        num_workers = min(len(configs), max_parallel_workers)
+        submitter_kws = {"ncpu": num_workers}
+
     submitter = utils.SubmitterFactory(
-        global_config["environment"]["engine"],
-        db_path=out_prefix + "_job_database.txt"
+        submitter_engine,
+        db_path=out_prefix + "_job_database.txt",
+        **submitter_kws
     )
 
     # collect individual submitted jobs here

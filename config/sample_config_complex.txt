@@ -487,6 +487,12 @@ environment:
     memory: 15000
     time: 2-0:0:0
 
+    # Special setting for "local" engine to define number of workers running in parallel
+    # (note that "cores" has to be defined above to make sure each job only uses a defined
+    # number of cores). If not defined or None, will default to number of cores / cores per job;
+    # otherwise specify integer to limit number of workers (1 for serial execution of subjobs)
+    # parallel_workers: 1
+
     # command that will be executed before running actual computation (can be used to set up environment)
     configuration:
         
