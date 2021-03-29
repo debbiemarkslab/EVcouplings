@@ -17,7 +17,7 @@ import time
 import psutil
 import queue
 
-import ruamel.yaml as yaml
+import ruamel_yaml as yaml
 import billiard as mp
 
 from tempfile import NamedTemporaryFile
