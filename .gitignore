@@ -5,3 +5,4 @@ __pycache__
 *.ipynb_checkpoints*
 notebooks_dev/*
 evcouplings.egg-info/*
+work/
