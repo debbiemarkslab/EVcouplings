@@ -5,4 +5,10 @@ __pycache__
 *.ipynb_checkpoints*
 notebooks_dev/*
 evcouplings.egg-info/*
+
+# ignore working dir
 work/
+
+# ignore build dirs
+build/
+dist/
