@@ -141,7 +141,7 @@ Hopf, T. A., Schärfe, C. P. I., Rodrigues, J. P. G. L. M., Green, A. G., Kohlba
 
 Hopf, T. A., Ingraham, J. B., Poelwijk, F.J., Schärfe, C.P.I., Springer, M., Sander, C., & Marks, D. S. (2017). Mutation effects predicted from sequence co-variation. *Nature Biotechnology* **35**, 128–135 doi:10.1038/nbt.3769
 
-Green, A. G. and Elhabashy, H., Brock, K. P., Maddamsetti, R., Kohlbacher, O., Marks, D. S. (2019) Proteom-scale discovery of protein interactions with residue-level resolution using sequence coevolution. BioRxiv (in review). https://doi.org/10.1101/791293
+Green, A. G. and Elhabashy, H., Brock, K. P., Maddamsetti, R., Kohlbacher, O., Marks, D. S. (2021) Large-scale discovery of protein interactions at residue resolution using co-evolution calculated from genomic sequences. *Nature Communications* **12**, 1396. https://doi.org/10.1038/s41467-021-21636-z
 
 ## Contributors
 
