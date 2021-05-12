@@ -70,16 +70,23 @@ class TestComplex(TestCase):
         paralog_file = "{}/concatenate/test_new_paralog_table.csv".format(TRAVIS_PATH)
         self.paralog_table = pd.read_csv(paralog_file, index_col=0, header=0)
 
+        # table of frequencies
+        self.uncorrected_frequency_file = "{}/concatenate/test_new_frequencies_uncorrected.csv".format(TRAVIS_PATH)
+        corrected_frequency_file = "{}/concatenate/test_new_frequencies.csv".format(TRAVIS_PATH)
+        self.freq_file = corrected_frequency_file
+        self.freqs = pd.read_csv(corrected_frequency_file, index_col=0, header=0)
+
         # input and output configuration
         with open("{}/concatenate/test_new_concatenate.incfg".format(TRAVIS_PATH)) as inf:
             self.incfg = yaml.safe_load(inf)
+            self.incfg["forbid_overlapping_concatenation"] = True
 
         with open("{}/concatenate/test_new_concatenate.outcfg".format(TRAVIS_PATH)) as inf:
             self.outcfg = yaml.safe_load(inf)
 
     def test_genome_distance(self):
         """
-        tests the genome distance concatenation protocol.
+        Tests the genome distance concatenation protocol.
         Verifies that all of the outfiles are created and non-empty (but does
         not check their contents).
         Verifies that the output configuration has all of the necessary keys
@@ -123,7 +130,7 @@ class TestComplex(TestCase):
 
     def test_best_hit_normal(self):
         """
-        tests the genome distance concatenation protocol.
+        Tests the best hit concatenation protocol.
         Verifies that all of the outfiles are created and non-empty (but does
         not check their contents).
         Verifies that the output configuration has all of the necessary keys
@@ -173,7 +180,7 @@ class TestComplex(TestCase):
 
     def test_best_hit_reciprocal(self):
         """
-        tests the genome distance concatenation protocol.
+        Tests the best reciprocal hit concatenation protocol.
         Verifies that all of the outfiles are created and non-empty (but does
         not check their contents).
         Verifies that the output configuration has all of the necessary keys
@@ -223,8 +230,7 @@ class TestComplex(TestCase):
 
     def test_modify_complex_segments(self):
         """
-        tests that modify_complex_segments adds the correct "segments" field to the outcfg dictionary
-        :return:
+        Tests that modify_complex_segments adds the correct "segments" field to the outcfg dictionary
         """
         test_configuration = deepcopy(self.incfg)
         cfg = deepcopy(test_configuration)
@@ -236,9 +242,29 @@ class TestComplex(TestCase):
         test_configuration["segments"] = self.outcfg["segments"]
         self.assertDictEqual(test_configuration, _outcfg)
 
+    def test_remove_overlap(self):
+        """
+        Tests that modify_complex_segments adds the correct "segments" field to the outcfg dictionary
+        """
+        df = pd.DataFrame({
+            "id_1": ["a/1-100", "b/1-200", "c/10-100"],
+            "id_2": ["a/2-200", "b/300-400", "d/10-100"],
+            "species": ["A", "B", "C"]
+        })
+
+        df1 = remove_overlapping_ids(df).reset_index(drop=True)
+
+        desired_output = pd.DataFrame({
+            "id_1": ["b/1-200", "c/10-100"],
+            "id_2": ["b/300-400", "d/10-100"],
+            "species": ["B", "C"]
+        })
+
+        pd.testing.assert_frame_equal(df1, desired_output)
+
     def test_describe_concatenation(self):
         """
-        test whether describe_concatenation writes a file with the correct contents
+        Test whether describe_concatenation writes a file with the correct contents
         """
         outfile = tempfile.NamedTemporaryFile(suffix=".csv", delete=False)
 
@@ -260,9 +286,8 @@ class TestComplex(TestCase):
 
     def test_write_concatenated_alignment(self):
         """
-        tests whether write_concatenated alignment returns the correct 3
+        Tests whether write_concatenated alignment returns the correct 3
         alignment objects
-
         """
         alignment_1_file = "{}/concatenate/test_new_monomer_1.fasta".format(TRAVIS_PATH)
         with(open(alignment_1_file)) as inf:
@@ -302,8 +327,7 @@ class TestComplex(TestCase):
 
     def test_read_species_annotation_table_uniprot(self):
         """
-        tests whether a uniprot annotation table is read correctly
-
+        Tests whether a uniprot annotation table is read correctly
         """
         annotation_file_uniprot = "{}/align_1/test_new_annotation.csv".format(TRAVIS_PATH)
         annotation_data = read_species_annotation_table(annotation_file_uniprot)
@@ -311,8 +335,7 @@ class TestComplex(TestCase):
 
     def test_read_species_annotation_table_uniref(self):
         """
-        tests whether a uniref annotation table is read correctly
-
+        Tests whether a uniref annotation table is read correctly
         """
         _annotation_file_uniref = "{}/DIVIB_BACSU_1-54_b0.3_annotation.csv".format(TRAVIS_PATH)
         _annotation_data = read_species_annotation_table(_annotation_file_uniref)
@@ -322,16 +345,14 @@ class TestComplex(TestCase):
 
     def test_most_similar_by_organism(self):
         """
-        tests whether most_similar_by_organism returns the correct dataframe
-
+        Tests whether most_similar_by_organism returns the correct dataframe
         """
         annotation_and_id = most_similar_by_organism(self.similarities, self.annotation_data)
         pd.testing.assert_frame_equal(annotation_and_id, self.annotation_and_id)
 
     def test_find_paralogs(self):
         """
-        tests whether find_paralogs returns the correct dataframe
-
+        Tests whether find_paralogs returns the correct dataframe
         """
         target_id = "DINJ_ECOLI"
         paralog_table = find_paralogs(target_id, self.annotation_data, self.similarities, 0.9)
@@ -339,8 +360,7 @@ class TestComplex(TestCase):
 
     def test_filter_best_reciprocal(self):
         """
-        tests whether filter_best_reciprocal returns the correct dataframe
-
+        Tests whether filter_best_reciprocal returns the correct dataframe
         """
         alignment_file = "{}/align_1/test_new.a2m".format(TRAVIS_PATH)
         best_recip = pd.read_csv("{}/concatenate/test_new_best_reciprocal.csv".format(TRAVIS_PATH), index_col=0)
@@ -349,8 +369,7 @@ class TestComplex(TestCase):
 
     def test_get_distance_overlap(self):
         """
-        tests whether get_distance returns 0 for overlapping genes
-
+        Tests whether get_distance returns 0 for overlapping genes
         """
         annotation_1 = (1000, 1500)
         annotation_2 = (1400, 1700)
@@ -359,8 +378,7 @@ class TestComplex(TestCase):
 
     def test_get_distance_reverse(self):
         """
-        tests whether get distance correctly measures distance of two genes with opposite strand
-
+        Tests whether get distance correctly measures distance of two genes with opposite strand
         """
         annotation_1 = (1000, 1500)
         annotation_2 = (1800, 1700)
@@ -369,8 +387,7 @@ class TestComplex(TestCase):
 
     def test_get_distance_increasing(self):
         """
-        tests whether get_distance correctly measures distance of two genes with same strand
-
+        Tests whether get_distance correctly measures distance of two genes with same strand
         """
         annotation_1 = (1000, 1500)
         annotation_2 = (1700, 1800)
@@ -379,8 +396,7 @@ class TestComplex(TestCase):
 
     def test_best_reciprocal_matching(self):
         """
-        tests whether best_reciprocal_matchin generates the correct pd.DataFrame
-
+        Tests whether best_reciprocal_matchin generates the correct pd.DataFrame
         """
         id_pairing = best_reciprocal_matching(self.possible_partners)
         id_pairing = id_pairing.sort_values(["uniprot_id_1", "uniprot_id_2", "distance"])
@@ -389,8 +405,7 @@ class TestComplex(TestCase):
 
     def test_find_possible_partners(self):
         """
-        tests whether find_possible partners generates the correct pd.DataFrame
-
+        Tests whether find_possible partners generates the correct pd.DataFrame
         """
 
         _possible_partners = find_possible_partners(
@@ -408,8 +423,7 @@ class TestComplex(TestCase):
 
     def test_plot_distance_distribution(self):
         """
-        tests whether plot_distance_distribution generates a non-empty PDF
-
+        Tests whether plot_distance_distribution generates a non-empty PDF
         """
         outfile = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
         plot_distance_distribution(self.id_pairing, outfile.name)
@@ -417,6 +431,13 @@ class TestComplex(TestCase):
         self.assertTrue(os.path.getsize(outfile.name) > 0)
         outfile.close()
         os.unlink(outfile.name)
+
+    def test_map_frequencies(self):
+        """
+        Tests _map_frequencies_file
+        """
+        freqs = map_frequencies_file(self.uncorrected_frequency_file, self.outcfg, **self.incfg)
+        pd.testing.assert_frame_equal(freqs, self.freqs)
 
 if __name__ == '__main__':
     unittest.main()

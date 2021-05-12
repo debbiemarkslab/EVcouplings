@@ -10,6 +10,7 @@ Authors:
 import string
 import pandas as pd
 import numpy as np
+from itertools import combinations
 
 from evcouplings.couplings import tools as ct
 from evcouplings.couplings import pairs, mapping
@@ -52,18 +53,21 @@ SCORING_MODELS = (
     "evcomplex",
 )
 
+# Define default segment names for complexes
+FIRST_SEGMENT_NAME = "A_1"
+SECOND_SEGMENT_NAME = "B_1"
 
 def infer_plmc(**kwargs):
     """
     Run EC computation on alignment. This function contains
     the functionality shared between monomer and complex EC
     inference.
-    
+
     Parameters
     ----------
     Mandatory kwargs arguments:
         See list below in code where calling check_required
-    
+
     Returns
     -------
     outcfg : dict
@@ -430,7 +434,7 @@ def standard(**kwargs):
 
 
 def complex_probability(ecs, scoring_model, use_all_ecs=False,
-                        score="cn"):
+                        n_effective=None, num_sites=None, score="cn"):
     """
     Adds confidence measure for complex evolutionary couplings
 
@@ -443,38 +447,148 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
     use_all_ecs : bool, optional (default: False)
         If true, fits the scoring model to all ECs;
         if false, fits the model to only the inter ECs.
+    n_effective : float, optional (default: None)
+        Effective number of sequences in alignment.
+        Used for EVcomplex score calculation
+    num_sites : int, optional (default: None)
+        Number of positions in alignment
     score : str, optional (default: "cn")
         Use this score column for confidence assignment
-        
+
     Returns
     -------
     ecs : pandas.DataFrame
         EC table with additional column "probability"
         containing confidence measure
     """
+
+    # if user provided both parameters, calculate n_effective / length
+    if n_effective and num_sites:
+        neff_over_l = n_effective / num_sites
+    else:
+        neff_over_l = None
+
     if use_all_ecs:
+        # TODO: user proof so that no one runs evcomplex on all ECs?
         ecs = pairs.add_mixture_proability(
             ecs, model=scoring_model
         )
+
     else:
         inter_ecs = ecs.query("segment_i != segment_j")
-        intra_ecs = ecs.query("segment_i == segment_j")
+        intra1_ecs = ecs.query("segment_i == segment_j == @FIRST_SEGMENT_NAME")
+        intra2_ecs = ecs.query("segment_i == segment_j == @SECOND_SEGMENT_NAME")
 
-        intra_ecs = pairs.add_mixture_probability(
-            intra_ecs, model=scoring_model, score=score
+        intra1_ecs = pairs.add_mixture_probability(
+            intra1_ecs, model=scoring_model, score=score, Neff_over_L=neff_over_l
+        )
+
+        intra2_ecs = pairs.add_mixture_probability(
+            intra2_ecs, model=scoring_model, score=score, Neff_over_L=neff_over_l
         )
 
         inter_ecs = pairs.add_mixture_probability(
-            inter_ecs, model=scoring_model, score=score
+            inter_ecs, model=scoring_model, score=score, Neff_over_L=neff_over_l
         )
 
         ecs = pd.concat(
-            [intra_ecs, inter_ecs]
+            [intra1_ecs, intra2_ecs, inter_ecs]
         ).sort_values(
             score, ascending=False
         )
 
     return ecs
+
+
+def by_segment_ec_enrichment(ecs, outcfg, **kwargs):
+    """
+    Calculates enrichment within all segments and between all segments.
+
+    Calculates within-segment enrichment using intra-protein ECs only and
+    between segment enrichment using inter-protein ECs only.
+
+    Parameters
+    ----------
+    ecs: pd.DataFrame
+        EC table
+    outcfg: dict
+        Output configuration of the pipeline
+    mandatory kwargs arguments:
+        prefix
+
+    Returns
+    -------
+    dict
+        Output configuration of the pipeline, including
+        the following new fields:
+            enrichment_inter_file
+            enrichment_intra_file
+    pd.DataFrame
+        Intra-molecule EC enrichment (all molecules included, indexed by segment)
+    pd.DataFrame
+        Inter-molecule EC enrichment (all molecules included, indexed by segment)
+    """
+
+    # determine the number of segments in the ECs
+    has_segments = "segment_i" in ecs.columns and "segment_j" in ecs.columns
+
+    if not has_segments:
+        ecs.loc[:,"segment_i"] = FIRST_SEGMENT_NAME
+        ecs.loc[:,"segment_j"] = FIRST_SEGMENT_NAME
+
+    # get a list of unique segments
+    segments = list(
+        set(ecs.segment_i.unique()).union(
+        set(ecs.segment_j.unique()))
+    )
+
+    # Calculate all the intra-segment enrichments
+    intra_enrichment_dfs = []
+    for segment in segments:
+        intra_ecs = ecs.query(
+            "segment_i == segment_j == @segment"
+        )
+        intra_enrichment = pairs.enrichment(
+            intra_ecs, min_seqdist=kwargs["min_sequence_distance"]
+        )
+        intra_enrichment.loc[:,"segment_i"] = segment
+
+        intra_enrichment_dfs.append(intra_enrichment)
+
+    all_intra_enrichment = pd.concat(intra_enrichment_dfs)
+
+    # Calculate the inter-segment enrichments
+    inter_enrichment_dfs = []
+    for (segment1, segment2) in combinations(segments, 2):
+
+            # Agnostic to ordering of segments
+            inter_ecs1 = ecs.query(
+                "segment_i == @segment1 and segment_j == @segment2"
+            )
+            inter_ecs2 = ecs.query(
+                "segment_i == @segment2 and segment_j == @segment1"
+            )
+            inter_ecs = pd.concat([inter_ecs1, inter_ecs2])
+
+            # for inter ECs, sequence distance is 0
+            inter_enrichment = pairs.enrichment(inter_ecs, min_seqdist=0)
+            inter_enrichment_dfs.append(inter_enrichment)
+
+    all_inter_enrichment = pd.concat(inter_enrichment_dfs)
+
+    # Save to a file
+    outcfg["enrichment_intra_file"] = "{}_enrichment_intra.csv".format(
+        kwargs["prefix"]
+    )
+    all_intra_enrichment.to_csv(outcfg["enrichment_intra_file"], index=None)
+
+    if len(all_inter_enrichment) > 0:
+        outcfg["enrichment_inter_file"] = "{}_enrichment_inter.csv".format(
+            kwargs["prefix"]
+        )
+        inter_enrichment.to_csv(outcfg["enrichment_inter_file"], index=None)
+
+    return outcfg, all_intra_enrichment, all_inter_enrichment
 
 
 def complex(**kwargs):
@@ -531,7 +645,7 @@ def complex(**kwargs):
             use_all_ecs = False
 
         ecs = complex_probability(
-            ecs, kwargs["scoring_model"], use_all_ecs
+            ecs, kwargs["scoring_model"], use_all_ecs, outcfg["effective_sequences"], outcfg["num_sites"]
         )
 
     else:
@@ -552,17 +666,18 @@ def complex(**kwargs):
         )
     )
 
+    is_single_segment = segments is None or len(segments) == 1
     outcfg = {
         **outcfg,
         **_postprocess_inference(
             ecs, kwargs, model, outcfg, prefix,
-            generate_line_plot=True,
-            generate_enrichment=False,
+            generate_line_plot=is_single_segment,
+            generate_enrichment=is_single_segment,
             ec_filter="segment_i != segment_j or abs(i - j) >= {}",
             chain=chain_mapping
         )
     }
-    
+
     # save just the inter protein ECs
     ## TODO: eventually have this accomplished by _postprocess_inference
     ## right now avoiding a second call with a different ec_filter
@@ -575,12 +690,249 @@ def complex(**kwargs):
     write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
 
     # TODO: make the following complex-ready
-    # EC enrichment:
+
+    # EVzoom:
     #
-    # 1) think about making EC enrichment complex-ready and add
-    # it back here - so far it only makes sense if all ECs are
-    # on one segment
+    # 1) at the moment, EVzoom will use numbering before remapping
+    # we should eventually get this to a point where segments + residue
+    # index are displayed on EVzoom
     #
+    # 2) note that this will currently use the default mixture model
+    # selection for determining the EC cutoff, rather than the selection
+    # used for the EC table above
+
+    return outcfg
+
+
+def infer_mean_field(**kwargs):
+    """
+   Run mean field EC computation on alignment. This function
+   contains the functionality shared between monomer and complex
+   EC inference.
+
+   Parameters
+   ----------
+   Mandatory kwargs arguments:
+       See list below in code where calling check_required
+
+   Returns
+   -------
+   outcfg : dict
+       Output configuration of the pipeline, including
+       the following fields:
+
+       raw_ec_file
+       model_file
+       num_sites
+       num_valid_sequences
+       effective_sequences
+
+       focus_mode (passed through)
+       focus_sequence (passed through)
+       segments (passed through)
+
+   """
+    if not kwargs["focus_mode"]:
+        raise InvalidParameterError(
+            "For now, mean field DCA can only be run in focus mode."
+        )
+
+    prefix = kwargs["prefix"]
+
+    model = prefix + ".model"
+
+    outcfg = {
+        "model_file": model,
+        "raw_ec_file": prefix + "_ECs.txt",
+        "ec_file": prefix + "_CouplingScores.csv",
+        "focus_mode": kwargs["focus_mode"],
+        "focus_sequence": kwargs["focus_sequence"],
+        "segments": kwargs["segments"]
+    }
+
+    # make sure input alignment exists
+    alignment_file = kwargs["alignment_file"]
+    verify_resources(
+        "Input alignment does not exist",
+        kwargs["alignment_file"]
+    )
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    # determine alphabet
+    # default is protein
+    if kwargs["alphabet"] is None:
+        alphabet = ALPHABET_PROTEIN
+    else:
+        alphabet = kwargs["alphabet"]
+
+        # allow shortcuts for protein, DNA, RNA
+        if alphabet in ALPHABET_MAP:
+            alphabet = ALPHABET_MAP[alphabet]
+
+    # read in a2m alignment
+    with open(alignment_file) as f:
+        input_alignment = Alignment.from_file(
+            f, alphabet=alphabet,
+            format="fasta"
+        )
+
+    # init mean field direct coupling analysis
+    mf_dca = MeanFieldDCA(input_alignment)
+
+    # run mean field approximation
+    model = mf_dca.fit(
+        theta=kwargs["theta"],
+        pseudo_count=kwargs["pseudo_count"]
+    )
+
+    # write ECs to file
+    model.to_raw_ec_file(
+        outcfg["raw_ec_file"]
+    )
+
+    # write model file
+    if outcfg["model_file"] is not None:
+        model.to_file(
+            outcfg["model_file"],
+            file_format="plmc_v2"
+        )
+
+    # store useful information about model in outcfg
+    outcfg.update({
+        "num_sites": model.L,
+        "num_valid_sequences": model.N_valid,
+        "effective_sequences": float(round(model.N_eff, 1)),
+        "region_start": int(model.index_list[0]),
+    })
+
+    return outcfg, model
+
+
+def complex_mean_field(**kwargs):
+    """
+    Protocol:
+
+    Infer ECs for protein complexes from alignment using mean field.
+    Allows user to select scoring protocol.
+
+    For now, mean field DCA can only be run in focus mode, gaps
+    included.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required.
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        raw_ec_file
+        model_file
+        num_sites
+        num_sequences
+        effective_sequences
+
+        focus_mode (passed through)
+        focus_sequence (passed through)
+        segments (passed through)
+    """
+    # for additional required parameters, see mean field info
+    check_required(
+        kwargs,
+        [
+            "prefix", "min_sequence_distance",
+            "scoring_model", "use_all_ecs_for_scoring",
+            "alignment_file","segments","focus_mode",
+            "focus_sequence","theta","pseudo_count",
+            "alphabet"
+        ]
+    )
+
+    # Run the mean field inference
+    outcfg, model = infer_mean_field(**kwargs)
+    prefix = kwargs["prefix"]
+
+    # read and sort ECs
+    # Note: this now deviates from the original EC format
+    # file because it has 4 score columns to accomodate
+    # MI (raw), MI (APC-corrected), DI, CN;
+    ecs = pd.read_csv(
+        outcfg["raw_ec_file"], sep=" ",
+        names=["i", "A_i", "j", "A_j", "mi_raw", "mi_apc", "di", "cn"]
+    )
+
+    # If the ECs have segments, remap
+    segments = kwargs["segments"]
+    if segments is not None:
+        segments = [
+            mapping.Segment.from_list(s) for s in segments
+        ]
+
+        seg_mapper = mapping.SegmentIndexMapper(
+            kwargs["focus_mode"], kwargs["region_start"], *segments
+        )
+
+        # apply to EC table
+        ecs = mapping.segment_map_ecs(ecs,seg_mapper)
+
+    # add mixture model probability
+    if kwargs["scoring_model"] in SCORING_MODELS:
+        if kwargs["use_all_ecs_for_scoring"] is not None:
+            use_all_ecs = kwargs["use_all_ecs_for_scoring"]
+        else:
+            use_all_ecs = False
+
+        ecs = complex_probability(
+            ecs, kwargs["scoring_model"], use_all_ecs
+        )
+
+    else:
+        raise InvalidParameterError(
+            "Invalid scoring_model parameter: " +
+            "{}. Valid options are: {}".format(
+                kwargs["protocol"], ", ".join(SCORING_MODELS)
+            )
+        )
+
+    # create line-drawing script (for multiple chains)
+    # by convention, we map first segment to chain A,
+    # second to B, a.s.f.
+    chain_mapping = dict(
+        zip(
+            [s.segment_id for s in segments],
+            string.ascii_uppercase,
+        )
+    )
+
+    is_single_segment = segments is None or len(segments) == 1
+    outcfg = {
+        **outcfg,
+        **_postprocess_inference(
+            ecs, kwargs, model, outcfg, prefix,
+            generate_line_plot=is_single_segment,
+            generate_enrichment=is_single_segment,
+            ec_filter="segment_i != segment_j or abs(i - j) >= {}",
+            chain=chain_mapping
+        )
+    }
+
+    # save just the inter protein ECs
+    ## TODO: eventually have this accomplished by _postprocess_inference
+    ## right now avoiding a second call with a different ec_filter
+    ecs = pd.read_csv(outcfg["ec_file"])
+    outcfg["inter_ec_file"] = prefix + "_CouplingScores_inter.csv"
+    inter_ecs = ecs.query("segment_i != segment_j")
+    inter_ecs.to_csv(outcfg["inter_ec_file"], index=False)
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".couplings_complex.outcfg", outcfg)
+
+    # TODO: make the following complex-ready
     # EVzoom:
     #
     # 1) at the moment, EVzoom will use numbering before remapping
@@ -635,95 +987,14 @@ def mean_field(**kwargs):
         ]
     )
 
-    if not kwargs["focus_mode"]:
-        raise InvalidParameterError(
-            "For now, mean field DCA can only be run in focus mode."
-        )
+    outcfg, model = infer_mean_field(**kwargs)
 
-    prefix = kwargs["prefix"]
-
-    # option to save model disabled
-    """
-    if kwargs["save_model"]:
-        model = prefix + ".model"
-    else:
-        model = None
-    """
-    model = prefix + ".model"
-
-    outcfg = {
-        "model_file": model,
-        "raw_ec_file": prefix + "_ECs.txt",
-        "ec_file": prefix + "_CouplingScores.csv",
-        # TODO: the following are passed through stage...
-        # keep this or unnecessary?
-        "focus_mode": kwargs["focus_mode"],
-        "focus_sequence": kwargs["focus_sequence"],
-        "segments": kwargs["segments"],
-    }
-
-    # make sure input alignment exists
-    alignment_file = kwargs["alignment_file"]
-    verify_resources(
-        "Input alignment does not exist",
-        kwargs["alignment_file"]
-    )
-
-    # make sure output directory exists
-    create_prefix_folders(prefix)
-
+    # establish segments for model
     segments = kwargs["segments"]
     if segments is not None:
         segments = [
             mapping.Segment.from_list(s) for s in segments
         ]
-
-    # determine alphabet
-    # default is protein
-    if kwargs["alphabet"] is None:
-        alphabet = ALPHABET_PROTEIN
-    else:
-        alphabet = kwargs["alphabet"]
-
-        # allow shortcuts for protein, DNA, RNA
-        if alphabet in ALPHABET_MAP:
-            alphabet = ALPHABET_MAP[alphabet]
-
-    # read in a2m alignment
-    with open(alignment_file) as f:
-        input_alignment = Alignment.from_file(
-            f, alphabet=alphabet,
-            format="fasta"
-        )
-
-    # init mean field direct coupling analysis
-    mf_dca = MeanFieldDCA(input_alignment)
-
-    # run mean field approximation
-    model = mf_dca.fit(
-        theta=kwargs["theta"],
-        pseudo_count=kwargs["pseudo_count"]
-    )
-
-    # write ECs to file
-    model.to_raw_ec_file(
-        outcfg["raw_ec_file"]
-    )
-
-    # write model file
-    if outcfg["model_file"] is not None:
-        model.to_file(
-            outcfg["model_file"],
-            file_format="plmc_v2"
-        )
-
-    # store useful information about model in outcfg
-    outcfg.update({
-        "num_sites": model.L,
-        "num_valid_sequences": model.N_valid,
-        "effective_sequences": float(round(model.N_eff, 1)),
-        "region_start": int(model.index_list[0]),
-    })
 
     # read and sort ECs
     # Note: this now deviates from the original EC format
@@ -870,26 +1141,28 @@ def _postprocess_inference(ecs, kwargs, model, outcfg, prefix, generate_line_plo
 
     # compute EC enrichment (for now, for single segments
     # only since enrichment code cannot handle multiple segments)
-    if generate_enrichment:
-        ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
 
-        min_seqdist = kwargs["min_sequence_distance"]
-        if min_seqdist is None:
-            min_seqdist = 0
+    min_seqdist = kwargs["min_sequence_distance"]
+    if min_seqdist is None:
+        min_seqdist = 0
 
-        ecs_enriched = pairs.enrichment(
-            ecs, score=score, min_seqdist=min_seqdist
-        )
-        ecs_enriched.to_csv(ext_outcfg["enrichment_file"], index=False)
+    ## TODO: need to make by_segment_ec_enrichment compatible with new enrichment refactoring
+    ## TODO: MAKE SURE this computes all needed output files - discrepancy with new release as of Oct 2020
+    # enrichment refactoring
+    outcfg, intra_ecs_enriched, _ = by_segment_ec_enrichment(ecs, outcfg, **kwargs)
+    ext_outcfg["enrichment_file"] = prefix + "_enrichment.csv"
+    intra_ecs_enriched.to_csv(ext_outcfg["enrichment_file"], index=False)
 
+    for segment, ecs_enriched in intra_ecs_enriched.groupby("segment_i"):
         # create corresponding enrichment pymol scripts
         ext_outcfg["enrichment_pml_files"] = []
         for sphere_view, pml_suffix in [
-            (True, "_enrichment_spheres.pml"), (False, "_enrichment_sausage.pml")
+            (True, f"{segment}_enrichment_spheres.pml"), (False, f"{segment}_enrichment_sausage.pml")
         ]:
             pml_file = prefix + pml_suffix
             enrichment_pymol_script(ecs_enriched, pml_file, sphere_view=sphere_view)
             ext_outcfg["enrichment_pml_files"].append(pml_file)
+
 
     # output EVzoom JSON file if we have stored model file
     if outcfg.get("model_file", None) is not None:
@@ -928,6 +1201,9 @@ PROTOCOLS = {
 
     # inference protocol using mean field approximation
     "mean_field": mean_field,
+
+    # runs DCA/meanfield for complexes
+    "complex_mean_field": complex_mean_field
 }
 
 

@@ -453,11 +453,11 @@ def run_jobs(configs, global_config, overwrite=False, workdir=None, abort_on_err
 def run(**kwargs):
     """
     Exposes command line interface as a Python function.
-    
+
     Parameters
     ----------
     kwargs
-        See click.option decorators for app() function 
+        See click.option decorators for app() function
     """
     # substitute commmand line options in config file
     config = substitute_config(**kwargs)

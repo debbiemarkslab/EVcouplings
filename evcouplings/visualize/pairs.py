@@ -439,7 +439,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         )
     )
 
-    # Don't compute inter boundaries unless we have inter 
+    # Don't compute inter boundaries unless we have inter
     # ecs or distances
     if (inter_ecs is not None and not inter_ecs.empty) or d_inter is not None:
         inter_boundaries = list(
@@ -457,7 +457,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
             # of the protein.
             # Default is to update both axes
             updated_boundaries = original_boundaries
-            # increase the axis 1 boundaries if the new boundaries 
+            # increase the axis 1 boundaries if the new boundaries
             # cover more range
             if axis1:
                 updated_boundaries[0] = (
@@ -491,7 +491,7 @@ def complex_contact_map(intra1_ecs, intra2_ecs, inter_ecs,
         )
 
         intra2_boundaries = _boundary_union(
-            intra2_boundaries, inter_boundaries, inter_boundaries, 
+            intra2_boundaries, inter_boundaries, inter_boundaries,
             axis1=False, axis2=True, symmetric=True
         )
 
@@ -1276,7 +1276,7 @@ def ec_lines_pymol_script(ec_table, output_file, distance_cutoff=5,
     """
     Create a Pymol .pml script to visualize ECs on a 3D
     structure
-    
+
     Parameters
     ----------
     ec_table : pandas.DataFrame
@@ -1349,7 +1349,7 @@ def enrichment_pymol_script(enrichment_table, output_file,
     ----------
     enrichment_table : pandas.DataFrame
         Mapping of position (column i) to EC enrichment
-        (column enrichemnt), as returned by 
+        (column enrichemnt), as returned by
         evcouplings.couplings.pairs.enrichment()
     output_file : str
         File path where to store pml script
@@ -1364,7 +1364,7 @@ def enrichment_pymol_script(enrichment_table, output_file,
         Use legacy (2011) red and yellow colormap
         for EC enrichment
     """
-    if legacy: 
+    if legacy:
         t = enrichment_table.query("enrichment > 1")
         t.loc[:, "b_factor"] = t.enrichment
         # compute boundaries for highly coupled residues
@@ -1386,7 +1386,7 @@ def enrichment_pymol_script(enrichment_table, output_file,
        # set the boundary for number of residues to be rendered as spheres
         sphere_boundary = boundary2
 
-        
+
     else:
         t = deepcopy(enrichment_table)
         t.loc[:, "b_factor"] = t.enrichment
@@ -1457,11 +1457,10 @@ def enrichment_pymol_script(enrichment_table, output_file,
             for idx, c in enumerate(color_list):
                 f.write("set_color color{}, [{},{},{}]\n".format(idx, c[0], c[1], c[2]))
             f.write("color color{}{}\n".format(len(boundary_list) - 1, chain_sel))
-        
+
         f.write("as cartoon{}\n".format(chain_sel))
 
         pymol_mapping(t, f, chain)
 
         if not sphere_view:
             f.write("cartoon putty{}\n".format(chain_sel))
-

@@ -76,7 +76,7 @@ def add_precision(ec_table, dist_cutoff=5, score="cn",
     ec_table = ec_table.sort_values(by=score, ascending=False)
 
     if min_sequence_dist is not None:
-        ec_table = ec_table.query("abs(i - j) >= @min_sequence_dist")
+        ec_table = ec_table.query("abs(i - j) >= @min_sequence_dist or segment_i != segment_j")
 
     ec_table = ec_table.copy()
 
@@ -136,7 +136,7 @@ def coupling_scores_compared(ec_table, dist_map, dist_map_multimer=None,
         )
 
     if min_sequence_dist is not None:
-        x = x.query("abs(i - j) >= @min_sequence_dist")
+        x = x.query("abs(i - j) >= @min_sequence_dist or segment_i != segment_j")
 
     # if distance cutoff is given, add precision
     if dist_cutoff is not None:

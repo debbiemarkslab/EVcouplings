@@ -48,7 +48,7 @@ def _verify_sequence_id(sequence_id):
     Verify if a target sequence identifier is in proper
     format for the pipeline to run without errors
     (not none, and contains no whitespace)
-        
+
     Parameters
     ----------
     id : str
@@ -80,8 +80,8 @@ def _verify_sequence_id(sequence_id):
 def _make_hmmsearch_raw_fasta(alignment_result, prefix):
     """
     HMMsearch results do not contain the query sequence
-    so we must construct a raw_fasta file with the query 
-    sequence as the first hit, to ensure proper numbering. 
+    so we must construct a raw_fasta file with the query
+    sequence as the first hit, to ensure proper numbering.
     The search result is filtered to only contain the columns with
     match states to the HMM, which has a one to one mapping to the
     query sequence.
@@ -110,7 +110,7 @@ def _make_hmmsearch_raw_fasta(alignment_result, prefix):
             i for i, x in enumerate(ali.annotation["GC"]["RF"]) if x == "x"
         ]
 
-        # ensure that the length of the match states 
+        # ensure that the length of the match states
         # match the length of the sequence
         if len(match_index) != query_sequence_ali.L:
             raise ValueError(
@@ -142,7 +142,7 @@ def _make_hmmsearch_raw_fasta(alignment_result, prefix):
     with open(alignment_result["target_sequence_file"]) as a:
         query_sequence_ali = Alignment.from_file(a, format="fasta")
 
-    # if the provided alignment is empty, just return the target sequence 
+    # if the provided alignment is empty, just return the target sequence
     raw_focus_alignment_file = prefix + "_raw.fasta"
     if not valid_file(alignment_result["raw_alignment_file"]):
         # write the query sequence to a fasta file
@@ -162,14 +162,14 @@ def _make_hmmsearch_raw_fasta(alignment_result, prefix):
             "Stockholm alignment {} missing RF"
             " annotation of match states".format(alignment_result["raw_alignment_file"])
         )
-            
+
     # add insertions to the query sequence in order to preserve correct
     # numbering of match sequences
     gapped_sequence_ali = _add_gaps_to_query(query_sequence_ali, ali)
 
-    # write a new alignment file with the query sequence as 
+    # write a new alignment file with the query sequence as
     # the first entry
-    
+
     with open(raw_focus_alignment_file, "w") as of:
         gapped_sequence_ali.write(of)
         ali.write(of)
@@ -1173,9 +1173,9 @@ def hmmbuild_and_search(**kwargs):
     """
     Protocol:
 
-    Build HMM from sequence alignment using hmmbuild and 
+    Build HMM from sequence alignment using hmmbuild and
     search against a sequence database using hmmsearch.
-    
+
     Parameters
     ----------
     Mandatory kwargs arguments:
@@ -1307,7 +1307,7 @@ def hmmbuild_and_search(**kwargs):
         return focus_fasta_file, target_sequence_file, region_start, region_end
 
 
-    # define the gap threshold for inclusion in HMM's build by HMMbuild. 
+    # define the gap threshold for inclusion in HMM's build by HMMbuild.
     SYMFRAC_HMMBUILD = 0.0
 
     # check for required options
@@ -1352,7 +1352,7 @@ def hmmbuild_and_search(**kwargs):
     else:
         # otherwise, we have to run the alignment
         # modify search thresholds to be suitable for hmmsearch
-        sequence_length = region_end - region_start + 1 
+        sequence_length = region_end - region_start + 1
         seq_threshold, domain_threshold = search_thresholds(
             kwargs["use_bitscores"],
             kwargs["sequence_threshold"],
@@ -1380,7 +1380,7 @@ def hmmbuild_and_search(**kwargs):
             seq_threshold=seq_threshold,
             nobias=kwargs["nobias"],
             cpu=kwargs["cpu"],
-            binary=kwargs["hmmsearch"], 
+            binary=kwargs["hmmsearch"],
         )
 
         # get rid of huge stdout log file immediately
@@ -1409,7 +1409,7 @@ def hmmbuild_and_search(**kwargs):
         "hittable_file": ali["domtblout"],
     }
 
-    # convert the raw output alignment to fasta format 
+    # convert the raw output alignment to fasta format
     # and add the appropriate query sequecne
     raw_focus_alignment_file = _make_hmmsearch_raw_fasta(outcfg, prefix)
     outcfg["raw_focus_alignment_file"] =  raw_focus_alignment_file
@@ -1618,13 +1618,13 @@ def complex(**kwargs):
             annotation_data = pd.read_csv(kwargs["override_annotation_file"])
             annotation_data.to_csv(outcfg["annotation_file"])
 
-    # extract cds identifiers for alignment uniprot IDs
+    # # extract cds identifiers for alignment uniprot IDs
     cds_ids = extract_cds_ids(
         outcfg["alignment_file"],
         kwargs["uniprot_to_embl_table"]
     )
 
-    # extract genome location information from ENA
+    ##extract genome location information from ENA
     genome_location_filename = prefix + "_genome_location.csv"
 
     genome_location_table = extract_embl_annotation(

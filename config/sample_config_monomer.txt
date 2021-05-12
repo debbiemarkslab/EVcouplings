@@ -278,9 +278,9 @@ compare:
     # print information about used PDB structures on contact map plots
     print_pdb_information: True
 
-    # Alignment method to use to search the PDB Seqres database. Options: jackhmmer, hmmsearch
-    # Set to jackhmmer to search the PDB Seqres database using jackhmmer from the target sequence only (more stringent). 
-    # Set to hmmsearch to search the PDB seqres database using an HMM built from the output monomer alignment (less stringent). 
+    # Alignment method to use to find sequences corresponding to PDB structures. Options: jackhmmer, hmmsearch
+    # Set to jackhmmer to search using jackhmmer from the target sequence only (more stringent).
+    # Set to hmmsearch to search using an HMM built from the output monomer alignment (less stringent).
     # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
     pdb_alignment_method: jackhmmer
 

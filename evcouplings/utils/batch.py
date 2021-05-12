@@ -579,7 +579,7 @@ class LSFSubmitter(AClusterSubmitter):
 
 class SlurmSubmitter(AClusterSubmitter):
     """
-    Implements an LSF submitter
+    Implements a Slurm submitter
     """
     __name = "slurm"
     __submit = "sbatch --job-name={name} {dependent} {resources} --wrap 'srun {cmd}'"
@@ -624,7 +624,7 @@ class SlurmSubmitter(AClusterSubmitter):
                 os.remove(self.__db_path)
         except AttributeError:
             pass
-          
+
     @property
     def isBlocking(self):
         return self.__blocking

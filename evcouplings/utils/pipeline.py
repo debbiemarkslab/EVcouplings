@@ -40,6 +40,7 @@ import evcouplings.compare.protocol as cm
 import evcouplings.mutate.protocol as mt
 import evcouplings.fold.protocol as fd
 import evcouplings.complex.protocol as pp
+import evcouplings.probability.protocol as pb
 
 # supported pipelines
 #
@@ -64,6 +65,7 @@ PIPELINES = {
         ("concatenate", pp.run, None),
         ("couplings", cp.run, None),
         ("compare", cm.run, None),
+        ("probability", pb.run, None),
         ("mutate", mt.run, None),
         ("fold", fd.run, None)
     ]
@@ -199,6 +201,7 @@ def execute(**config):
 
             # one less stage to put through after we ran this...
             num_stages_to_run -= 1
+
         else:
             # skip state by injecting state from previous run
             verify_resources(
@@ -214,9 +217,13 @@ def execute(**config):
             # verify all the output files are there
             outfiles = [
                 filepath for f, filepath in outcfg.items()
-                if f.endswith("_file") and filepath is not None
+                if f.endswith("_file") and filepath is not None and f!="model_file" \
+                and not filepath.endswith("raw_focus.fasta") and not filepath.endswith("raw.fasta") \
+                and not filepath.endswith("monomer_1.fasta") and not filepath.endswith("monomer_2.fasta") \
+                and not filepath.endswith("longrange.csv") and not filepath.endswith("_ECs.txt") \
+                and not filepath.endswith(".pml") and not filepath.endswith("json")
             ]
-
+            
             verify_resources(
                 "Output files from stage '{}' "
                 "missing".format(stage),
@@ -377,7 +384,7 @@ def verify_prefix(verify_subdir=True, **config):
     Check if configuration contains a prefix,
     and that prefix is a valid directory we
     can write to on the filesystem
-    
+
     Parameters
     ----------
     verify_subdir : bool, optional (default: True)
@@ -386,7 +393,7 @@ def verify_prefix(verify_subdir=True, **config):
         app loop.
     **config
         Input configuration for pipeline
-        
+
     Returns
     -------
     prefix : str
@@ -550,7 +557,7 @@ def run(**kwargs):
     EVcouplings pipeline execution from a
     configuration file (single thread, no
     batch or environment configuration)
-    
+
     Parameters
     ----------
     kwargs
