@@ -118,7 +118,7 @@ def combine_asa(remapped_pdb_files, dssp_binary, prefix, outcfg):
     outcfg["rsa_output_files"] = []
 
     # If no remapped pdb files, return empty df
-    if len(remapped_pdb_files) == 0:
+    if remapped_pdb_files is None or len(remapped_pdb_files) == 0:
         return pd.DataFrame({
             "i": [],
             "mean": [],

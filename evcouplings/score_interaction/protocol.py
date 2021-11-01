@@ -16,7 +16,7 @@ from evcouplings.utils.system import (
     valid_file
 )
 from evcouplings.couplings import enrichment, Segment
-from evcouplings.probability.asa import combine_asa, add_asa
+from evcouplings.score_interaction.asa import combine_asa, add_asa
 from evcouplings.compare.distances import DistanceMap
 from evcouplings.compare.protocol import complex_probability, plot_complex_cm
 from evcouplings.align import ALPHABET_PROTEIN
@@ -195,23 +195,20 @@ def _make_complex_contact_maps_probability(ec_table, d_intra_i, d_multimer_i,
                 ec_set_j = ecs_longrange.query("segment_i == segment_j == @second_segment_name")
                 ec_set = ecs_longrange.loc[ecs_longrange[column] >= cutoff, :]
 
-                # only can plot if we have any significant ECs above threshold
-                if len(ec_set) > 0:
+                ec_set_inter = ec_set.query("segment_i != segment_j")
 
-                    ec_set_inter = ec_set.query("segment_i != segment_j")
+                output_file = prefix + "_{}_significant_ECs_{}.pdf".format(column, cutoff)
+                plot_completed = plot_complex_cm(
+                    ec_set_i, ec_set_j, ec_set_inter,
+                    d_intra_i, d_multimer_i,
+                    d_intra_j, d_multimer_j,
+                    d_inter,
+                    first_segment_name, second_segment_name,
+                    output_file=output_file, **kwargs
+                )
 
-                    output_file = prefix + "_{}_significant_ECs_{}.pdf".format(column, cutoff)
-                    plot_completed = plot_complex_cm(
-                        ec_set_i, ec_set_j, ec_set_inter,
-                        d_intra_i, d_multimer_i,
-                        d_intra_j, d_multimer_j,
-                        d_inter,
-                        first_segment_name, second_segment_name,
-                        output_file=output_file, **kwargs
-                    )
-
-                    if plot_completed:
-                        cm_files.append(output_file)
+                if plot_completed:
+                    cm_files.append(output_file)
 
     # give back list of all contact map file names
     return cm_files
@@ -367,40 +364,42 @@ def standard(**kwargs):
         ecs["conservation_max"] = ecs[["conservation_i", "conservation_j"]].max(axis=1)
         ecs["conservation_min"] = ecs[["conservation_i", "conservation_j"]].min(axis=1)
 
-        # amino acid frequencies
-        for char in list(ALPHABET_PROTEIN):
-            # Frequency of amino acid 'char' in position i
-            ecs = ecs.merge(d[["i", "segment_i", char]], on=["i","segment_i"], how="left", suffixes=["", "_1"])
-            ecs = ecs.rename({char: f"f{char}_i"}, axis=1)
-            if "i_1" in ecs.columns:
-                ecs = ecs.drop(columns=["i_1", "segment_i_1"])
-
-            # Frequency of amino acid 'char' in position j
-            ecs = ecs.merge(
-                d[["i", "segment_i", char]], left_on=["j", "segment_j"],
-                right_on=["i", "segment_i"], how="left", suffixes=["", "_1"]
-            )
-            ecs = ecs.rename({char: f"f{char}_j"}, axis=1)
-            if "j_1" in ecs.columns:
-                ecs = ecs.drop(columns=["j_1", "segment_j_1"])
-
-        # summed frequency of amino acid char in both positions i and j
-        # ie, each pair i,j now gets one combined frequency
-        for char in list(ALPHABET_PROTEIN):
-            ecs[f"f{char}"] = ecs[f"f{char}_i"] + ecs[f"f{char}_j"]
-
-        # Compute the weighted sum of hydropathy for pair i, j
-        hydrophilicity = []
-
-        # For each EC
-        for _, row in ecs.iterrows():
-            # frequncy of amino acid char * hydopathy index of that AA
-            hydro = sum([
-                HYDROPATHY_INDEX[char] * float(row[[f'f{char}']]) for char in list(ALPHABET_PROTEIN)
-            ])
-            hydrophilicity.append(hydro)
-
-        ecs["f_hydrophilicity"] = hydrophilicity
+        # # amino acid frequencies
+        # for char in list(ALPHABET_PROTEIN):
+        #     # Frequency of amino acid 'char' in position i
+        #     ecs = ecs.merge(d[["i", "segment_i", char]], on=["i","segment_i"], how="left", suffixes=["", "_1"])
+        #     ecs = ecs.rename({char: f"f{char}_i"}, axis=1)
+        #     if "i_1" in ecs.columns:
+        #         ecs = ecs.drop(columns=["i_1", "segment_i_1"])
+        #
+        #     # Frequency of amino acid 'char' in position j
+        #     ecs = ecs.merge(
+        #         d[["i", "segment_i", char]], left_on=["j", "segment_j"],
+        #         right_on=["i", "segment_i"], how="left", suffixes=["", "_1"]
+        #     )
+        #     ecs = ecs.rename({char: f"f{char}_j"}, axis=1)
+        #     if "j_1" in ecs.columns:
+        #         ecs = ecs.drop(columns=["j_1", "segment_j_1"])
+        #
+        # # summed frequency of amino acid char in both positions i and j
+        # # ie, each pair i,j now gets one combined frequency
+        # print("computing frequencies")
+        # for char in list(ALPHABET_PROTEIN):
+        #     ecs[f"f{char}"] = ecs[f"f{char}_i"] + ecs[f"f{char}_j"]
+        #
+        # # Compute the weighted sum of hydropathy for pair i, j
+        # hydrophilicity = []
+        #
+        # # For each EC
+        # print("computing hydrophilicty")
+        # for _, row in ecs.iterrows():
+        #     # frequncy of amino acid char * hydopathy index of that AA
+        #     hydro = sum([
+        #         HYDROPATHY_INDEX[char] * float(row[[f'f{char}']]) for char in list(ALPHABET_PROTEIN)
+        #     ])
+        #     hydrophilicity.append(hydro)
+        #
+        # ecs["f_hydrophilicity"] = hydrophilicity
 
         # save the calibration file
         ecs.to_csv(outcfg["ec_calibration_file"])
@@ -417,6 +416,7 @@ def standard(**kwargs):
     calibration_ecs = calibration_ecs.sort_values("cn", ascending=False)[0:20]
 
     # Fit the structure free model file
+    print('fitting the model')
     calibration_ecs = fit_model(
         calibration_ecs,
         kwargs["structurefree_model_file"],
@@ -463,7 +463,7 @@ def standard(**kwargs):
     # Step 4: Make contact map plots
     # if no structures available, defaults to EC-only plot
     def _load_distmap(distmap_file):
-        if valid_file(distmap_file + ".csv"):
+        if distmap_file is not None and valid_file(distmap_file + ".csv"):
             distmap = DistanceMap.from_file(distmap_file)
         else:
             distmap = None
