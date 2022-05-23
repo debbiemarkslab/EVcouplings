@@ -32,7 +32,7 @@ from evcouplings.utils.config import (
 )
 
 from evcouplings.utils.system import (
-    create_prefix_folders, get, valid_file,
+    create_prefix_folders, get, valid_file, insert_dir,
     verify_resources, ResourceError
 )
 
@@ -629,6 +629,42 @@ def describe_coverage(alignment, prefix, first_index, minimum_column_coverage):
         ]
     )
     return df
+
+
+def describe_bitscores(alignment, filename):
+    """
+
+    Parameters
+    ----------
+    alignment : Alignment
+        Alignment for which coverage statistics will be calculated
+    filename : str
+        Path to hmmer domtbl output file
+
+    Returns
+    -------
+    pd.DataFrame
+        Table with length-normalized bitscores
+        for each sequence in the alignment
+    """
+    column_names = [
+        "target_name",
+        "qlen",
+        "ali_from", "ali_to",
+        "domain_score",
+    ]
+    df = at.read_hmmer_domtbl(filename)[column_names]
+    df["id"] = df["target_name"] + "/" + df["ali_from"] + "-" + df["ali_to"]
+    df["bitscore"] = df["domain_score"] / df["qlen"]
+    df = pd.merge(
+        [pd.DataFrame({"id": alignment.ids}), df],
+        on="id",
+        how="left",
+    )
+    return df[["id", "bitscore"]]
+
+
+
 
 
 def existing(**kwargs):
@@ -1430,6 +1466,148 @@ def hmmbuild_and_search(**kwargs):
     return outcfg
 
 
+def adaptive_hmmer_search(**kwargs):
+    """
+    Protocol:
+
+    Iterative jackhmmer search against a sequence database.
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    .. todo::
+        explain meaning of parameters in detail.
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the protocol, including
+        the following fields:
+
+        * sequence_id (passed through from input)
+        * first_index (passed through from input)
+        * target_sequence_file
+        * sequence_file
+        * raw_alignment_file
+        * hittable_file
+        * focus_mode
+        * focus_sequence
+        * segments
+    """
+
+    prefix = kwargs["prefix"]
+    iter_1_bitscore = 0.01  # TODO: check if this is too inclusive
+    iter_prefix = (
+        insert_dir(prefix, "iter_1", rootname_subdir=False) +
+        "_b{}".format(iter_1_bitscore)
+    )
+
+    k = kwargs.copy()
+    k["prefix"] = iter_prefix
+    k["iterations"] = 1
+    k["use_bitscores"] = True
+    k["domain_threshold"] = iter_1_bitscore
+    k["sequence_threshold"] = iter_1_bitscore
+    outcfg_1 = jackhmmer_search(**k)
+    # TODO: check jackhmmer inclusion vs. reporting E-value
+    stockholm_file = outcfg_1["raw_alignment_file"]
+
+    segment = Segment.from_list(outcfg_1["segments"][0])
+    target_seq_id = segment.sequence_id
+    region_start = segment.region_start
+    region_end = segment.region_end
+
+    # read in stockholm format (with full annotation)
+    with open(stockholm_file) as a:
+        ali_raw = Alignment.from_file(a, "stockholm")
+
+    # save annotation in sequence headers (species etc.)
+    if kwargs["extract_annotation"]:
+        annotation_file = iter_prefix + "_annotation.csv"
+        annotation = extract_header_annotation(ali_raw)
+        annotation.to_csv(annotation_file, index=False)
+    else:
+        annotation_file = None
+
+    # center alignment around focus/search sequence
+    focus_cols = np.array([c != "-" for c in ali_raw[0]])
+    focus_ali = ali_raw.select(columns=focus_cols)
+
+    target_seq_index = 0
+    k["compute_num_effective_seqs"] = False
+    mod_outcfg, ali = modify_alignment(
+        focus_ali, target_seq_index, target_seq_id, region_start, **k
+    )
+
+    #  merge results of jackhmmer_search and modify_alignment stage
+    outcfg_1 = {
+        **outcfg_1,
+        **mod_outcfg,
+    }
+
+    if annotation_file is not None:
+        outcfg_1["annotation_file"] = annotation_file
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(iter_prefix + ".align.outcfg", outcfg_1)
+
+    # filter output by length first
+    # describe_seq_identities, describe_coverage, describe_bitscores
+    df = pd.merge(
+        [
+            describe_seq_identities(ali),
+            describe_coverage(ali, iter_prefix, outcfg_1["first_index"], 0.7),
+            describe_bitscores(ali, outcfg_1["hittable_file"]),
+        ],
+        on="id",
+        how="outer",
+    )
+    df.to_csv(iter_prefix+"_statistics.csv", index=False)
+
+    # plot coverage as a function of diversity
+
+    # hierarchical folder structure for each iteration's runs
+    # "prefix" is folder structure + first part of filename
+    # see function evcouplings.utils.system.insert_dir()
+    iter_prefix = insert_dir(prefix, "iter_2", rootname_subdir=False)
+
+    # TODO: compute statistics at thresholds
+    # Use describe_seq_identities, describe_coverage, describe_bitscores
+
+    # TODO: choose sequences
+    new_alignment_path = iter_prefix + "_selected.a2m"
+    with open(outcfg_1["raw_focus_alignment_file"]) as fa_in, \
+            open(new_alignment_path, "w") as fa_out:
+        write_fasta((
+            (seq_id, seq) for seq_id, seq in read_fasta(fa_in)
+            if True  # TODO add condition to select sequence
+        ), fa_out)
+    # TODO: run hmmbuild_and_search() for alignment
+    # second iteration: also a permissive bitscore, just with hmmbuild
+
+    [
+        "prefix", "sequence_id", "sequence_file",
+        "sequence_download_url", "region", "first_index",
+        "use_bitscores", "domain_threshold", "sequence_threshold",
+        "database", "iterations", "cpu", "nobias", "reuse_alignment",
+        "checkpoints_hmm", "checkpoints_ali", "jackhmmer",
+        "extract_annotation"
+    ]
+    [
+        "prefix", "sequence_id", "alignment_file",
+        "use_bitscores", "domain_threshold", "sequence_threshold",
+        "database", "cpu", "nobias", "reuse_alignment",
+        "hmmbuild", "hmmsearch"
+    ]
+    k = kwargs.copy()
+    k["prefix"] = iter_prefix
+    k["alignment_file"] = new_alignment_path
+
+    hmmbuild_and_search(**k)
+
+
 def standard(**kwargs):
     """
     Protocol:
@@ -1646,6 +1824,115 @@ def complex(**kwargs):
     return outcfg
 
 
+def adaptive(**kwargs):
+    """
+    Protocol:
+
+    Iterative protocol with an adaptive threshold
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline, including
+        the following fields:
+
+        * sequence_id (passed through from input)
+        * first_index (passed through from input)
+        * alignment_file
+        * raw_alignment_file
+        * raw_focus_alignment_file
+        * statistics_file
+        * target_sequence_file
+        * sequence_file
+        * annotation_file
+        * frequencies_file
+        * identities_file
+        * hittable_file
+        * focus_mode
+        * focus_sequence
+        * segments
+
+    ali : Alignment
+        Final sequence alignment
+
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "extract_annotation",
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    # first step of protocol is to get alignment using
+    # jackhmmer; initialize output configuration with
+    # results of this search
+    hmmer_outcfg = adaptive_hmmer_search(**kwargs)
+    stockholm_file = hmmer_outcfg["raw_alignment_file"]
+
+    segment = Segment.from_list(hmmer_outcfg["segments"][0])
+    target_seq_id = segment.sequence_id
+    region_start = segment.region_start
+    region_end = segment.region_end
+
+    # read in stockholm format (with full annotation)
+    with open(stockholm_file) as a:
+        ali_raw = Alignment.from_file(a, "stockholm")
+
+    # and store as FASTA file first (disabled for now
+    # since equivalent information easily be obtained
+    # from Stockholm file
+    """
+    ali_raw_fasta_file = prefix + "_raw.fasta"
+    with open(ali_raw_fasta_file, "w") as f:
+        ali_raw.write(f, "fasta")
+    """
+
+    # save annotation in sequence headers (species etc.)
+    if kwargs["extract_annotation"]:
+        annotation_file = prefix + "_annotation.csv"
+        annotation = extract_header_annotation(ali_raw)
+        annotation.to_csv(annotation_file, index=False)
+    else:
+        annotation_file = None
+
+    # center alignment around focus/search sequence
+    focus_cols = np.array([c != "-" for c in ali_raw[0]])
+    focus_ali = ali_raw.select(columns=focus_cols)
+
+    target_seq_index = 0
+    mod_outcfg, ali = modify_alignment(
+        focus_ali, target_seq_index, target_seq_id, region_start, **kwargs
+    )
+
+    #  merge results of jackhmmer_search and modify_alignment stage
+    outcfg = {
+        **hmmer_outcfg,
+        **mod_outcfg,
+    }
+
+    if annotation_file is not None:
+        outcfg["annotation_file"] = annotation_file
+
+    # dump output config to YAML file for debugging/logging
+    write_config_file(prefix + ".align_standard.outcfg", outcfg)
+
+    if len(ali) <= 1:
+        raise BailoutException("align: No sequences found")
+
+    # return results of protocol
+    return outcfg
+
+
 # list of available alignment protocols
 PROTOCOLS = {
     # standard buildali protocol (iterative hmmer search)
@@ -1660,6 +1947,9 @@ PROTOCOLS = {
     # run alignment protocol and postprocess output for
     # complex pipeline
     "complex": complex,
+
+    # run adaptive hmmer search
+    "adaptive_hmmer_search": adaptive_hmmer_search,
 }
 
 
