@@ -14,4 +14,4 @@ jinja2
 biopython
 seaborn
 billiard
-sklearn
+scikit-learn
