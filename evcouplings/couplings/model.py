@@ -6,7 +6,7 @@ sequences and perform calculations using the model
 Authors:
   Thomas A. Hopf
 """
-from collections import Iterable
+from collections.abc import Iterable
 from copy import deepcopy
 
 from numba import jit

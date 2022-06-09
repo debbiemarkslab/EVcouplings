@@ -5,7 +5,8 @@ Authors:
   Thomas A. Hopf
 """
 
-from collections import OrderedDict, Iterable
+from collections import OrderedDict
+from collections.abc import Iterable
 from os import path
 from urllib.error import HTTPError
 
