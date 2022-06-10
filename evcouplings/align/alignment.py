@@ -875,11 +875,13 @@ class Alignment:
                 self.matrix, self.alphabet_map
             )
 
-    def set_weights(self, identity_threshold=0.8):
+    def set_weights(self, identity_threshold=0.8, weights_calc_method="nogaps"):
         """
         Calculate weights for sequences in alignment by
         clustering all sequences with sequence identity
         greater or equal to the given threshold.
+
+        Can select either (nogaps (default), legacy or identity (no weights calculated)).
 
         .. note::
 
@@ -895,12 +897,23 @@ class Alignment:
         ----------
         identity_threshold : float, optional (default: 0.8)
             Sequence identity threshold
+        weights_calc_method : {"nogaps", "legacy", "identity"}, optional (default: "nogaps")
         """
         self.__ensure_mapped_matrix()
 
-        self.num_cluster_members = num_cluster_members(
-            self.matrix_mapped, identity_threshold
-        )
+        if weights_calc_method == "nogaps":
+            self.num_cluster_members = num_cluster_members_parallel(
+                self.matrix_mapped, identity_threshold
+            )
+        elif weights_calc_method == "legacy":
+            self.num_cluster_members = num_cluster_members_legacy(
+                self.matrix_mapped, identity_threshold
+            )
+        elif weights_calc_method == "identity":
+            self.num_cluster_members = np.ones(self.N)
+        else:
+            raise ValueError("Invalid weights_calc_method: {}. Must be one of {}".format(weights_calc_method, ["nogaps", "legacy", "identity"]))
+
         self.weights = 1.0 / self.num_cluster_members
 
         # reset frequencies, since these were based on
@@ -1169,7 +1182,7 @@ def identities_to_seq(seq, matrix):
 
 
 @jit(nopython=True)
-def num_cluster_members(matrix, identity_threshold):
+def num_cluster_members_legacy(matrix, identity_threshold):
     """
     Calculate number of sequences in alignment
     within given identity_threshold of each other
@@ -1210,6 +1223,7 @@ def num_cluster_members(matrix, identity_threshold):
                 num_neighbors[j] += 1
 
     return num_neighbors
+
 
 @jit(nopython=True)
 def num_cluster_members_parallel(matrix, identity_threshold, invalid_value):

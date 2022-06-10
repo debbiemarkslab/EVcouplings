@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from evcouplings.align import num_cluster_members, num_cluster_members_parallel
+from evcouplings.align import num_cluster_members_legacy, num_cluster_members_parallel
 
 
 class TestWeights(TestCase):
@@ -75,6 +75,12 @@ class TestWeights(TestCase):
 
     def test_num_cluster_full(self):
         """TODO Test on a full MSA, running alignment etc, just to verify"""
+        pass
+
+
+class TestWeightsCompatibility(TestCase):
+    """Test previous version of weights (slight differences)"""
+    def test_num_cluster_members_basic(self):
         pass
 
 
