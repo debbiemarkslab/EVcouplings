@@ -21,7 +21,7 @@ def sequences_to_mapped_matrix(sequences):
 
 class TestWeights(TestCase):
 
-    def test_helper(self, sequences, expected, identity_threshold):
+    def assert_equal(self, sequences, expected, identity_threshold):
         matrix = sequences_to_mapped_matrix(sequences)
         num_neighbours = num_cluster_members_nogaps_parallel(matrix, identity_threshold=identity_threshold, invalid_value=invalid_value)
         self.assertTrue(np.array_equal(num_neighbours, expected),
@@ -55,13 +55,13 @@ class TestWeights(TestCase):
         seqs = ["ACD-",
                 "AAA-"]
         expected = np.array([1, 1])
-        self.test_helper(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.5)
 
         # Mostly gaps, so sequences are just [0] and [1]
         seqs = ["A----",
                 "C----"]
         expected = np.array([1, 1])
-        self.test_helper(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.5)
 
         # Not counting its own gaps makes the threshold asymmetric
         # Sequence A: only [2,3] our of 5 overlap, so 0.4 < 0.5, so sequence on its own
@@ -73,7 +73,7 @@ class TestWeights(TestCase):
         #      [0, 0, 3, 4, 5, 0]]
         # )
         expected = np.array([1, 2])
-        self.test_helper(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.5)
 
     def test_num_cluster_fragment(self):
         # Problem with fragments: N sequences appear in cluster together (so num_cluster_members is N) but a fragment appears as its own cluster
@@ -90,14 +90,14 @@ class TestWeights(TestCase):
         #      [0, 1, 2, -1, -1, -1, -1],  # Fragment
         #      ]
         # )
-        self.test_helper(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.5)
 
     def test_many_gaps(self):
         # Testing a non-fragment sequence with many gaps
         seqs = ["A-C-DM-",
                 "A--YL-A"]
         expected = np.array([1, 1])
-        self.test_helper(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.5)
 
     def test_gaps_nomatch(self):
         # If gaps were counted as matches, this would be a cluster with 2 sequences (5 out of 6 matches)
@@ -106,7 +106,7 @@ class TestWeights(TestCase):
                 "AYY---"]
         expected = np.array([1, 1])
 
-        self.test_helper(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.5)
 
     def test_num_cluster_full(self):
         """TODO Test on a full MSA, running alignment etc, just to verify"""
@@ -123,10 +123,43 @@ class TestWeights(TestCase):
 
 class TestWeightsLegacy(TestCase):
     """Test previous version of weights (slight differences)"""
+    def assert_equal(self, sequences, expected, identity_threshold):
+        matrix = sequences_to_mapped_matrix(sequences)
+        num_neighbours = num_cluster_members_legacy(matrix, identity_threshold=identity_threshold)
+        self.assertTrue(np.array_equal(num_neighbours, expected),
+                        "Expected: {}\nGot: {}".format(expected, num_neighbours))
+
     def test_basic(self):
         # Repeating some of the above tests
+        # Symmetric and all equal
+        seqs = ["ACD-",
+                "ACD-",
+                "ACD-"]
+        expected = np.array([3, 3, 3])
+        self.assert_equal(seqs, expected, 0.8)
 
-        pass
+        # Just above 0.5 sequence similarity threshold when counting gaps
+        # 3/4 similarity including gaps > 0.5
+        seqs = ["ACD-",
+                "AAA-"]
+        expected = np.array([2, 2])
+        self.assert_equal(seqs, expected, 0.5)
+
+    def test_fragment_legacy(self):
+        seqs = ["ACDMMMA",
+                "ACDMMMY",
+                "ACCMMMA",
+                "ACD----"]  # Fragment
+        # The fragment appears on its own ("ACD" matches = 2 out of 7 positions including gaps)
+        expected = np.array([3, 3, 3, 1])
+        # matrix = np.array(
+        #     [[0, 1, 2, 3, 4, 5, 6],
+        #      [0, 1, 2, 3, 4, 5, 7],
+        #      [0, 1, 1, 3, 4, 5, 6],
+        #      [0, 1, 2, -1, -1, -1, -1],  # Fragment
+        #      ]
+        # )
+        self.assert_equal(seqs, expected, 0.5)
 
 
 if __name__ == '__main__':
