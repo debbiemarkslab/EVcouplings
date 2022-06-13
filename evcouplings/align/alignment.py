@@ -902,6 +902,10 @@ class Alignment:
         self.__ensure_mapped_matrix()
 
         if weights_calc_method == "nogaps":
+            # Note: need to set numba.set_num_threads(self.num_cpu) before calling this method (and reset it afterwards)
+            #   and if num_cpus == 1, rather use num_cluster_members_nogaps_parallel (or set numba.set_num_threads(1) is fine)
+            #   also, numba sets its maximum number of threads on importing, so if num_cpus > threads we should raise a warning
+            #   https://numba.pydata.org/numba-doc/latest/user/threading-layer.html#setting-the-threading-layer
             self.num_cluster_members = num_cluster_members_nogaps_parallel(
                 self.matrix_mapped, identity_threshold
             )
