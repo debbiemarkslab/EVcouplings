@@ -47,7 +47,6 @@ class TestWeights(TestCase):
                 "ACD-"]
         matrix = sequences_to_mapped_matrix(seqs)
         expected = np.array([3, 3, 3])
-        # num_neighbours = num_cluster_members(matrix, identity_threshold=0.8)  #, invalid_value=invalid_value
         num_neighbours = num_cluster_members_nogaps_parallel(matrix, identity_threshold=0.8, invalid_value=invalid_value)
         self.assertTrue(np.array_equal(num_neighbours, expected), "Expected: {}\nGot: {}".format(expected, num_neighbours))
 
@@ -55,35 +54,26 @@ class TestWeights(TestCase):
         # Gaps not counted, so 1/3 similarity < 0.5
         seqs = ["ACD-",
                 "AAA-"]
-        matrix = sequences_to_mapped_matrix(seqs)
         expected = np.array([1, 1])
-        num_neighbours = num_cluster_members_nogaps_parallel(matrix, identity_threshold=0.5, invalid_value=invalid_value)
-        self.assertTrue(np.array_equal(num_neighbours, expected),
-                        "Expected: {}\nGot: {}".format(expected, num_neighbours))
+        self.test_helper(seqs, expected, 0.5)
 
         # Mostly gaps, so sequences are just [0] and [1]
         seqs = ["A----",
                 "C----"]
-        matrix = sequences_to_mapped_matrix(seqs)
         expected = np.array([1, 1])
-        num_neighbours = num_cluster_members_nogaps_parallel(matrix, identity_threshold=0.5, invalid_value=invalid_value)
-        self.assertTrue(np.array_equal(num_neighbours, expected),
-                        "Expected: {}\nGot: {}".format(expected, num_neighbours))
+        self.test_helper(seqs, expected, 0.5)
 
         # Not counting its own gaps makes the threshold asymmetric
         # Sequence A: only [2,3] our of 5 overlap, so 0.4 < 0.5, so sequence on its own
         # Sequence B: Only [2,3] out of 3 non-gap overlap, so 0.667 > 0.5 and seq A is a neighbour of seq B
         seqs = ["ACMMAA",
                 "--MMY-"]
-        matrix = sequences_to_mapped_matrix(seqs)
         # matrix = np.array(
         #     [[1, 2, 3, 4, 1, 1],
         #      [0, 0, 3, 4, 5, 0]]
         # )
         expected = np.array([1, 2])
-        num_neighbours = num_cluster_members_nogaps_parallel(matrix, identity_threshold=0.5, invalid_value=invalid_value)
-        self.assertTrue(np.array_equal(num_neighbours, expected),
-                        "Expected: {}\nGot: {}".format(expected, num_neighbours))
+        self.test_helper(seqs, expected, 0.5)
 
     def test_num_cluster_fragment(self):
         # Problem with fragments: N sequences appear in cluster together (so num_cluster_members is N) but a fragment appears as its own cluster
@@ -93,8 +83,6 @@ class TestWeights(TestCase):
                 "ACD----"]  # Fragment
         # Note: The fragment isn't a neighbour of the full sequences (2 or 3 positions out of 7), but the full sequences are neighbours of the fragment
         expected = np.array([3, 3, 3, 4])
-
-        matrix = sequences_to_mapped_matrix(seqs)
         # matrix = np.array(
         #     [[0, 1, 2, 3, 4, 5, 6],
         #      [0, 1, 2, 3, 4, 5, 7],
@@ -102,20 +90,14 @@ class TestWeights(TestCase):
         #      [0, 1, 2, -1, -1, -1, -1],  # Fragment
         #      ]
         # )
-        num_neighbours = num_cluster_members_nogaps_parallel(matrix, identity_threshold=0.5, invalid_value=invalid_value)
-        self.assertTrue(np.array_equal(num_neighbours, expected),
-                        "Expected: {}\nGot: {}".format(expected, num_neighbours))
+        self.test_helper(seqs, expected, 0.5)
 
     def test_many_gaps(self):
         # Testing a non-fragment sequence with many gaps
         seqs = ["A-C-DM-",
                 "A--YL-A"]
         expected = np.array([1, 1])
-
-        matrix = sequences_to_mapped_matrix(seqs)
-        num_neighbours = num_cluster_members_nogaps_parallel(matrix, identity_threshold=0.5, invalid_value=invalid_value)
-        self.assertTrue(np.array_equal(num_neighbours, expected),
-                        "Expected: {}\nGot: {}".format(expected, num_neighbours))
+        self.test_helper(seqs, expected, 0.5)
 
     def test_gaps_nomatch(self):
         # If gaps were counted as matches, this would be a cluster with 2 sequences (5 out of 6 matches)
@@ -124,19 +106,26 @@ class TestWeights(TestCase):
                 "AYY---"]
         expected = np.array([1, 1])
 
-        matrix = sequences_to_mapped_matrix(seqs)
-        num_neighbours = num_cluster_members_nogaps_parallel(matrix, identity_threshold=0.5, invalid_value=invalid_value)
-        self.assertTrue(np.array_equal(num_neighbours, expected),
-                        "Expected: {}\nGot: {}".format(expected, num_neighbours))
+        self.test_helper(seqs, expected, 0.5)
 
     def test_num_cluster_full(self):
         """TODO Test on a full MSA, running alignment etc, just to verify"""
         pass
 
+    def test_parallel(self):
+        # Numba sets the number of threads when importing, so this test won't work on a single CPU system
+        # Test on a large MSA
+        if numba.get_num_threads() == 1:
+            print("Skipping test_parallel, as only one thread available")
+            return
+        # TODO test
 
-class TestWeightsCompatibility(TestCase):
+
+class TestWeightsLegacy(TestCase):
     """Test previous version of weights (slight differences)"""
-    def test_num_cluster_members_basic(self):
+    def test_basic(self):
+        # Repeating some of the above tests
+
         pass
 
 
