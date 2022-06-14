@@ -51,21 +51,27 @@ class TestWeights(TestCase):
         self.assertTrue(np.array_equal(num_neighbours, expected), "Expected: {}\nGot: {}".format(expected, num_neighbours))
 
         # Just below 0.5 sequence similarity threshold
-        # Gaps not counted, so 1/3 similarity < 0.5
+        # Gaps not counted, so 1/3 similarity < 0.6
         seqs = ["ACD-",
                 "AAA-"]
         expected = np.array([1, 1])
-        self.assert_equal(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.6)
 
-        # Mostly gaps, so sequences are just [0] and [1]
+        # Just above 0.6 sequence similarity threshold
+        seqs = ["MMA-",
+                "MMY-"]
+        expected = np.array([2, 2])
+        self.assert_equal(seqs, expected, 0.6)
+
+        # Mostly gaps, so sequences are just "A" and "C"
         seqs = ["A----",
                 "C----"]
         expected = np.array([1, 1])
-        self.assert_equal(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.8)
 
         # Not counting its own gaps makes the threshold asymmetric
-        # Sequence A: only [2,3] our of 5 overlap, so 0.4 < 0.5, so sequence on its own
-        # Sequence B: Only [2,3] out of 3 non-gap overlap, so 0.667 > 0.5 and seq A is a neighbour of seq B
+        # Sequence A: only "MM" our of 6 overlap, so 0.4 < 0.6, so sequence on its own
+        # Sequence B: Only "MM" out of 3 non-gap MMY overlap, so 0.667 > 0.6 and seq A is a neighbour of seq B
         seqs = ["ACMMAA",
                 "--MMY-"]
         # matrix = np.array(
@@ -73,7 +79,7 @@ class TestWeights(TestCase):
         #      [0, 0, 3, 4, 5, 0]]
         # )
         expected = np.array([1, 2])
-        self.assert_equal(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.6)
 
     def test_num_cluster_fragment(self):
         # Problem with fragments: N sequences appear in cluster together (so num_cluster_members is N) but a fragment appears as its own cluster
@@ -90,7 +96,7 @@ class TestWeights(TestCase):
         #      [0, 1, 2, -1, -1, -1, -1],  # Fragment
         #      ]
         # )
-        self.assert_equal(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.6)
 
     def test_many_gaps(self):
         # Testing a non-fragment sequence with many gaps
@@ -108,6 +114,13 @@ class TestWeights(TestCase):
 
         self.assert_equal(seqs, expected, 0.5)
 
+    def test_fragment_neighbors(self):
+        # Two neighbor fragments: Similarity = 5/6 > 0.8
+        seqs = ["---ACD-MMM---",
+                "---ACD-MMY---"]
+        expected = np.array([2, 2])
+        self.assert_equal(seqs, expected, 0.8)
+
     def test_num_cluster_full(self):
         """TODO Test on a full MSA, running alignment etc, just to verify"""
         pass
@@ -118,7 +131,21 @@ class TestWeights(TestCase):
         if numba.get_num_threads() == 1:
             print("Skipping test_parallel, as only one thread available")
             return
-        # TODO test
+
+        try:
+            numba.set_num_threads(2)  # Just use 2 to test parallelism
+            np.random.seed(0)
+            # 20 AAs + gaps. Note: Gap distribution will be uniform across the sequences with p=1/21,
+            # which is not representative of natural sequences
+            size = 1_000
+
+            matrix = np.random.randint(0, 21, size=(size, size), dtype=int)
+            serial_num_neighbours = num_cluster_members_nogaps_serial(matrix, identity_threshold=0.8, invalid_value=0)
+            parallel_num_neighbours = num_cluster_members_nogaps_parallel(matrix, identity_threshold=0.8, invalid_value=0)
+
+            self.assertTrue(np.array_equal(serial_num_neighbours, parallel_num_neighbours))
+        finally:
+            numba.set_num_threads(numba.config.NUMBA_NUM_THREADS)
 
 
 class TestWeightsLegacy(TestCase):
@@ -139,11 +166,11 @@ class TestWeightsLegacy(TestCase):
         self.assert_equal(seqs, expected, 0.8)
 
         # Just above 0.5 sequence similarity threshold when counting gaps
-        # 3/4 similarity including gaps > 0.5
-        seqs = ["ACD-",
+        # 3/4 similarity including gaps > 0.6
+        seqs = ["AAD-",
                 "AAA-"]
         expected = np.array([2, 2])
-        self.assert_equal(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.6)
 
     def test_fragment_legacy(self):
         seqs = ["ACDMMMA",
@@ -159,7 +186,7 @@ class TestWeightsLegacy(TestCase):
         #      [0, 1, 2, -1, -1, -1, -1],  # Fragment
         #      ]
         # )
-        self.assert_equal(seqs, expected, 0.5)
+        self.assert_equal(seqs, expected, 0.6)
 
 
 if __name__ == '__main__':
