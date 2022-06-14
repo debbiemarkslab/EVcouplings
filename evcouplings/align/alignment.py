@@ -5,13 +5,13 @@ multiple sequence alignments.
 Authors:
   Thomas A. Hopf
 """
-
+import os
 import re
 from collections import namedtuple, OrderedDict, defaultdict
 from copy import deepcopy
 
 import numpy as np
-from numba import jit, prange
+from numba import jit
 
 from evcouplings.utils.calculations import entropy
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
@@ -875,7 +875,7 @@ class Alignment:
                 self.matrix, self.alphabet_map
             )
 
-    def set_weights(self, identity_threshold=0.8, weights_calc_method="nogaps"):
+    def set_weights(self, identity_threshold=0.8, weights_calc_method="nogaps", weights_file=None):
         """
         Calculate weights for sequences in alignment by
         clustering all sequences with sequence identity
@@ -897,7 +897,7 @@ class Alignment:
         ----------
         identity_threshold : float, optional (default: 0.8)
             Sequence identity threshold
-        weights_calc_method : {"nogaps", "legacy", "identity"}, optional (default: "nogaps")
+        weights_calc_method : {"nogaps", "legacy", "uniform", "custom"}, optional (default: "nogaps")
         """
         self.__ensure_mapped_matrix()
 
@@ -915,8 +915,16 @@ class Alignment:
             )
         elif weights_calc_method == "uniform":
             self.num_cluster_members = np.ones(self.N)
+        elif weights_calc_method == "custom":
+            if weights_file is None:
+                raise ValueError("weights_file must be provided when weights_calc_method is 'custom'")
+            if not os.path.isfile(weights_file):
+                raise ValueError("Sequence weights file does not exist: {}".format(weights_file))
+
+            print("Loading sequence weights from file:", weights_file)
+            self.weights = np.load(file=weights_file)
         else:
-            raise ValueError("Invalid weights_calc_method: {}. Must be one of {}".format(weights_calc_method, ["nogaps", "legacy", "uniform"]))
+            raise ValueError("Invalid weights_calc_method: {}. Must be one of {}".format(weights_calc_method, ["nogaps", "legacy", "uniform", "custom"]))
 
         self.weights = 1.0 / self.num_cluster_members
 
