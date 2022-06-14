@@ -4,8 +4,8 @@ from unittest import TestCase
 import numba
 import numpy as np
 
-from evcouplings.align import num_cluster_members_legacy, num_cluster_members_nogaps_parallel, map_from_alphabet, map_matrix, \
-    ALPHABET_PROTEIN, MATCH_GAP, sequences_to_matrix
+from evcouplings.align import map_from_alphabet, map_matrix, ALPHABET_PROTEIN, MATCH_GAP, sequences_to_matrix
+from evcouplings.couplings.weights import num_cluster_members_legacy, num_cluster_members_nogaps_parallel, num_cluster_members_nogaps_serial
 
 # Alphabet : "-" + "ACDEFGHIKLMNPQRSTVWY"
 
