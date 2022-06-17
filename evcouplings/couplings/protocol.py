@@ -53,6 +53,8 @@ SCORING_MODELS = (
 )
 
 
+# TODO(Lood): Extra config needs to be passed through here:
+#  sequence_weight_strategy, weights_file (if strategy=custom), early_stopping (for just Meff calculation)
 def infer_plmc(**kwargs):
     """
     Run EC computation on alignment. This function contains
@@ -178,12 +180,12 @@ def infer_plmc(**kwargs):
         # finally, scale lambda_J
         lambda_J *= (num_symbols - 1) * (L - 1)
 
-    # run plmc... or reuse pre-exisiting results from previous run
+    # run plmc... or reuse pre-existing results from previous run
     plm_outcfg_file = prefix + ".couplings_standard_plmc.outcfg"
 
     # determine if to rerun, only possible if previous results
     # were stored in ali_outcfg_file
-    if kwargs["reuse_ecs"] and valid_file(plm_outcfg_file):
+    if kwargs["reuse_ecs"] and valid_file(plm_outcfg_file):  # TODO(Lood): assume this means we can skip weights calc
         plmc_result = read_config_file(plm_outcfg_file)
 
         # check if the EC/parameter files are there
@@ -199,6 +201,9 @@ def infer_plmc(**kwargs):
         )
 
     else:
+        # TODO Load alignment and calculate weights
+        #  need: alignment file, sequence_weight_strategy, cpus (optional, for numba), theta, alphabet? (for invalid characters)
+
         # run plmc binary
         plmc_result = ct.run_plmc(
             kwargs["alignment_file"],
@@ -214,7 +219,7 @@ def infer_plmc(**kwargs):
             lambda_J=lambda_J,
             lambda_g=kwargs["lambda_group"],
             cpu=kwargs["cpu"],
-            binary=kwargs["plmc"],
+            binary=kwargs["plmc"],  # TODO pass in calculated weights here
         )
 
         # save iteration table to file
@@ -695,6 +700,17 @@ def mean_field(**kwargs):
             f, alphabet=alphabet,
             format="fasta"
         )
+
+    # TODO hoist calc weights out of dca.fit and into here
+    #  - we could even consider calculating weights in run (top level), but for now we can duplicate it
+    #  then assign weights to the input_alignment object
+
+    # input_alignment.set_weights(
+    #     identity_threshold=kwargs['theta'],
+    #     weights_calc_method=kwargs['weights_calc_method'],
+    #     weights_file=kwargs['weights_file'],   # Optional unless weights_calc_method is 'custom'
+    #     num_cpus=kwargs['cpus'],    # Optional
+    # )
 
     # init mean field direct coupling analysis
     mf_dca = MeanFieldDCA(input_alignment)

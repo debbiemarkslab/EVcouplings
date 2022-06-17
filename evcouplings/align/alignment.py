@@ -13,6 +13,8 @@ from copy import deepcopy
 import numpy as np
 from numba import jit
 
+from evcouplings.couplings.weights import num_cluster_members_nogaps_parallel, num_cluster_members_legacy, \
+    num_cluster_members_nogaps_serial
 from evcouplings.utils.calculations import entropy
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
 
@@ -875,7 +877,7 @@ class Alignment:
                 self.matrix, self.alphabet_map
             )
 
-    def set_weights(self, identity_threshold=0.8, weights_calc_method="nogaps", weights_file=None):
+    def set_weights(self, identity_threshold=0.8, weights_calc_method="nogaps", weights_file=None, num_cpus=1):
         """
         Calculate weights for sequences in alignment by
         clustering all sequences with sequence identity
@@ -906,9 +908,14 @@ class Alignment:
             #   and if num_cpus == 1, rather use num_cluster_members_nogaps_parallel (or set numba.set_num_threads(1) is fine)
             #   also, numba sets its maximum number of threads on importing, so if num_cpus > threads we should raise a warning
             #   https://numba.pydata.org/numba-doc/latest/user/threading-layer.html#setting-the-threading-layer
-            self.num_cluster_members = num_cluster_members_nogaps_parallel(
-                self.matrix_mapped, identity_threshold
-            )
+            if num_cpus > 1:
+                self.num_cluster_members = num_cluster_members_nogaps_parallel(
+                    self.matrix_mapped, identity_threshold
+                )
+            else:
+                self.num_cluster_members = num_cluster_members_nogaps_serial(
+                    self.matrix_mapped, identity_threshold
+                )
         elif weights_calc_method == "legacy":
             self.num_cluster_members = num_cluster_members_legacy(
                 self.matrix_mapped, identity_threshold

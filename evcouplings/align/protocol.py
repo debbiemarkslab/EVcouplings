@@ -910,7 +910,7 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
             min_cov /= 100
 
         keep_seqs = (1 - ali.count("-", axis="seq")) >= min_cov
-        ali = ali.select(sequences=keep_seqs)
+        ali = ali.select(sequences=keep_seqs)  # TODO this will affect weights output length (make sure to pass to save_weights)
 
     # Calculate frequencies, conservation and identity to query
     # on final alignment (except for lowercase modification)

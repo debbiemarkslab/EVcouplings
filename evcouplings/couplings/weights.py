@@ -2,6 +2,21 @@ import numpy as np
 from numba import jit, prange
 
 
+def save_raw_weights(weights_filtered, filename, skipped_sequences):
+    """
+    Save one weight per sequence in alignment, even if they were filtered (in which case, save weight = 0)
+
+    Parameters
+    ----------
+    weights_filtered : numpy.ndarray
+        From alignment.set_weights
+    filename : str
+        Path to output file
+    skipped_sequences : array-like
+    """
+    pass
+
+
 @jit(nopython=True)
 def num_cluster_members_legacy(matrix, identity_threshold):
     """
