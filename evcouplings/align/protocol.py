@@ -8,7 +8,8 @@ Authors:
 
 """
 
-from collections import OrderedDict, Iterable
+from collections import OrderedDict
+from collections.abc import Iterable
 import re
 from shutil import copy
 import os
