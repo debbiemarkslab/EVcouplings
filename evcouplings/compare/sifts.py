@@ -66,7 +66,7 @@ checkpoints_ali: False
 # database
 jackhmmer: jackhmmer
 sequence_database:
-sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
+sequence_download_url: http://rest.uniprot.org/uniprot/{}.fasta
 """
 
 

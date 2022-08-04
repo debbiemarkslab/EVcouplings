@@ -403,7 +403,7 @@ databases:
     uniref90: /n/groups/marks/databases/jackhmmer/uniref90/uniref90_current.o2.fasta
 
     # URL do download sequences if sequence_file is not given. {} will be replaced by sequence_id.
-    sequence_download_url: http://www.uniprot.org/uniprot/{}.fasta
+    sequence_download_url: http://rest.uniprot.org/uniprot/{}.fasta
 
     # Directory with PDB MMTF structures (leave blank to fetch structures from web)
     pdb_mmtf_dir:
