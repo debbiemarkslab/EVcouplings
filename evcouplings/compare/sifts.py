@@ -927,6 +927,11 @@ class SIFTS:
         # split residue name into residue number and (potential) insertion code
         # for proper sorting
         def _split_insertion_code(res):
+            # safeguard function by typecasting to string (in some instances
+            # this turned out to be an integer, presumably due to pandas automatic
+            # typecast)
+            res = str(res)
+
             # should not happen but just to be safe
             assert len(res) >= 1
 
