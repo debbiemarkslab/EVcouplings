@@ -883,7 +883,7 @@ class SIFTS:
             hits.groupby(hit_columns)
         ):
             agg_mapping = {}
-            agg_df = pd.DataFrame()
+            agg_df_raw = []
             # go through each segment
             for j, r in grp.iterrows():
                 # compute mapping for that particular segment
@@ -891,7 +891,9 @@ class SIFTS:
 
                 # add to overall mapping dictionary for this hit
                 agg_mapping.update(map_j)
-                agg_df = agg_df.append(map_j_df)
+                agg_df_raw.append(map_j_df)
+
+            agg_df = pd.concat(agg_df_raw)
 
             # store assignment of group to mapping index
             mapping_rows.append(
@@ -975,10 +977,11 @@ class SIFTS:
         # remove hits with too little residue coverage
         hits_grouped = hits_grouped.query("overlap >= @min_overlap")
 
-        hits_grouped.loc[:, "bitscore"] = pd.to_numeric(
-            hits_grouped.loc[:, "bitscore"], errors="coerce"
+        hits_grouped = hits_grouped.assign(
+            bitscore=pd.to_numeric(hits_grouped.bitscore, errors="coerce")
+        ).sort_values(
+            by="bitscore", ascending=False
         )
-        hits_grouped = hits_grouped.sort_values(by="bitscore", ascending=False)
 
         # if requested, only keep one chain per PDB;
         # sort by score before this to keep best hit
