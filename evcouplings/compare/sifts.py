@@ -13,15 +13,19 @@ Authors:
   Chan Kang (find_homologs)
 """
 
+from io import StringIO
 from os import path
 from collections import OrderedDict
 from copy import deepcopy
+import time
+import logging
 
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter, Retry
 
 from evcouplings.align.alignment import (
-    Alignment, read_fasta, parse_header
+    Alignment, read_fasta, parse_header, write_fasta
 )
 from evcouplings.align.protocol import (
     jackhmmer_search, hmmbuild_and_search
@@ -36,7 +40,7 @@ from evcouplings.utils.config import (
 )
 from evcouplings.utils.helpers import range_overlap
 
-UNIPROT_MAPPING_URL = "https://www.uniprot.org/mapping/"
+UNIPROT_MAPPING_URL = "https://rest.uniprot.org"
 SIFTS_URL = "ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/uniprot_segments_observed.csv.gz"
 SIFTS_REST_API = "http://www.ebi.ac.uk/pdbe/api/mappings/uniprot_segments/{}"
 
@@ -70,45 +74,112 @@ sequence_download_url: http://rest.uniprot.org/uniprot/{}.fasta
 """
 
 
-def fetch_uniprot_mapping(ids, from_="ACC", to="ACC", format="fasta"):
+def fetch_uniprot_mapping(ids, from_db="UniProtKB_AC-ID", to_db="UniProtKB", format="fasta", isoforms=True,
+                          polling_interval=3, retry_kws=None):
     """
     Fetch data from UniProt ID mapping service
     (e.g. download set of sequences)
+
+    Updated to match 2022 UniProt update, code is a simpflied version of
+    https://www.uniprot.org/help/id_mapping
+
+    For valid from_db/to_db pairs check https://rest.uniprot.org/configure/idmapping/fields
 
     Parameters
     ----------
     ids : list(str)
         List of UniProt identifiers for which to
         retrieve mapping
-    from_ : str, optional (default: "ACC")
+    from_db : str, optional (default: "UniProtKB_AC-ID")
         Source identifier (i.e. contained in "ids" list)
-    to : str, optional (default: "ACC")
+    to_db : str, optional (default: "UniProtKB")
         Target identifier (to which source should be mapped)
     format : str, optional (default: "fasta")
         Output format to request from Uniprot server
+    isoforms : bool, optional (default: True)
+        Include isoform sequences in retrieval. Note that API will return *all*
+        isoforms for entry, not just the requested ones, i.e. output will
+        need to be filtered after retrieval. Output may also contain duplicate
+        entries if multiple isoforms were present in requested identifier set.
+    polling_interval : int, optional (default: 3)
+        Number of seconds to wait before polling for request results
+    retry_kws : dict, optional (default: None)
+        Retry parameters supplied as kwargs to requests.adapters.Retry
 
     Returns
     -------
-    str:
-        Response from UniProt server
+    result: requests.models.Response
+        Response from UniProt server. Use result.text or result.json()
+        to access results
     """
-    params = {
-        "from": from_,
-        "to": to,
-        "format": format,
-        "query": " ".join(ids)
-    }
-    url = UNIPROT_MAPPING_URL
-    r = requests.post(url, data=params)
+    if retry_kws is None:
+        retry_kws = {
+            "total": 5,
+            "backoff_factor": 0.25,
+            "status_forcelist": [500, 502, 503, 504]
+        }
 
-    if r.status_code != requests.codes.ok:
-        raise ResourceError(
-            "Invalid status code ({}) for URL: {}".format(
-                r.status_code, url
-            )
+    # submit request
+    def submit_request():
+        r = requests.post(
+            f"{UNIPROT_MAPPING_URL}/idmapping/run",
+            data={
+                "from": from_db,
+                "to": to_db,
+                "ids": ",".join(ids)
+            },
         )
+        r.raise_for_status()
+        return r.json()["jobId"]
 
-    return r.text
+    def check_id_mapping_results_ready(job_id):
+        while True:
+            request = session.get(f"{UNIPROT_MAPPING_URL}/idmapping/status/{job_id}")
+            request.raise_for_status()
+            j = request.json()
+            if "jobStatus" in j:
+                if j["jobStatus"] == "RUNNING":
+                    time.sleep(polling_interval)
+                else:
+                    raise Exception(j["jobStatus"])
+            else:
+                return bool(j["results"] or j["failedIds"])
+
+    def get_id_mapping_results_link(job_id):
+        url = f"{UNIPROT_MAPPING_URL}/idmapping/details/{job_id}"
+        request = session.get(url)
+        request.raise_for_status()
+        return request.json()["redirectURL"]
+
+    job_id = submit_request()
+
+    retries = Retry(
+        **retry_kws
+    )
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+
+    if check_id_mapping_results_ready(job_id):
+        result_url = get_id_mapping_results_link(job_id)
+
+        # for simplicity, stream results (paginate requests to ensure more stable result,
+        # rather than paginating response of very big unstable request):
+        if "/stream/" not in result_url:
+            result_url = result_url.replace(
+                "/results/", "/results/stream/"
+            )
+
+        # append return format to URL
+        result_url += f"?format={format}"
+
+        # add isoform retrieval parameter if requested
+        if isoforms:
+            result_url += "&includeIsoform=true"
+
+        result = session.get(result_url)
+        result.raise_for_status()
+
+        return result
 
 
 def find_homologs(pdb_alignment_method="jackhmmer", **kwargs):
@@ -424,12 +495,19 @@ class SIFTS:
             from UniProt ID mapping service, which unfortunately
             often suffers from connection failures.
         """
+        # unique identifiers *including* isoforms (used for filtering final table)
         ids = self.table.uniprot_ac.unique().tolist()
+
+        # unique identifiers *excluding* isoforms (used for retrieval, to avoid
+        # fetching sequences twice)
+        ids_no_isoform = self.table.uniprot_ac.map(
+            lambda id_: id_.split("-")[0]
+        ).unique().tolist()
 
         # retrieve sequences in chunks since ID mapping service
         # tends to fail on large requests
         id_chunks = [
-            ids[i:i + chunk_size] for i in range(0, len(ids), chunk_size)
+            ids_no_isoform[i:i + chunk_size] for i in range(0, len(ids_no_isoform), chunk_size)
         ]
 
         # store individual retrieved chunks as list of strings
@@ -439,17 +517,22 @@ class SIFTS:
         # abort if number exceeds max_retries
         num_retries = 0
 
-        for ch in id_chunks:
+        for i, ch in enumerate(id_chunks):
             # fetch sequence chunk;
             # if there is a problem retry as long as we stay within
-            # maximum number of retries
+            # maximum number of retries;
+            # latest version also has limited number of retries inside the mapping function
             while True:
                 try:
-                    seqs = fetch_uniprot_mapping(ch)
+                    logging.info(f"Fetching chunk {i + 1} of {len(id_chunks)}...")
+                    seqs = fetch_uniprot_mapping(ch).text
                     break
-                except requests.ConnectionError as e:
+                except (requests.ConnectionError, requests.HTTPError) as e:
                     # count as failed try
                     num_retries += 1
+                    logging.warning(
+                        f"Error fetching chunk {i + 1} of {len(id_chunks)}, current retry #: {num_retries}"
+                    )
 
                     # if we retried too often, abort
                     if num_retries > max_retries:
@@ -472,12 +555,24 @@ class SIFTS:
 
             assert seqs.endswith("\n")
 
-            # store for writing
+            # store for parsing and output
             seq_chunks.append(seqs)
+
+        # create set representation for efficient lookup
+        ids_set = set(ids)
+
+        # only retain sequences that we actually had in input list
+        # (API will return all isoforms)
+        filtered_seqs = [
+            (seq_id, seq) for seq_id, seq in read_fasta(
+                StringIO("".join(seq_chunks))
+            )
+            if seq_id.split("|")[1] in ids_set
+        ]
 
         # store sequences to FASTA file in one go at the end
         with open(output_file, "w") as f:
-            f.write("".join(seq_chunks))
+            write_fasta(filtered_seqs, f)
 
         self.sequence_file = output_file
 
