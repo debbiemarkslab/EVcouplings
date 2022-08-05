@@ -18,7 +18,7 @@ setup(
     name='evcouplings',
 
     # Version:
-    version='0.1.1',
+    version='0.1.2',
 
     description='A Framework for evolutionary couplings analysis',
     long_description=readme,
@@ -28,8 +28,8 @@ setup(
     url='https://github.com/debbiemarkslab/EVcouplings',
 
     # Author details
-    author='Thomas Hopf, Benjamin Schubert',
-    author_email='thomas_hopf@hms.harvard.edu, benjamin_schubert@hms.harvard.edu',
+    author='Thomas Hopf',
+    author_email='thomas_hopf@hms.harvard.edu',
 
     # Choose your license
     license='MIT',
@@ -98,7 +98,7 @@ setup(
     install_requires=['setuptools>=18.2', 'numpy',
         'pandas', 'scipy', 'numba', 'ruamel.yaml', 'matplotlib', 'requests',
         'mmtf-python', 'click', 'filelock', 'psutil', 'bokeh', 'jinja2',
-        'biopython', 'seaborn', 'billiard', 'sklearn',
+        'biopython', 'seaborn', 'billiard', 'scikit-learn',
     ],
 
 )

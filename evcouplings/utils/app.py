@@ -14,7 +14,7 @@ Authors:
 import re
 from copy import deepcopy
 from os import path, environ
-from collections import Mapping
+from collections.abc import Mapping
 
 import billiard
 import click

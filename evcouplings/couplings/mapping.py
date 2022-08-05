@@ -7,7 +7,7 @@ Authors:
   Anna G. Green (MultiSegmentCouplingsModel)
 """
 
-from collections import Iterable
+from collections.abc import Iterable
 from copy import deepcopy
 from evcouplings.couplings.model import CouplingsModel
 import pandas as pd
