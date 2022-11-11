@@ -371,8 +371,8 @@ def matrix_base_bokeh(matrix, positions, substitutions,
     p = bp.figure(
         title=title,
         x_range=positions, y_range=substitutions,
-        x_axis_location="above", plot_width=width_factor * len(positions),
-        plot_height=height_factor * len(substitutions),
+        x_axis_location="above", width=width_factor * len(positions),
+        height=height_factor * len(substitutions),
         toolbar_location="left", tools=TOOLS
     )
 
