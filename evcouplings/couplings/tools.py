@@ -52,7 +52,7 @@ def parse_plmc_log(log):
         "seqs": re.compile("(\d+) valid sequences out of (\d+)"),
         "sites": re.compile("(\d+) sites out of (\d+)"),
         "region": re.compile("Region starts at (\d+)"),
-        "samples": re.compile("Effective number of samples: (\d+\.\d+)"),
+        "samples": re.compile("Effective number of samples.*: (\d+\.\d+)"),
         "optimization": re.compile("Gradient optimization: (.+)")
     }
 
