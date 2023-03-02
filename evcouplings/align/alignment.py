@@ -9,6 +9,7 @@ Authors:
 import re
 from collections import namedtuple, OrderedDict, defaultdict
 from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 from numba import jit
@@ -326,7 +327,7 @@ def write_a3m(sequences, fileobj, insert_gap=INSERT_GAP, width=80):
         fileobj.write(seq.replace(insert_gap, "") + "\n")
 
 
-def detect_format(fileobj):
+def detect_format(fileobj, filepath=""):
     """
     Detect if an alignment file is in FASTA or
     Stockholm format.
@@ -335,10 +336,12 @@ def detect_format(fileobj):
     ----------
     fileobj : file-like obj
         Alignment file for which to detect format
+    filepath : string or path-like obj
+        Path of alignment file
 
     Returns
     -------
-    format : {"fasta", "stockholm", None}
+    format : {"fasta", "a3m", "stockholm", None}
         Format of alignment, None if not detectable
     """
     for i, line in enumerate(fileobj):
@@ -348,6 +351,9 @@ def detect_format(fileobj):
 
         # This indicates a FASTA file
         if line.startswith(">"):
+            # A3M files have extension .a3m
+            if Path(filepath).suffix.lower() == ".a3m":
+                return "a3m"
             return "fasta"
 
         # Skip comment lines and empty lines for FASTA detection
