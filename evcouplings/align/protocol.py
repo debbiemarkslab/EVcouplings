@@ -689,7 +689,7 @@ def existing(**kwargs):
 
     # first try to autodetect format of alignment
     with open(input_alignment) as f:
-        format = detect_format(f)
+        format = detect_format(f, filepath=input_alignment)
         if format is None:
             raise InvalidParameterError(
                 "Format of input alignment {} could not be "
