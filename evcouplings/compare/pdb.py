@@ -457,7 +457,7 @@ class PDB:
         # store explicit information about composition of residues
         def _group_info(field):
             return np.array(
-                [x[field] for x in mmtf.group_list]
+                [x[field] for x in mmtf.group_list], dtype=np.object_
             )
 
         # three and one letter code names of different groups
@@ -589,7 +589,7 @@ class PDB:
             np.array([
                 np.arange(self.first_residue_index[i], self.last_residue_index[i])
                 for i in target_chain_indeces
-            ])
+            ], dtype=np.object_)
         )
 
         # chain indeces and identifiers for all residues

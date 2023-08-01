@@ -98,7 +98,7 @@ class TestMutation(TestCase):
         # gotta round to account for this
         _singles = _singles.round(3)
         singles = singles.round(3)
-        pd.testing.assert_frame_equal(singles, _singles, check_exact=False, rtol=1e-3)
+        pd.testing.assert_frame_equal(singles, _singles, check_dtype=False, atol=1e-5)
 
     def test_split_mutants_single(self):
         """
@@ -228,7 +228,7 @@ class TestMutationComplex(TestCase):
             self.c0, self.singles, output_column="prediction_independent"
         )
 
-        pd.testing.assert_frame_equal(self.singles, _singles, check_exact=False, rtol=1e-3)
+        pd.testing.assert_frame_equal(self.singles, _singles, check_dtype=False, atol=1e-5)
 
     def test_predict_mutation_table_empty_segment(self):
         """

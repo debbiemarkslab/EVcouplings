@@ -18,7 +18,7 @@ setup(
     name='evcouplings',
 
     # Version:
-    version='0.1.2',
+    version='0.2',
 
     description='A Framework for evolutionary couplings analysis',
     long_description=readme,
@@ -49,7 +49,8 @@ setup(
         # The license as you wish (should match "license" above)
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
 
     # What EVcouplings relates to:
@@ -96,7 +97,7 @@ setup(
     #setup_requires=['setuptools>=18.2', 'numpy'],
 
     install_requires=['setuptools>=18.2', 'numpy',
-        'pandas', 'scipy', 'numba', 'ruamel.yaml', 'matplotlib', 'requests',
+        'pandas', 'scipy', 'numba', 'ruamel.yaml<0.18', 'matplotlib', 'requests',
         'mmtf-python', 'click', 'filelock', 'psutil', 'bokeh', 'jinja2',
         'biopython', 'seaborn', 'billiard', 'scikit-learn',
     ],
