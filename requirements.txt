@@ -2,7 +2,7 @@ numpy
 scipy
 pandas
 numba
-ruamel.yaml
+ruamel.yaml<=0.15  # https://pypi.org/project/ruamel.yaml/
 matplotlib
 requests
 mmtf-python
