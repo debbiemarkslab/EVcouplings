@@ -510,8 +510,8 @@ def standard(**kwargs):
     fold_dir = path.dirname(prefix)
     prediction_files = []
     for name, file_path in folded_files.items():
-        # move file (use copy to allow overwriting)
-        shutil.copy(file_path, fold_dir)
+        # move file (use copyfile to allow overwriting)
+        shutil.copyfile(file_path, fold_dir)
 
         # update file path to main folding dir,
         # and put in a flat list of result files
