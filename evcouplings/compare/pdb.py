@@ -422,9 +422,9 @@ class PDB:
             """
             Extract index ranges for chains, residues and atoms
             """
-            last_element = np.cumsum(object_counts, dtype=int)
+            last_element = np.cumsum(object_counts, dtype=np.int64)
             first_element = np.concatenate(
-                (np.zeros(1, dtype=int), last_element[:-1])
+                (np.zeros(1, dtype=np.int64), last_element[:-1])
             )
 
             return first_element, last_element
@@ -576,7 +576,7 @@ class PDB:
         )
 
         # indices of chains that match chain name, in current model
-        indices = np.arange(first_chain_index, last_chain_index, dtype=int)
+        indices = np.arange(first_chain_index, last_chain_index, dtype=np.int64)
         target_chain_indeces = indices[chain_names == chain]
 
         if len(target_chain_indeces) == 0:
@@ -598,7 +598,7 @@ class PDB:
         chain_indeces = np.concatenate([
             np.full(
                 self.last_residue_index[i] - self.first_residue_index[i],
-                i, dtype=int
+                i, dtype=np.int64
             ) for i in target_chain_indeces
         ])
 
