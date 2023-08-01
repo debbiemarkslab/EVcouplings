@@ -402,7 +402,9 @@ class TestComplex(TestCase):
 
         pd.testing.assert_frame_equal(
             self.possible_partners, _possible_partners,
-            check_less_precise=True, check_like=True,
+            check_exact=False,
+            rtol=1e-3,
+            check_like=True,
             check_names=False
         )
 
