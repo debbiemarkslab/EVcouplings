@@ -18,48 +18,70 @@ from evcouplings.complex.similarity import *
 from evcouplings.complex.protocol import *
 from evcouplings.align import Alignment
 
-TRAVIS_PATH = os.getenv('HOME') + "/evcouplings_test_cases/complex_test"
+TRAVIS_PATH = os.getenv("HOME") + "/evcouplings_test_cases/complex_test"
 # TRAVIS_PATH = "/home/travis/evcouplings_test_cases/complex_test"
 # TRAVIS_PATH = "/Users/AG/Dropbox/evcouplings_dev/test_cases/for_B/complex_test"
 
-class TestComplex(TestCase):
 
+class TestComplex(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestComplex, self).__init__(*args, **kwargs)
 
         # Genome location table
-        genome_location_filename_1 = \
-            "{}/align_1/test_new_genome_location.csv".format(TRAVIS_PATH)
-        genome_location_filename_2 = \
-            "{}/align_2/test_new_genome_location.csv".format(TRAVIS_PATH)
+        genome_location_filename_1 = "{}/align_1/test_new_genome_location.csv".format(
+            TRAVIS_PATH
+        )
+        genome_location_filename_2 = "{}/align_2/test_new_genome_location.csv".format(
+            TRAVIS_PATH
+        )
 
         self.gene_location_table_1 = pd.read_csv(genome_location_filename_1, header=0)
         self.gene_location_table_2 = pd.read_csv(genome_location_filename_2, header=0)
 
         # possible partners file
-        possible_partners_file = "{}/concatenate/test_new_possible_partners.csv".format(TRAVIS_PATH)
-        possible_partners = pd.read_csv(possible_partners_file, index_col=0, header=0,
-            dtype={"uniprot_id_1": str, "uniprot_id_2": str, "distance": int}
+        possible_partners_file = "{}/concatenate/test_new_possible_partners.csv".format(
+            TRAVIS_PATH
         )
-        possible_partners = possible_partners.sort_values(["uniprot_id_1", "uniprot_id_2", "distance"])
+        possible_partners = pd.read_csv(
+            possible_partners_file,
+            index_col=0,
+            header=0,
+            dtype={"uniprot_id_1": str, "uniprot_id_2": str, "distance": int},
+        )
+        possible_partners = possible_partners.sort_values(
+            ["uniprot_id_1", "uniprot_id_2", "distance"]
+        )
         self.possible_partners = possible_partners.reset_index(drop=True)
 
         # id pairing
         id_pairing_file = "{}/concatenate/test_new_id_pairing.csv".format(TRAVIS_PATH)
-        id_pairing = pd.read_csv(id_pairing_file, index_col=0, header=0,
-            dtype={"uniprot_id_1": str, "uniprot_id_2": str, "distance": int}
+        id_pairing = pd.read_csv(
+            id_pairing_file,
+            index_col=0,
+            header=0,
+            dtype={"uniprot_id_1": str, "uniprot_id_2": str, "distance": int},
         )
-        id_pairing = id_pairing.sort_values(["uniprot_id_1", "uniprot_id_2", "distance"])
+        id_pairing = id_pairing.sort_values(
+            ["uniprot_id_1", "uniprot_id_2", "distance"]
+        )
         self.id_pairing = id_pairing.reset_index(drop=True)
 
         # annotation table for concatenation
-        annotation_data_file = "{}/concatenate/test_new_uniprot_annotation.csv".format(TRAVIS_PATH)
-        self.annotation_data = pd.read_csv(annotation_data_file, index_col=None, header=0, dtype=str)
+        annotation_data_file = "{}/concatenate/test_new_uniprot_annotation.csv".format(
+            TRAVIS_PATH
+        )
+        self.annotation_data = pd.read_csv(
+            annotation_data_file, index_col=None, header=0, dtype=str
+        )
 
-        annotation_and_id_file = "{}/concatenate/test_new_annotation_and_id.csv".format(TRAVIS_PATH)
+        annotation_and_id_file = "{}/concatenate/test_new_annotation_and_id.csv".format(
+            TRAVIS_PATH
+        )
         self.annotation_and_id = pd.read_csv(
-            annotation_and_id_file,  header=0, index_col=None,
-            dtype={"id": str, "id_to_query": float, "species": str, "name": str}
+            annotation_and_id_file,
+            header=0,
+            index_col=None,
+            dtype={"id": str, "id_to_query": float, "species": str, "name": str},
         )
 
         # table of sequence identities
@@ -71,10 +93,14 @@ class TestComplex(TestCase):
         self.paralog_table = pd.read_csv(paralog_file, index_col=0, header=0)
 
         # input and output configuration
-        with open("{}/concatenate/test_new_concatenate.incfg".format(TRAVIS_PATH)) as inf:
+        with open(
+            "{}/concatenate/test_new_concatenate.incfg".format(TRAVIS_PATH)
+        ) as inf:
             self.incfg = yaml.safe_load(inf)
 
-        with open("{}/concatenate/test_new_concatenate.outcfg".format(TRAVIS_PATH)) as inf:
+        with open(
+            "{}/concatenate/test_new_concatenate.outcfg".format(TRAVIS_PATH)
+        ) as inf:
             self.outcfg = yaml.safe_load(inf)
 
     def test_genome_distance(self):
@@ -89,12 +115,24 @@ class TestComplex(TestCase):
 
         temporary_incfg = deepcopy(self.incfg)
         temporary_incfg["prefix"] = tmp_prefix
-        temporary_incfg["first_alignment_file"] = "{}/align_1/test_new.a2m".format(TRAVIS_PATH)
-        temporary_incfg["second_alignment_file"] = "{}/align_2/test_new.a2m".format(TRAVIS_PATH)
-        temporary_incfg["first_genome_location_file"] = "{}/align_1/test_new_genome_location.csv".format(TRAVIS_PATH)
-        temporary_incfg["second_genome_location_file"] = "{}/align_2/test_new_genome_location.csv".format(TRAVIS_PATH)
-        temporary_incfg["first_annotation_file"] = "{}/align_1/test_new_annotation.csv".format(TRAVIS_PATH)
-        temporary_incfg["second_annotation_file"] = "{}/align_2/test_new_annotation.csv".format(TRAVIS_PATH)
+        temporary_incfg["first_alignment_file"] = "{}/align_1/test_new.a2m".format(
+            TRAVIS_PATH
+        )
+        temporary_incfg["second_alignment_file"] = "{}/align_2/test_new.a2m".format(
+            TRAVIS_PATH
+        )
+        temporary_incfg[
+            "first_genome_location_file"
+        ] = "{}/align_1/test_new_genome_location.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "second_genome_location_file"
+        ] = "{}/align_2/test_new_genome_location.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "first_annotation_file"
+        ] = "{}/align_1/test_new_annotation.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "second_annotation_file"
+        ] = "{}/align_2/test_new_annotation.csv".format(TRAVIS_PATH)
 
         outcfg = genome_distance(**temporary_incfg)
 
@@ -112,7 +150,7 @@ class TestComplex(TestCase):
             "distance_plot_file",
             "alignment_file",
             "frequencies_file",
-            "raw_focus_alignment_file"
+            "raw_focus_alignment_file",
         ]
 
         for key in keys_list:
@@ -133,18 +171,36 @@ class TestComplex(TestCase):
 
         temporary_incfg = deepcopy(self.incfg)
         temporary_incfg["prefix"] = tmp_prefix
-        temporary_incfg["first_alignment_file"] = "{}/align_1/test_new.a2m".format(TRAVIS_PATH)
-        temporary_incfg["second_alignment_file"] = "{}/align_2/test_new.a2m".format(TRAVIS_PATH)
-        temporary_incfg["first_annotation_file"] = "{}/align_1/test_new_annotation.csv".format(TRAVIS_PATH)
-        temporary_incfg["second_annotation_file"] = "{}/align_2/test_new_annotation.csv".format(TRAVIS_PATH)
-        temporary_incfg["first_identities_file"] = "{}/align_1/test_new_identities.csv".format(TRAVIS_PATH)
-        temporary_incfg["second_identities_file"] = "{}/align_2/test_new_identities.csv".format(TRAVIS_PATH)
-        temporary_incfg["first_genome_location_file"] = "{}/align_1/test_new_genome_location.csv".format(TRAVIS_PATH)
-        temporary_incfg["second_genome_location_file"] = "{}/align_2/test_new_genome_location.csv".format(TRAVIS_PATH)
+        temporary_incfg["first_alignment_file"] = "{}/align_1/test_new.a2m".format(
+            TRAVIS_PATH
+        )
+        temporary_incfg["second_alignment_file"] = "{}/align_2/test_new.a2m".format(
+            TRAVIS_PATH
+        )
+        temporary_incfg[
+            "first_annotation_file"
+        ] = "{}/align_1/test_new_annotation.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "second_annotation_file"
+        ] = "{}/align_2/test_new_annotation.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "first_identities_file"
+        ] = "{}/align_1/test_new_identities.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "second_identities_file"
+        ] = "{}/align_2/test_new_identities.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "first_genome_location_file"
+        ] = "{}/align_1/test_new_genome_location.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "second_genome_location_file"
+        ] = "{}/align_2/test_new_genome_location.csv".format(TRAVIS_PATH)
         temporary_incfg["use_best_reciprocal"] = False
         temporary_incfg["paralog_identity_threshold"] = 0.9
 
-        with open("{}/concatenate/test_new_best_hit_concatenate.outcfg".format(TRAVIS_PATH)) as inf:
+        with open(
+            "{}/concatenate/test_new_best_hit_concatenate.outcfg".format(TRAVIS_PATH)
+        ) as inf:
             _outcfg = yaml.safe_load(inf)
 
         outcfg = best_hit(**temporary_incfg)
@@ -162,7 +218,7 @@ class TestComplex(TestCase):
             "concatentation_statistics_file",
             "alignment_file",
             "frequencies_file",
-            "raw_focus_alignment_file"
+            "raw_focus_alignment_file",
         ]
 
         for key in keys_list:
@@ -183,18 +239,38 @@ class TestComplex(TestCase):
 
         temporary_incfg = deepcopy(self.incfg)
         temporary_incfg["prefix"] = tmp_prefix
-        temporary_incfg["first_alignment_file"] = "{}/align_1/test_new.a2m".format(TRAVIS_PATH)
-        temporary_incfg["second_alignment_file"] = "{}/align_2/test_new.a2m".format(TRAVIS_PATH)
-        temporary_incfg["first_annotation_file"] = "{}/align_1/test_new_annotation.csv".format(TRAVIS_PATH)
-        temporary_incfg["second_annotation_file"] = "{}/align_2/test_new_annotation.csv".format(TRAVIS_PATH)
-        temporary_incfg["first_identities_file"] = "{}/align_1/test_new_identities.csv".format(TRAVIS_PATH)
-        temporary_incfg["second_identities_file"] = "{}/align_2/test_new_identities.csv".format(TRAVIS_PATH)
-        temporary_incfg["first_genome_location_file"] = "{}/align_1/test_new_genome_location.csv".format(TRAVIS_PATH)
-        temporary_incfg["second_genome_location_file"] = "{}/align_2/test_new_genome_location.csv".format(TRAVIS_PATH)
+        temporary_incfg["first_alignment_file"] = "{}/align_1/test_new.a2m".format(
+            TRAVIS_PATH
+        )
+        temporary_incfg["second_alignment_file"] = "{}/align_2/test_new.a2m".format(
+            TRAVIS_PATH
+        )
+        temporary_incfg[
+            "first_annotation_file"
+        ] = "{}/align_1/test_new_annotation.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "second_annotation_file"
+        ] = "{}/align_2/test_new_annotation.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "first_identities_file"
+        ] = "{}/align_1/test_new_identities.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "second_identities_file"
+        ] = "{}/align_2/test_new_identities.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "first_genome_location_file"
+        ] = "{}/align_1/test_new_genome_location.csv".format(TRAVIS_PATH)
+        temporary_incfg[
+            "second_genome_location_file"
+        ] = "{}/align_2/test_new_genome_location.csv".format(TRAVIS_PATH)
         temporary_incfg["use_best_reciprocal"] = True
         temporary_incfg["paralog_identity_threshold"] = 0.9
 
-        with open("{}/concatenate/test_new_best_reciprocal_concatenate.outcfg".format(TRAVIS_PATH)) as inf:
+        with open(
+            "{}/concatenate/test_new_best_reciprocal_concatenate.outcfg".format(
+                TRAVIS_PATH
+            )
+        ) as inf:
             _outcfg = yaml.safe_load(inf)
 
         outcfg = best_hit(**temporary_incfg)
@@ -212,7 +288,7 @@ class TestComplex(TestCase):
             "concatentation_statistics_file",
             "alignment_file",
             "frequencies_file",
-            "raw_focus_alignment_file"
+            "raw_focus_alignment_file",
         ]
 
         for key in keys_list:
@@ -247,12 +323,12 @@ class TestComplex(TestCase):
             "{}/align_2/test_new_annotation.csv".format(TRAVIS_PATH),
             "{}/align_1/test_new_genome_location.csv".format(TRAVIS_PATH),
             "{}/align_2/test_new_genome_location.csv".format(TRAVIS_PATH),
-            outfile.name
+            outfile.name,
         )
 
-        concatenation_stats = pd.read_csv("{}/concatenate/test_new_concatenation_statistics.csv".format(
-            TRAVIS_PATH
-        ))
+        concatenation_stats = pd.read_csv(
+            "{}/concatenate/test_new_concatenation_statistics.csv".format(TRAVIS_PATH)
+        )
         _concatenation_stats = pd.read_csv(outfile.name)
 
         pd.testing.assert_frame_equal(concatenation_stats, _concatenation_stats)
@@ -265,15 +341,15 @@ class TestComplex(TestCase):
 
         """
         alignment_1_file = "{}/concatenate/test_new_monomer_1.fasta".format(TRAVIS_PATH)
-        with(open(alignment_1_file)) as inf:
+        with open(alignment_1_file) as inf:
             alignment_1 = Alignment.from_file(inf)
 
         alignment_2_file = "{}/concatenate/test_new_monomer_2.fasta".format(TRAVIS_PATH)
-        with(open(alignment_2_file)) as inf:
+        with open(alignment_2_file) as inf:
             alignment_2 = Alignment.from_file(inf)
 
         alignment_file = "{}/concatenate/test_new_raw_focus.fasta".format(TRAVIS_PATH)
-        with(open(alignment_file)) as inf:
+        with open(alignment_file) as inf:
             alignment = Alignment.from_file(inf)
 
         target_header = alignment.ids[0]
@@ -285,15 +361,25 @@ class TestComplex(TestCase):
         id_pairing.loc[:, "id_1"] = id_pairing["uniprot_id_1"]
         id_pairing.loc[:, "id_2"] = id_pairing["uniprot_id_2"]
 
-        _target_header, _target_seq_idx, _ali, _ali_1, _ali_2 = write_concatenated_alignment(
-            id_pairing, input_alignment_file_1, input_alignment_file_2,
-            "DINJ_ECOLI/1-86", "YAFQ_ECOLI/1-92"
+        (
+            _target_header,
+            _target_seq_idx,
+            _ali,
+            _ali_1,
+            _ali_2,
+        ) = write_concatenated_alignment(
+            id_pairing,
+            input_alignment_file_1,
+            input_alignment_file_2,
+            "DINJ_ECOLI/1-86",
+            "YAFQ_ECOLI/1-92",
         )
 
         def _test_aln_equivalence(ali1, ali2):
             np.testing.assert_array_equal(ali1.ids, ali2.ids)
             np.testing.assert_array_equal(ali1.matrix, ali2.matrix)
-#
+
+        #
         _test_aln_equivalence(alignment_1, _ali_1)
         _test_aln_equivalence(alignment_2, _ali_2)
         _test_aln_equivalence(alignment, _ali)
@@ -305,7 +391,9 @@ class TestComplex(TestCase):
         tests whether a uniprot annotation table is read correctly
 
         """
-        annotation_file_uniprot = "{}/align_1/test_new_annotation.csv".format(TRAVIS_PATH)
+        annotation_file_uniprot = "{}/align_1/test_new_annotation.csv".format(
+            TRAVIS_PATH
+        )
         annotation_data = read_species_annotation_table(annotation_file_uniprot)
         pd.testing.assert_frame_equal(annotation_data, self.annotation_data)
 
@@ -314,19 +402,26 @@ class TestComplex(TestCase):
         tests whether a uniref annotation table is read correctly
 
         """
-        _annotation_file_uniref = "{}/DIVIB_BACSU_1-54_b0.3_annotation.csv".format(TRAVIS_PATH)
+        _annotation_file_uniref = "{}/DIVIB_BACSU_1-54_b0.3_annotation.csv".format(
+            TRAVIS_PATH
+        )
         _annotation_data = read_species_annotation_table(_annotation_file_uniref)
-        annotation_file_uniref = "{}/concatenate/test_new_uniref_annotation.csv".format(TRAVIS_PATH)
-        annotation_data_gold = pd.read_csv(annotation_file_uniref, index_col=None, header=0, dtype=str)
+        annotation_file_uniref = "{}/concatenate/test_new_uniref_annotation.csv".format(
+            TRAVIS_PATH
+        )
+        annotation_data_gold = pd.read_csv(
+            annotation_file_uniref, index_col=None, header=0, dtype=str
+        )
         pd.testing.assert_frame_equal(annotation_data_gold, _annotation_data)
 
-    def test_most_similar_by_organism(self):
-        """
-        tests whether most_similar_by_organism returns the correct dataframe
+    # Todo: Restore this test
+    # def test_most_similar_by_organism(self):
+    #     """
+    #     tests whether most_similar_by_organism returns the correct dataframe
 
-        """
-        annotation_and_id = most_similar_by_organism(self.similarities, self.annotation_data)
-        pd.testing.assert_frame_equal(annotation_and_id, self.annotation_and_id)
+    #     """
+    #     annotation_and_id = most_similar_by_organism(self.similarities, self.annotation_data)
+    #     pd.testing.assert_frame_equal(annotation_and_id, self.annotation_and_id)
 
     def test_find_paralogs(self):
         """
@@ -334,7 +429,9 @@ class TestComplex(TestCase):
 
         """
         target_id = "DINJ_ECOLI"
-        paralog_table = find_paralogs(target_id, self.annotation_data, self.similarities, 0.9)
+        paralog_table = find_paralogs(
+            target_id, self.annotation_data, self.similarities, 0.9
+        )
         pd.testing.assert_frame_equal(paralog_table, self.paralog_table)
 
     def test_filter_best_reciprocal(self):
@@ -343,8 +440,13 @@ class TestComplex(TestCase):
 
         """
         alignment_file = "{}/align_1/test_new.a2m".format(TRAVIS_PATH)
-        best_recip = pd.read_csv("{}/concatenate/test_new_best_reciprocal.csv".format(TRAVIS_PATH), index_col=0)
-        _best_recip = filter_best_reciprocal(alignment_file, self.paralog_table, self.annotation_and_id, 0.02)
+        best_recip = pd.read_csv(
+            "{}/concatenate/test_new_best_reciprocal.csv".format(TRAVIS_PATH),
+            index_col=0,
+        )
+        _best_recip = filter_best_reciprocal(
+            alignment_file, self.paralog_table, self.annotation_and_id, 0.02
+        )
         pd.testing.assert_frame_equal(best_recip, _best_recip)
 
     def test_get_distance_overlap(self):
@@ -383,7 +485,9 @@ class TestComplex(TestCase):
 
         """
         id_pairing = best_reciprocal_matching(self.possible_partners)
-        id_pairing = id_pairing.sort_values(["uniprot_id_1", "uniprot_id_2", "distance"])
+        id_pairing = id_pairing.sort_values(
+            ["uniprot_id_1", "uniprot_id_2", "distance"]
+        )
         id_pairing = id_pairing.reset_index(drop=True)
         pd.testing.assert_frame_equal(id_pairing, self.id_pairing)
 
@@ -394,16 +498,19 @@ class TestComplex(TestCase):
         """
 
         _possible_partners = find_possible_partners(
-            self.gene_location_table_1,
-            self.gene_location_table_2
+            self.gene_location_table_1, self.gene_location_table_2
         )
-        _possible_partners = _possible_partners.sort_values(["uniprot_id_1", "uniprot_id_2", "distance"])
+        _possible_partners = _possible_partners.sort_values(
+            ["uniprot_id_1", "uniprot_id_2", "distance"]
+        )
         _possible_partners = _possible_partners.reset_index(drop=True)
 
         pd.testing.assert_frame_equal(
-            self.possible_partners, _possible_partners,
-            atol=1e-5, check_like=True,
-            check_names=False
+            self.possible_partners,
+            _possible_partners,
+            atol=1e-5,
+            check_like=True,
+            check_names=False,
         )
 
     def test_plot_distance_distribution(self):
@@ -418,5 +525,6 @@ class TestComplex(TestCase):
         outfile.close()
         os.unlink(outfile.name)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

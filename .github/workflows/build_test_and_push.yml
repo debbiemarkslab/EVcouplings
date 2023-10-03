@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: ['3.10', '3.11']
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install and configure conda
@@ -38,9 +38,10 @@ jobs:
         wget https://marks.hms.harvard.edu/evcouplings_test_cases/data/evcouplings_test_cases.tar.gz
         tar -xf evcouplings_test_cases.tar.gz -C $HOME/
     - name: Run tests in headless xvfb environment
-      uses: GabrielBB/xvfb-action@v1
+      uses: coactions/setup-xvfb@v1
       with:
         run: coverage run -m unittest discover -s test -p "Test*.py"
+        working-directory: ./ #optional
     - name: Publish evcouplings to test PyPI
       if: startsWith(github.ref, 'refs/tags')
       uses: pypa/gh-action-pypi-publish@master
