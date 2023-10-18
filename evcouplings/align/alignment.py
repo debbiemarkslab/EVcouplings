@@ -422,7 +422,7 @@ def sequences_to_matrix(sequences):
 
     N = len(sequences)
     L = len(next(iter(sequences)))
-    matrix = np.empty((N, L), dtype=np.str)
+    matrix = np.empty((N, L), dtype=np.str_)
 
     for i, seq in enumerate(sequences):
         if len(seq) != L:
