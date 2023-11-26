@@ -29,6 +29,7 @@ jobs:
         source activate test-environment
     - name: Run setup.py
       run: |
+        pip install build
         python setup.py sdist  --formats=zip -k
         python -m build
         find ./dist -iname "*.zip" -print0 | xargs -0 pip install
