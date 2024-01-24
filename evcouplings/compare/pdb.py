@@ -457,7 +457,7 @@ class PDB:
         # store explicit information about composition of residues
         def _group_info(field):
             return np.array(
-                [x[field] for x in mmtf.group_list]
+                [x[field] for x in mmtf.group_list], dtype=np.object_
             )
 
         # three and one letter code names of different groups
@@ -585,12 +585,10 @@ class PDB:
             )
 
         # collect internal indeces of all residues/groups in chain
-        residue_indeces = np.concatenate(
-            np.array([
-                np.arange(self.first_residue_index[i], self.last_residue_index[i])
-                for i in target_chain_indeces
-            ])
-        )
+        residue_indeces = np.concatenate([
+            np.arange(self.first_residue_index[i], self.last_residue_index[i])
+            for i in target_chain_indeces
+        ])
 
         # chain indeces and identifiers for all residues
         # (not to be confused with chain name!);
@@ -619,7 +617,11 @@ class PDB:
             ("sec_struct", self.sec_struct[residue_indeces]),
         ])
 
-        res_df = pd.DataFrame(res)
+        # also store entity IDs and indices
+        res_df = pd.DataFrame(res).assign(
+            entity_index=lambda df: df.chain_index.map(self.chain_to_entity),
+            entity_id=lambda df: df.entity_index + 1
+        )
 
         # shift seqres indexing to start at 1;
         # However, do not add to positions without sequence index (-1)

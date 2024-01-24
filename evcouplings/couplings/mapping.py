@@ -374,7 +374,7 @@ class MultiSegmentCouplingsModel(CouplingsModel):
 
         # initialize the segment index mapper to update model numbering
         if len(segments) == 0:
-            raise(ValueError, "Must provide at least one segment for MultiSegmentCouplingsModel")
+            raise ValueError("Must provide at least one segment for MultiSegmentCouplingsModel")
 
         first_segment = segments[0]
         index_start = first_segment.region_start

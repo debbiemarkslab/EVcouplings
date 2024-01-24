@@ -9,6 +9,7 @@ Authors:
 import re
 from collections import namedtuple, OrderedDict, defaultdict
 from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 from numba import jit
@@ -326,7 +327,7 @@ def write_a3m(sequences, fileobj, insert_gap=INSERT_GAP, width=80):
         fileobj.write(seq.replace(insert_gap, "") + "\n")
 
 
-def detect_format(fileobj):
+def detect_format(fileobj, filepath=""):
     """
     Detect if an alignment file is in FASTA or
     Stockholm format.
@@ -335,10 +336,12 @@ def detect_format(fileobj):
     ----------
     fileobj : file-like obj
         Alignment file for which to detect format
+    filepath : string or path-like obj
+        Path of alignment file
 
     Returns
     -------
-    format : {"fasta", "stockholm", None}
+    format : {"fasta", "a3m", "stockholm", None}
         Format of alignment, None if not detectable
     """
     for i, line in enumerate(fileobj):
@@ -348,6 +351,9 @@ def detect_format(fileobj):
 
         # This indicates a FASTA file
         if line.startswith(">"):
+            # A3M files have extension .a3m
+            if Path(filepath).suffix.lower() == ".a3m":
+                return "a3m"
             return "fasta"
 
         # Skip comment lines and empty lines for FASTA detection
@@ -422,7 +428,7 @@ def sequences_to_matrix(sequences):
 
     N = len(sequences)
     L = len(next(iter(sequences)))
-    matrix = np.empty((N, L), dtype=np.str)
+    matrix = np.empty((N, L), dtype=str)
 
     for i, seq in enumerate(sequences):
         if len(seq) != L:
@@ -569,7 +575,12 @@ class Alignment:
                 )
 
             # make sure we get rid of iterators etc.
-            self.ids = np.array(list(sequence_ids))
+            self.ids = list(sequence_ids)
+
+        # turn identifiers into numpy array for consistency with previous implementation;
+        # but use dtype object to avoid memory usage issues of numpy string datatypes (longest
+        # sequence defines memory usage otherwise)
+        self.ids = np.array(self.ids, dtype=np.object_)
 
         self.id_to_index = {
             id_: i for i, id_ in enumerate(self.ids)
@@ -607,7 +618,7 @@ class Alignment:
     @classmethod
     def from_file(cls, fileobj, format="fasta",
                   a3m_inserts="first", raise_hmmer_prefixes=True,
-                  **kwargs):
+                  split_header=False, **kwargs):
         """
         Construct an alignment object by reading in an
         alignment file.
@@ -625,6 +636,9 @@ class Alignment:
             HMMER adds number prefixes to sequence identifiers in Stockholm
             files if identifiers are not unique. If True, the parser will
             raise an exception if a Stockholm alignment has such prefixes.
+        split_header: bool, optional (default: False)
+            Only store identifier portion of each header (before first whitespace)
+            in identifier list, rather than full header line
         **kwargs
             Additional arguments to be passed to class constructor
 
@@ -663,6 +677,12 @@ class Alignment:
             seqs = read_a3m(fileobj, inserts=a3m_inserts)
         else:
             raise ValueError("Invalid alignment format: {}".format(format))
+
+        # reduce header lines to identifiers if requested
+        if split_header:
+            seqs = {
+                header.split()[0]: seq for header, seq in seqs.items()
+            }
 
         return cls.from_dict(seqs, **kwargs)
 
@@ -777,7 +797,8 @@ class Alignment:
     def apply(self, columns=None, sequences=None, func=np.char.lower):
         """
         Apply a function along columns and/or rows of alignment matrix,
-        or to entire matrix.
+        or to entire matrix. Note that column and row selections are
+        applied independently in this particular order.
 
         Parameters
         ----------
@@ -811,7 +832,7 @@ class Alignment:
                 mod_matrix[sequences, :] = func(mod_matrix[sequences, :])
 
         return Alignment(
-            mod_matrix, np.copy(self.ids), deepcopy(self.annotation),
+            mod_matrix, deepcopy(self.ids), deepcopy(self.annotation),
             alphabet=self.alphabet
         )
 
