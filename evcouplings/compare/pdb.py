@@ -527,13 +527,16 @@ class PDB:
 
         self.secondary_structure = pd.DataFrame(sse_raw)
 
-        # store information about models/chains for quick retrieval and verification
-        self.models = list(self.atom_table.model_number.unique())
+        # store information about models/chains for quick retrieval and verification;
+        # subtract 0 to start numbering consistently to how this was handled with MMTF
+        self.models = list(sorted(self.atom_table.model_number.unique() - 1))
 
         # model number to auth chains
         self.model_to_chains = self.atom_table[
             ["model_number", "auth_asym_id"]
-        ].drop_duplicates().groupby(
+        ].drop_duplicates().assign(
+            model_number=lambda df: df.model_number - 1
+        ).groupby(
             "model_number"
         ).agg(
             lambda s: list(s)
@@ -541,7 +544,9 @@ class PDB:
 
         self.model_to_asym_ids = self.atom_table[
             ["model_number", "label_asym_id"]
-        ].drop_duplicates().groupby(
+        ].drop_duplicates().assign(
+            model_number=lambda df: df.model_number - 1
+        ).groupby(
             "model_number"
         ).agg(
             lambda s: list(s)
@@ -613,7 +618,7 @@ class PDB:
         with gzip.GzipFile(fileobj=BytesIO(r.content), mode="r") as f:
             return cls(f, keep_full_data=keep_full_data)
 
-    def get_chain(self, chain, model=1, is_author_id=True):
+    def get_chain(self, chain, model=0, is_author_id=True):
         """
         Extract residue information and atom coordinates
         for a given chain in PDB structure
@@ -622,8 +627,8 @@ class PDB:
         ----------
         chain : str
             ID of chain to be extracted (e.g. "A")
-        model : int, optional (default: 1)
-            Identifier of model to be extracted
+        model : int, optional (default: 0)
+            Identifier of model to be extracted, starting counting at 0
         is_author_id : bool (default: True)
             If true, interpret chain parameter as author chain identifier;
             if false, interpret as label_asym_id
@@ -654,7 +659,7 @@ class PDB:
 
         # filter atom table to model + chain selection
         atoms = self.atom_table.query(
-            f"model_number == @model and {chain_field} == @chain"
+            f"model_number - 1 == @model and {chain_field} == @chain"
         ).assign(
             # create coordinate ID from author residue ID + insertion code
             # (this should be unique and circumvents issues from 0 seqres values if selecting based on author chain ID)
