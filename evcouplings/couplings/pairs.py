@@ -122,7 +122,7 @@ def enrichment(ecs, num_pairs=1.0, score="cn", min_seqdist=6):
         columns={"i": "j", "j": "i", "A_i": "A_j", "A_j": "A_i"}
     )
 
-    stacked_ecs = top_ecs.append(flipped)
+    stacked_ecs = pd.concat([top_ecs, flipped])
 
     # now sum cumulative strength of EC for each position
     ec_sums = pd.DataFrame(
