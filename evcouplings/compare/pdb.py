@@ -525,7 +525,12 @@ class PDB:
                         "sec_struct_3state": sse_type,
                     })
 
-        self.secondary_structure = pd.DataFrame(sse_raw)
+        # drop duplicates, there are overlapping helix segment annotations e.g. for PDB 6cup:A:Asp92
+        self.secondary_structure = pd.DataFrame(
+            sse_raw
+        ).drop_duplicates(
+            subset=["label_asym_id", "label_seq_id"]
+        )
 
         # store information about models/chains for quick retrieval and verification;
         # subtract 0 to start numbering consistently to how this was handled with MMTF
