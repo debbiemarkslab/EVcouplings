@@ -134,7 +134,11 @@ def evzoom_data(model, ec_threshold=0.9, freq_threshold=0.01,
     fi = model.fi()
     q = model.num_symbols
 
-    B = -fi * np.log2(fi)
+    # copy and blank out fi matrix to avoid numpy warnings
+    # taking log of 0 (note where argument does not help)
+    fi_no0 = fi.copy()
+    fi_no0[fi <= 0] = np.nan
+    B = -fi * np.log2(fi_no0)
     B[fi <= 0] = 0
     R = np.log2(q) - B.sum(axis=1)
 
