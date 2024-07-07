@@ -1028,9 +1028,10 @@ class LogisticRegressionScorer:
         feature_table = ecs_full.reindex(self.feature_names, axis=1)
 
         # predict probabilities of contact and decision function
-        # (target class/true EC := 1)
-        probs = self.classifier.predict_proba(feature_table)[:, 1]
-        decision_func = self.classifier.decision_function(feature_table)
+        # (target class/true EC := 1);
+        # note: apply to .values to avoid sklearn warnings that model does not have feature names
+        probs = self.classifier.predict_proba(feature_table.values)[:, 1]
+        decision_func = self.classifier.decision_function(feature_table.values)
 
         # assign to EC table
         ecs_final = ecs_full.assign(
