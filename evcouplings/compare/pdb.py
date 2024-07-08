@@ -7,12 +7,16 @@ Authors:
 
 from collections import OrderedDict
 from collections.abc import Iterable
+import gzip
+from io import BytesIO
 from os import path
 from urllib.error import HTTPError
 
-from mmtf import fetch, parse
 import numpy as np
 import pandas as pd
+import requests
+import msgpack
+from Bio.PDB.binary_cif import _decode
 
 from evcouplings.utils.config import InvalidParameterError
 from evcouplings.utils.constants import AA3_to_AA1
@@ -20,6 +24,9 @@ from evcouplings.utils.helpers import DefaultOrderedDict
 from evcouplings.utils.system import (
     valid_file, ResourceError, tempdir
 )
+
+PDB_BCIF_DOWNLOAD_URL = "https://models.rcsb.org/{pdb_id}.bcif.gz"
+
 
 # Mapping from MMTF secondary structure codes to DSSP symbols
 MMTF_DSSP_CODE_MAP = {
@@ -369,7 +376,7 @@ class Chain:
             # print charge if we have one (optional)
             charge = r["charge"]
             # test < and > to exclude nan values
-            if charge < 0 or charge > 0:
+            if isinstance(charge, int) and (charge < 0 or charge > 0):
                 charge_sign = "-" if charge < 0 else "+"
                 charge_value = abs(charge)
                 charge_str = "{}{}".format(charge_value, charge_sign)
@@ -402,109 +409,167 @@ class Chain:
 
 class PDB:
     """
-    Wrapper around PDB MMTF decoder object to access residue and
-    coordinate information
+    Holds PDB structure from binaryCIF format; supersedes original PDB class based
+    on MMTF format (renamed to MmtfPDB, cf. below) due to MMTF retirement in 2024
     """
-    def __init__(self, mmtf):
+    def __init__(self, filehandle, keep_full_data=False):
         """
-        Initialize by further decoding information in mmtf object.
+        Initialize by parsing binaryCIF from open filehandle.
+        Recommended to use from_file() and from_id() class methods to create object.
 
-        Normally one should use from_file() and from_id() class
-        methods to create object.
+        Column extraction and decoding based on https://github.com/biopython/biopython/blob/master/Bio/PDB/binary_cif.py
 
         Parameters
         ----------
-        mmtf : mmtf.api.mmtf_reader.MMTFDecoder
-            MMTF decoder object (as returned by fetch or parse
-            function in mmtf module)
+        filehandle: file-like object
+            Open filehandle (binary) from which to read binaryCIF data
+        keep_full_data: bool (default: False)
+            Associate raw extracted data with object
         """
-        def _get_range(object_counts):
-            """
-            Extract index ranges for chains, residues and atoms
-            """
-            last_element = np.cumsum(object_counts, dtype=int)
-            first_element = np.concatenate(
-                (np.zeros(1, dtype=int), last_element[:-1])
-            )
-
-            return first_element, last_element
-
-        # store raw MMTF decoder
-        self.mmtf = mmtf
-
-        # Step 1: summarize basic information about model
-        # number of models in structure
-        self.num_models = len(mmtf.chains_per_model)
-
-        self.first_chain_index, self.last_chain_index = _get_range(
-            mmtf.chains_per_model
+        # unpack information in bCIF file
+        raw_data = msgpack.unpack(
+            filehandle, use_list=True
         )
 
-        # collect list which chain corresponds to which entity
-        self.chain_to_entity = {}
-        for i, ent in enumerate(mmtf.entity_list):
-            for c in ent["chainIndexList"]:
-                self.chain_to_entity[c] = i
+        data = {
+            f"{category['name']}.{column['name']}": column
+            for block in raw_data["dataBlocks"] for category in block["categories"] for column in category["columns"]
+        }
 
-        # Step 2: identify residues and corresponding atom indices
+        ATOM_TARGET_COLS = {
+            "_atom_site.pdbx_PDB_model_num": "model_number",
+            "_atom_site.group_PDB": "record_type",  # ATOM, HETATM etc.
 
-        # first/last index of residue (aka group) for each chain;
-        # index these lists with index of chain
-        self.first_residue_index, self.last_residue_index = _get_range(
-            mmtf.groups_per_chain
+            # atom IDs and types
+            "_atom_site.id": "id",  # x
+            "_atom_site.type_symbol": "type_symbol",  # x
+            "_atom_site.label_atom_id": "label_atom_id",  # x
+            "_atom_site.auth_atom_id": "auth_atom_id",
+            "_atom_site.label_alt_id": "label_alt_id",
+
+            # residue/molecule types (three-letter code)
+            "_atom_site.label_comp_id": "label_comp_id",  # x
+            "_atom_site.auth_comp_id": "auth_comp_id",
+
+            # chain IDs (official, author) and entity IDs
+            "_atom_site.label_asym_id": "label_asym_id",  # x
+            "_atom_site.auth_asym_id": "auth_asym_id",
+            "_atom_site.label_entity_id": "label_entity_id",
+
+            # residue IDs (official and author)
+            "_atom_site.label_seq_id": "label_seq_id",
+            "_atom_site.auth_seq_id": "auth_seq_id",  # x
+            "_atom_site.pdbx_PDB_ins_code": "insertion_code",
+
+            # atom properties
+            "_atom_site.Cartn_x": "x",  # x
+            "_atom_site.Cartn_y": "y",  # x
+            "_atom_site.Cartn_z": "z",  # x
+            "_atom_site.occupancy": "occupancy",  # x
+            "_atom_site.B_iso_or_equiv": "b_factor",  # x
+            "_atom_site.pdbx_formal_charge": "charge",
+        }
+
+        HELIX_TARGET_COLS = {
+            "_struct_conf.conf_type_id": "conformation_type",
+            "_struct_conf.id": "id",
+            # label_asym_id and label_seq_id are sufficient for merging to atom table;
+            # do not bother with author IDs here
+            "_struct_conf.beg_label_asym_id": "beg_label_asym_id",
+            "_struct_conf.beg_label_seq_id": "beg_label_seq_id",
+            "_struct_conf.end_label_asym_id": "end_label_asym_id",
+            "_struct_conf.end_label_seq_id": "end_label_seq_id",
+        }
+
+        SHEET_TARGET_COLS = {
+            "_struct_sheet_range.sheet_id": "sheet_id",
+            "_struct_sheet_range.id": "id",
+            "_struct_sheet_range.beg_label_asym_id": "beg_label_asym_id",
+            "_struct_sheet_range.beg_label_seq_id": "beg_label_seq_id",
+            "_struct_sheet_range.end_label_asym_id": "end_label_asym_id",
+            "_struct_sheet_range.end_label_seq_id": "end_label_seq_id",
+        }
+
+        if keep_full_data:
+            self.data = data
+        else:
+            self.data = None
+
+        # decode information into dataframe with BioPython helper method
+        self.atom_table = pd.DataFrame({
+            name: _decode(data[source_column]) for source_column, name in ATOM_TARGET_COLS.items()
+        })
+
+        # decode information into dataframe with BioPython helper method
+        self.helix_table = pd.DataFrame({
+            name: _decode(data[source_column]) for source_column, name in HELIX_TARGET_COLS.items()
+        })
+
+        # decode information into dataframe with BioPython helper method
+        self.sheet_table = pd.DataFrame({
+            name: _decode(data[source_column]) for source_column, name in SHEET_TARGET_COLS.items()
+        })
+
+        # create secondary structure table for merging to chain tables
+        # (will only contain helix/H and strand/E, coil/C will need to be filled in)
+        sse_raw = []
+        for sse_type, sse_table in [
+            ("H", self.helix_table),
+            ("E", self.sheet_table)
+        ]:
+            for _, row in sse_table.iterrows():
+                assert row.beg_label_asym_id == row.end_label_asym_id
+                for seq_id in range(row.beg_label_seq_id, row.end_label_seq_id + 1):
+                    sse_raw.append({
+                        "label_asym_id": row.beg_label_asym_id,
+                        "label_seq_id": seq_id,
+                        "sec_struct_3state": sse_type,
+                    })
+
+        # drop duplicates, there are overlapping helix segment annotations e.g. for PDB 6cup:A:Asp92
+        self.secondary_structure = pd.DataFrame(
+            sse_raw
+        ).drop_duplicates(
+            subset=["label_asym_id", "label_seq_id"]
         )
 
-        # store explicit information about composition of residues
-        def _group_info(field):
-            return np.array(
-                [x[field] for x in mmtf.group_list]
-            )
-
-        # three and one letter code names of different groups
-        self._residue_names_3 = _group_info("groupName")
-        self._residue_names_1 = _group_info("singleLetterCode")
-
-        # atom types and overall number of atoms in each type of residue
-        self._residue_type_atom_names = _group_info("atomNameList")
-        self._residue_type_elements = _group_info("elementList")
-        self._residue_type_charges = _group_info("formalChargeList")
-
-        self._residue_type_num_atoms = np.array([len(x) for x in self._residue_type_atom_names])
-
-        # prepare alternative location list as numpy array, with empty strings
-        self.alt_loc_list = np.array(
-            [x.replace("\x00", "") for x in mmtf.alt_loc_list]
+        # store information about models/chains for quick retrieval and verification;
+        # subtract 0 to start numbering consistently to how this was handled with MMTF
+        self.models = list(
+            sorted(self.atom_table.model_number.unique())
         )
 
-        # compute first and last atom index for each residue/group
-        # (by fetching corresponding length for each group based on group type)
-        self._residue_num_atoms = self._residue_type_num_atoms[mmtf.group_type_list]
+        # model number to auth ID mapping
+        self.model_to_chains = self.atom_table[
+            ["model_number", "auth_asym_id"]
+        ].drop_duplicates().groupby(
+            "model_number"
+        ).agg(
+            lambda s: list(s)
+        )["auth_asym_id"].to_dict()
 
-        self.first_atom_index, self.last_atom_index = _get_range(
-            self._residue_num_atoms
-        )
-
-        # assemble residue ID strings
-        self.residue_ids = np.array([
-            "{}{}".format(group_id, ins_code.replace("\x00", ""))
-            for group_id, ins_code
-            in zip(mmtf.group_id_list, mmtf.ins_code_list)
-        ])
-
-        # map secondary structure codes into DSSP symbols
-        self.sec_struct = np.array(
-            [MMTF_DSSP_CODE_MAP[x] for x in mmtf.sec_struct_list]
-        )
+        # model number to asym ID mapping
+        self.model_to_asym_ids = self.atom_table[
+            ["model_number", "label_asym_id"]
+        ].drop_duplicates().groupby(
+            "model_number"
+        ).agg(
+            lambda s: list(s)
+        )["label_asym_id"].to_dict()
 
     @classmethod
-    def from_file(cls, filename):
+    def from_file(cls, filename, keep_full_data=False):
         """
-        Initialize structure from MMTF file
+        Initialize structure from binaryCIF file
+
+        inspired by https://github.com/biopython/biopython/blob/master/Bio/PDB/binary_cif.py
 
         Parameters
         ----------
         filename : str
             Path of MMTF file
+        keep_full_data: bool (default: False)
+            Associate raw extracted data with object
 
         Returns
         -------
@@ -512,36 +577,53 @@ class PDB:
             initialized PDB structure
         """
         try:
-            return cls(parse(filename))
-        except FileNotFoundError as e:
+            with (
+                    gzip.open(filename, mode="rb")
+                    if filename.lower().endswith(".gz") else open(filename, mode="rb")
+            ) as f:
+                return cls(f, keep_full_data=keep_full_data)
+        except IOError as e:
             raise ResourceError(
-                "Could not find file {}".format(filename)
+                "Could not open file {}".format(filename)
             ) from e
 
     @classmethod
-    def from_id(cls, pdb_id):
+    def from_id(cls, pdb_id, keep_full_data=False):
         """
-        Initialize structure by PDB ID (fetches
-        structure from RCSB servers)
+        Initialize structure by PDB ID (fetches structure from RCSB servers)
 
         Parameters
         ----------
         pdb_id : str
             PDB identifier (e.g. 1hzx)
+        keep_full_data: bool (default: False)
+            Associate raw extracted data with object
 
         Returns
         -------
         PDB
             initialized PDB structure
         """
+        # TODO: add proper retry logic and timeouts
+        # TODO: add better exception handling
         try:
-            return cls(fetch(pdb_id))
-        except HTTPError as e:
+            r = requests.get(
+                PDB_BCIF_DOWNLOAD_URL.format(pdb_id=pdb_id.lower())
+            )
+        except requests.exceptions.RequestException as e:
             raise ResourceError(
-                "Could not fetch MMTF data for {}".format(pdb_id)
+                "Error fetching bCIF data for {}".format(pdb_id)
             ) from e
 
-    def get_chain(self, chain, model=0):
+        if not r.ok:
+            raise ResourceError(
+                "Did not receive valid response fetching {}".format(pdb_id)
+            )
+
+        with gzip.GzipFile(fileobj=BytesIO(r.content), mode="r") as f:
+            return cls(f, keep_full_data=keep_full_data)
+
+    def get_chain(self, chain, model=0, is_author_id=True):
         """
         Extract residue information and atom coordinates
         for a given chain in PDB structure
@@ -549,9 +631,14 @@ class PDB:
         Parameters
         ----------
         chain : str
-            Name of chain to be extracted (e.g. "A")
+            ID of chain to be extracted (e.g. "A")
         model : int, optional (default: 0)
-            Index of model to be extracted
+            *Index* of model to be extracted, starting counting at 0. Note that for backwards
+            compatibility, this is *not* the actual PDB model identifier but indexes the model
+            identifiers in self.models, i.e. model must be >= 0 and < len(self.models)
+        is_author_id : bool (default: True)
+            If true, interpret chain parameter as author chain identifier;
+            if false, interpret as label_asym_id
 
         Returns
         -------
@@ -559,125 +646,391 @@ class PDB:
             Chain object containing DataFrames listing residues
             and atom coordinates
         """
-        if not (0 <= model < self.num_models):
+        # check if valid model was requested
+        if not 0 <= model < len(self.models):
             raise ValueError(
-                "Illegal model index, can be from 0 up to {}".format(
-                    self.num_models - 1
-                )
+                f"Invalid model index, valid options: {','.join(map(str, range(len(self.models))))}"
             )
 
-        # first and last index of chains corresponding to selected model
-        first_chain_index = self.first_chain_index[model]
-        last_chain_index = self.last_chain_index[model]
+        # map model index to model number/identifier
+        model_number = self.models[model]
 
-        # which model chains match our target PDB chain?
-        chain_names = np.array(
-            self.mmtf.chain_name_list[first_chain_index:last_chain_index]
-        )
-
-        # indices of chains that match chain name, in current model
-        indices = np.arange(first_chain_index, last_chain_index, dtype=int)
-        target_chain_indeces = indices[chain_names == chain]
-
-        if len(target_chain_indeces) == 0:
+        # check if valid chain was requested
+        if ((is_author_id and chain not in self.model_to_chains[model_number]) or
+                (not is_author_id and chain not in self.model_to_asym_ids[model_number])):
             raise ValueError(
-                "No chains with given name found"
+                "Invalid chain selection, check self.model_to_chains / self.model_to_asym_ids for options"
             )
 
-        # collect internal indeces of all residues/groups in chain
-        residue_indeces = np.concatenate(
-            np.array([
-                np.arange(self.first_residue_index[i], self.last_residue_index[i])
-                for i in target_chain_indeces
-            ])
+        if is_author_id:
+            chain_field = "auth_asym_id"
+        else:
+            chain_field = "label_asym_id"
+
+        # filter atom table to model + chain selection
+        atoms = self.atom_table.query(
+            f"model_number == @model_number and {chain_field} == @chain"
+        ).assign(
+            # create coordinate ID from author residue ID + insertion code
+            # (this should be unique and circumvents issues from 0 seqres values if selecting based on author chain ID)
+            coord_id=lambda df: df.auth_seq_id.astype(str) + df.insertion_code,
+            seqres_id=lambda df: df.label_seq_id.astype(str).replace("0", np.nan),
+            one_letter_code=lambda df: df.label_comp_id.map(AA3_to_AA1, na_action="ignore"),
+            id=lambda df: df.coord_id,
+            # note that MSE will now be labeled as HETATM, which was not the case with MMTF
+            hetatm=lambda df: df.record_type == "HETATM",
+        ).reset_index(
+            drop=True
         )
 
-        # chain indeces and identifiers for all residues
-        # (not to be confused with chain name!);
-        # maximum length 4 characters according to MMTF spec
-        chain_indeces = np.concatenate([
-            np.full(
-                self.last_residue_index[i] - self.first_residue_index[i],
-                i, dtype=int
-            ) for i in target_chain_indeces
-        ])
+        # create residue table by de-duplicating atoms
+        res = atoms.drop_duplicates(
+            subset=["coord_id"]
+        ).reset_index(
+            drop=True
+        )
+        res.index.name = "residue_index"
 
-        chain_ids = np.array(self.mmtf.chain_id_list)[chain_indeces]
-
-        # create dataframe representation of selected chain
-        m = self.mmtf
-        group_types = m.group_type_list[residue_indeces]
-
-        res = OrderedDict([
-            ("id", self.residue_ids[residue_indeces]),
-            ("seqres_id", m.sequence_index_list[residue_indeces]),
-            ("coord_id", self.residue_ids[residue_indeces]),
-            ("one_letter_code", self._residue_names_1[group_types]),
-            ("three_letter_code", self._residue_names_3[group_types]),
-            ("chain_index", chain_indeces),
-            ("chain_id", chain_ids),
-            ("sec_struct", self.sec_struct[residue_indeces]),
-        ])
-
-        res_df = pd.DataFrame(res)
-
-        # shift seqres indexing to start at 1;
-        # However, do not add to positions without sequence index (-1)
-        res_df.loc[res_df.seqres_id >= 0, "seqres_id"] += 1
-
-        # turn all indeces into strings and create proper NaN values
-        res_df.loc[:, "coord_id"] = (
-            res_df.loc[:, "coord_id"].astype(str)
+        # merge secondary structure information (left outer join as coil is missing from table)
+        res_sse = res.merge(
+            self.secondary_structure,
+            on=("label_seq_id", "label_asym_id"),
+            how="left"
         )
 
-        res_df.loc[:, "seqres_id"] = (
-            res_df.loc[:, "seqres_id"].astype(str).replace("-1", np.nan)
+        res_sse.loc[
+            res_sse.sec_struct_3state.isnull() & (res_sse.label_seq_id > 0),
+            "sec_struct_3state"
+        ] = "C"
+
+        RES_RENAME_MAP = {
+            "id": "id",
+            "seqres_id": "seqres_id",
+            "coord_id": "coord_id",
+            "one_letter_code": "one_letter_code",
+            "label_comp_id": "three_letter_code",
+            "auth_asym_id": "chain_id",
+            "label_asym_id": "asym_id",  # new
+            "label_entity_id": "entity_id",
+            "sec_struct_3state": "sec_struct_3state",
+            "hetatm": "hetatm",
+        }
+
+        res_final = res_sse.loc[
+            :, list(RES_RENAME_MAP)
+        ].rename(
+            columns=RES_RENAME_MAP
         )
-        # copy updated coordinate indeces
-        res_df.loc[:, "id"] = res_df.loc[:, "coord_id"]
 
-        res_df.loc[:, "one_letter_code"] = res_df.loc[:, "one_letter_code"].replace("?", np.nan)
-        res_df.loc[:, "sec_struct"] = res_df.loc[:, "sec_struct"].replace("", np.nan)
+        # not included in new version: alt_loc
+        ATOM_RENAME_MAP = {
+            "residue_index": "residue_index",
+            "id": "atom_id",
+            "label_atom_id": "atom_name",
+            "type_symbol": "element",
+            "charge": "charge",
+            "x": "x",
+            "y": "y",
+            "z": "z",
+            "occupancy": "occupancy",
+            "b_factor": "b_factor",
+            "label_alt_id": "alt_loc",
+        }
 
-        # reduction to 3-state secondary structure (following Rost & Sander)
-        res_df.loc[:, "sec_struct_3state"] = res_df.loc[:, "sec_struct"].map(
-            lambda x: DSSP_3_STATE_MAP[x], na_action="ignore"
+        # add information about residue index to atoms
+        atoms_with_residue_idx = atoms.merge(
+            res.reset_index()[["coord_id", "residue_index"]],
+            on="coord_id"
+        ).loc[:, list(ATOM_RENAME_MAP)].rename(
+            columns=ATOM_RENAME_MAP
         )
+        assert len(atoms_with_residue_idx) == len(atoms)
 
-        # proxy for HETATM records - will not work e.g. for MSE,
-        # which is listed as "M"
-        res_df.loc[:, "hetatm"] = res_df.one_letter_code.isnull()
+        return Chain(res_final, atoms_with_residue_idx)
 
-        # finally, get atom names and coordinates for all residues
-        atom_first = self.first_atom_index[residue_indeces]
-        atom_last = self.last_atom_index[residue_indeces]
-        atom_names = np.concatenate(self._residue_type_atom_names[group_types])
-        elements = np.concatenate(self._residue_type_elements[group_types])
-        charges = np.concatenate(self._residue_type_charges[group_types])
 
-        residue_number = np.repeat(res_df.index, atom_last - atom_first)
-        atom_indices = np.concatenate([
-            np.arange(self.first_atom_index[i], self.last_atom_index[i])
-            for i in residue_indeces
-        ])
-
-        coords = OrderedDict([
-            ("residue_index", residue_number),
-            ("atom_id", self.mmtf.atom_id_list[atom_indices]),
-            ("atom_name", atom_names),
-            ("element", elements),
-            ("charge", charges),
-            ("x", self.mmtf.x_coord_list[atom_indices]),
-            ("y", self.mmtf.y_coord_list[atom_indices]),
-            ("z", self.mmtf.z_coord_list[atom_indices]),
-            ("alt_loc", self.alt_loc_list[atom_indices]),
-            ("occupancy", self.mmtf.occupancy_list[atom_indices]),
-            ("b_factor", self.mmtf.b_factor_list[atom_indices]),
-        ])
-
-        coord_df = pd.DataFrame(coords)
-
-        return Chain(res_df, coord_df)
+# class MmtfPDB:
+#     """
+#     Wrapper around PDB MMTF decoder object to access residue and
+#     coordinate information
+#
+#     Note: only kept for legacy reasons, MMTF was phased out by RCSB on July 2nd, 2024 :(
+#     """
+#     def __init__(self, mmtf):
+#         """
+#         Initialize by further decoding information in mmtf object.
+#
+#         Normally one should use from_file() and from_id() class
+#         methods to create object.
+#
+#         Parameters
+#         ----------
+#         mmtf : mmtf.api.mmtf_reader.MMTFDecoder
+#             MMTF decoder object (as returned by fetch or parse
+#             function in mmtf module)
+#         """
+#         def _get_range(object_counts):
+#             """
+#             Extract index ranges for chains, residues and atoms
+#             """
+#             last_element = np.cumsum(object_counts, dtype=int)
+#             first_element = np.concatenate(
+#                 (np.zeros(1, dtype=int), last_element[:-1])
+#             )
+#
+#             return first_element, last_element
+#
+#         # store raw MMTF decoder
+#         self.mmtf = mmtf
+#
+#         # Step 1: summarize basic information about model
+#         # number of models in structure
+#         self.num_models = len(mmtf.chains_per_model)
+#
+#         self.first_chain_index, self.last_chain_index = _get_range(
+#             mmtf.chains_per_model
+#         )
+#
+#         # collect list which chain corresponds to which entity
+#         self.chain_to_entity = {}
+#         for i, ent in enumerate(mmtf.entity_list):
+#             for c in ent["chainIndexList"]:
+#                 self.chain_to_entity[c] = i
+#
+#         # Step 2: identify residues and corresponding atom indices
+#
+#         # first/last index of residue (aka group) for each chain;
+#         # index these lists with index of chain
+#         self.first_residue_index, self.last_residue_index = _get_range(
+#             mmtf.groups_per_chain
+#         )
+#
+#         # store explicit information about composition of residues
+#         def _group_info(field):
+#             return np.array(
+#                 [x[field] for x in mmtf.group_list], dtype=np.object_
+#             )
+#
+#         # three and one letter code names of different groups
+#         self._residue_names_3 = _group_info("groupName")
+#         self._residue_names_1 = _group_info("singleLetterCode")
+#
+#         # atom types and overall number of atoms in each type of residue
+#         self._residue_type_atom_names = _group_info("atomNameList")
+#         self._residue_type_elements = _group_info("elementList")
+#         self._residue_type_charges = _group_info("formalChargeList")
+#
+#         self._residue_type_num_atoms = np.array([len(x) for x in self._residue_type_atom_names])
+#
+#         # prepare alternative location list as numpy array, with empty strings
+#         self.alt_loc_list = np.array(
+#             [x.replace("\x00", "") for x in mmtf.alt_loc_list]
+#         )
+#
+#         # compute first and last atom index for each residue/group
+#         # (by fetching corresponding length for each group based on group type)
+#         self._residue_num_atoms = self._residue_type_num_atoms[mmtf.group_type_list]
+#
+#         self.first_atom_index, self.last_atom_index = _get_range(
+#             self._residue_num_atoms
+#         )
+#
+#         # assemble residue ID strings
+#         self.residue_ids = np.array([
+#             "{}{}".format(group_id, ins_code.replace("\x00", ""))
+#             for group_id, ins_code
+#             in zip(mmtf.group_id_list, mmtf.ins_code_list)
+#         ])
+#
+#         # map secondary structure codes into DSSP symbols
+#         self.sec_struct = np.array(
+#             [MMTF_DSSP_CODE_MAP[x] for x in mmtf.sec_struct_list]
+#         )
+#
+#     @classmethod
+#     def from_file(cls, filename):
+#         """
+#         Initialize structure from MMTF file
+#
+#         Parameters
+#         ----------
+#         filename : str
+#             Path of MMTF file
+#
+#         Returns
+#         -------
+#         PDB
+#             initialized PDB structure
+#         """
+#         try:
+#             return cls(parse(filename))
+#         except FileNotFoundError as e:
+#             raise ResourceError(
+#                 "Could not find file {}".format(filename)
+#             ) from e
+#
+#     @classmethod
+#     def from_id(cls, pdb_id):
+#         """
+#         Initialize structure by PDB ID (fetches
+#         structure from RCSB servers)
+#
+#         Parameters
+#         ----------
+#         pdb_id : str
+#             PDB identifier (e.g. 1hzx)
+#
+#         Returns
+#         -------
+#         PDB
+#             initialized PDB structure
+#         """
+#         try:
+#             return cls(fetch(pdb_id))
+#         except HTTPError as e:
+#             raise ResourceError(
+#                 "Could not fetch MMTF data for {}".format(pdb_id)
+#             ) from e
+#
+#     def get_chain(self, chain, model=0):
+#         """
+#         Extract residue information and atom coordinates
+#         for a given chain in PDB structure
+#
+#         Parameters
+#         ----------
+#         chain : str
+#             Name of chain to be extracted (e.g. "A")
+#         model : int, optional (default: 0)
+#             Index of model to be extracted
+#
+#         Returns
+#         -------
+#         Chain
+#             Chain object containing DataFrames listing residues
+#             and atom coordinates
+#         """
+#         if not (0 <= model < self.num_models):
+#             raise ValueError(
+#                 "Illegal model index, can be from 0 up to {}".format(
+#                     self.num_models - 1
+#                 )
+#             )
+#
+#         # first and last index of chains corresponding to selected model
+#         first_chain_index = self.first_chain_index[model]
+#         last_chain_index = self.last_chain_index[model]
+#
+#         # which model chains match our target PDB chain?
+#         chain_names = np.array(
+#             self.mmtf.chain_name_list[first_chain_index:last_chain_index]
+#         )
+#
+#         # indices of chains that match chain name, in current model
+#         indices = np.arange(first_chain_index, last_chain_index, dtype=int)
+#         target_chain_indeces = indices[chain_names == chain]
+#
+#         if len(target_chain_indeces) == 0:
+#             raise ValueError(
+#                 "No chains with given name found"
+#             )
+#
+#         # collect internal indeces of all residues/groups in chain
+#         residue_indeces = np.concatenate([
+#             np.arange(self.first_residue_index[i], self.last_residue_index[i])
+#             for i in target_chain_indeces
+#         ])
+#
+#         # chain indeces and identifiers for all residues
+#         # (not to be confused with chain name!);
+#         # maximum length 4 characters according to MMTF spec
+#         chain_indeces = np.concatenate([
+#             np.full(
+#                 self.last_residue_index[i] - self.first_residue_index[i],
+#                 i, dtype=int
+#             ) for i in target_chain_indeces
+#         ])
+#
+#         chain_ids = np.array(self.mmtf.chain_id_list)[chain_indeces]
+#
+#         # create dataframe representation of selected chain
+#         m = self.mmtf
+#         group_types = m.group_type_list[residue_indeces]
+#
+#         res = OrderedDict([
+#             ("id", self.residue_ids[residue_indeces]),
+#             ("seqres_id", m.sequence_index_list[residue_indeces]),
+#             ("coord_id", self.residue_ids[residue_indeces]),
+#             ("one_letter_code", self._residue_names_1[group_types]),
+#             ("three_letter_code", self._residue_names_3[group_types]),
+#             ("chain_index", chain_indeces),
+#             ("chain_id", chain_ids),
+#             ("sec_struct", self.sec_struct[residue_indeces]),
+#         ])
+#
+#         # also store entity IDs and indices
+#         res_df = pd.DataFrame(res).assign(
+#             entity_index=lambda df: df.chain_index.map(self.chain_to_entity),
+#             entity_id=lambda df: df.entity_index + 1
+#         )
+#
+#         # shift seqres indexing to start at 1;
+#         # However, do not add to positions without sequence index (-1)
+#         res_df.loc[res_df.seqres_id >= 0, "seqres_id"] += 1
+#
+#         # turn all indeces into strings and create proper NaN values
+#         res_df.loc[:, "coord_id"] = (
+#             res_df.loc[:, "coord_id"].astype(str)
+#         )
+#
+#         res_df.loc[:, "seqres_id"] = (
+#             res_df.loc[:, "seqres_id"].astype(str).replace("-1", np.nan)
+#         )
+#         # copy updated coordinate indeces
+#         res_df.loc[:, "id"] = res_df.loc[:, "coord_id"]
+#
+#         res_df.loc[:, "one_letter_code"] = res_df.loc[:, "one_letter_code"].replace("?", np.nan)
+#         res_df.loc[:, "sec_struct"] = res_df.loc[:, "sec_struct"].replace("", np.nan)
+#
+#         # reduction to 3-state secondary structure (following Rost & Sander)
+#         res_df.loc[:, "sec_struct_3state"] = res_df.loc[:, "sec_struct"].map(
+#             lambda x: DSSP_3_STATE_MAP[x], na_action="ignore"
+#         )
+#
+#         # proxy for HETATM records - will not work e.g. for MSE,
+#         # which is listed as "M"
+#         res_df.loc[:, "hetatm"] = res_df.one_letter_code.isnull()
+#
+#         # finally, get atom names and coordinates for all residues
+#         atom_first = self.first_atom_index[residue_indeces]
+#         atom_last = self.last_atom_index[residue_indeces]
+#         atom_names = np.concatenate(self._residue_type_atom_names[group_types])
+#         elements = np.concatenate(self._residue_type_elements[group_types])
+#         charges = np.concatenate(self._residue_type_charges[group_types])
+#
+#         residue_number = np.repeat(res_df.index, atom_last - atom_first)
+#         atom_indices = np.concatenate([
+#             np.arange(self.first_atom_index[i], self.last_atom_index[i])
+#             for i in residue_indeces
+#         ])
+#
+#         coords = OrderedDict([
+#             ("residue_index", residue_number),
+#             ("atom_id", self.mmtf.atom_id_list[atom_indices]),
+#             ("atom_name", atom_names),
+#             ("element", elements),
+#             ("charge", charges),
+#             ("x", self.mmtf.x_coord_list[atom_indices]),
+#             ("y", self.mmtf.y_coord_list[atom_indices]),
+#             ("z", self.mmtf.z_coord_list[atom_indices]),
+#             ("alt_loc", self.alt_loc_list[atom_indices]),
+#             ("occupancy", self.mmtf.occupancy_list[atom_indices]),
+#             ("b_factor", self.mmtf.b_factor_list[atom_indices]),
+#         ])
+#
+#         coord_df = pd.DataFrame(coords)
+#
+#         return Chain(res_df, coord_df)
 
 
 class ClassicPDB:

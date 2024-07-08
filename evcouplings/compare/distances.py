@@ -323,7 +323,7 @@ class DistanceMap:
         else:
             res_i = _add_axis(self.residues_i, "i")
             res_j = _add_axis(self.residues_j, "j")
-            residues = res_i.append(res_j)
+            residues = pd.concat([res_i, res_j])
 
         # save residue table
         residue_table_filename = filename + ".csv"
@@ -770,7 +770,7 @@ class DistanceMap:
             # extract coverage segments for all individual structures
             segments = {
                 _get_col_name(col_name): find_segments(series.dropna().sort_index().index)
-                for col_name, series in coverage_cols.iteritems()
+                for col_name, series in coverage_cols.items()
             }
 
             return segments
@@ -1273,9 +1273,7 @@ def inter_dists(sifts_result_i, sifts_result_j, structures=None,
     # if no structures given, or path to files, load first
     structures = _prepare_structures(
         structures,
-        sifts_result_i.hits.pdb_id.append(
-            sifts_result_j.hits.pdb_id
-        ),
+        set(sifts_result_i.hits.pdb_id) | set(sifts_result_j.hits.pdb_id),
         raise_missing
     )
 
