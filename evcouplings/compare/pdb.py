@@ -445,6 +445,7 @@ class PDB:
             "_atom_site.type_symbol": "type_symbol",  # x
             "_atom_site.label_atom_id": "label_atom_id",  # x
             "_atom_site.auth_atom_id": "auth_atom_id",
+            "_atom_site.label_alt_id": "label_alt_id",
 
             # residue/molecule types (three-letter code)
             "_atom_site.label_comp_id": "label_comp_id",  # x
@@ -733,6 +734,7 @@ class PDB:
             "z": "z",
             "occupancy": "occupancy",
             "b_factor": "b_factor",
+            "label_alt_id": "alt_loc",
         }
 
         # add information about residue index to atoms
