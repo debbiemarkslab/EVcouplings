@@ -770,7 +770,7 @@ class DistanceMap:
             # extract coverage segments for all individual structures
             segments = {
                 _get_col_name(col_name): find_segments(series.dropna().sort_index().index)
-                for col_name, series in coverage_cols.iteritems()
+                for col_name, series in coverage_cols.items()
             }
 
             return segments
