@@ -376,7 +376,7 @@ class Chain:
             # print charge if we have one (optional)
             charge = r["charge"]
             # test < and > to exclude nan values
-            if charge < 0 or charge > 0:
+            if isinstance(charge, int) and charge < 0 or charge > 0:
                 charge_sign = "-" if charge < 0 else "+"
                 charge_value = abs(charge)
                 charge_str = "{}{}".format(charge_value, charge_sign)
