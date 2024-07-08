@@ -534,24 +534,23 @@ class PDB:
 
         # store information about models/chains for quick retrieval and verification;
         # subtract 0 to start numbering consistently to how this was handled with MMTF
-        self.models = list(sorted(self.atom_table.model_number.unique() - 1))
+        self.models = list(
+            sorted(self.atom_table.model_number.unique())
+        )
 
-        # model number to auth chains
+        # model number to auth ID mapping
         self.model_to_chains = self.atom_table[
             ["model_number", "auth_asym_id"]
-        ].drop_duplicates().assign(
-            model_number=lambda df: df.model_number - 1
-        ).groupby(
+        ].drop_duplicates().groupby(
             "model_number"
         ).agg(
             lambda s: list(s)
         )["auth_asym_id"].to_dict()
 
+        # model number to asym ID mapping
         self.model_to_asym_ids = self.atom_table[
             ["model_number", "label_asym_id"]
-        ].drop_duplicates().assign(
-            model_number=lambda df: df.model_number - 1
-        ).groupby(
+        ].drop_duplicates().groupby(
             "model_number"
         ).agg(
             lambda s: list(s)
@@ -633,7 +632,9 @@ class PDB:
         chain : str
             ID of chain to be extracted (e.g. "A")
         model : int, optional (default: 0)
-            Identifier of model to be extracted, starting counting at 0
+            *Index* of model to be extracted, starting counting at 0. Note that for backwards
+            compatibility, this is *not* the actual PDB model identifier but indexes the model
+            identifiers in self.models, i.e. model must be >= 0 and < len(self.models)
         is_author_id : bool (default: True)
             If true, interpret chain parameter as author chain identifier;
             if false, interpret as label_asym_id
@@ -645,14 +646,17 @@ class PDB:
             and atom coordinates
         """
         # check if valid model was requested
-        if model not in self.models:
+        if not 0 <= model < len(self.models):
             raise ValueError(
-                "Invalid model identifier, valid options are: " + (",".join(map(str, self.models)))
+                f"Invalid model index, valid options: {','.join(map(str, range(len(self.models))))}"
             )
 
+        # map model index to model number/identifier
+        model_number = self.models[model]
+
         # check if valid chain was requested
-        if ((is_author_id and chain not in self.model_to_chains[model]) or
-                (not is_author_id and chain not in self.model_to_asym_ids[model])):
+        if ((is_author_id and chain not in self.model_to_chains[model_number]) or
+                (not is_author_id and chain not in self.model_to_asym_ids[model_number])):
             raise ValueError(
                 "Invalid chain selection, check self.model_to_chains / self.model_to_asym_ids for options"
             )
@@ -664,7 +668,7 @@ class PDB:
 
         # filter atom table to model + chain selection
         atoms = self.atom_table.query(
-            f"model_number - 1 == @model and {chain_field} == @chain"
+            f"model_number == @model_number and {chain_field} == @chain"
         ).assign(
             # create coordinate ID from author residue ID + insertion code
             # (this should be unique and circumvents issues from 0 seqres values if selecting based on author chain ID)
