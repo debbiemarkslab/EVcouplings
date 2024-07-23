@@ -500,15 +500,23 @@ class PDB:
             name: _decode(data[source_column]) for source_column, name in ATOM_TARGET_COLS.items()
         })
 
-        # decode information into dataframe with BioPython helper method
-        self.helix_table = pd.DataFrame({
-            name: _decode(data[source_column]) for source_column, name in HELIX_TARGET_COLS.items()
-        })
+        # decode information into dataframe with BioPython helper method; note this section may not be
+        # present if no helices exist in the structure
+        try:
+            self.helix_table = pd.DataFrame({
+                name: _decode(data[source_column]) for source_column, name in HELIX_TARGET_COLS.items()
+            })
+        except KeyError:
+            self.helix_table = None
 
-        # decode information into dataframe with BioPython helper method
-        self.sheet_table = pd.DataFrame({
-            name: _decode(data[source_column]) for source_column, name in SHEET_TARGET_COLS.items()
-        })
+        # decode information into dataframe with BioPython helper method; note this section may not be
+        # present if no sheets exist in the structure
+        try:
+            self.sheet_table = pd.DataFrame({
+                name: _decode(data[source_column]) for source_column, name in SHEET_TARGET_COLS.items()
+            })
+        except KeyError:
+            self.sheet_table = None
 
         # create secondary structure table for merging to chain tables
         # (will only contain helix/H and strand/E, coil/C will need to be filled in)
@@ -517,6 +525,10 @@ class PDB:
             ("H", self.helix_table),
             ("E", self.sheet_table)
         ]:
+            # skip if secondary structure element not present in PDB file at all
+            if sse_table is None:
+                continue
+
             for _, row in sse_table.iterrows():
                 assert row.beg_label_asym_id == row.end_label_asym_id
                 for seq_id in range(row.beg_label_seq_id, row.end_label_seq_id + 1):
@@ -527,11 +539,14 @@ class PDB:
                     })
 
         # drop duplicates, there are overlapping helix segment annotations e.g. for PDB 6cup:A:Asp92
-        self.secondary_structure = pd.DataFrame(
-            sse_raw
-        ).drop_duplicates(
-            subset=["label_asym_id", "label_seq_id"]
-        )
+        if len(sse_raw) > 0:
+            self.secondary_structure = pd.DataFrame(
+                sse_raw
+            ).drop_duplicates(
+                subset=["label_asym_id", "label_seq_id"]
+            )
+        else:
+            self.secondary_structure = None
 
         # store information about models/chains for quick retrieval and verification;
         # subtract 0 to start numbering consistently to how this was handled with MMTF
@@ -692,11 +707,16 @@ class PDB:
         res.index.name = "residue_index"
 
         # merge secondary structure information (left outer join as coil is missing from table)
-        res_sse = res.merge(
-            self.secondary_structure,
-            on=("label_seq_id", "label_asym_id"),
-            how="left"
-        )
+        if self.secondary_structure is not None:
+            res_sse = res.merge(
+                self.secondary_structure,
+                on=("label_seq_id", "label_asym_id"),
+                how="left"
+            )
+        else:
+            res_sse = res.assign(
+                sec_struct_3state=np.nan
+            )
 
         res_sse.loc[
             res_sse.sec_struct_3state.isnull() & (res_sse.label_seq_id > 0),
