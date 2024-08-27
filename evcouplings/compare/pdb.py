@@ -691,7 +691,6 @@ class PDB:
             coord_id=lambda df: df.auth_seq_id.astype(str) + df.insertion_code,
             seqres_id=lambda df: df.label_seq_id.astype(str).replace("0", np.nan),
             one_letter_code=lambda df: df.label_comp_id.map(AA3_to_AA1, na_action="ignore"),
-            id=lambda df: df.coord_id,
             # note that MSE will now be labeled as HETATM, which was not the case with MMTF
             hetatm=lambda df: df.record_type == "HETATM",
         ).reset_index(
@@ -701,6 +700,8 @@ class PDB:
         # create residue table by de-duplicating atoms
         res = atoms.drop_duplicates(
             subset=["coord_id"]
+        ).assign(
+            id=lambda df: df.coord_id
         ).reset_index(
             drop=True
         )
