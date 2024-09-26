@@ -16,7 +16,7 @@ Authors:
 
 import os
 from datetime import datetime
-from collections import Mapping
+from collections.abc import Mapping
 
 from pymongo import MongoClient, errors
 import gridfs

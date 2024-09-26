@@ -7,11 +7,12 @@ Predict protein structure, function and mutations using evolutionary sequence co
 
 ### Installing the Python package
 
-If you are simply interested in using EVcouplings as a library, installing the Python package is all you need to do (unless you use functions that depend on external tools). If you want to run the *evcouplings* application (alignment generation, model parameter inference, structure prediction, etc.) you will also need to follow the sections on installing external tools and databases.
+* If you are simply interested in using EVcouplings as a library, installing the Python package is all you need to do (unless you use functions that depend on external tools). 
+* If you want to run the *evcouplings* application (alignment generation, model parameter inference, structure prediction, etc.) you will also need to follow the sections on installing external tools and databases.
 
 #### Requirements
 
-EVcouplings requires a Python >= 3.5 installation. Since it depends on some packages that can be tricky to install using pip (numba, numpy, ...), we recommend using the [Anaconda Python distribution](https://www.continuum.io/downloads). In case you are creating a new conda environment or using miniconda, please make sure to run `conda install anaconda` before running pip, or otherwise the required packages will not be present.  
+EVcouplings actively supports Python >= 3.10 installations.  
 
 #### Installation
 
@@ -26,8 +27,6 @@ To obtain the latest development version of EVcouplings from the github reposito
 and to update to the latest version after previously installing EVcouplings from the repository, run
 
     pip install -U --no-deps https://github.com/debbiemarkslab/EVcouplings/archive/develop.zip
-
-Installation will take seconds.
 
 ### External software tools
 
@@ -141,7 +140,7 @@ Hopf, T. A., Schärfe, C. P. I., Rodrigues, J. P. G. L. M., Green, A. G., Kohlba
 
 Hopf, T. A., Ingraham, J. B., Poelwijk, F.J., Schärfe, C.P.I., Springer, M., Sander, C., & Marks, D. S. (2017). Mutation effects predicted from sequence co-variation. *Nature Biotechnology* **35**, 128–135 doi:10.1038/nbt.3769
 
-Green, A. G. and Elhabashy, H., Brock, K. P., Maddamsetti, R., Kohlbacher, O., Marks, D. S. (2019) Proteom-scale discovery of protein interactions with residue-level resolution using sequence coevolution. BioRxiv (in review). https://doi.org/10.1101/791293
+Green, A. G. and Elhabashy, H., Brock, K. P., Maddamsetti, R., Kohlbacher, O., Marks, D. S. (2021) Large-scale discovery of protein interactions at residue resolution using co-evolution calculated from genomic sequences. *Nature Communications* **12**, 1396. https://doi.org/10.1038/s41467-021-21636-z
 
 ## Contributors
 

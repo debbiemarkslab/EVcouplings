@@ -5,7 +5,6 @@ numba
 ruamel.yaml
 matplotlib
 requests
-mmtf-python
 click
 filelock
 psutil
@@ -14,4 +13,5 @@ jinja2
 biopython
 seaborn
 billiard
-sklearn
+scikit-learn
+msgpack

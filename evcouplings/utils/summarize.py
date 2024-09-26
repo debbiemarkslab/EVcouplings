@@ -91,7 +91,7 @@ def protein_monomer(prefix, configs):
                     stat_df.loc[0, "precision"] = ec_comp.iloc[L]["precision"]
 
                 # finally, append to global table
-                ali_table = ali_table.append(stat_df)
+                ali_table = pd.concat([ali_table, stat_df])
 
     # sort table by sequence search threshold
     ali_table = ali_table.sort_values(by="domain_threshold")
@@ -337,7 +337,7 @@ def protein_complex(prefix, configs):
                             stat_df.loc[0, "inter_precision"] = ec_comp_inter.iloc[NUM_INTER]["segmentwise_precision"]
 
                     # finally, append to global table
-                    ali_table = ali_table.append(stat_df)
+                    ali_table = pd.concat([ali_table, stat_df])
 
     # save ali statistics table
     table_file = prefix + "_job_statistics_summary.csv"

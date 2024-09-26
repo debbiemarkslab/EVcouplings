@@ -265,22 +265,23 @@ def run_plmc(alignment, couplings_file, param_file=None,
     # returncode == -11 (segfault) despite successful calculation
     return_code, stdout, stderr = run(cmd, check_returncode=False)
 
-    # TODO: remove this segfault-hunting output once fixed
+    # TODO: remove this segfault-hunting output if fixed in plmc
     if return_code != 0:
-        # if not a segfault, still raise exception
-        if return_code != -11:
+        # check if we got valid output from plmc by parsing it
+        valid_plmc_output = True
+        try:
+            parse_plmc_log(stderr)
+        except KeyError:
+            valid_plmc_output = False
+
+        # if not a segfault or invalid plmc output, still raise exception
+        if return_code != -11 or not valid_plmc_output:
             from evcouplings.utils.system import ExternalToolError
             raise ExternalToolError(
                 "Call failed:\ncmd={}\nreturncode={}\nstdout={}\nstderr={}".format(
                     cmd, return_code, stdout, stderr
                 )
             )
-
-        print("PLMC NON-ZERO RETURNCODE:", return_code)
-        print(cmd)
-        print(" ".join(cmd))
-        print("stdout:", stdout)
-        print("stderr:", stderr)
 
     iter_df, out_fields = parse_plmc_log(stderr)
 

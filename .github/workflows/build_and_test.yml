@@ -8,12 +8,12 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.6]
+        python-version: ['3.10', '3.11']
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install and configure conda
@@ -29,7 +29,9 @@ jobs:
         source activate test-environment
     - name: Run setup.py
       run: |
-        python setup.py sdist --formats=zip -k
+        pip install build
+        python setup.py sdist  --formats=zip -k
+        python -m build
         find ./dist -iname "*.zip" -print0 | xargs -0 pip install
         pip install codecov
     - name: Download test files
@@ -37,6 +39,7 @@ jobs:
         wget https://marks.hms.harvard.edu/evcouplings_test_cases/data/evcouplings_test_cases.tar.gz
         tar -xf evcouplings_test_cases.tar.gz -C $HOME/
     - name: Run tests in headless xvfb environment
-      uses: GabrielBB/xvfb-action@v1
+      uses: coactions/setup-xvfb@v1
       with:
         run: coverage run -m unittest discover -s test -p "Test*.py"
+        working-directory: ./ #optional

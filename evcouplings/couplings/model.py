@@ -6,7 +6,7 @@ sequences and perform calculations using the model
 Authors:
   Thomas A. Hopf
 """
-from collections import Iterable
+from collections.abc import Iterable
 from copy import deepcopy
 
 from numba import jit
@@ -609,7 +609,7 @@ class CouplingsModel:
                 )
             )
 
-        S = np.empty((len(sequences), L_seq), dtype=np.int)
+        S = np.empty((len(sequences), L_seq), dtype=int)
 
         try:
             for i, s in enumerate(sequences):
@@ -689,8 +689,8 @@ class CouplingsModel:
             2) delta J_ij, 3) delta h_i
 
         """
-        pos = np.empty(len(substitutions), dtype=np.int)
-        subs = np.empty(len(substitutions), dtype=np.int)
+        pos = np.empty(len(substitutions), dtype=int)
+        subs = np.empty(len(substitutions), dtype=int)
 
         try:
             for i, (subs_pos, subs_from, subs_to) in enumerate(substitutions):
@@ -699,7 +699,7 @@ class CouplingsModel:
                 if verify_mutants and subs_from != self.target_seq[pos[i]]:
                     raise ValueError(
                         "Inconsistency with target sequence: pos={} target={} subs={}".format(
-                            subs_pos, self.target_seq[i], subs_from
+                            subs_pos, self.target_seq[pos[i]], subs_from
                         )
                     )
         except KeyError:

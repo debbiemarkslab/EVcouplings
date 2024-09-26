@@ -8,7 +8,8 @@ Authors:
 
 """
 
-from collections import OrderedDict, Iterable
+from collections import OrderedDict
+from collections.abc import Iterable
 import re
 from shutil import copy
 import os
@@ -522,11 +523,15 @@ def describe_frequencies(alignment, first_index, target_seq_index=None):
     fi = alignment.frequencies
     conservation = alignment.conservation()
 
-    fi_cols = {c: fi[:, i] for c, i in alignment.alphabet_map.items()}
+    # careful not to include any characters that are non-match state (e.g. lowercase letters)
+    fi_cols = {
+        c: fi[:, alignment.alphabet_map[c]] for c in alignment.alphabet
+    }
+
     if target_seq_index is not None:
         target_seq = alignment[target_seq_index]
     else:
-        target_seq = np.full((alignment.L), np.nan)
+        target_seq = np.full((alignment.L, ), np.nan)
 
     info = pd.DataFrame(
         {
@@ -538,6 +543,11 @@ def describe_frequencies(alignment, first_index, target_seq_index=None):
     )
     # reorder columns
     info = info.loc[:, ["i", "A_i", "conservation"] + list(alignment.alphabet)]
+
+    # do not report values for lowercase columns
+    info.loc[
+        info.A_i.str.lower() == info.A_i, ["conservation"] + list(alignment.alphabet)
+    ] = np.nan
 
     return info
 
@@ -679,7 +689,7 @@ def existing(**kwargs):
 
     # first try to autodetect format of alignment
     with open(input_alignment) as f:
-        format = detect_format(f)
+        format = detect_format(f, filepath=input_alignment)
         if format is None:
             raise InvalidParameterError(
                 "Format of input alignment {} could not be "
@@ -1502,6 +1512,8 @@ def standard(**kwargs):
         annotation_file = prefix + "_annotation.csv"
         annotation = extract_header_annotation(ali_raw)
         annotation.to_csv(annotation_file, index=False)
+    else:
+        annotation_file = None
 
     # center alignment around focus/search sequence
     focus_cols = np.array([c != "-" for c in ali_raw[0]])
@@ -1516,8 +1528,10 @@ def standard(**kwargs):
     outcfg = {
         **jackhmmer_outcfg,
         **mod_outcfg,
-        "annotation_file": annotation_file
     }
+
+    if annotation_file is not None:
+        outcfg["annotation_file"] = annotation_file
 
     # dump output config to YAML file for debugging/logging
     write_config_file(prefix + ".align_standard.outcfg", outcfg)

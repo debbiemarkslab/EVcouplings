@@ -257,7 +257,7 @@ def compare_models_maxcluster(experiments, predictions, norm_by_intersection=Tru
         comp = comp.sort_values("tm", ascending=False)
         single_results[exp_file] = comp
 
-        full_result = full_result.append(comp)
+        full_result = pd.concat([full_result, comp])
 
     return full_result, single_results
 

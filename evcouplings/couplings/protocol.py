@@ -453,7 +453,7 @@ def complex_probability(ecs, scoring_model, use_all_ecs=False,
         containing confidence measure
     """
     if use_all_ecs:
-        ecs = pairs.add_mixture_proability(
+        ecs = pairs.add_mixture_probability(
             ecs, model=scoring_model
         )
     else:
