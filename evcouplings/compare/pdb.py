@@ -498,7 +498,12 @@ class PDB:
         # decode information into dataframe with BioPython helper method
         self.atom_table = pd.DataFrame({
             name: _decode(data[source_column]) for source_column, name in ATOM_TARGET_COLS.items()
-        })
+        }).assign(
+            # make sure chain identifiers are strings, in some pathologic cases, these are int rather than str
+            # (e.g. entry 6swy)
+            auth_asym_id=lambda df: df.auth_asym_id.astype(str),
+            label_asym_id=lambda df: df.label_asym_id.astype(str),
+        )
 
         # decode information into dataframe with BioPython helper method; note this section may not be
         # present if no helices exist in the structure
