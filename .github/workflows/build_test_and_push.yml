@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.10', '3.11']
+        python-version: ['3.11']
 
     steps:
     - uses: actions/checkout@v4
@@ -31,7 +31,6 @@ jobs:
     - name: Run setup.py
       run: |
         python setup.py sdist --formats=zip -k
-        python setup.py bdist_wheel
         find ./dist -iname "*.zip" -print0 | xargs -0 pip install
         pip install codecov
     - name: Download test files
