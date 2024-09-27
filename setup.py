@@ -18,7 +18,7 @@ setup(
     name='evcouplings',
 
     # Version:
-    version='0.2',
+    version='0.2.0',
 
     description='A Framework for evolutionary couplings analysis',
     long_description=readme,
@@ -29,7 +29,7 @@ setup(
 
     # Author details
     author='Thomas Hopf',
-    author_email='thomas_hopf@hms.harvard.edu',
+    author_email='thomas.hopf@gmail.com',
 
     # Choose your license
     license='MIT',
