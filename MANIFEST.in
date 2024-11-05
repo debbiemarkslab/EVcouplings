@@ -1,3 +1,0 @@
-include README.md
-include evcouplings/fold/cns_templates/*.*
-include evcouplings/couplings/scoring_models/*.*

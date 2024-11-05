@@ -28,10 +28,12 @@ jobs:
         conda info -a
         conda create -q -n test-environment python=${{ matrix.python-version }} numpy scipy numba pandas matplotlib
         source activate test-environment
-    - name: Run setup.py
+    - name: Install Hatch
+      uses: pypa/hatch@install
+    - name: Build and install package
       run: |
-        python setup.py sdist --formats=zip -k
-        find ./dist -iname "*.zip" -print0 | xargs -0 pip install
+        hatch build
+        find ./dist -iname "*.tar.gz" -print0 | xargs -0 pip install
         pip install codecov
     - name: Download test files
       run: |
@@ -42,14 +44,8 @@ jobs:
       with:
         run: coverage run -m unittest discover -s test -p "Test*.py"
         working-directory: ./ #optional
-    - name: Publish evcouplings to test PyPI
-      if: startsWith(github.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        password: ${{ secrets.PYPI_ACCESS_TOKEN_TEST }}
-        repository_url: https://test.pypi.org/legacy/
     - name: Publish evcouplings to PyPI
-      if: startsWith(github.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@v1.9.0
       with:
+        user: __token__
         password: ${{ secrets.PYPI_ACCESS_TOKEN }}
