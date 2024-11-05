@@ -470,7 +470,9 @@ class PDB:
             "_atom_site.pdbx_formal_charge": "charge",
         }
 
-        HELIX_TARGET_COLS = {
+        # full list of conf types: https://mmcif.wwpdb.org/dictionaries/mmcif_ma.dic/Items/_struct_conf_type.id.html;
+        # mapping between file types: https://manpages.debian.org/unstable/dssp/mkdssp.1.en.html
+        CONF_TARGET_COLS = {
             "_struct_conf.conf_type_id": "conformation_type",
             "_struct_conf.id": "id",
             # label_asym_id and label_seq_id are sufficient for merging to atom table;
@@ -508,11 +510,15 @@ class PDB:
         # decode information into dataframe with BioPython helper method; note this section may not be
         # present if no helices exist in the structure
         try:
-            self.helix_table = pd.DataFrame({
-                name: _decode(data[source_column]) for source_column, name in HELIX_TARGET_COLS.items()
-            })
+            self.conf_table = pd.DataFrame({
+                name: _decode(data[source_column]) for source_column, name in CONF_TARGET_COLS.items()
+            }).query(
+                # there are a handful of PDB entries that have (probably wrong) secondary structure assignments
+                # extending over more than one segment (e.g. 2bp7, 2wjv), drop these rather than raising an error
+                "beg_label_asym_id == end_label_asym_id"
+            )
         except KeyError:
-            self.helix_table = None
+            self.conf_table = None
 
         # decode information into dataframe with BioPython helper method; note this section may not be
         # present if no sheets exist in the structure
@@ -526,16 +532,23 @@ class PDB:
         # create secondary structure table for merging to chain tables
         # (will only contain helix/H and strand/E, coil/C will need to be filled in)
         sse_raw = []
-        for sse_type, sse_table in [
-            ("H", self.helix_table),
-            ("E", self.sheet_table)
+        for sse_type, sse_table, sse_filter in [
+            ("H", self.conf_table, "HELX"),
+            ("E", self.sheet_table, None),
+            # also retrieve beta strands/bridges from conf_table if available
+            ("E", self.conf_table, "STRN"),
         ]:
             # skip if secondary structure element not present in PDB file at all
             if sse_table is None:
                 continue
 
+            # filter table down to relevant entries for current secondary structure type
+            if sse_filter is not None:
+                sse_table = sse_table.query(
+                    f"conformation_type.str.startswith('{sse_filter}')"
+                )
+
             for _, row in sse_table.iterrows():
-                assert row.beg_label_asym_id == row.end_label_asym_id
                 for seq_id in range(row.beg_label_seq_id, row.end_label_seq_id + 1):
                     sse_raw.append({
                         "label_asym_id": row.beg_label_asym_id,
@@ -694,7 +707,7 @@ class PDB:
             # create coordinate ID from author residue ID + insertion code
             # (this should be unique and circumvents issues from 0 seqres values if selecting based on author chain ID)
             coord_id=lambda df: df.auth_seq_id.astype(str) + df.insertion_code,
-            seqres_id=lambda df: df.label_seq_id.astype(str).replace("0", np.nan),
+            seqres_id=lambda df: df.label_seq_id.astype(str).replace("0", pd.NA).replace("", pd.NA),
             one_letter_code=lambda df: df.label_comp_id.map(AA3_to_AA1, na_action="ignore"),
             # note that MSE will now be labeled as HETATM, which was not the case with MMTF
             hetatm=lambda df: df.record_type == "HETATM",
@@ -720,12 +733,13 @@ class PDB:
                 how="left"
             )
         else:
+            # initialize to pd.NA instead of np.nan or warning about assigning str to float64 column appears
             res_sse = res.assign(
-                sec_struct_3state=np.nan
+                sec_struct_3state=pd.NA
             )
 
         res_sse.loc[
-            res_sse.sec_struct_3state.isnull() & (res_sse.label_seq_id > 0),
+            res_sse.sec_struct_3state.isnull() & res_sse.seqres_id.notnull(),
             "sec_struct_3state"
         ] = "C"
 
