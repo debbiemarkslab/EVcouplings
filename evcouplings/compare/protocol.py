@@ -28,7 +28,7 @@ from evcouplings.compare.distances import (
     intra_dists, multimer_dists, remap_chains,
     inter_dists, remap_complex_chains
 )
-from evcouplings.compare.sifts import SIFTS, SIFTSResult
+from evcouplings.compare.sifts import SIFTS, SIFTSResult, SIFTSWithDynamicUpdate
 from evcouplings.compare.ecs import (
     coupling_scores_compared, add_precision
 )
@@ -580,6 +580,108 @@ def _individual_distance_map_config_result(individual_distance_map_table):
         }
 
     return individual_maps_result
+
+
+def _map_alphafold_hits(modeldb_list_file, relevant_ids):
+    """
+    Turn list of AlphaFoldDB sequence hits into structure table
+    compatible with SIFTS object
+
+    Parameters
+    ----------
+    modeldb_list_file: str
+        Path to accession_ids.csv file from AlphaFoldDB
+    relevant_ids: set(str)
+        DB entry identifiers to include in table (without leading "AFDB:" prefix)
+
+    Returns
+    -------
+    pd.DataFrame
+        Structure table for SIFTS object
+    """
+    with open(modeldb_list_file) as f:
+        _table = []
+        for line in f:
+            uniprot_ac, start, end, model_id, model_version = line.strip().split(",")
+            model_id_with_prefix = "AFDB:" + model_id
+            start, end = int(start), int(end)
+            if model_id_with_prefix in relevant_ids:
+                _table.append({
+                    "uniprot_ac": model_id_with_prefix,
+                    "pdb_id": f"{model_id}-model_v{model_version}",
+                    "pdb_chain": "A",
+                    "resseq_start": start,
+                    "resseq_end": end,
+                    "coord_start": start,
+                    "coord_end": end,
+                    "uniprot_start": start,
+                    "uniprot_end": end,
+                })
+
+    return pd.DataFrame(_table)
+
+
+def _identify_predicted_structures(**kwargs):
+    """
+    Find suitable predicted structures for mapping on ECs
+
+    Parameters
+    ----------
+    **kwargs
+        See check_required in code below
+
+    Returns
+    -------
+    SIFTSResult
+        Identified structures and residue index mappings
+    """
+    check_required(
+        kwargs,
+        [
+            "modeldb_type", "modeldb_sequence_file", "modeldb_list_file",
+            "model_max_num_hits",
+        ]
+    )
+
+    # implement custom logic for different model database types in code to avoid
+    # complicated configuration setup covering all eventualities
+    AVAILABLE_DB_TYPES = ["alphafolddb_v4"]
+    modeldb_type = kwargs["modeldb_type"]
+    if modeldb_type not in AVAILABLE_DB_TYPES:
+        raise InvalidParameterError(
+            f"Model DB type {modeldb_type} not available, valid options are: {', '.join(AVAILABLE_DB_TYPES)}"
+        )
+
+    table_callback = None
+    if modeldb_type == "alphafolddb_v4":
+        table_callback = lambda ali, hits: (
+            _map_alphafold_hits(
+                kwargs["modeldb_list_file"], set(hits.uniprot_ac)
+            ), hits
+        )
+
+    assert table_callback is not None, "table_callback not defined, this indicates logic error above"
+
+    # create patched SIFTS object with all model sequences, but only instantiate table
+    # property once sequences are found to avoid loading gigabytes of tables with pandas
+    s = SIFTSWithDynamicUpdate(
+        table_callback=table_callback,
+        sequence_file=kwargs["modeldb_sequence_file"]
+    )
+
+    # run sequence-based query against model database, always use jackhmmer for this
+    sifts_map = s.by_alignment(**{
+        **kwargs,
+        "pdb_alignment_method": "jackhmmer"
+    })
+
+    sifts_map_full = deepcopy(sifts_map)
+
+    # reduce number of structures/hits
+    if kwargs["model_max_num_hits"] is not None:
+        sifts_map.hits = sifts_map.hits.iloc[:kwargs["model_max_num_hits"]]
+
+    return sifts_map, sifts_map_full
 
 
 def standard(**kwargs):

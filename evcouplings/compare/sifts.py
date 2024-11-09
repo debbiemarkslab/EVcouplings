@@ -255,8 +255,12 @@ def find_homologs(pdb_alignment_method="jackhmmer", **kwargs):
     # read hmmer hittable and simplify
     hits = read_hmmer_domtbl(ar["hittable_file"])
 
-    hits.loc[:, "uniprot_ac"] = hits.loc[:, "target_name"].map(lambda x: x.split("|")[1])
-    hits.loc[:, "uniprot_id"] = hits.loc[:, "target_name"].map(lambda x: x.split("|")[2])
+    try:
+        hits.loc[:, "uniprot_ac"] = hits.loc[:, "target_name"].map(lambda x: x.split("|")[1])
+        hits.loc[:, "uniprot_id"] = hits.loc[:, "target_name"].map(lambda x: x.split("|")[2])
+    except IndexError:
+        hits.loc[:, "uniprot_ac"] = hits.loc[:, "target_name"].copy()
+        hits.loc[:, "uniprot_id"] = pd.NA
 
     hits = hits.rename(
         columns={
@@ -855,10 +859,15 @@ class SIFTS:
             **kwargs
         )
 
+        if callable(self.table):
+            table, hits = self.table(ali, hits)
+        else:
+            table = self.table
+
         # merge with internal table to identify overlap of
         # aligned regions and regions with structural coverage
         hits = hits.merge(
-            self.table, on="uniprot_ac", suffixes=("", "_")
+            table, on="uniprot_ac", suffixes=("", "_")
         )
 
         # add 1 to end of range since overlap function treats
@@ -1002,3 +1011,23 @@ class SIFTS:
         }
 
         return SIFTSResult(hits_grouped, mappings)
+
+
+class SIFTSWithDynamicUpdate(SIFTS):
+    def __init__(self, table_callback, sequence_file):
+        """
+        Version of SIFTS class that allows to dynamically
+        instantiate table after searching sequence file
+        (to avoid loading large tables)
+
+        Parameters
+        ----------
+        table_callback: callable
+            Function that ingests alignment (evcouplings.align.Alignment) and hit table (pd.DataFrame)
+            and returns dynamic structure mapping table (pd.DataFrame) and hit table (pd.DataFrame)
+        sequence_file: str
+            Path to database with sequences corresponding to structures
+        """
+        # note: do *not* call super init to pass verification of input files
+        self.table = table_callback
+        self.sequence_file = sequence_file
