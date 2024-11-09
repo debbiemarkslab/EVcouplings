@@ -35,6 +35,8 @@ from evcouplings.compare.ecs import (
 from evcouplings.visualize import pairs, misc
 
 SIFTS_TABLE_FORMAT_STR = "{pdb_id}:{pdb_chain} ({coord_start}-{coord_end})"
+AVAILABLE_MODEL_DB_TYPES = ["alphafolddb_v4"]
+ALPHAFOLDDB_DOWNLOAD_URL = "https://alphafold.ebi.ac.uk/files/{model_id}.cif"
 
 
 def print_pdb_structure_info(sifts_result, format_string=SIFTS_TABLE_FORMAT_STR,
@@ -645,11 +647,11 @@ def _identify_predicted_structures(**kwargs):
 
     # implement custom logic for different model database types in code to avoid
     # complicated configuration setup covering all eventualities
-    AVAILABLE_DB_TYPES = ["alphafolddb_v4"]
     modeldb_type = kwargs["modeldb_type"]
-    if modeldb_type not in AVAILABLE_DB_TYPES:
+
+    if modeldb_type not in AVAILABLE_MODEL_DB_TYPES:
         raise InvalidParameterError(
-            f"Model DB type {modeldb_type} not available, valid options are: {', '.join(AVAILABLE_DB_TYPES)}"
+            f"Model DB type {modeldb_type} not available, valid options are: {', '.join(AVAILABLE_MODEL_DB_TYPES)}"
         )
 
     table_callback = None
@@ -682,6 +684,85 @@ def _identify_predicted_structures(**kwargs):
         sifts_map.hits = sifts_map.hits.iloc[:kwargs["model_max_num_hits"]]
 
     return sifts_map, sifts_map_full
+
+
+def _load_models(model_ids, modeldb_type, structure_dir=None, raise_missing=True):
+    if modeldb_type == "alphafolddb_v4":
+        if structure_dir is not None:
+            raise NotImplementedError("Local file retrieval not implemented")
+
+        pass
+    else:
+        raise InvalidParameterError("Invalid modeldb_type")
+
+    return {}
+
+
+def models(**kwargs):
+    """
+    # TODO: document parameters/return values
+    """
+    check_required(
+        kwargs,
+        [
+            "prefix", "ec_file", "modeldb_type", "modeldb_file_dir",
+            # "min_sequence_distance",
+            # "pdb_mmtf_dir", "atom_filter", "compare_multimer",
+            # "distance_cutoff", "target_sequence_file",
+            # "scale_sizes",
+        ]
+    )
+
+    prefix = kwargs["prefix"]
+    outcfg = {
+        "model_structure_hits_file": prefix + "_model_hits.csv",
+        "model_structure_hits_unfiltered_file": prefix + "_model_hits_unfiltered.csv",
+    }
+
+    # make sure EC file exists
+    verify_resources(
+        "EC file does not exist",
+        kwargs["ec_file"]
+    )
+
+    # make sure output directory exists
+    create_prefix_folders(prefix)
+
+    # store auxiliary files here (too much for average user)
+    aux_prefix = insert_dir(prefix, "aux_models", rootname_subdir=False)
+    create_prefix_folders(aux_prefix)
+
+    # Step 1: Identify models for comparison
+    sifts_map, sifts_map_full = _identify_predicted_structures(**{
+        **kwargs,
+        "prefix": aux_prefix,
+    })
+
+    # save selected PDB hits
+    sifts_map.hits.to_csv(
+        outcfg["model_structure_hits_file"], index=True
+    )
+
+    # also save full list of hits
+    sifts_map_full.hits.to_csv(
+        outcfg["model_structure_hits_unfiltered_file"], index=True
+    )
+
+    # Step 2: Compute distance maps
+
+    # load all structures at once
+    structures = _load_models(
+        sifts_map.hits.pdb_id,
+        kwargs["modeldb_type"],
+        kwargs["modeldb_file_dir"],
+        raise_missing=False
+    )
+
+    # TODO: implement remaining logic
+    # TODO: implement structure mapping
+    # print(structures)
+
+    return outcfg
 
 
 def standard(**kwargs):
@@ -938,6 +1019,21 @@ def standard(**kwargs):
     outcfg["contact_map_files"] = _make_contact_maps(
         ec_table, d_intra, d_multimer, sifts_map, **kwargs
     )
+
+    # Step 5: check if comparison to models is enabled, then run this protocol as well
+    if kwargs.get("compare_to_models"):
+        # create subdirectory for running models comparison
+        # aux_prefix_models = insert_dir(
+        #     prefix, "models", rootname_subdir=False
+        # )
+        # create_prefix_folders(aux_prefix_models)
+
+        # apply protocol and update output
+        outcfg_models = models(**kwargs)
+        outcfg = {
+            **outcfg,
+            **outcfg_models,
+        }
 
     return outcfg
 
@@ -1318,7 +1414,10 @@ PROTOCOLS = {
     "standard": standard,
 
     # comparison for protein complexes
-    "complex": complex
+    "complex": complex,
+
+    # comparison to predicted models
+    "models": models,
 }
 
 

@@ -1280,7 +1280,7 @@ class ClassicPDB:
         return Chain(res_df, coord_df)
 
 
-def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
+def load_structures(pdb_ids, structure_dir=None, raise_missing=True, extension=".bcif.gz"):
     """
     Load PDB structures from files / web
 
@@ -1298,6 +1298,8 @@ def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
         Raise a ResourceError exception if any of the
         PDB IDs cannot be loaded. If False, missing
         entries will be ignored.
+    extension: str, optional (default: ".bcif.gz")
+        File extension to be added to identifier if loading file locally
 
     Returns
     -------
@@ -1320,7 +1322,7 @@ def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
 
         has_file = False
         if structure_dir is not None:
-            structure_file = path.join(structure_dir, pdb_id + ".mmtf")
+            structure_file = path.join(structure_dir, pdb_id + extension)
             has_file = valid_file(structure_file)
 
         try:
