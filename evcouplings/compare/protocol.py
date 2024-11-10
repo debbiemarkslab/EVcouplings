@@ -888,7 +888,7 @@ def models(**kwargs):
             ("remapped", seqmap, ("N", "CA", "C", "O")),
             ("renumbered", None, None)
         ]:
-            outcfg[name + "_model_pdb_files"] = {
+            outcfg[f"model_{name}_pdb_files"] = {
                 filename: mapping_index for mapping_index, filename in
                 remap_chains(
                     sifts_map,
@@ -903,8 +903,8 @@ def models(**kwargs):
         d_intra = None
         outcfg["model_distmap_monomer"] = None
         outcfg["model_distmap_monomer_residues_file"] = None
-        outcfg["remapped_model_pdb_files"] = None
-        outcfg["renumbered_model_pdb_files"] = None
+        outcfg["model_remapped_pdb_files"] = None
+        outcfg["model_renumbered_pdb_files"] = None
 
     # Step 3: Compare ECs to distance maps
 
@@ -943,14 +943,15 @@ def models(**kwargs):
             score_column="score"
         )
 
-    # Step 4: Make contact map plots
-    # if no structures available, defaults to EC-only plot
-    outcfg["model_contact_map_files"] = _make_contact_maps(
-        ec_table, d_intra, None, sifts_map, **{
-            **kwargs,
-            "prefix": kwargs["prefix"] + "_model"
-        }
-    )
+    # Step 4: Make contact map plots;
+    # unlike in standard protocol, only make plots of structures available
+    if len(sifts_map.hits) > 0:
+        outcfg["model_contact_map_files"] = _make_contact_maps(
+            ec_table, d_intra, None, sifts_map, **{
+                **kwargs,
+                "prefix": kwargs["prefix"] + "_model"
+            }
+        )
 
     return outcfg
 
