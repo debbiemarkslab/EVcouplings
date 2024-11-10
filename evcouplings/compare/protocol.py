@@ -11,6 +11,7 @@ from math import ceil
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from io import StringIO
 
 from evcouplings.align.alignment import (
     read_fasta, parse_header
@@ -20,10 +21,10 @@ from evcouplings.utils.config import (
 )
 
 from evcouplings.utils.system import (
-    create_prefix_folders, insert_dir, verify_resources,
+    create_prefix_folders, insert_dir, verify_resources, get, ResourceError
 )
 from evcouplings.couplings import Segment
-from evcouplings.compare.pdb import load_structures
+from evcouplings.compare.pdb import load_structures, PDB
 from evcouplings.compare.distances import (
     intra_dists, multimer_dists, remap_chains,
     inter_dists, remap_complex_chains
@@ -36,7 +37,7 @@ from evcouplings.visualize import pairs, misc
 
 SIFTS_TABLE_FORMAT_STR = "{pdb_id}:{pdb_chain} ({coord_start}-{coord_end})"
 AVAILABLE_MODEL_DB_TYPES = ["alphafolddb_v4"]
-ALPHAFOLDDB_DOWNLOAD_URL = "https://alphafold.ebi.ac.uk/files/{model_id}.cif"
+ALPHAFOLDDB_DOWNLOAD_URL = "https://alphafold.ebi.ac.uk/files/{id}.cif"
 
 
 def print_pdb_structure_info(sifts_result, format_string=SIFTS_TABLE_FORMAT_STR,
@@ -687,36 +688,105 @@ def _identify_predicted_structures(**kwargs):
 
 
 def _load_models(model_ids, modeldb_type, structure_dir=None, raise_missing=True):
+    """
+    Load structure models from files/web
+
+    Parameters
+    ----------
+    model_ids : Iterable
+        List / iterable containing model identifiers
+        to be loaded.
+    modeldb_type : str
+        Model database type
+    structure_dir : str, optional (default: None)
+        Path to directory with structures (if not available, will be fetched from web)
+    raise_missing : bool, optional (default: True)
+        Raise a ResourceError exception if any of the
+        PDB IDs cannot be loaded. If False, missing
+        entries will be ignored.
+
+    Returns
+    -------
+    structures : dict(str -> PDB)
+        Dictionary containing loaded structures.
+        Keys (PDB identifiers) will be lower-case.
+
+    Raises
+    ------
+    ResourceError
+        Raised if raise_missing is True and any of the given
+        PDB IDs cannot be loaded.
+    """
+    if modeldb_type not in AVAILABLE_MODEL_DB_TYPES:
+        raise InvalidParameterError(
+            f"Model DB type {modeldb_type} not available, valid options are: {', '.join(AVAILABLE_MODEL_DB_TYPES)}"
+        )
+
+    if structure_dir is not None:
+        raise NotImplementedError(
+            "Local file retrieval currently not implemented"
+        )
+
+    # implement database-specific retrieval behaviour here
     if modeldb_type == "alphafolddb_v4":
-        if structure_dir is not None:
-            raise NotImplementedError("Local file retrieval not implemented")
+        make_download_url = lambda model_id: ALPHAFOLDDB_DOWNLOAD_URL.format(id=model_id)
 
-        pass
-    else:
-        raise InvalidParameterError("Invalid modeldb_type")
+    structures = {}
 
-    return {}
+    for model_id in model_ids:
+        try:
+            data = get(
+                make_download_url(model_id)
+            )
+
+            structures[model_id] = PDB(
+                StringIO(data.text), binary=False
+            )
+        except ResourceError as e:
+            if raise_missing:
+                raise
+
+    return structures
 
 
 def models(**kwargs):
     """
-    # TODO: document parameters/return values
+    Protocol:
+    Compare ECs for single proteins (or domains)
+    to 3D structure models
+
+    Parameters
+    ----------
+    Mandatory kwargs arguments:
+        See list below in code where calling check_required
+
+    Returns
+    -------
+    outcfg : dict
+        Output configuration of the pipeline
     """
     check_required(
         kwargs,
         [
             "prefix", "ec_file", "modeldb_type", "modeldb_file_dir",
-            # "min_sequence_distance",
-            # "pdb_mmtf_dir", "atom_filter", "compare_multimer",
-            # "distance_cutoff", "target_sequence_file",
-            # "scale_sizes",
+            "atom_filter", "distance_cutoff", "min_sequence_distance",
+            "target_sequence_file",
         ]
     )
 
     prefix = kwargs["prefix"]
     outcfg = {
+        "model_ec_compared_all_file": prefix + "_model_CouplingScoresCompared_all.csv",
+        "model_ec_compared_longrange_file": prefix + "_model_CouplingScoresCompared_longrange.csv",
         "model_structure_hits_file": prefix + "_model_hits.csv",
         "model_structure_hits_unfiltered_file": prefix + "_model_hits_unfiltered.csv",
+
+        # cannot have the distmap files end with "_file" because there are
+        # two files (.npy and .csv), which would cause problems with automatic
+        # checking if those files exist
+        "model_distmap_monomer": prefix + "_model_distance_map_monomer",
+        # residue map for all individual distance maps before aggregation
+        "model_distmap_monomer_residues_file": prefix + "_model_distance_map_monomer_residues.csv",
     }
 
     # make sure EC file exists
@@ -758,9 +828,129 @@ def models(**kwargs):
         raise_missing=False
     )
 
-    # TODO: implement remaining logic
-    # TODO: implement structure mapping
-    # print(structures)
+    if len(sifts_map.hits) > 0:
+        d_intra = intra_dists(
+            sifts_map, structures, atom_filter=kwargs["atom_filter"],
+            output_prefix=aux_prefix + "model_distmap_intra"
+        )
+
+        residue_table_filename, dist_mat_filename = d_intra.to_file(outcfg["model_distmap_monomer"])
+
+        # store residue map (monomer)
+        d_intra.aggregated_residue_maps.to_csv(
+            outcfg["model_distmap_monomer_residues_file"], index=False
+        )
+
+        # TODO: for now, create additional entries rather than removing distmap_monomer for compatibility reasons,
+        # but eventually drop the one above
+        outcfg["model_distmap_monomer_files"] = {
+            residue_table_filename: {"file_type": "residue_table"},
+            dist_mat_filename: {"file_type": "distance_matrix"}
+        }
+
+        d_intra_individual_maps = d_intra.individual_distance_map_table
+        # also store individual intra distance matrices (should always be present)
+        if d_intra_individual_maps is not None:
+            outcfg["model_distmap_monomer_individual_files"] = _individual_distance_map_config_result(
+                d_intra_individual_maps
+            )
+
+        # save contacts to separate file
+        outcfg["model_monomer_contacts_file"] = prefix + "_model_contacts_monomer.csv"
+        d_intra.contacts(
+            kwargs["distance_cutoff"]
+        ).to_csv(
+            outcfg["model_monomer_contacts_file"], index=False
+        )
+
+        # at this point, also create remapped structures (e.g. for
+        # later comparison of folding results)
+        verify_resources(
+            "Target sequence file does not exist",
+            kwargs["target_sequence_file"]
+        )
+
+        # create target sequence map for remapping structure
+        with open(kwargs["target_sequence_file"]) as f:
+            header, seq = next(read_fasta(f))
+
+        seq_id, seq_start, seq_end = parse_header(header)
+        seqmap = dict(zip(range(seq_start, seq_end + 1), seq))
+
+        # remap structures, swap mapping index and filename in
+        # dictionary so we have a list of files in the dict keys
+        #
+        # remapped structures have side chains taken off and changed
+        # residue types, since e.g. maxcluster cannot handle mismatches
+        # well. Also create structures that are just renumbered (but have
+        # original side chains and residue names) for visualization asf.
+        for name, sequence_map, atom_filter in [
+            ("remapped", seqmap, ("N", "CA", "C", "O")),
+            ("renumbered", None, None)
+        ]:
+            outcfg[name + "_model_pdb_files"] = {
+                filename: mapping_index for mapping_index, filename in
+                remap_chains(
+                    sifts_map,
+                    "{}_{}".format(aux_prefix, name),
+                    structures=structures,
+                    sequence=sequence_map,
+                    atom_filter=atom_filter
+                ).items()
+            }
+    else:
+        # if no structures, can not compute distance maps
+        d_intra = None
+        outcfg["model_distmap_monomer"] = None
+        outcfg["model_distmap_monomer_residues_file"] = None
+        outcfg["remapped_model_pdb_files"] = None
+        outcfg["renumbered_model_pdb_files"] = None
+
+    # Step 3: Compare ECs to distance maps
+
+    ec_table = pd.read_csv(kwargs["ec_file"])
+
+    # identify number of sites in EC model
+    num_sites = len(
+        set.union(set(ec_table.i.unique()), set(ec_table.j.unique()))
+    )
+
+    for out_file, min_seq_dist in [
+        ("model_ec_compared_longrange_file", kwargs["min_sequence_distance"]),
+        ("model_ec_compared_all_file", 0),
+    ]:
+        # compare ECs only if we minimally have intra distance map
+        if d_intra is not None:
+            coupling_scores_compared(
+                ec_table, d_intra, None,
+                dist_cutoff=kwargs["distance_cutoff"],
+                output_file=outcfg[out_file],
+                min_sequence_dist=min_seq_dist,
+                score="score"
+            )
+        else:
+            outcfg[out_file] = None
+
+    # also create line-drawing script if we made the csv
+    if outcfg["model_ec_compared_longrange_file"] is not None:
+        ecs_longrange = pd.read_csv(outcfg["model_ec_compared_longrange_file"])
+
+        outcfg["model_ec_lines_compared_pml_file"] = prefix + "_model_draw_ec_lines_compared.pml"
+        pairs.ec_lines_pymol_script(
+            ecs_longrange.iloc[:num_sites, :],
+            outcfg["model_ec_lines_compared_pml_file"],
+            distance_cutoff=kwargs["distance_cutoff"],
+            score_column="score"
+        )
+
+    # Step 4: Make contact map plots
+    # if no structures available, defaults to EC-only plot
+    outcfg["model_contact_map_files"] = _make_contact_maps(
+        ec_table, d_intra, None, sifts_map, **{
+            **kwargs,
+            "prefix": kwargs["prefix"] + "_model"
+        }
+    )
 
     return outcfg
 
