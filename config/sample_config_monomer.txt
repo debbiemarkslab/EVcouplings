@@ -287,13 +287,13 @@ compare:
     # Uncomment to enable comparison to predicted models (e.g. AlphaFoldDB, as specified in databases section below);
     # will inherit configuration as passed to compare stage, with any keys specified in compared_to_models subsection
     # taking precedence
-    compare_models:
-        max_num_hits: 1
-        pdb_alignment_method: jackhmmer
-        use_bitscores: True
-        domain_threshold: 1.5
-        sequence_threshold: 1.5
-        iterations: 1
+    # compare_models:
+    #     max_num_hits: 1
+    #     pdb_alignment_method: jackhmmer
+    #     use_bitscores: True
+    #     domain_threshold: 1.5
+    #     sequence_threshold: 1.5
+    #     iterations: 1
 
 # Settings for Mutation effect predictions
 mutate:
