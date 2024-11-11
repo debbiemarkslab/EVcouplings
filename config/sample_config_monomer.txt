@@ -284,6 +284,17 @@ compare:
     # Warning: searching by HMM may result in crystal structures from very distant homologs or even unrelated sequences. 
     pdb_alignment_method: jackhmmer
 
+    # Uncomment to enable comparison to predicted models (e.g. AlphaFoldDB, as specified in databases section below);
+    # will inherit configuration as passed to compare stage, with any keys specified in compared_to_models subsection
+    # taking precedence
+    compare_models:
+        max_num_hits: 1
+        pdb_alignment_method: jackhmmer
+        use_bitscores: True
+        domain_threshold: 1.5
+        sequence_threshold: 1.5
+        iterations: 1
+
 # Settings for Mutation effect predictions
 mutate:
     # Options: standard
@@ -413,6 +424,12 @@ databases:
     # Periodically delete these files to more recent versions of SIFTS are used.
     sifts_mapping_table: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.csv
     sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.fasta
+
+    # Mapping onto predicted 3D structure models
+    # modeldb_type: alphafolddb_v4
+    # modeldb_sequence_file: /n/groups/marks/databases/alphafolddb/2022-11-14/sequences.fasta
+    # modeldb_list_file: /n/groups/marks/databases/alphafolddb/2022-11-14/accession_ids.csv
+    # modeldb_file_dir:
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
 tools:

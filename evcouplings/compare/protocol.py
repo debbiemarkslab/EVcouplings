@@ -642,7 +642,7 @@ def _identify_predicted_structures(**kwargs):
         kwargs,
         [
             "modeldb_type", "modeldb_sequence_file", "modeldb_list_file",
-            "model_max_num_hits",
+            "max_num_hits",
         ]
     )
 
@@ -672,17 +672,13 @@ def _identify_predicted_structures(**kwargs):
         sequence_file=kwargs["modeldb_sequence_file"]
     )
 
-    # run sequence-based query against model database, always use jackhmmer for this
-    sifts_map = s.by_alignment(**{
-        **kwargs,
-        "pdb_alignment_method": "jackhmmer"
-    })
-
+    # run sequence-based query against model database
+    sifts_map = s.by_alignment(**kwargs)
     sifts_map_full = deepcopy(sifts_map)
 
     # reduce number of structures/hits
-    if kwargs["model_max_num_hits"] is not None:
-        sifts_map.hits = sifts_map.hits.iloc[:kwargs["model_max_num_hits"]]
+    if kwargs["max_num_hits"] is not None:
+        sifts_map.hits = sifts_map.hits.iloc[:kwargs["max_num_hits"]]
 
     return sifts_map, sifts_map_full
 
@@ -1211,16 +1207,16 @@ def standard(**kwargs):
         ec_table, d_intra, d_multimer, sifts_map, **kwargs
     )
 
-    # Step 5: check if comparison to models is enabled, then run this protocol as well
-    if kwargs.get("compare_to_models"):
-        # create subdirectory for running models comparison
-        # aux_prefix_models = insert_dir(
-        #     prefix, "models", rootname_subdir=False
-        # )
-        # create_prefix_folders(aux_prefix_models)
-
+    # Step 5: check if comparison to models is enabled (optional argument), then run this protocol as well
+    models_config = kwargs.get("compare_models")
+    if models_config is not None:
         # apply protocol and update output
-        outcfg_models = models(**kwargs)
+        outcfg_models = models(
+            **{
+                **kwargs,
+                **models_config,
+            }
+        )
         outcfg = {
             **outcfg,
             **outcfg_models,
