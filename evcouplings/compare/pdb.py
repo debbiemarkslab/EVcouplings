@@ -17,6 +17,7 @@ import pandas as pd
 import requests
 import msgpack
 from Bio.PDB.binary_cif import _decode
+from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
 from evcouplings.utils.config import InvalidParameterError
 from evcouplings.utils.constants import AA3_to_AA1
@@ -412,9 +413,9 @@ class PDB:
     Holds PDB structure from binaryCIF format; supersedes original PDB class based
     on MMTF format (renamed to MmtfPDB, cf. below) due to MMTF retirement in 2024
     """
-    def __init__(self, filehandle, keep_full_data=False):
+    def __init__(self, filehandle, binary=True, keep_full_data=False):
         """
-        Initialize by parsing binaryCIF from open filehandle.
+        Initialize by parsing binaryCIF/CIF from open filehandle.
         Recommended to use from_file() and from_id() class methods to create object.
 
         Column extraction and decoding based on https://github.com/biopython/biopython/blob/master/Bio/PDB/binary_cif.py
@@ -423,18 +424,23 @@ class PDB:
         ----------
         filehandle: file-like object
             Open filehandle (binary) from which to read binaryCIF data
+        binary: bool (default: True)
+            Indicates if file is binaryCIF (true) or regular text-based CIF file (false)
         keep_full_data: bool (default: False)
             Associate raw extracted data with object
         """
-        # unpack information in bCIF file
-        raw_data = msgpack.unpack(
-            filehandle, use_list=True
-        )
+        if binary:
+            # unpack information in bCIF file
+            raw_data = msgpack.unpack(
+                filehandle, use_list=True
+            )
 
-        data = {
-            f"{category['name']}.{column['name']}": column
-            for block in raw_data["dataBlocks"] for category in block["categories"] for column in category["columns"]
-        }
+            data = {
+                f"{category['name']}.{column['name']}": column
+                for block in raw_data["dataBlocks"] for category in block["categories"] for column in category["columns"]
+            }
+        else:
+            data = MMCIF2Dict(filehandle)
 
         ATOM_TARGET_COLS = {
             "_atom_site.pdbx_PDB_model_num": "model_number",
@@ -498,23 +504,55 @@ class PDB:
             self.data = None
 
         # decode information into dataframe with BioPython helper method
-        self.atom_table = pd.DataFrame({
-            name: _decode(data[source_column]) for source_column, name in ATOM_TARGET_COLS.items()
-        }).assign(
-            # make sure chain identifiers are strings, in some pathologic cases, these are int rather than str
-            # (e.g. entry 6swy)
-            auth_asym_id=lambda df: df.auth_asym_id.astype(str),
-            label_asym_id=lambda df: df.label_asym_id.astype(str),
-        )
+        if binary:
+            self.atom_table = pd.DataFrame({
+                name: _decode(data[source_column]) for source_column, name in ATOM_TARGET_COLS.items()
+            }).assign(
+                # make sure chain identifiers are strings, in some pathologic cases, these are int rather than str
+                # (e.g. entry 6swy)
+                auth_asym_id=lambda df: df.auth_asym_id.astype(str),
+                label_asym_id=lambda df: df.label_asym_id.astype(str),
+            )
+        else:
+            self.atom_table = pd.DataFrame({
+                name: data[source_column] for source_column, name in ATOM_TARGET_COLS.items()
+            }).replace(
+                # replace with empty values for consistency with bCIF parsing (otherwise could use pd.NA here)
+                {"?": "", ".": ""}
+            ).assign(
+                # update column types for float columns
+                x=lambda df: pd.to_numeric(df.x),
+                y=lambda df: pd.to_numeric(df.y),
+                z=lambda df: pd.to_numeric(df.z),
+                occupancy=lambda df: pd.to_numeric(df.occupancy),
+                b_factor=lambda df: pd.to_numeric(df.b_factor),
+                # update data types for int columns
+                model_number=lambda df: df.model_number.astype("int32"),
+                id=lambda df: df.id.astype("int32"),
+                label_entity_id=lambda df: df.label_entity_id.astype("int32"),
+                # align behaviour with missing value coding in bCIF parser for label_seq_id
+                label_seq_id=lambda df: df.label_seq_id.replace("", 0).astype("int32"),
+                auth_seq_id=lambda df: df.auth_seq_id.astype("int32"),
+            )
 
         # decode information into dataframe with BioPython helper method; note this section may not be
         # present if no helices exist in the structure
         try:
-            self.conf_table = pd.DataFrame({
-                name: _decode(data[source_column]) for source_column, name in CONF_TARGET_COLS.items()
-            }).query(
-                # there are a handful of PDB entries that have (probably wrong) secondary structure assignments
-                # extending over more than one segment (e.g. 2bp7, 2wjv), drop these rather than raising an error
+            if binary:
+                self.conf_table = pd.DataFrame({
+                    name: _decode(data[source_column]) for source_column, name in CONF_TARGET_COLS.items()
+                })
+            else:
+                self.conf_table = pd.DataFrame({
+                    name: data[source_column] for source_column, name in CONF_TARGET_COLS.items()
+                }).assign(
+                    beg_label_seq_id=lambda df: df.beg_label_seq_id.astype("int32"),
+                    end_label_seq_id=lambda df: df.end_label_seq_id.astype("int32"),
+                )
+
+            # there are a handful of PDB entries that have (probably wrong) secondary structure assignments
+            # extending over more than one segment (e.g. 2bp7, 2wjv), drop these rather than raising an error
+            self.conf_table = self.conf_table.query(
                 "beg_label_asym_id == end_label_asym_id"
             )
         except KeyError:
@@ -523,9 +561,19 @@ class PDB:
         # decode information into dataframe with BioPython helper method; note this section may not be
         # present if no sheets exist in the structure
         try:
-            self.sheet_table = pd.DataFrame({
-                name: _decode(data[source_column]) for source_column, name in SHEET_TARGET_COLS.items()
-            })
+            if binary:
+                self.sheet_table = pd.DataFrame({
+                    name: _decode(data[source_column]) for source_column, name in SHEET_TARGET_COLS.items()
+                })
+            else:
+                self.sheet_table = pd.DataFrame({
+                    name: data[source_column] for source_column, name in SHEET_TARGET_COLS.items()
+                }).assign(
+                    id=lambda df: df.id.astype("int32"),
+                    beg_label_seq_id=lambda df: df.beg_label_seq_id.astype("int32"),
+                    end_label_seq_id=lambda df: df.end_label_seq_id.astype("int32"),
+                )
+
         except KeyError:
             self.sheet_table = None
 
@@ -593,9 +641,14 @@ class PDB:
     @classmethod
     def from_file(cls, filename, keep_full_data=False):
         """
-        Initialize structure from binaryCIF file
+        Initialize structure from binaryCIF or CIF file (gzipped or not).
 
-        inspired by https://github.com/biopython/biopython/blob/master/Bio/PDB/binary_cif.py
+        Note for simplicity this function will determine if CIF or bCIF, and gzipped or not solely on
+        case-independent filename extensions (.cif.gz, .cif, .bcif.gz, .bcif) as supplied by the PDB
+        rather than performing checks on the file itself. If this logic does not hold in your use case,
+        supply an appropriate filehandle and binary=True/False directly  to the constructor of this class.
+
+        Inspired by https://github.com/biopython/biopython/blob/master/Bio/PDB/binary_cif.py
 
         Parameters
         ----------
@@ -610,11 +663,23 @@ class PDB:
             initialized PDB structure
         """
         try:
-            with (
-                    gzip.open(filename, mode="rb")
-                    if filename.lower().endswith(".gz") else open(filename, mode="rb")
-            ) as f:
-                return cls(f, keep_full_data=keep_full_data)
+            fnl = filename.lower()
+
+            # determine if gzipped or not, use appropriate function to open file
+            if fnl.endswith(".gz"):
+                openfunc = gzip.open
+            else:
+                openfunc = open
+
+            # check if binaryCIF or text-based CIF, adjust file open mode accordingly
+            binary = fnl.endswith(".bcif") or fnl.endswith(".bcif.gz")
+            if binary:
+                mode = "rb"
+            else:
+                mode = "r"
+
+            with openfunc(filename, mode=mode) as f:
+                return cls(f, binary=binary, keep_full_data=keep_full_data)
         except IOError as e:
             raise ResourceError(
                 "Could not open file {}".format(filename)
@@ -1280,7 +1345,7 @@ class ClassicPDB:
         return Chain(res_df, coord_df)
 
 
-def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
+def load_structures(pdb_ids, structure_dir=None, raise_missing=True, extension=".bcif.gz"):
     """
     Load PDB structures from files / web
 
@@ -1298,6 +1363,8 @@ def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
         Raise a ResourceError exception if any of the
         PDB IDs cannot be loaded. If False, missing
         entries will be ignored.
+    extension: str, optional (default: ".bcif.gz")
+        File extension to be added to identifier if loading file locally
 
     Returns
     -------
@@ -1320,7 +1387,7 @@ def load_structures(pdb_ids, structure_dir=None, raise_missing=True):
 
         has_file = False
         if structure_dir is not None:
-            structure_file = path.join(structure_dir, pdb_id + ".mmtf")
+            structure_file = path.join(structure_dir, pdb_id + extension)
             has_file = valid_file(structure_file)
 
         try:
