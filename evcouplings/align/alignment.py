@@ -991,7 +991,7 @@ class Alignment:
 
         return self._pair_frequencies
 
-    def identities_to(self, seq, normalize=True):
+    def identities_to(self, seq, normalize=True, exclude_invalid=True):
         """
         Calculate sequence identity between sequence
         and all sequences in the alignment.
@@ -1001,17 +1001,29 @@ class Alignment:
         normalize : bool, optional (default: True)
             Calculate relative identity between 0 and 1
             by normalizing with length of alignment
+        exclude_invalid : bool, optional (default: True)
+            Exclude gaps and lowercase characters from identity
+            calculation
         """
         self.__ensure_mapped_matrix()
 
-        # make sure this doesnt break with strings
+        # make sure this doesn't break with strings
         seq = np.array(list(seq))
-
         seq_mapped = map_matrix(seq, self.alphabet_map)
-        ids = identities_to_seq(seq_mapped, self.matrix_mapped)
+
+        # value to exclude from identity calculation (-1 if gaps should be included)
+        if exclude_invalid:
+            exclude_value = self.alphabet_map[self.alphabet_default]
+        else:
+            exclude_value = -1
+
+        ids = identities_to_seq(
+            seq_mapped, self.matrix_mapped, exclude_value
+        )
 
         if normalize:
-            return ids / self.L
+            l = (seq_mapped != exclude_value).sum()
+            return ids / l
         else:
             return ids
 
