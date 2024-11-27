@@ -1154,7 +1154,7 @@ def pair_frequencies(matrix, seq_weights, num_symbols, fi):
 
 
 @jit(nopython=True)
-def identities_to_seq(seq, matrix):
+def identities_to_seq(seq, matrix, exclude_value):
     """
     Calculate number of identities to given target sequence
     for all sequences in the matrix
@@ -1168,6 +1168,9 @@ def identities_to_seq(seq, matrix):
         N x L matrix containing N sequences of length L.
         Matrix must be mapped to range(0, num_symbols)
         using map_matrix function
+    exclude_value : int
+        Value >= 0 in mapped sequences that will be excluded from identity calculation, e.g. gap or lowercase character.
+        Set to -1 to enable legacy behaviour which includes gaps in identity calculation.
 
     Returns
     -------
@@ -1178,10 +1181,13 @@ def identities_to_seq(seq, matrix):
     N, L = matrix.shape
     identities = np.zeros((N, ))
 
+    # iterate through sequences in matrix
     for i in range(N):
         id_i = 0
+
+        # iterate through positions
         for j in range(L):
-            if matrix[i, j] == seq[j]:
+            if matrix[i, j] == seq[j] and matrix[i, j] != exclude_value:
                 id_i += 1
 
         identities[i] = id_i
