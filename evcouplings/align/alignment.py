@@ -1304,7 +1304,7 @@ def num_cluster_members_parallel(matrix, identity_threshold, exclude_value):
             # unless specifically requested
             matches = 0
             for k in range(L):
-                if matrix[i, k] == matrix[j, k] and (exclude_value == -1 or matrix[i, k] != exclude_value):
+                if matrix[i, k] == matrix[j, k] and matrix[i, k] != exclude_value:
                     matches += 1
 
             # calculate identity as fraction of non-gapped positions (i.e. similarity will typically be asymmetric)
