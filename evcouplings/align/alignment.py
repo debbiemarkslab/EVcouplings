@@ -12,7 +12,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from numba import jit
+from numba import jit, prange
 
 from evcouplings.utils.calculations import entropy
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
@@ -1190,10 +1190,17 @@ def identities_to_seq(seq, matrix):
 
 
 @jit(nopython=True)
-def num_cluster_members(matrix, identity_threshold):
+def num_cluster_members_legacy(matrix, identity_threshold):
     """
     Calculate number of sequences in alignment
     within given identity_threshold of each other
+
+    Note: This function will treat gaps like any other amino acid,
+    i.e. a gap in either sequence will be counted as a match;
+    potentially giving misleading results (which is consistent
+    with how most early tools handled this case). At this point,
+    we recommend to use num_cluster_members_parallel to
+    exclude gaps from the calculation.
 
     Parameters
     ----------
@@ -1216,7 +1223,7 @@ def num_cluster_members(matrix, identity_threshold):
     L = 1.0 * L
 
     # minimal cluster size is 1 (self)
-    num_neighbors = np.ones((N))
+    num_neighbors = np.ones((N, ))
 
     # compare all pairs of sequences
     for i in range(N - 1):
@@ -1229,5 +1236,81 @@ def num_cluster_members(matrix, identity_threshold):
             if pair_id / L >= identity_threshold:
                 num_neighbors[i] += 1
                 num_neighbors[j] += 1
+
+    return num_neighbors
+
+
+@jit(nopython=True, parallel=True)
+def num_cluster_members_parallel(matrix, identity_threshold, exclude_value):
+    """
+    Calculate number of sequences in alignment
+    within given identity_threshold of each other
+
+    Note: Unlike num_cluster_members_legacy, this function allows to exclude gaps
+    from the calculation, which is now the recommended approach.
+
+    Note: When excluding gaps from the calculation, the resulting matrix will
+    typically not be symmetric.
+
+    The function will by default use the available number of threads
+    (as returned by numba.get_num_threads()). If a different number should
+    be used, the caller is responsible to set the number of threads with
+    numba.set_num_threads
+
+    Parameters
+    ----------
+    matrix : np.array
+        N x L matrix containing N sequences of length L.
+        Matrix must be mapped to range(0, num_symbols) using
+        map_matrix function
+    identity_threshold : float
+        Sequences with at least this pairwise identity will be
+        grouped in the same cluster.
+    exclude_value : int
+        Value >= 0 in matrix that will be excluded from identity calculation, e.g. gap or lowercase character.
+        Set to -1 to enable legacy behaviour num_cluster_members_legacy which includes gaps in identity calculation.
+
+    Returns
+    -------
+    np.array
+        Vector of length N containing number of cluster
+        members for each sequence (inverse of sequence
+        weight)
+    """
+    N, L = matrix.shape
+
+    # minimal cluster size is 1 (self) but for parallelization we set the self-hit below inside the loop
+    # and initialize to zero here
+    num_neighbors = np.zeros((N, ))
+
+    # determine relevant sequence lengths; only count positions without gaps unlike explicitly requesting
+    # legacy behaviour (in this case all entry of L_seq will be == L)
+    L_seq = np.sum(matrix != exclude_value, axis=1)
+
+    # compare all pairs of sequences; we cannot assume symmetry of the resulting matrix here due to exclusion of
+    # gaps (this is also convenient for parallelizing the outer loop); no speedup from using a separate function
+    # with regular range(N) in single-thread case so can always use this function
+    for i in prange(N):
+        # always set cluster size to 1 / self-hit (i == j)
+        num_neighbors_i = 1
+
+        # compare to all other sequences (do not assume symmetry per comment above)
+        for j in range(N):
+            # simply skip on self-hit, we already initialized cluster size to 1 above
+            if i == j:
+                continue
+
+            # compare all positions between both sequences, not counting gaps or other invalid characters
+            # unless specifically requested
+            matches = 0
+            for k in range(L):
+                if matrix[i, k] == matrix[j, k] and (exclude_value == -1 or matrix[i, k] != exclude_value):
+                    matches += 1
+
+            # calculate identity as fraction of non-gapped positions (i.e. similarity will typically be asymmetric)
+            if matches / L_seq[i] >= identity_threshold:
+                num_neighbors_i += 1
+
+        num_neighbors[i] = num_neighbors_i
 
     return num_neighbors
