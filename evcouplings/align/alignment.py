@@ -12,7 +12,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from numba import jit, prange
+from numba import jit, prange, get_num_threads, set_num_threads
 
 from evcouplings.utils.calculations import entropy
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
@@ -896,7 +896,7 @@ class Alignment:
                 self.matrix, self.alphabet_map
             )
 
-    def set_weights(self, identity_threshold=0.8):
+    def set_weights(self, identity_threshold=0.8, method="withgaps", weight_file=None, cpu=None):
         """
         Calculate weights for sequences in alignment by
         clustering all sequences with sequence identity
@@ -916,12 +916,59 @@ class Alignment:
         ----------
         identity_threshold : float, optional (default: 0.8)
             Sequence identity threshold
+        method : str, optional (default: "withgaps")
+            Weight calculation method to use. Options are:
+            * "nogaps": Exclude gaps from identity calculation; parallelized execution with cpu threads (recommended)
+            * "withgaps": Include gaps in identity calculation; parallelized execution with cpu threads. Result will
+               be the same as for "legacy" (default for backward compatibility)
+            * "legacy": Inverse cluster weights, counting matches between gap characters towards identity.
+               Single-threaded execution using legacy implementation (faster for single-CPU execution, exploiting
+               symmetry of sequence identities)
+            * "uniform": Initialize all weights to 1 (i.e. no weighting)
+        weight_file : file-like object (default: None)
+            Load weights from a numpy file. This flag will override the "method" parameter.
+        cpu : int, optional (default: None)
+            Number of parallel threads to use for computation. Set to None to use all available CPUs
+            (as returned by numba.get_num_threads()). Legacy computation will always be single CPU only.
         """
         self.__ensure_mapped_matrix()
 
-        self.num_cluster_members = num_cluster_members(
-            self.matrix_mapped, identity_threshold
-        )
+        available_weight_methods = ["nogaps", "withgaps", "legacy", "uniform"]
+        if weight_file is None and method not in available_weight_methods:
+            raise ValueError(
+                "Invalid weight method selected, options are: " + (", ".join(available_weight_methods))
+            )
+
+        if weight_file is not None:
+            # TODO: make consistent with what plmc can read so we can reuse the same file?
+            raise NotImplementedError("Loading from file not yet implemented")
+        elif method == "nogaps" or method == "withgaps":
+            if method == "nogaps":
+                exclude_value = self.alphabet_map[self.alphabet_default]
+            else:
+                exclude_value = -1
+
+            # get number of threads set for numba to restore after computation
+            if cpu is not None:
+                threads_before = get_num_threads()
+                set_num_threads(cpu)
+
+            self.num_cluster_members = num_cluster_members_parallel(
+                self.matrix_mapped, identity_threshold, exclude_value
+            )
+
+            # reset number of threads if we changed it before
+            if cpu is not None:
+                set_num_threads(threads_before)
+
+        elif method == "legacy":
+            self.num_cluster_members = num_cluster_members_legacy(
+                self.matrix_mapped, identity_threshold
+            )
+        else:
+            assert method == "uniform"
+            self.num_cluster_members = np.ones(self.N)
+
         self.weights = 1.0 / self.num_cluster_members
 
         # reset frequencies, since these were based on
@@ -991,7 +1038,7 @@ class Alignment:
 
         return self._pair_frequencies
 
-    def identities_to(self, seq, normalize=True, exclude_invalid=True):
+    def identities_to(self, seq, normalize=True, exclude_invalid=False):
         """
         Calculate sequence identity between sequence
         and all sequences in the alignment.
@@ -1001,9 +1048,10 @@ class Alignment:
         normalize : bool, optional (default: True)
             Calculate relative identity between 0 and 1
             by normalizing with length of alignment
-        exclude_invalid : bool, optional (default: True)
+        exclude_invalid : bool, optional (default: False)
             Exclude gaps and lowercase characters from identity
-            calculation
+            calculation. False is default for backwards compatiblity,
+            but it is recommended to use True.
         """
         self.__ensure_mapped_matrix()
 
