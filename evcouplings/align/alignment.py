@@ -896,7 +896,7 @@ class Alignment:
                 self.matrix, self.alphabet_map
             )
 
-    def set_weights(self, identity_threshold=0.8, method="withgaps", weight_file=None, cpu=None):
+    def set_weights(self, identity_threshold=0.8, method="withgaps", weight_fileobj=None, cpu=None):
         """
         Calculate weights for sequences in alignment by
         clustering all sequences with sequence identity
@@ -925,8 +925,9 @@ class Alignment:
                Single-threaded execution using legacy implementation (faster for single-CPU execution, exploiting
                symmetry of sequence identities)
             * "uniform": Initialize all weights to 1 (i.e. no weighting)
-        weight_file : file-like object (default: None)
-            Load weights from a numpy file. This flag will override the "method" parameter.
+        weight_fileobj : file-like object (default: None)
+            Load weights from a numpy file. This flag will override the "method" parameter. Can contain weights
+            (all <= 1.0) or inverse weights/cluster members (all >= 1.0)
         cpu : int, optional (default: None)
             Number of parallel threads to use for computation. Set to None to use all available CPUs
             (as returned by numba.get_num_threads()). Legacy computation will always be single CPU only.
@@ -934,14 +935,36 @@ class Alignment:
         self.__ensure_mapped_matrix()
 
         available_weight_methods = ["nogaps", "withgaps", "legacy", "uniform"]
-        if weight_file is None and method not in available_weight_methods:
+        if weight_fileobj is None and method not in available_weight_methods:
             raise ValueError(
                 "Invalid weight method selected, options are: " + (", ".join(available_weight_methods))
             )
 
-        if weight_file is not None:
-            # TODO: make consistent with what plmc can read so we can reuse the same file?
-            raise NotImplementedError("Loading from file not yet implemented")
+        if weight_fileobj is not None:
+            try:
+                weights = np.array([
+                    float(line.strip()) for line in weight_fileobj if line.strip() != ""
+                ])
+            except ValueError as e:
+                raise ValueError(
+                    "Invalid sequence weight file, must contain one floating point number per sequence"
+                ) from e
+
+            if len(weights) != self.N:
+                raise ValueError(
+                    f"Number of weights in file ({len(weights)}) does not match " +
+                    f"number of sequences in alignment ({self.N})"
+                )
+
+            if (weights <= 1.0).all():
+                # turn into cluster members, invert again below (may lead to some floating point inaccuracy)
+                self.num_cluster_members = 1.0 / weights
+            elif (weights >= 1.0).all():
+                # turn into inverse
+                self.num_cluster_members = weights
+            else:
+                raise ValueError("Weights must all be <= 1.0 or >= 1.0 (inverse number)")
+
         elif method == "nogaps" or method == "withgaps":
             if method == "nogaps":
                 exclude_value = self.alphabet_map[self.alphabet_default]
@@ -975,6 +998,34 @@ class Alignment:
         # different weights before or had no weights at all
         self._frequencies = None
         self._pair_frequencies = None
+
+    def save_weights(self, fileobj, inverse_weights=False, digits=8):
+        """
+        Save sequence weights to file
+
+        Parameters
+        ----------
+        fileobj : file-like obj
+            File object to write sequences to (in "w" / text writing mode)
+        inverse_weights : bool, optional (default: False)
+            If True, save number of sequence cluster members (i.e. inverse weights)
+        digits : int, optional (default: 6)
+            Number of decimal places to use for string formatting of weights
+        """
+        if self.weights is None:
+            raise ValueError(
+                "No weights available for saving, need to call set_weights() with appropriate parameters first"
+            )
+
+        if inverse_weights:
+            values = self.num_cluster_members
+            fmt_string = "{v}\n"
+        else:
+            values = self.weights
+            fmt_string = "{v:.^{digits}f}\n"
+
+        for v in values:
+            fileobj.write(fmt_string.format(v=v, digits=digits))
 
     @property
     def frequencies(self):
