@@ -81,7 +81,7 @@ def infer_plmc(**kwargs):
         segments (passed through)
 
     """
-    # note: sequence_weights_file not enforced here for backwards compatibility
+    # note: sequence_weight_file not enforced here for backwards compatibility
     check_required(
         kwargs,
         [

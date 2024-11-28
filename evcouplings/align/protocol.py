@@ -952,8 +952,10 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
 
     # compute effective number of sequences
     # (this is intended for cases where coupling stage is
-    # not run, but this number is wanted nonetheless)
-    if kwargs["compute_num_effective_seqs"]:
+    # not run, but this number is wanted nonetheless);
+    # handles legacy style sequence weights (not reused in couplings stage) as well
+    # as new-style sequence weights (reused by plmc in couplings stage)
+    if kwargs["compute_num_effective_seqs"] or kwargs.get("sequence_weights"):
         # make sure we only compute N_eff on the columns
         # that would be used for model inference, dispose
         # the rest
@@ -962,8 +964,32 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
         else:
             cut_ali = ali.select(columns=~lc_cols)
 
-        # compute sequence weights
-        cut_ali.set_weights(kwargs["theta"])
+        # handle case where we want to forward sequence weights to couplings stage
+        # (i.e. not for old compute_num_effective_seqs parameter)
+        if kwargs.get("sequence_weights") is not None:
+            seq_weight_file = prefix + "_sequence_weights.csv"
+
+        # compute sequence weights, reuse existing weights file if available
+        if kwargs.get("reuse_alignment") and valid_file(seq_weight_file):
+            # reload weights
+            with open(seq_weight_file) as f:
+                cut_ali.set_weights(weight_fileobj=f)
+        else:
+            # compute weights from scratch; default to legacy strategy if sequence_weights argument
+            # not specified (for compute_num_effective_seqs case)
+            cut_ali.set_weights(
+                identity_threshold=kwargs["theta"],
+                method=kwargs.get("sequence_weights", "legacy"),
+                cpu=kwargs.get("cpu"),
+            )
+
+            # save weights to file for reuse by plmc (one weight per line in text format)
+            with open(seq_weight_file, "w") as f:
+                cut_ali.save_weights(seq_weight_file)
+
+        # add sequence weight file to outcfg to forward to couplings stage
+        if seq_weight_file is not None:
+            outcfg["sequence_weight_file"] = seq_weight_file
 
         # N_eff := sum of all sequence weights
         n_eff = float(cut_ali.weights.sum())
@@ -979,9 +1005,9 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
         })
 
         # save sequence weights to file and add to output config
-        outcfg["sequence_weights_file"] = prefix + "_inverse_sequence_weights.csv"
+        outcfg["inverse_sequence_weight_file"] = prefix + "_inverse_sequence_weights.csv"
         inv_seq_weights.to_csv(
-            outcfg["sequence_weights_file"], index=False
+            outcfg["inverse_sequence_weight_file"], index=False
         )
     else:
         n_eff = None
