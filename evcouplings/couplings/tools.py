@@ -273,6 +273,7 @@ def run_plmc(alignment, couplings_file, param_file=None,
 
     # save plmc output to separate log file for easier inspection if problems occur
     with open(couplings_file + ".log", "w") as f:
+        f.write(f"cmd: {' '.join(cmd)}\n")
         f.write(f"return_code: {return_code}\n")
         f.write(f"stderr:\n")
         f.write(stderr + "\n\n")
