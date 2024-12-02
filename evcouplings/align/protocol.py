@@ -988,7 +988,7 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
             # save weights to file for reuse by plmc (one weight per line in text format)
             if seq_weight_file is not None:
                 with open(seq_weight_file, "w") as f:
-                    cut_ali.save_weights(seq_weight_file)
+                    cut_ali.save_weights(f)
 
         # add sequence weight file to outcfg to forward to couplings stage
         if seq_weight_file is not None:
