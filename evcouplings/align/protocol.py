@@ -849,7 +849,7 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
         [
             "prefix", "seqid_filter", "hhfilter",
             "minimum_sequence_coverage", "minimum_column_coverage",
-            "compute_num_effective_seqs", "theta",
+            "theta",
         ]
     )
 
@@ -955,7 +955,7 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
     # not run, but this number is wanted nonetheless);
     # handles legacy style sequence weights (not reused in couplings stage) as well
     # as new-style sequence weights (reused by plmc in couplings stage)
-    if kwargs["compute_num_effective_seqs"] or kwargs.get("sequence_weights"):
+    if kwargs.get("compute_num_effective_seqs") or kwargs.get("sequence_weights"):
         # make sure we only compute N_eff on the columns
         # that would be used for model inference, dispose
         # the rest
@@ -968,15 +968,17 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
         # (i.e. not for old compute_num_effective_seqs parameter)
         if kwargs.get("sequence_weights") is not None:
             seq_weight_file = prefix + "_sequence_weights.csv"
+        else:
+            seq_weight_file = None
 
-        # compute sequence weights, reuse existing weights file if available
-        if kwargs.get("reuse_alignment") and valid_file(seq_weight_file):
+        # compute sequence weights, reuse existing weights file if available if specified via sequence_weights param
+        if kwargs.get("reuse_alignment") and seq_weight_file is not None and valid_file(seq_weight_file):
             # reload weights
             with open(seq_weight_file) as f:
                 cut_ali.set_weights(weight_fileobj=f)
         else:
-            # compute weights from scratch; default to legacy strategy if sequence_weights argument
-            # not specified (for compute_num_effective_seqs case)
+            # otherwise compute weights from scratch; default to legacy strategy if sequence_weights argument
+            # not specified (for legacy compute_num_effective_seqs case)
             cut_ali.set_weights(
                 identity_threshold=kwargs["theta"],
                 method=kwargs.get("sequence_weights", "legacy"),
@@ -984,8 +986,9 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
             )
 
             # save weights to file for reuse by plmc (one weight per line in text format)
-            with open(seq_weight_file, "w") as f:
-                cut_ali.save_weights(seq_weight_file)
+            if seq_weight_file is not None:
+                with open(seq_weight_file, "w") as f:
+                    cut_ali.save_weights(seq_weight_file)
 
         # add sequence weight file to outcfg to forward to couplings stage
         if seq_weight_file is not None:
