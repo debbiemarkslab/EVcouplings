@@ -81,6 +81,7 @@ def infer_plmc(**kwargs):
         segments (passed through)
 
     """
+    # note: sequence_weight_file not enforced here for backwards compatibility
     check_required(
         kwargs,
         [
@@ -213,6 +214,7 @@ def infer_plmc(**kwargs):
             lambda_h=kwargs["lambda_h"],
             lambda_J=lambda_J,
             lambda_g=kwargs["lambda_group"],
+            weight_file=kwargs.get("sequence_weight_file"),
             cpu=kwargs["cpu"],
             binary=kwargs["plmc"],
         )

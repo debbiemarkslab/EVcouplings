@@ -12,7 +12,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import numpy as np
-from numba import jit
+from numba import jit, prange, get_num_threads, set_num_threads
 
 from evcouplings.utils.calculations import entropy
 from evcouplings.utils.helpers import DefaultOrderedDict, wrap
@@ -896,7 +896,7 @@ class Alignment:
                 self.matrix, self.alphabet_map
             )
 
-    def set_weights(self, identity_threshold=0.8):
+    def set_weights(self, identity_threshold=0.8, method="withgaps", weight_fileobj=None, cpu=None):
         """
         Calculate weights for sequences in alignment by
         clustering all sequences with sequence identity
@@ -916,18 +916,116 @@ class Alignment:
         ----------
         identity_threshold : float, optional (default: 0.8)
             Sequence identity threshold
+        method : str, optional (default: "withgaps")
+            Weight calculation method to use. Options are:
+            * "nogaps": Exclude gaps from identity calculation; parallelized execution with cpu threads (recommended)
+            * "withgaps": Include gaps in identity calculation; parallelized execution with cpu threads. Result will
+               be the same as for "legacy" (default for backward compatibility)
+            * "legacy": Inverse cluster weights, counting matches between gap characters towards identity.
+               Single-threaded execution using legacy implementation (faster for single-CPU execution, exploiting
+               symmetry of sequence identities)
+            * "uniform": Initialize all weights to 1 (i.e. no weighting)
+        weight_fileobj : file-like object (default: None)
+            Load weights from a numpy file. This flag will override the "method" parameter. Can contain weights
+            (all <= 1.0) or inverse weights/cluster members (all >= 1.0)
+        cpu : int, optional (default: None)
+            Number of parallel threads to use for computation. Set to None to use all available CPUs
+            (as returned by numba.get_num_threads()). Legacy computation will always be single CPU only.
         """
         self.__ensure_mapped_matrix()
 
-        self.num_cluster_members = num_cluster_members(
-            self.matrix_mapped, identity_threshold
-        )
+        available_weight_methods = ["nogaps", "withgaps", "legacy", "uniform"]
+        if weight_fileobj is None and method not in available_weight_methods:
+            raise ValueError(
+                "Invalid weight method selected, options are: " + (", ".join(available_weight_methods))
+            )
+
+        if weight_fileobj is not None:
+            try:
+                weights = np.array([
+                    float(line.strip()) for line in weight_fileobj if line.strip() != ""
+                ])
+            except ValueError as e:
+                raise ValueError(
+                    "Invalid sequence weight file, must contain one floating point number per sequence"
+                ) from e
+
+            if len(weights) != self.N:
+                raise ValueError(
+                    f"Number of weights in file ({len(weights)}) does not match " +
+                    f"number of sequences in alignment ({self.N})"
+                )
+
+            if (weights <= 1.0).all():
+                # turn into cluster members, invert again below (may lead to some floating point inaccuracy)
+                self.num_cluster_members = 1.0 / weights
+            elif (weights >= 1.0).all():
+                # turn into inverse
+                self.num_cluster_members = weights
+            else:
+                raise ValueError("Weights must all be <= 1.0 or >= 1.0 (inverse number)")
+
+        elif method == "nogaps" or method == "withgaps":
+            if method == "nogaps":
+                exclude_value = self.alphabet_map[self.alphabet_default]
+            else:
+                exclude_value = -1
+
+            # get number of threads set for numba to restore after computation
+            if cpu is not None:
+                threads_before = get_num_threads()
+                set_num_threads(cpu)
+
+            self.num_cluster_members = num_cluster_members_parallel(
+                self.matrix_mapped, identity_threshold, exclude_value
+            )
+
+            # reset number of threads if we changed it before
+            if cpu is not None:
+                set_num_threads(threads_before)
+
+        elif method == "legacy":
+            self.num_cluster_members = num_cluster_members_legacy(
+                self.matrix_mapped, identity_threshold
+            )
+        else:
+            assert method == "uniform"
+            self.num_cluster_members = np.ones(self.N)
+
         self.weights = 1.0 / self.num_cluster_members
 
         # reset frequencies, since these were based on
         # different weights before or had no weights at all
         self._frequencies = None
         self._pair_frequencies = None
+
+    def save_weights(self, fileobj, inverse_weights=False, digits=8):
+        """
+        Save sequence weights to file
+
+        Parameters
+        ----------
+        fileobj : file-like obj
+            File object to write sequences to (in "w" / text writing mode)
+        inverse_weights : bool, optional (default: False)
+            If True, save number of sequence cluster members (i.e. inverse weights)
+        digits : int, optional (default: 6)
+            Number of decimal places to use for string formatting of weights
+        """
+        if self.weights is None:
+            raise ValueError(
+                "No weights available for saving, need to call set_weights() with appropriate parameters first"
+            )
+
+        if inverse_weights:
+            values = self.num_cluster_members
+            fmt_string = "{v}\n"
+        else:
+            values = self.weights
+            fmt_string = "{v:.^{digits}f}\n"
+
+        for v in values:
+            fileobj.write(fmt_string.format(v=v, digits=digits))
 
     @property
     def frequencies(self):
@@ -991,7 +1089,7 @@ class Alignment:
 
         return self._pair_frequencies
 
-    def identities_to(self, seq, normalize=True):
+    def identities_to(self, seq, normalize=True, exclude_invalid=False):
         """
         Calculate sequence identity between sequence
         and all sequences in the alignment.
@@ -1001,17 +1099,30 @@ class Alignment:
         normalize : bool, optional (default: True)
             Calculate relative identity between 0 and 1
             by normalizing with length of alignment
+        exclude_invalid : bool, optional (default: False)
+            Exclude gaps and lowercase characters from identity
+            calculation. False is default for backwards compatiblity,
+            but it is recommended to use True.
         """
         self.__ensure_mapped_matrix()
 
-        # make sure this doesnt break with strings
+        # make sure this doesn't break with strings
         seq = np.array(list(seq))
-
         seq_mapped = map_matrix(seq, self.alphabet_map)
-        ids = identities_to_seq(seq_mapped, self.matrix_mapped)
+
+        # value to exclude from identity calculation (-1 if gaps should be included)
+        if exclude_invalid:
+            exclude_value = self.alphabet_map[self.alphabet_default]
+        else:
+            exclude_value = -1
+
+        ids = identities_to_seq(
+            seq_mapped, self.matrix_mapped, exclude_value
+        )
 
         if normalize:
-            return ids / self.L
+            l = (seq_mapped != exclude_value).sum()
+            return ids / l
         else:
             return ids
 
@@ -1154,7 +1265,7 @@ def pair_frequencies(matrix, seq_weights, num_symbols, fi):
 
 
 @jit(nopython=True)
-def identities_to_seq(seq, matrix):
+def identities_to_seq(seq, matrix, exclude_value):
     """
     Calculate number of identities to given target sequence
     for all sequences in the matrix
@@ -1168,6 +1279,9 @@ def identities_to_seq(seq, matrix):
         N x L matrix containing N sequences of length L.
         Matrix must be mapped to range(0, num_symbols)
         using map_matrix function
+    exclude_value : int
+        Value >= 0 in mapped sequences that will be excluded from identity calculation, e.g. gap or lowercase character.
+        Set to -1 to enable legacy behaviour which includes gaps in identity calculation.
 
     Returns
     -------
@@ -1178,10 +1292,13 @@ def identities_to_seq(seq, matrix):
     N, L = matrix.shape
     identities = np.zeros((N, ))
 
+    # iterate through sequences in matrix
     for i in range(N):
         id_i = 0
+
+        # iterate through positions
         for j in range(L):
-            if matrix[i, j] == seq[j]:
+            if matrix[i, j] == seq[j] and matrix[i, j] != exclude_value:
                 id_i += 1
 
         identities[i] = id_i
@@ -1190,10 +1307,17 @@ def identities_to_seq(seq, matrix):
 
 
 @jit(nopython=True)
-def num_cluster_members(matrix, identity_threshold):
+def num_cluster_members_legacy(matrix, identity_threshold):
     """
     Calculate number of sequences in alignment
     within given identity_threshold of each other
+
+    Note: This function will treat gaps like any other amino acid,
+    i.e. a gap in either sequence will be counted as a match;
+    potentially giving misleading results (which is consistent
+    with how most early tools handled this case). At this point,
+    we recommend to use num_cluster_members_parallel to
+    exclude gaps from the calculation.
 
     Parameters
     ----------
@@ -1216,7 +1340,7 @@ def num_cluster_members(matrix, identity_threshold):
     L = 1.0 * L
 
     # minimal cluster size is 1 (self)
-    num_neighbors = np.ones((N))
+    num_neighbors = np.ones((N, ))
 
     # compare all pairs of sequences
     for i in range(N - 1):
@@ -1229,5 +1353,81 @@ def num_cluster_members(matrix, identity_threshold):
             if pair_id / L >= identity_threshold:
                 num_neighbors[i] += 1
                 num_neighbors[j] += 1
+
+    return num_neighbors
+
+
+@jit(nopython=True, parallel=True)
+def num_cluster_members_parallel(matrix, identity_threshold, exclude_value):
+    """
+    Calculate number of sequences in alignment
+    within given identity_threshold of each other
+
+    Note: Unlike num_cluster_members_legacy, this function allows to exclude gaps
+    from the calculation, which is now the recommended approach.
+
+    Note: When excluding gaps from the calculation, the resulting matrix will
+    typically not be symmetric.
+
+    The function will by default use the available number of threads
+    (as returned by numba.get_num_threads()). If a different number should
+    be used, the caller is responsible to set the number of threads with
+    numba.set_num_threads
+
+    Parameters
+    ----------
+    matrix : np.array
+        N x L matrix containing N sequences of length L.
+        Matrix must be mapped to range(0, num_symbols) using
+        map_matrix function
+    identity_threshold : float
+        Sequences with at least this pairwise identity will be
+        grouped in the same cluster.
+    exclude_value : int
+        Value >= 0 in matrix that will be excluded from identity calculation, e.g. gap or lowercase character.
+        Set to -1 to enable legacy behaviour num_cluster_members_legacy which includes gaps in identity calculation.
+
+    Returns
+    -------
+    np.array
+        Vector of length N containing number of cluster
+        members for each sequence (inverse of sequence
+        weight)
+    """
+    N, L = matrix.shape
+
+    # minimal cluster size is 1 (self) but for parallelization we set the self-hit below inside the loop
+    # and initialize to zero here
+    num_neighbors = np.zeros((N, ))
+
+    # determine relevant sequence lengths; only count positions without gaps unlike explicitly requesting
+    # legacy behaviour (in this case all entry of L_seq will be == L)
+    L_seq = np.sum(matrix != exclude_value, axis=1)
+
+    # compare all pairs of sequences; we cannot assume symmetry of the resulting matrix here due to exclusion of
+    # gaps (this is also convenient for parallelizing the outer loop); no speedup from using a separate function
+    # with regular range(N) in single-thread case so can always use this function
+    for i in prange(N):
+        # always set cluster size to 1 / self-hit (i == j)
+        num_neighbors_i = 1
+
+        # compare to all other sequences (do not assume symmetry per comment above)
+        for j in range(N):
+            # simply skip on self-hit, we already initialized cluster size to 1 above
+            if i == j:
+                continue
+
+            # compare all positions between both sequences, not counting gaps or other invalid characters
+            # unless specifically requested
+            matches = 0
+            for k in range(L):
+                if matrix[i, k] == matrix[j, k] and matrix[i, k] != exclude_value:
+                    matches += 1
+
+            # calculate identity as fraction of non-gapped positions (i.e. similarity will typically be asymmetric)
+            if matches / L_seq[i] >= identity_threshold:
+                num_neighbors_i += 1
+
+        num_neighbors[i] = num_neighbors_i
 
     return num_neighbors

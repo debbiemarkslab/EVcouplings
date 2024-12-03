@@ -52,7 +52,8 @@ def parse_plmc_log(log):
         "seqs": re.compile("(\d+) valid sequences out of (\d+)"),
         "sites": re.compile("(\d+) sites out of (\d+)"),
         "region": re.compile("Region starts at (\d+)"),
-        "samples": re.compile("Effective number of samples: (\d+\.\d+)"),
+        # first match group catches ' (to 1 decimal place)' when loading existing weights file
+        "samples": re.compile("Effective number of samples(.*): (\d+\.\d+)"),
         "optimization": re.compile("Gradient optimization: (.+)")
     }
 
@@ -95,7 +96,7 @@ def parse_plmc_log(log):
         pass
 
     valid_seqs, total_seqs = map(int, matches["seqs"])
-    eff_samples = float(matches["samples"][0])
+    eff_samples = float(matches["samples"][1])
     opt_status = matches["optimization"][0]
 
     return (
@@ -127,7 +128,7 @@ def run_plmc(alignment, couplings_file, param_file=None,
              focus_seq=None, alphabet=None, theta=None,
              scale=None, ignore_gaps=False, iterations=None,
              lambda_h=None, lambda_J=None, lambda_g=None,
-             cpu=None, binary="plmc"):
+             weight_file=None, cpu=None, binary="plmc"):
     """
     Run plmc on sequence alignment and store
     files with model parameters and pair couplings.
@@ -175,6 +176,9 @@ def run_plmc(alignment, couplings_file, param_file=None,
     lambda_g : float, optional (default: None)
         group l1-regularization strength on couplings
         If None, plmc default will be used.
+    weight_file : str, optional (default: None)
+        Path to file with sequence weights (one per line)
+        to use instead of calculating weights with plmc.
     cpu : Number of cores to use for running plmc.
         Note that plmc has to be compiled in openmp
         mode to runnable with multiple cores.
@@ -254,6 +258,9 @@ def run_plmc(alignment, couplings_file, param_file=None,
     if lambda_g is not None:
         cmd += ["-lg", str(lambda_g)]
 
+    if weight_file is not None:
+        cmd += ["-w", weight_file]
+
     # Number of cores to use for calculation
     if cpu is not None:
         cmd += ["-n", str(cpu)]
@@ -264,6 +271,15 @@ def run_plmc(alignment, couplings_file, param_file=None,
     # TODO: for now do not check returncode because sometimes
     # returncode == -11 (segfault) despite successful calculation
     return_code, stdout, stderr = run(cmd, check_returncode=False)
+
+    # save plmc output to separate log file for easier inspection if problems occur
+    with open(couplings_file + ".log", "w") as f:
+        f.write(f"cmd: {' '.join(cmd)}\n")
+        f.write(f"return_code: {return_code}\n")
+        f.write(f"stderr:\n")
+        f.write(stderr + "\n\n")
+        f.write(f"stdout:\n")
+        f.write(stdout + "\n")
 
     # TODO: remove this segfault-hunting output if fixed in plmc
     if return_code != 0:
