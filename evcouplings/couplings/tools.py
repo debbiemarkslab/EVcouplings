@@ -52,7 +52,8 @@ def parse_plmc_log(log):
         "seqs": re.compile("(\d+) valid sequences out of (\d+)"),
         "sites": re.compile("(\d+) sites out of (\d+)"),
         "region": re.compile("Region starts at (\d+)"),
-        "samples": re.compile("Effective number of samples: (\d+\.\d+)"),
+        # first match group catches ' (to 1 decimal place)' when loading existing weights file
+        "samples": re.compile("Effective number of samples(.*): (\d+\.\d+)"),
         "optimization": re.compile("Gradient optimization: (.+)")
     }
 
@@ -95,7 +96,7 @@ def parse_plmc_log(log):
         pass
 
     valid_seqs, total_seqs = map(int, matches["seqs"])
-    eff_samples = float(matches["samples"][0])
+    eff_samples = float(matches["samples"][1])
     opt_status = matches["optimization"][0]
 
     return (
