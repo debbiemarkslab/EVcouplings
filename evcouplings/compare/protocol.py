@@ -621,8 +621,16 @@ def _map_alphafold_hits(modeldb_list_file, relevant_ids):
                     "uniprot_end": end,
                 })
 
-    return pd.DataFrame(_table)
-
+    if len(_table) > 0:
+        return pd.DataFrame(_table)
+    else:
+        # reindex so empty dataframe has all columns; use fill_value = "" to force column types to object
+        return pd.DataFrame().reindex([
+            "uniprot_ac", "pdb_id", "pdb_chain",
+            "resseq_start", "resseq_end",
+            "coord_start", "coord_end",
+            "uniprot_start", "uniprot_end"
+        ], axis=1, fill_value="")
 
 def _identify_predicted_structures(**kwargs):
     """
