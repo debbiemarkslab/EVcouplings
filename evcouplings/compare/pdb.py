@@ -4,11 +4,11 @@ PDB structure handling based on MMTF format
 Authors:
   Thomas A. Hopf
 """
-
+import io
 from collections import OrderedDict
 from collections.abc import Iterable
 import gzip
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
 from os import path
 from urllib.error import HTTPError
 
@@ -27,6 +27,7 @@ from evcouplings.utils.system import (
 )
 
 PDB_BCIF_DOWNLOAD_URL = "https://models.rcsb.org/{pdb_id}.bcif.gz"
+PDB_CIF_DOWNLOAD_URL = "https://files.rcsb.org/download/{pdb_id}.cif.gz"
 
 
 # Mapping from MMTF secondary structure codes to DSSP symbols
@@ -676,7 +677,7 @@ class PDB:
             if binary:
                 mode = "rb"
             else:
-                mode = "r"
+                mode = "rt"
 
             with openfunc(filename, mode=mode) as f:
                 return cls(f, binary=binary, keep_full_data=keep_full_data)
@@ -704,13 +705,15 @@ class PDB:
         """
         # TODO: add proper retry logic and timeouts
         # TODO: add better exception handling
+
+        # easy toggle if we want to switch back to bCIF instead of mmCIF
         try:
             r = requests.get(
-                PDB_BCIF_DOWNLOAD_URL.format(pdb_id=pdb_id.lower())
+                PDB_CIF_DOWNLOAD_URL.format(pdb_id=pdb_id.lower())
             )
         except requests.exceptions.RequestException as e:
             raise ResourceError(
-                "Error fetching bCIF data for {}".format(pdb_id)
+                "Error fetching CIF data for {}".format(pdb_id)
             ) from e
 
         if not r.ok:
@@ -718,8 +721,20 @@ class PDB:
                 "Did not receive valid response fetching {}".format(pdb_id)
             )
 
-        with gzip.GzipFile(fileobj=BytesIO(r.content), mode="r") as f:
-            return cls(f, keep_full_data=keep_full_data)
+        # bCIF:
+        #     with gzip.GzipFile(fileobj=BytesIO(r.content), mode="r") as f:
+        #        return cls(f, binary=True, keep_full_data=keep_full_data)
+
+        # following gzip.open() from https://github.com/python/cpython/blob/3.13/Lib/gzip.py
+        with TextIOWrapper(
+            gzip.GzipFile(fileobj=BytesIO(r.content), mode="r"),  # noqa
+            encoding="utf-8",
+            errors=None,
+            newline=None,
+        ) as f:
+            return cls(
+                f, binary=False, keep_full_data=keep_full_data
+            )
 
     def get_chain(self, chain, model=0, is_author_id=True):
         """
