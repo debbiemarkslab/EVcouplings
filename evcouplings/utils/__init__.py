@@ -42,3 +42,9 @@ class BailoutException(Exception):
     """
     Exception for pipeline stopping itself (e.g. if no sequences found)
     """
+
+class TerminatedException(Exception):
+    """
+    Exception for pipeline crashing due to external constraint that (e.g. denied memory allocation),
+    but does not lead to the job being terminated with a signal
+    """
