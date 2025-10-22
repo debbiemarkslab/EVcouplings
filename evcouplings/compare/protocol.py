@@ -835,7 +835,8 @@ def models(**kwargs):
     if len(sifts_map.hits) > 0:
         d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
-            output_prefix=aux_prefix + "model_distmap_intra"
+            output_prefix=aux_prefix + "model_distmap_intra",
+            raise_missing=False
         )
 
         residue_table_filename, dist_mat_filename = d_intra.to_file(outcfg["model_distmap_monomer"])
@@ -1057,7 +1058,8 @@ def standard(**kwargs):
     if len(sifts_map.hits) > 0:
         d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
-            output_prefix=aux_prefix + "_distmap_intra"
+            output_prefix=aux_prefix + "_distmap_intra",
+            raise_missing=False
         )
 
         residue_table_filename, dist_mat_filename = d_intra.to_file(outcfg["distmap_monomer"])
