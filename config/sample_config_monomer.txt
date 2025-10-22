@@ -428,9 +428,9 @@ databases:
     sifts_sequence_db: /n/groups/marks/databases/SIFTS/pdb_chain_uniprot_plus_current.o2.fasta
 
     # Mapping onto predicted 3D structure models
-    # modeldb_type: alphafolddb_v4
-    # modeldb_sequence_file: /n/groups/marks/databases/alphafolddb/2022-11-14/sequences.fasta
-    # modeldb_list_file: /n/groups/marks/databases/alphafolddb/2022-11-14/accession_ids.csv
+    # modeldb_type: alphafolddb
+    # modeldb_sequence_file: /n/groups/marks/databases/alphafolddb/2025-10-22/sequences.fasta
+    # modeldb_list_file: /n/groups/marks/databases/alphafolddb/2025-10-22/accession_ids.csv
     # modeldb_file_dir:
 
 # Paths to external tools used by evcouplings. Please refer to README.md for installation instructions and which tools are required.
