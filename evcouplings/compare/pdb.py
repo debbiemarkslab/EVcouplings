@@ -20,7 +20,7 @@ from Bio.PDB.binary_cif import _decode
 from Bio.PDB.MMCIF2Dict import MMCIF2Dict
 
 from evcouplings.utils.config import InvalidParameterError
-from evcouplings.utils.constants import AA3_to_AA1
+from evcouplings.utils.constants import AA3_to_AA1, AA3_to_AA1_FULL
 from evcouplings.utils.helpers import DefaultOrderedDict
 from evcouplings.utils.system import (
     valid_file, ResourceError, tempdir
@@ -788,7 +788,7 @@ class PDB:
             # (this should be unique and circumvents issues from 0 seqres values if selecting based on author chain ID)
             coord_id=lambda df: df.auth_seq_id.astype(str) + df.insertion_code,
             seqres_id=lambda df: df.label_seq_id.astype(str).replace("0", pd.NA).replace("", pd.NA),
-            one_letter_code=lambda df: df.label_comp_id.map(AA3_to_AA1, na_action="ignore"),
+            one_letter_code=lambda df: df.label_comp_id.map(AA3_to_AA1_FULL, na_action="ignore"),
             # note that MSE will now be labeled as HETATM, which was not the case with MMTF
             hetatm=lambda df: df.record_type == "HETATM",
         ).reset_index(
