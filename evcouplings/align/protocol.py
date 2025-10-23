@@ -943,10 +943,11 @@ def modify_alignment(focus_ali, target_seq_index, target_seq_id, region_start, *
             min_col_cov /= 100
 
         lc_cols = ali.count(ali._match_gap, axis="pos") > 1 - min_col_cov
-        ali = ali.lowercase_columns(lc_cols)
 
-        # if we remove columns, we have to update list of positions
-        pos_list = pos_list[~lc_cols]
+        if lc_cols.sum() > 0:
+            ali = ali.lowercase_columns(lc_cols)
+            # if we remove columns, we have to update list of positions
+            pos_list = pos_list[~lc_cols]
     else:
         lc_cols = None
 
