@@ -32,7 +32,7 @@ from evcouplings.utils.system import (
 from evcouplings.utils.tracker import (
     get_result_tracker, EStatus
 )
-from evcouplings.utils import BailoutException
+from evcouplings.utils import BailoutException, TerminatedException
 
 import evcouplings.align.protocol as ap
 import evcouplings.couplings.protocol as cp
@@ -522,6 +522,13 @@ def execute_wrapped(**config):
             extension = EXTENSION_BAILOUT
             status = EStatus.BAILOUT
             message = "Pipeline bailed out of execution: {}".format(
+                formatted_exception
+            )
+        elif isinstance(e, TerminatedException):
+            # exception remapped to termination (e.g. denied memory allocation)
+            extension = EXTENSION_TERMINATED
+            status = EStatus.TERM
+            message = "Terminated with exception: {}".format(
                 formatted_exception
             )
         else:

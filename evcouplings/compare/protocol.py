@@ -36,7 +36,7 @@ from evcouplings.compare.ecs import (
 from evcouplings.visualize import pairs, misc
 
 SIFTS_TABLE_FORMAT_STR = "{pdb_id}:{pdb_chain} ({coord_start}-{coord_end})"
-AVAILABLE_MODEL_DB_TYPES = ["alphafolddb_v4"]
+AVAILABLE_MODEL_DB_TYPES = ["alphafolddb"]
 ALPHAFOLDDB_DOWNLOAD_URL = "https://alphafold.ebi.ac.uk/files/{id}.cif"
 
 
@@ -664,7 +664,7 @@ def _identify_predicted_structures(**kwargs):
         )
 
     table_callback = None
-    if modeldb_type == "alphafolddb_v4":
+    if modeldb_type == "alphafolddb":
         table_callback = lambda ali, hits: (
             _map_alphafold_hits(
                 kwargs["modeldb_list_file"], set(hits.uniprot_ac)
@@ -732,7 +732,7 @@ def _load_models(model_ids, modeldb_type, structure_dir=None, raise_missing=True
         )
 
     # implement database-specific retrieval behaviour here
-    if modeldb_type == "alphafolddb_v4":
+    if modeldb_type == "alphafolddb":
         make_download_url = lambda model_id: ALPHAFOLDDB_DOWNLOAD_URL.format(id=model_id)
 
     structures = {}
@@ -835,7 +835,8 @@ def models(**kwargs):
     if len(sifts_map.hits) > 0:
         d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
-            output_prefix=aux_prefix + "model_distmap_intra"
+            output_prefix=aux_prefix + "model_distmap_intra",
+            raise_missing=False
         )
 
         residue_table_filename, dist_mat_filename = d_intra.to_file(outcfg["model_distmap_monomer"])
@@ -1057,7 +1058,8 @@ def standard(**kwargs):
     if len(sifts_map.hits) > 0:
         d_intra = intra_dists(
             sifts_map, structures, atom_filter=kwargs["atom_filter"],
-            output_prefix=aux_prefix + "_distmap_intra"
+            output_prefix=aux_prefix + "_distmap_intra",
+            raise_missing=False
         )
 
         residue_table_filename, dist_mat_filename = d_intra.to_file(outcfg["distmap_monomer"])

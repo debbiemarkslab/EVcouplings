@@ -9,8 +9,10 @@ Authors:
 
 from collections import namedtuple
 import pandas as pd
+
+from evcouplings.utils import TerminatedException
 from evcouplings.utils.system import (
-    run, create_prefix_folders, verify_resources, temp
+    run, create_prefix_folders, verify_resources, temp, ExternalToolError
 )
 from evcouplings.utils.config import check_required
 
@@ -353,7 +355,21 @@ def run_jackhmmer(query, database, prefix,
 
     cmd += [query, database]
 
-    return_code, stdout, stderr = run(cmd)
+    return_code, stdout, stderr = run(
+        cmd, check_returncode=False
+    )
+
+    # override return code checking here, -9 equals out of memory due to denied memory allocation
+    # (but job not being terminated)
+    if return_code != 0:
+        message = "Call failed:\ncmd={}\nreturncode={}\nstdout={}\nstderr={}".format(
+            cmd, return_code, stdout, stderr
+        )
+
+        if return_code == -9:
+            raise TerminatedException(message)
+        else:
+            raise ExternalToolError(message)
 
     # also check we actually created some sort of alignment
     verify_resources(
