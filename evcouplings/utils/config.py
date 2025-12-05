@@ -11,6 +11,7 @@ Authors:
 """
 
 from ruamel.yaml import YAML
+from ruamel.yaml.error import MarkedYAMLError
 
 
 class MissingParameterError(Exception):
@@ -43,11 +44,11 @@ def parse_config(config_str):
     yaml = YAML(typ='safe', pure=True)
     try:
         return yaml.load(config_str)
-    except yaml.parser.ParserError as e:
+    except MarkedYAMLError as e:
         raise InvalidParameterError(
             "Could not parse input configuration. "
             "Formatting mistake in config file? "
-            "See ParserError above for details."
+            "See MarkedYAMLError above for details."
         ) from e
 
 
