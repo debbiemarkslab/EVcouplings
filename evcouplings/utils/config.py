@@ -25,7 +25,7 @@ class InvalidParameterError(Exception):
     """
 
 
-def parse_config(config_str, preserve_order=False):
+def parse_config(config_str):
     """
     Parse a configuration string
 
@@ -33,15 +33,13 @@ def parse_config(config_str, preserve_order=False):
     ----------
     config_str : str
         Configuration to be parsed
-    preserve_order : bool, optional (default: True)
-        Preserve formatting of input configuration
-        string
 
     Returns
     -------
     dict
         Configuration dictionary
     """
+    # uses round-trip loader by default, preserving order
     yaml = YAML(typ='safe', pure=True)
     try:
         return yaml.load(config_str)
@@ -53,7 +51,7 @@ def parse_config(config_str, preserve_order=False):
         ) from e
 
 
-def read_config_file(filename, preserve_order=False):
+def read_config_file(filename):
     """
     Read and parse a configuration file.
 
@@ -68,7 +66,7 @@ def read_config_file(filename, preserve_order=False):
         Configuration dictionary
     """
     with open(filename) as f:
-        return parse_config(f, preserve_order)
+        return parse_config(f)
 
 
 def write_config_file(out_filename, config):
