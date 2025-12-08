@@ -84,9 +84,7 @@ def write_config_file(out_filename, config):
     yaml = YAML(typ='safe', pure=True)
     yaml.default_flow_style = False
     with open(out_filename, "w") as f:
-        f.write(
-            yaml.dump(config)
-        )
+        yaml.dump(config, f)
 
 
 def check_required(params, keys):
