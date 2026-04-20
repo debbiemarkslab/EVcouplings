@@ -298,7 +298,7 @@ def read_a3m(fileobj, inserts="first"):
             # since each sequence must have same number of
             # uppercase letters or match gaps -, this gives
             # the final sequence in alignment
-            seq = "".join([c for c in seq if c == c.upper() and c != "."])
+            filled_seq = "".join([c for c in seq if c == c.upper() and c != "."])
         else:
             raise ValueError(
                 "Invalid option for inserts: {}".format(inserts)
